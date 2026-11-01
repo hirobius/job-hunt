@@ -18,9 +18,10 @@ export const WATCH_GROUP_LABEL = 'Watched companies';
 export type WatchResult = { ok: true; label: string } | { ok: false; error: string };
 
 const NOT_A_BOARD =
-  "That isn't a Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio job board. Open the company's careers page and copy the board link — " +
+  "That isn't a Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio, BambooHR, Rippling, Gem, Pinpoint or Breezy HR job board. Open the company's careers page and copy the board link — " +
   'it looks like jobs.ashbyhq.com/company, jobs.lever.co/company, boards.greenhouse.io/company, apply.workable.com/company, company.recruitee.com, ' +
-  'jobs.smartrecruiters.com/company, company.teamtailor.com or company.jobs.personio.de.';
+  'jobs.smartrecruiters.com/company, company.teamtailor.com, company.jobs.personio.de, company.bamboohr.com/careers, ats.rippling.com/company/jobs, ' +
+  'jobs.gem.com/company, company.pinpointhq.com or company.breezy.hr.';
 
 /** Every tile URL on the track's live (non-archived) groups — the feed picks the boards out. */
 export function boardUrlsFor(categoryId: string, s: CurationState = getCurationState()): string[] {

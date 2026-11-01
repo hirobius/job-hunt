@@ -96,7 +96,13 @@ function watchForStale() {
  *  stored URLs of jobs this save added (already-saved ones are left out by the caller); those in
  *  `restored` were set aside before, so Undo sets them aside again instead of removing them. Undo
  *  never removes a job the user has moved past Saved since (#219). */
-export function notifySaved(urls: string[], _label?: string, restored: string[] = []) {
+export function notifySaved(
+  urls: string[],
+  _label?: string,
+  restored: string[] = [],
+  /** Also run on Undo (Review new: the save's follow is taken back too). */
+  onUndo?: () => void,
+) {
   if (!urls.length) return;
   const one = urls.length === 1;
   const savedOn = getRoute();
@@ -116,15 +122,24 @@ export function notifySaved(urls: string[], _label?: string, restored: string[] 
       },
       {
         label: 'Undo',
-        run: () =>
+        run: () => {
           urls.forEach((u) => {
             if (restored.includes(u)) updateJob(u, { archived: true });
             else if (findJobByUrl(u)?.status === 'Saved') removeJob(u);
-          }),
+          });
+          onUndo?.();
+        },
       },
     ],
   });
 }
+
+/** A quick-add link (?add=) whose link is not one a job can be saved under. */
+export const QUICK_ADD_INVALID = 'That quick-add link has no job link in it, so nothing was saved.';
+
+/** A quick-add link (?status=) whose status is not one of STATUSES. */
+export const quickAddBadStatus = (status: string) =>
+  `That quick-add link’s “${status}” is not a status, so nothing was saved.`;
 
 /** Quick-save a link and say what happened: it landed in To apply (a new job, or a set-aside one
  *  brought back, #219), or it was already in the Pipeline (with Open, so a second paste, a tile

@@ -198,3 +198,44 @@ describe('canonicalBoardUrl', () => {
     expect(parseBoardUrl(url)).toEqual(board);
   });
 });
+
+describe('closing dates and first-seen (#419)', () => {
+  const gh = {
+    id: 9,
+    title: 'Designer',
+    absolute_url: 'https://boards.greenhouse.io/acme/jobs/9',
+    first_published: '2026-10-01T00:00:00-04:00',
+  };
+  it.each([
+    // Greenhouse's job board API, read live 2026-10-28: `application_deadline`, null when unset.
+    ['2026-11-01T23:45:00-05:00', '2026-11-01'],
+    [null, undefined],
+    ['soon', undefined],
+  ])('Greenhouse application_deadline %s → deadline %s', (raw, day) => {
+    expect(parseGreenhouseJob({ ...gh, application_deadline: raw }, 'acme')!.deadline).toBe(day);
+  });
+
+  it('fetchBoard stamps when the feed first read each posting', async () => {
+    const before = Date.now();
+    const [p] = await fetchBoard({ kind: 'greenhouse', slug: 'acme' }, async () => ({
+      jobs: [gh],
+    }));
+    expect(Date.parse(p.discoveredAt!)).toBeGreaterThanOrEqual(before - 1000);
+  });
+});
+
+describe('stampSeen (#419)', () => {
+  it('keeps the first stamp across re-reads of the same posting', async () => {
+    const { stampSeen } = await import('./http');
+    const [first] = stampSeen<{ id: string; discoveredAt?: string }>(
+      [{ id: 'x:1' }],
+      '2026-10-25T00:00:00.000Z',
+    );
+    const [again] = stampSeen<{ id: string; discoveredAt?: string }>(
+      [{ id: 'x:1' }],
+      '2026-10-28T00:00:00.000Z',
+    );
+    expect(first.discoveredAt).toBe('2026-10-25T00:00:00.000Z');
+    expect(again.discoveredAt).toBe('2026-10-25T00:00:00.000Z');
+  });
+});

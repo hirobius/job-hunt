@@ -3,6 +3,7 @@ import { preloadViews } from '../routeViews';
 import { resetPipelineView } from '../pipelineView';
 import { closeExportLinks } from '../exportLinks';
 import { closeFollowUp } from '../followUpFlow';
+import { closeAddInterview, closeRecentlyRemoved } from '../jobDialogs';
 import { configure } from '@testing-library/react';
 import { resetTabMemory } from '../tabMemory';
 import { resetViewMemory } from '../viewMemory';
@@ -22,13 +23,19 @@ beforeEach(resetPipelineView);
 
 // The shell's route views load on demand (routeViews.ts); load them up front so a test sees the
 // Pipeline, job page, Apply mode and Company page on the first render, as before the split.
-// beforeAll, not at import: the test file's vi.mock calls must be registered first.
-beforeAll(() => preloadViews());
+// beforeAll, not at import: the test file's vi.mock calls must be registered first. The sign-in and
+// Export links dialogs load on their first open (#371): fetched here too.
+beforeAll(() =>
+  Promise.all([preloadViews(), import('../lazyDialogs').then((m) => m.preloadDialogs())]),
+);
 
 // The follow-up dialog's open job is in-memory too: no test starts with it open.
 beforeEach(closeFollowUp);
 // …and so is the Export links dialog's scope.
 beforeEach(closeExportLinks);
+// …and the Add interview and Recently removed dialogs' open state (#416).
+beforeEach(closeAddInterview);
+beforeEach(closeRecentlyRemoved);
 
 // A document's unsaved draft is kept for the tab (docDrafts.ts): no test inherits another's.
 beforeEach(() => sessionStorage.clear());

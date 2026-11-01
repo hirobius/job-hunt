@@ -1,5 +1,6 @@
 // Export links (2026-10-22): the saved jobs' posting links as a list to copy or download. Opened
-// from the Pipeline's Jobs panel (on "This view") and the Account menu (on "All saved jobs").
+// from the Account menu only (#416: off the Jobs page), on "All saved jobs"; "This view" is the
+// Jobs list as filtered and searched.
 // Tested at the route seam through App, driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -91,17 +92,21 @@ afterEach(() => {
 
 const preview = () => screen.getByRole('textbox', { name: 'Preview' }) as HTMLTextAreaElement;
 
-async function openFromPipeline(user: ReturnType<typeof userEvent.setup>) {
-  const jobs = screen.getByRole('region', { name: 'Jobs' });
-  await user.click(within(jobs).getByRole('button', { name: 'Export links' }));
-  return screen.findByRole('dialog', { name: 'Export links' });
+/** Open it from the Account menu and pick This view, the Jobs list as it stands. */
+async function openOnThisView(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /^Account/ }));
+  const menu = await screen.findByRole('menu');
+  await user.click(within(menu).getByRole('menuitem', { name: 'Export links' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Export links' });
+  await user.click(within(dialog).getByRole('radio', { name: /^This view/ }));
+  return dialog;
 }
 
 describe('Export links', () => {
-  it('opens from the Jobs panel on this view, links only, in the view order', async () => {
+  it('This view is the Jobs list: links only, in the view order', async () => {
     const user = userEvent.setup();
     renderApp();
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     const scope = within(dialog).getByRole('radiogroup', { name: 'Jobs' });
     expect(within(scope).getByRole('radio', { name: 'This view (1)' })).toBeChecked();
     expect(within(scope).getByRole('radio', { name: 'All saved jobs (2)' })).not.toBeChecked();
@@ -113,7 +118,7 @@ describe('Export links', () => {
   it('switches scope and format', async () => {
     const user = userEvent.setup();
     renderApp();
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     await user.click(within(dialog).getByRole('radio', { name: 'All saved jobs (2)' }));
     expect(preview().value).toBe(`${ACME}\n${ZENITH}`);
     await user.click(within(dialog).getByRole('radio', { name: 'With title and company' }));
@@ -127,7 +132,7 @@ describe('Export links', () => {
     await user.click(screen.getByRole('button', { name: 'Status: Active' }));
     await user.click(await screen.findByRole('menuitemradio', { name: /^All/ }));
     await user.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zenith');
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     expect(within(dialog).getByRole('radio', { name: 'This view (1)' })).toBeChecked();
     expect(preview().value).toBe(ZENITH);
   });
@@ -136,7 +141,7 @@ describe('Export links', () => {
     replaceAll([job(ACME, 'Welder', 'Acme'), job('notes:fabricator', 'Fabricator', 'Bolt')]);
     const user = userEvent.setup();
     renderApp();
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     await user.click(within(dialog).getByRole('radio', { name: /^All saved jobs/ }));
     expect(
       within(dialog).getByText("1 link. 1 job has no link, so it's left out."),
@@ -147,7 +152,7 @@ describe('Export links', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
     const user = userEvent.setup();
     renderApp();
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     await user.click(within(dialog).getByRole('radio', { name: 'All saved jobs (2)' }));
     await user.click(within(dialog).getByRole('button', { name: 'Copy' }));
     expect(writeText).toHaveBeenCalledWith(`${ACME}\n${ZENITH}`);
@@ -158,7 +163,7 @@ describe('Export links', () => {
     vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('blocked'));
     const user = userEvent.setup();
     renderApp();
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     await user.click(within(dialog).getByRole('button', { name: 'Copy' }));
     await waitFor(() => expect(preview()).toHaveFocus());
     expect(preview().selectionStart).toBe(0);
@@ -169,7 +174,7 @@ describe('Export links', () => {
   it('downloads a .txt named after the brand and the date', async () => {
     const user = userEvent.setup();
     renderApp();
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     await user.click(within(dialog).getByRole('radio', { name: 'With title and company' }));
     await user.click(within(dialog).getByRole('button', { name: 'Download .txt' }));
     expect(downloads).toHaveLength(1);
@@ -198,18 +203,9 @@ describe('Export links', () => {
     replaceAll([job('notes:fabricator', 'Fabricator', 'Bolt')]);
     const user = userEvent.setup();
     renderApp();
-    const dialog = await openFromPipeline(user);
+    const dialog = await openOnThisView(user);
     expect(within(dialog).getByRole('button', { name: 'Copy' })).toBeDisabled();
     expect(within(dialog).getByRole('button', { name: 'Download .txt' })).toBeDisabled();
   });
 
-  it('sits in the Jobs panel overflow menu on a phone', async () => {
-    viewport(390);
-    const user = userEvent.setup();
-    renderApp();
-    const jobs = screen.getByRole('region', { name: 'Jobs' });
-    await user.click(within(jobs).getByRole('button', { name: 'More job actions' }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Export links' }));
-    expect(await screen.findByRole('dialog', { name: 'Export links' })).toBeInTheDocument();
-  });
 });

@@ -3,13 +3,8 @@
 import { expect, type Page } from '@playwright/test';
 
 export const ROUTES = [
+  '#/today',
   '#/queue',
-  '#/discover',
-  '#/discover/apply',
-  '#/discover/ats',
-  '#/discover/live',
-  '#/discover/boards',
-  '#/discover/teams',
   '#/copy-deck',
   '#/copy-deck/tpl-outreach',
   '#/legal/privacy',
@@ -20,10 +15,13 @@ export const ROUTES = [
   '#/nope',
 ];
 
+/** The production build's preview (playwright.config.ts), for specs that time the app. */
+export const PROD_URL = 'http://localhost:4173';
+
 /** A Greenhouse posting the seed adds on top of the sample data. */
 export const BOARD_JOB = 'https://boards.greenhouse.io/acme/jobs/77';
 
-/** Sample data (with its Sample track, from the first starter pack), landing on Apply now. */
+/** Sample data (with its Sample track, from the first starter pack), landing on Today. */
 export async function seed(page: Page) {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
@@ -36,8 +34,8 @@ export async function seed(page: Page) {
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await addStarters(page);
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/discover/apply');
-  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
+  await go(page, '#/today');
+  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
 /** Add the starter messages from Documents' empty state (a first run adds none). */

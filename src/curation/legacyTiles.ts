@@ -1,4 +1,4 @@
-// The one-time fold of legacy "user tiles" (links pasted into the retired Apprenticeships board,
+// The one-time fold of legacy "user tiles" (links pasted into the first, retired curated board,
 // once stored under rjb_user_tiles and in the v3 sync blob) into the curation model (#99).
 // Pure: (state, tiles) → state. Tiles land in a "My links" group placed LAST in the first track,
 // so it never becomes a track's featured first group; URLs already on the board are skipped,

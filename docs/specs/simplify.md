@@ -2,6 +2,8 @@
 
 The full spec, with the inventory, three designs and phone mocks, is [`simplify.html`](simplify.html). This file is the text summary of the decision.
 
+**Status: shipped.** Picked 2026-10-28 and built in #383–#390 and #414–#416. This is a historical record; the live behaviour is in CLAUDE.md, CONTEXT.md and ADR 0009.
+
 ## Decision (Adrian, 2026-10-28)
 
 Adrian picked **design C, the Today home**, on one hard condition: **no loss of breadth.** He wants as many distinct design-system openings as possible, in a list he can click through and apply from.

@@ -1,0 +1,32 @@
+[
+  {
+    "last_updated": 1761696000,
+    "legal": "API Terms of Service: Please link back (with follow, and without nofollow!) to the URL on Remote OK and mention Remote OK as a source, so we get traffic back from your site. If you do not we'll have to suspend API access."
+  },
+  {
+    "slug": "remote-senior-design-systems-engineer-acme-1100001",
+    "id": "1100001",
+    "epoch": 1761696000,
+    "date": "2026-10-29T00:00:00+00:00",
+    "company": "Acme",
+    "company_logo": "https://remoteok.com/assets/img/jobs/acme.png",
+    "position": "Senior Design Systems Engineer",
+    "tags": ["react", "design system"],
+    "description": "<p>Lead our <b>design system</b>.</p>",
+    "location": "Worldwide",
+    "salary_min": 140000,
+    "salary_max": 180000,
+    "url": "https://remoteok.com/remote-jobs/remote-senior-design-systems-engineer-acme-1100001"
+  },
+  {
+    "slug": "remote-sales-lead-1100002",
+    "id": "1100002",
+    "date": "2026-10-28T00:00:00+00:00",
+    "company": "Beta",
+    "position": "Sales Lead",
+    "tags": ["sales"],
+    "description": "Sell things.",
+    "location": "USA",
+    "url": "https://remoteok.com/remote-jobs/remote-sales-lead-1100002"
+  }
+]

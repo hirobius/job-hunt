@@ -16,7 +16,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
-import { buildBackup, parseBackup } from '../backup';
+import { buildBackup, MAX_BACKUP_CHARS, parseBackup } from '../backup';
 import { getAllJobs, replaceAll } from '../store';
 import { replaceSnippets } from '../copyDeckStore';
 import { replaceCurationState } from '../curation/curationStore';
@@ -74,6 +74,9 @@ const backupFile = (jobs: Job[]) =>
             kit: { fields: {}, answers: [] },
             sweeps: {},
             mustInclude: {},
+            profiles: [],
+            sources: [],
+            decided: [],
           },
           new Date('2026-10-12T00:00:00Z'),
         ),
@@ -91,12 +94,22 @@ describe('DataToolsProvider (via the account menu)', () => {
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
     await chooseAccountItem('Back up');
-    expect(downloads).toHaveLength(1);
+    await waitFor(() => expect(downloads).toHaveLength(1));
     expect(downloads[0].name).toMatch(
       new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`),
     );
     const r = parseBackup(await downloads[0].blob.text());
     expect(r.ok && r.backup.jobs.map((j) => j.url)).toEqual(['https://example.com/a']);
+  });
+
+  it('Back up warns when the file is over what Restore takes (#340)', async () => {
+    replaceAll([
+      { ...job('https://example.com/a', 'A'), notes: 'x'.repeat(MAX_BACKUP_CHARS) } as Job,
+    ]);
+    setup();
+    await chooseAccountItem('Back up');
+    expect(downloads).toHaveLength(1);
+    expect(await screen.findByText('This backup is too large to restore')).toBeTruthy();
   });
 
   it('toasts the reason for an invalid file', async () => {
@@ -110,7 +123,7 @@ describe('DataToolsProvider (via the account menu)', () => {
     setup();
     await upload(backupFile([job('https://example.com/new', 'New')]));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/Backup: 1 jobs/)).toBeTruthy();
+    expect(within(dialog).getByText(/Backup: 1 job,/)).toBeTruthy();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Merge into my data' }));
     expect(downloads).toHaveLength(0);
     expect(
@@ -118,6 +131,24 @@ describe('DataToolsProvider (via the account menu)', () => {
         .map((j) => j.url)
         .sort(),
     ).toEqual(['https://example.com/keep', 'https://example.com/new']);
+  });
+
+  it('counts what Replace changes in plain words, and marks Replace destructive (#338)', async () => {
+    replaceAll([job('https://example.com/old', 'Old')]);
+    setup();
+    await upload(
+      backupFile([job('https://example.com/a', 'A'), job('https://example.com/b', 'B')]),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Backup: 2 jobs, 0 documents')).toBeTruthy();
+    expect(within(dialog).getByText('Now: 1 job, 0 documents')).toBeTruthy();
+    expect(within(dialog).queryByText(/snippet/)).toBeNull();
+    const replace = within(dialog).getByRole('button', { name: 'Replace my data' });
+    expect(replace).toHaveClass('bg-feedback-bg-danger', 'text-feedback-danger');
+    const results = await axe(dialog, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+    });
+    expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
   });
 
   it('Replace saves a safety backup first, then replaces', async () => {
@@ -131,6 +162,44 @@ describe('DataToolsProvider (via the account menu)', () => {
     const safety = parseBackup(await downloads[0].blob.text());
     expect(safety.ok && safety.backup.jobs.map((j) => j.url)).toEqual(['https://example.com/old']);
     expect(getAllJobs().map((j) => j.url)).toEqual(['https://example.com/new']);
+  });
+
+  it('says what did not save when browser storage is full (#339)', async () => {
+    replaceAll([job('https://example.com/old', 'Old')]);
+    setup();
+    await upload(backupFile([job('https://example.com/new', 'New')]));
+    const dialog = await screen.findByRole('dialog');
+    const setItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (key === 'rjb_shortlist') throw new DOMException('full', 'QuotaExceededError');
+      setItem.call(this, key, value);
+    });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Replace my data' }));
+    expect(await screen.findByText("Restore didn't fully save")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Your browser's storage is full, so your jobs weren't saved. Reload to check what was kept. The safety copy of your data from before is in your downloads.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it('Merge that does not fully save points to reload, with no safety copy (#339)', async () => {
+    setup();
+    await upload(backupFile([job('https://example.com/new', 'New')]));
+    const dialog = await screen.findByRole('dialog');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Merge into my data' }));
+    expect(
+      await screen.findByText(
+        /so your jobs, documents, .* weren't saved\. Reload to check what was kept\.$/,
+      ),
+    ).toBeTruthy();
   });
 
   it('Export CSV is disabled with no jobs and downloads once there are some', async () => {

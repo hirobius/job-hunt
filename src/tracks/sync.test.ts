@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchDesignSystemsJobsFeed, fetchGreenhouse, fetchLever, stripHtml } from './sources';
-import { MAX_WATCHED_PER_TRACK, readAll, readWatched, scoreBatch } from './sync';
+import { fetchDesignSystemsJobsFeed, stripHtml } from './sources';
+import { forWatcher, readAll, scoreBatch } from './sync';
 import { designSystemsTrack } from './track-config';
 
 const json = (body: unknown, status = 200) =>
@@ -60,37 +60,37 @@ describe('sources', () => {
     expect(stripHtml('<p>A&nbsp;&amp; B</p>\n<b>C</b>')).toBe('A & B C');
   });
 
-  it('normalizes a Greenhouse board and a Lever board', async () => {
-    const gh = await fetchGreenhouse(
-      { company: 'Stripe', ats: 'greenhouse', slug: 'stripe' },
-      fakeFetch,
+  it('normalizes a Greenhouse board and a Lever board with the app parsers', async () => {
+    const [gh, lv] = await readAll(
+      [
+        { company: 'Stripe', ats: 'greenhouse', slug: 'stripe' },
+        { company: 'Palantir', ats: 'lever', slug: 'palantir' },
+      ],
+      { fetch: fakeFetch, rss: false },
     );
-    expect(gh[0]).toMatchObject({
+    expect(gh.postings[0]).toMatchObject({
       source: 'greenhouse',
-      sourceId: '1',
+      // The Posting's own id: the browser and the server name a posting the same way.
+      sourceId: 'greenhouse:stripe:1',
       company: 'Stripe',
       url: 'https://s/1',
     });
-    expect(gh[0].descriptionText).toBe(
+    expect(gh.postings[0].descriptionText).toBe(
       'Own our design system, component library and design tokens.',
     );
-    const lv = await fetchLever({ company: 'Palantir', ats: 'lever', slug: 'palantir' }, fakeFetch);
-    expect(lv[0]).toMatchObject({
+    expect(lv.postings[0]).toMatchObject({
       title: 'Design Technologist',
       remote: true,
       postedAt: '2026-10-01T00:00:00.000Z',
     });
   });
 
-  it('a board that is not ok is [] and its status is heard', async () => {
-    const onFail = vi.fn();
-    const out = await fetchGreenhouse(
-      { company: 'Notion', ats: 'greenhouse', slug: 'notion' },
-      fakeFetch,
-      onFail,
-    );
-    expect(out).toEqual([]);
-    expect(onFail).toHaveBeenCalledWith(404);
+  it('a board that is not ok is a failed read with its status', async () => {
+    const [r] = await readAll([{ company: 'Notion', ats: 'greenhouse', slug: 'notion' }], {
+      fetch: fakeFetch,
+      rss: false,
+    });
+    expect(r).toMatchObject({ ok: false, status: 404, postings: [] });
   });
 
   it("decodes Greenhouse's entity-encoded body before the scorer reads it", async () => {
@@ -106,8 +106,78 @@ describe('sources', () => {
           },
         ],
       });
-    const [p] = await fetchGreenhouse({ company: 'G', ats: 'greenhouse', slug: 'g' }, f);
-    expect(p.descriptionText).toBe('Own the design system and Storybook.');
+    const [r] = await readAll([{ company: 'G', ats: 'greenhouse', slug: 'g' }], {
+      fetch: f,
+      rss: false,
+    });
+    expect(r.postings[0].descriptionText).toBe('Own the design system and Storybook.');
+  });
+
+  it('reads every board kind the browser reads (Workable, Recruitee, SmartRecruiters, Teamtailor, Personio)', async () => {
+    const one = { title: 'Design Systems Lead' };
+    const bodies: [RegExp, unknown][] = [
+      [
+        /workable\.com/,
+        { jobs: [{ ...one, shortcode: 'w1', url: 'https://apply.workable.com/w/j/w1' }] },
+      ],
+      [
+        /recruitee\.com/,
+        { offers: [{ ...one, id: 1, careers_url: 'https://r.recruitee.com/o/1' }] },
+      ],
+      [/smartrecruiters\.com/, { content: [{ id: 's1', name: one.title }] }],
+      [
+        /teamtailor\.com/,
+        { data: [{ id: 't1', attributes: { ...one, url: 'https://t.teamtailor.com/jobs/1' } }] },
+      ],
+      [/personio\.de/, [{ id: 7, name: one.title }]],
+    ];
+    const f = async (url: string) => json(bodies.find(([re]) => re.test(url))?.[1] ?? {}, 200);
+    const reads = await readAll(
+      (['workable', 'recruitee', 'smartrecruiters', 'teamtailor', 'personio'] as const).map(
+        (ats) => ({ company: `Acme ${ats}`, ats, slug: 'acme' }),
+      ),
+      { fetch: f, rss: false },
+    );
+    expect(reads.map((r) => [r.board, r.ok, r.postings.length])).toEqual([
+      ['workable:acme', true, 1],
+      ['recruitee:acme', true, 1],
+      ['smartrecruiters:acme', true, 1],
+      ['teamtailor:acme', true, 1],
+      ['personio:acme', true, 1],
+    ]);
+    expect(reads.every((r) => r.postings[0].company === r.company?.company)).toBe(true);
+    expect(reads[0].postings[0].source).toBe('workable');
+  });
+
+  it('reads the term feeds once per term, each a read of its own', async () => {
+    const urls: string[] = [];
+    const f = async (url: string) => {
+      urls.push(url);
+      if (url.includes('remotive.com'))
+        return json({
+          jobs: [
+            {
+              id: 1,
+              title: 'Design Systems Engineer',
+              company_name: 'R',
+              url: 'https://remotive.com/1',
+              description: 'design system',
+            },
+          ],
+        });
+      return json({}, 500);
+    };
+    const reads = await readAll([], {
+      fetch: f,
+      rss: false,
+      terms: { remotive: ['design systems'], jobicy: ['design systems'] },
+    });
+    expect(reads.map((r) => [r.board, r.term, r.ok])).toEqual([
+      ['remotive', 'design systems', true],
+      ['jobicy', 'design systems', false],
+    ]);
+    expect(reads[0].postings[0]).toMatchObject({ source: 'remotive', company: 'R' });
+    expect(reads[1].status).toBe(500);
   });
 
   it('a feed item with no guid or link still gets a key; non-web links never get stored', async () => {
@@ -200,51 +270,115 @@ describe('readAll + scoreBatch (one sync, no database)', () => {
   });
 });
 
-describe('readWatched (security review: one select stopped at 1000 rows, no per-user bound)', () => {
-  type Row = { id: number; user_id: string; track_slug: string };
-  const table = (rows: Row[]) => {
-    const calls: [number, number][] = [];
-    const page = async (from: number, to: number) => {
-      calls.push([from, to]);
-      // PostgREST's max_rows: never more than 1000 rows to one request.
-      return { data: rows.slice(from, Math.min(to + 1, from + 1000)), error: null };
-    };
-    return { page, calls };
-  };
-  const rowsFor = (user: string, n: number, start = 0): Row[] =>
-    Array.from({ length: n }, (_, i) => ({
-      id: start + i,
-      user_id: user,
-      track_slug: 'design-systems',
-    }));
+describe('a board several users watch', () => {
+  it("gives each watcher their own company name, never the first watcher's", async () => {
+    const gh = async (u: string) => json(GH[u.split('/boards/')[1].split('/')[0]] ?? {}, 200);
+    const [r] = await readAll(
+      [{ company: 'Stripe: verify at evil.example', ats: 'greenhouse', slug: 'stripe' }],
+      {
+        fetch: gh,
+        rss: false,
+      },
+    );
+    expect(r.postings.length).toBeGreaterThan(0);
+    const mine = forWatcher(r, { company: 'Stripe', ats: 'greenhouse', slug: 'stripe' });
+    expect(mine.postings.every((p) => p.company === 'Stripe')).toBe(true);
+    expect(mine.company?.company).toBe('Stripe');
+    // The read itself is left as it was (the next watcher maps it again).
+    expect(r.postings[0].company).toBe('Stripe: verify at evil.example');
+  });
+});
 
-  it('reads every row past the first 1000', async () => {
-    const all = [...Array.from({ length: 6 }, (_, u) => rowsFor(`u${u}`, 400, u * 400))].flat();
-    const { page, calls } = table(all);
-    const { rows, error } = await readWatched(page);
-    expect(error).toBeNull();
-    expect(rows).toHaveLength(2400);
-    expect(calls).toEqual([
-      [0, 999],
-      [1000, 1999],
-      [2000, 2999],
+describe('breadth: the server reads what the browser reads', () => {
+  it('the same boards give the server every posting the app parser gives the browser', async () => {
+    const { fetchBoard } = await import('../feed/sources/ats');
+    const boards = [
+      { company: 'Stripe', ats: 'greenhouse' as const, slug: 'stripe' },
+      { company: 'Datadog', ats: 'greenhouse' as const, slug: 'datadog' },
+      { company: 'Palantir', ats: 'lever' as const, slug: 'palantir' },
+    ];
+    const fetchJson = async (u: string) => (await fakeFetch(u)).json();
+    const browser = (
+      await Promise.all(boards.map((b) => fetchBoard({ kind: b.ats, slug: b.slug }, fetchJson)))
+    ).flat();
+    const server = (await readAll(boards, { fetch: fakeFetch, rss: false })).flatMap(
+      (r) => r.postings,
+    );
+    expect(browser.length).toBeGreaterThan(0);
+    expect(new Set(server.map((p) => p.sourceId))).toEqual(new Set(browser.map((p) => p.id)));
+  });
+});
+
+describe('designsystems.jobs catalog and the sync’s own searches', () => {
+  const PAGE = `<script type="application/ld+json">${JSON.stringify({
+    '@type': 'JobPosting',
+    title: 'Design Systems Lead',
+    hiringOrganization: { name: 'Acme' },
+    description: 'Own the design system.',
+  })}</script>`;
+  const JOB = 'https://designsystems.jobs/companies/acme/ds-lead';
+  const site = (sitemap: number) =>
+    vi.fn(async (url: string) => {
+      if (url === 'https://designsystems.jobs/feed') return new Response(RSS);
+      if (url === 'https://designsystems.jobs/sitemap.xml')
+        return sitemap === 200
+          ? new Response(`<urlset><url><loc>${JOB}</loc></url></urlset>`)
+          : new Response('', { status: sitemap });
+      if (url === JOB) return new Response(PAGE);
+      return new Response('', { status: 404 });
+    });
+
+  it('reads the whole catalog as the rss board, complete', async () => {
+    const [r] = await readAll([], { fetch: site(200), rss: true, catalog: true });
+    expect(r).toMatchObject({ board: 'rss', ok: true });
+    expect(r.partial).toBeUndefined();
+    // The two feed items the sitemap doesn't list yet come along.
+    expect(r.postings.map((p) => [p.sourceId, p.title])).toEqual([
+      [JOB, 'Design Systems Lead'],
+      ['ds-1', 'Design Systems Engineer'],
+      ['ds-2', 'Design Systems Intern'],
     ]);
   });
 
-  it("caps one user's track so it can't crowd out or multiply the run", async () => {
-    const flood = rowsFor('attacker', 5000);
-    const victim = rowsFor('victim', 3, 5000);
-    const { rows } = await readWatched(table([...flood, ...victim]).page);
-    expect(rows.filter((r) => r.user_id === 'attacker')).toHaveLength(MAX_WATCHED_PER_TRACK);
-    expect(rows.filter((r) => r.user_id === 'victim')).toHaveLength(3);
+  it('a feed failure is kept in the log when the catalog answers', async () => {
+    const f = vi.fn(async (url: string) =>
+      url === 'https://designsystems.jobs/feed'
+        ? new Response('', { status: 502 })
+        : site(200)(url),
+    );
+    const [r] = await readAll([], { fetch: f, rss: true, catalog: true });
+    expect(r).toMatchObject({ ok: true, error: 'designsystems.jobs feed: HTTP 502' });
+    expect(r.partial).toBeUndefined();
   });
 
-  it('gives up on a failed page instead of reading part of the list', async () => {
-    const { rows, error } = await readWatched<Row>(async () => ({
-      data: null,
-      error: { message: 'boom' },
-    }));
-    expect(rows).toEqual([]);
-    expect(error).toBe('boom');
+  it('falls back to the RSS when the sitemap fails: answered but partial, the failure kept', async () => {
+    const [r] = await readAll([], { fetch: site(500), rss: true, catalog: true });
+    expect(r).toMatchObject({ board: 'rss', ok: true, partial: true });
+    expect(r.error).toMatch(/sitemap: HTTP 500/);
+    expect(r.postings.map((p) => p.sourceId)).toEqual(['ds-1', 'ds-2']);
+    // Catalog off: the RSS alone, partial too.
+    const [off] = await readAll([], { fetch: site(200), rss: true, catalog: false });
+    expect(off).toMatchObject({ ok: true, partial: true });
+  });
+
+  it('runs each server feed it is given; a missing key fails that one loud and alone', async () => {
+    const ctx = {
+      fetch: vi.fn(async () => new Response('{}')),
+      env: () => undefined,
+      now: () => new Date('2026-10-28T06:00:00Z'),
+      sleep: async () => {},
+    };
+    const reads = await readAll([], {
+      fetch: site(200),
+      rss: false,
+      server: { feeds: ['theirstack', 'jooble'], ctx },
+    });
+    expect(reads.map((r) => [r.board, r.ok])).toEqual([
+      ['theirstack', false],
+      ['jooble', false],
+    ]);
+    expect(reads[0].error).toMatch(/THEIRSTACK_API_KEY is not set/);
+    expect(reads[1].error).toMatch(/JOOBLE_API_KEY is not set/);
+    expect(ctx.fetch).not.toHaveBeenCalled();
   });
 });

@@ -10,6 +10,14 @@ export const OFFLINE_MSG = 'Your changes are saved on this device.';
 export const TAB_FROZEN_TITLE = 'Sync stopped in this tab';
 export const TAB_SWITCHED = 'You signed in as someone else in another tab. Reload to continue.';
 export const TAB_SIGNED_OUT = 'You signed out in another tab. Reload to continue.';
+export const TAB_NEWER_VERSION =
+  'Your data was saved by a newer version of the app. Reload to continue.';
+/** The menu line and toast for each reason a tab stopped (tabAccount.ts). */
+export const TAB_FROZEN_MESSAGE = {
+  switched: TAB_SWITCHED,
+  signedOut: TAB_SIGNED_OUT,
+  newerVersion: TAB_NEWER_VERSION,
+} as const;
 
 /** A track change the cloud refused (curationStore's mirror): what happened, then the fix. */
 export const TRACK_WRITE_FAILED = {
@@ -27,6 +35,10 @@ export const UNSYNCED_CHANGES_SIGN_OUT =
 
 /** Child → parent, so erasure never depends on the FK cascade. */
 export const DELETE_ORDER = ['tiles', 'groups', 'categories', 'tracker'] as const;
+
+/** delete_my_data refused (#393): nothing was deleted, it runs as one transaction. */
+export const DELETE_FAILED =
+  "Couldn't delete your cloud data. Your local copy was kept; try again.";
 
 export const deleteFailedMsg = (failed: readonly string[]) =>
   `Deleted ${DELETE_ORDER.length - failed.length} of ${DELETE_ORDER.length} — couldn't delete ${failed.join(', ')}. Your local copy was kept; try again.`;

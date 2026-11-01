@@ -2,6 +2,7 @@
 // click through an empty Tracker. Pure and DOM-free: `now` is injected, every date is relative
 // to it (so follow-ups are always due and interviews always upcoming), and every company and
 // URL is fictional on a reserved domain (RFC 2606 example.com), so nothing names a real employer.
+// Every role is a design-systems role (design systems only, Adrian 2026-10-29).
 // Each record carries `demo: true`; that tag is the ONLY thing clearSample() uses to tell sample
 // records from the user's own (src/demo/loadSample.ts).
 import type { Job } from '../types';
@@ -29,8 +30,8 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
   });
   return [
     job({
-      url: 'https://larkspur.example.com/careers/senior-product-designer',
-      label: 'Senior Product Designer',
+      url: 'https://larkspur.example.com/careers/senior-design-systems-designer',
+      label: 'Senior Design Systems Designer',
       company: 'Larkspur Analytics',
       location: 'Remote (US)',
       status: 'Saved',
@@ -40,8 +41,8 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       history: [{ status: 'Saved', at: d(-1) }],
     }),
     job({
-      url: 'https://quillfeather.example.com/jobs/implementation-consultant',
-      label: 'Implementation Consultant',
+      url: 'https://quillfeather.example.com/jobs/design-systems-engineer',
+      label: 'Design Systems Engineer',
       company: 'Quillfeather Labs',
       location: 'Denver, CO',
       status: 'Saved',
@@ -51,20 +52,20 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       history: [{ status: 'Saved', at: d(-2) }],
     }),
     job({
-      url: 'https://tidewater.example.com/careers/solutions-engineer',
-      label: 'Solutions Engineer',
+      url: 'https://tidewater.example.com/careers/design-technologist',
+      label: 'Design Technologist',
       company: 'Tidewater Robotics',
       location: 'Austin, TX',
       status: 'Saved',
       priority: true,
       verdict: 'match',
       mode: 'onsite',
-      angle: 'Lead with the integrations work — it maps straight onto their field deployments.',
+      angle: 'Lead with the token pipeline work — it maps straight onto their multi-brand theming.',
       history: [{ status: 'Saved', at: d(-4) }],
     }),
     job({
-      url: 'https://brambleandfinch.example.com/jobs/ux-researcher',
-      label: 'UX Researcher',
+      url: 'https://brambleandfinch.example.com/jobs/design-systems-designer',
+      label: 'Design Systems Designer',
       company: 'Bramble & Finch',
       location: 'Remote',
       status: 'Applied',
@@ -94,8 +95,8 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       ],
     }),
     job({
-      url: 'https://saltmarsh.example.com/jobs/product-operations-manager',
-      label: 'Product Operations Manager',
+      url: 'https://saltmarsh.example.com/jobs/design-systems-manager',
+      label: 'Design Systems Manager',
       company: 'Saltmarsh Software',
       location: 'Chicago, IL',
       status: 'Applied',
@@ -108,9 +109,9 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       ],
     }),
     job({
-      url: 'https://meridianoak.example.com/careers/clinical-systems-analyst',
-      label: 'Clinical Systems Analyst',
-      company: 'Meridian Oak Health',
+      url: 'https://meridianoak.example.com/careers/principal-design-systems-engineer',
+      label: 'Principal Design Systems Engineer',
+      company: 'Meridian Oak',
       location: 'Remote (US)',
       status: 'Interviewing',
       priority: true,
@@ -143,8 +144,8 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       ],
     }),
     job({
-      url: 'https://juniperhollow.example.com/jobs/senior-ux-designer',
-      label: 'Senior UX Designer',
+      url: 'https://juniperhollow.example.com/jobs/design-systems-architect',
+      label: 'Design Systems Architect',
       company: 'Juniper Hollow Co.',
       location: 'Seattle, WA',
       status: 'Interviewing',
@@ -178,8 +179,8 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       ],
     }),
     job({
-      url: 'https://ashgrove.example.com/careers/product-designer',
-      label: 'Product Designer',
+      url: 'https://ashgrove.example.com/careers/product-designer-design-systems',
+      label: 'Product Designer, Design Systems',
       company: 'Ashgrove Logistics',
       location: 'Remote',
       status: 'Offer',
@@ -196,8 +197,8 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       ],
     }),
     job({
-      url: 'https://kestrelworks.example.com/jobs/interaction-designer',
-      label: 'Interaction Designer',
+      url: 'https://kestrelworks.example.com/jobs/design-systems-developer',
+      label: 'Design Systems Developer',
       company: 'Kestrel Works',
       location: 'Boston, MA',
       status: 'Rejected',

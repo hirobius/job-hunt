@@ -6,7 +6,30 @@ import type { TrackConfig } from './track-config.ts';
 
 export interface NormalizedPosting {
   source:
-    'greenhouse' | 'lever' | 'ashby' | 'jsearch' | 'adzuna' | 'remotive' | 'hn' | 'rss' | 'manual';
+    | 'greenhouse'
+    | 'lever'
+    | 'ashby'
+    // The other board kinds the app reads (Simplify 6/9: the sync reads them too).
+    | 'workable'
+    | 'recruitee'
+    | 'smartrecruiters'
+    | 'teamtailor'
+    | 'personio'
+    | 'jsearch'
+    | 'adzuna'
+    // The sync's own whole-web searches (tracks/feeds).
+    | 'theirstack'
+    | 'jooble'
+    | 'ids'
+    // The keyless remote boards the sync reads whole (tracks/feeds).
+    | 'arbeitnow'
+    | 'remoteok'
+    | 'wwr'
+    | 'remotive'
+    | 'jobicy'
+    | 'hn'
+    | 'rss'
+    | 'manual';
   sourceId: string;
   title: string;
   company: string;
@@ -110,11 +133,23 @@ export function dedupe(postings: NormalizedPosting[]): NormalizedPosting[] {
     greenhouse: 0,
     lever: 0,
     ashby: 0,
+    workable: 0,
+    recruitee: 0,
+    smartrecruiters: 0,
+    teamtailor: 0,
+    personio: 0,
     rss: 1,
     manual: 1,
+    ids: 1,
     adzuna: 2,
     jsearch: 2,
+    theirstack: 2,
+    jooble: 2,
     remotive: 3,
+    arbeitnow: 3,
+    remoteok: 3,
+    wwr: 3,
+    jobicy: 3,
     hn: 3,
   };
   const byKey = new Map<string, NormalizedPosting>();

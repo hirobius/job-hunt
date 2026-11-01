@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_VIEW,
+  FILTER_LABEL,
   filterCounts,
   getPipelineView,
   resetPipelineView,
@@ -8,6 +9,7 @@ import {
   visibleJobs,
 } from './pipelineView';
 import type { Job } from './types';
+import { ymd } from './jobEvents';
 
 const job = (url: string, extra: Partial<Job> = {}): Job => ({ url, label: url, ...extra }) as Job;
 const saved = job('https://a.example/1', { label: 'Alpha welder', company: 'Acme' });
@@ -73,5 +75,43 @@ describe('pipelineView', () => {
     expect(getPipelineView()).toEqual({ filter: 'Applied', sort: 'recent', q: 'x' });
     resetPipelineView();
     expect(getPipelineView()).toEqual(DEFAULT_VIEW);
+  });
+});
+
+describe('Closing soon and Closed filters (#419)', () => {
+  const inDays = (n: number) => {
+    const d = new Date();
+    return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+  };
+  const soon = job('https://e.example/5', { label: 'Soon', status: 'Saved', deadline: inDays(3) });
+  const later = job('https://f.example/6', {
+    label: 'Later',
+    status: 'Saved',
+    deadline: inDays(30),
+  });
+  const gone = job('https://g.example/7', {
+    label: 'Gone',
+    status: 'Applied',
+    closedAt: '2026-10-20T00:00:00Z',
+  });
+  const past = job('https://h.example/8', { label: 'Past', status: 'Saved', deadline: inDays(-2) });
+  const list = [...all, soon, later, gone, past];
+
+  it('Closing soon lists jobs still to apply to that close within 7 days', () => {
+    expect(
+      visibleJobs(list, { ...DEFAULT_VIEW, filter: 'closingSoon' }).map((j) => j.label),
+    ).toEqual(['Soon']);
+  });
+  it('Closed lists jobs gone from their board or past their closing day', () => {
+    expect(
+      visibleJobs(list, { ...DEFAULT_VIEW, filter: 'closed' })
+        .map((j) => j.label)
+        .sort(),
+    ).toEqual(['Gone', 'Past']);
+  });
+  it('both are counted and labelled for the status menu', () => {
+    expect(filterCounts(list)).toMatchObject({ closingSoon: 1, closed: 2 });
+    expect(FILTER_LABEL.closingSoon).toBe('Closing soon');
+    expect(FILTER_LABEL.closed).toBe('Closed');
   });
 });

@@ -7,7 +7,17 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import DocumentsLibrary from './DocumentsLibrary';
-import { createDocument, getAllDocuments, replaceDocuments, setDocumentPinned } from './documents';
+import DocumentEditor from './DocumentEditor';
+import NoticeHost from './NoticeHost';
+import { dismissNotice } from './saveNotice';
+import {
+  addFinalCopy,
+  createDocument,
+  getAllDocuments,
+  replaceDocuments,
+  saveVersion,
+  setDocumentPinned,
+} from './documents';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
@@ -22,6 +32,18 @@ const renderRaw = () =>
 /** The library with its sections showing: an empty one opens on its empty state, so start blank. */
 const renderLib = () => {
   const r = renderRaw();
+  const blank = screen.queryByRole('button', { name: 'Start from scratch' });
+  if (blank) fireEvent.click(blank);
+  return r;
+};
+/** The library with the shell's notice host, for Delete's Undo. */
+const renderLibWithNotices = () => {
+  const r = render(
+    <ToastProvider>
+      <DocumentsLibrary />
+      <NoticeHost />
+    </ToastProvider>,
+  );
   const blank = screen.queryByRole('button', { name: 'Start from scratch' });
   if (blank) fireEvent.click(blank);
   return r;
@@ -49,6 +71,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  dismissNotice();
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
@@ -165,7 +188,7 @@ describe('create, edit, delete', () => {
     // rev-3 N: the field starts empty with the kind as its placeholder, under "New cover letter".
     expect(title).toHaveValue('');
     expect(title).toHaveAttribute('placeholder', 'Cover letter');
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('New cover letter');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('New cover letter');
     await userEvent.type(title, 'General letter');
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Dear team');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -251,27 +274,30 @@ describe('create, edit, delete', () => {
     expect(doc(id).versions).toHaveLength(1);
   });
 
-  it('delete asks first, then removes the document and returns to the library', async () => {
-    createDocument({ kind: 'resume', title: 'Old CV', base: true, text: 't' });
-    renderLib();
+  it('Delete removes at once and returns to the library; Undo brings it back with every Version (#329)', async () => {
+    createDocument({ kind: 'resume', title: 'Other CV', base: true, text: 'o' });
+    const id = createDocument({ kind: 'resume', title: 'Old CV', base: true, text: 't' });
+    saveVersion(id, 't2');
+    const kept = doc(id);
+    renderLibWithNotices();
     await openDoc('Old CV');
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    const dialog = await screen.findByRole('alertdialog');
-    // The bordered danger button, like every other confirm in the app (rev-3 mock .btn.danger).
-    expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveAttribute(
-      'data-variant',
-      'secondary',
+    // No "can't be undone" confirm: it goes at once, with Undo (#212).
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(getAllDocuments().map((d) => d.id)).not.toContain(id);
+    expect(await screen.findByRole('region', { name: 'Résumés' })).toBeInTheDocument();
+    expect(await screen.findByText('Deleted “Old CV”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    // Back in its place, with both Versions.
+    expect(getAllDocuments().map((d) => d.id)).toEqual([expect.any(String), id]);
+    expect(doc(id)).toEqual(kept);
+    await waitFor(() =>
+      expect(screen.getByRole('listitem', { name: 'Old CV' })).toHaveAttribute(
+        'data-motion',
+        'flash',
+      ),
     );
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    expect(getAllDocuments()).toHaveLength(1);
-    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
-    expect(getAllDocuments()).toHaveLength(0);
-    await waitFor(() => expect(screen.getByText('No documents yet')).toBeInTheDocument());
   });
 
   it('Back with an unsaved edit asks first; Discard returns to the library without saving', async () => {
@@ -573,20 +599,65 @@ describe('expandable rows', () => {
     expect(prev!.textContent).toBe('One\nTwo');
   });
 
-  it('the row menu duplicates and deletes (after asking)', async () => {
+  it('the row menu duplicates and deletes, with Undo (#329)', async () => {
     createDocument({ kind: 'note', title: 'Story', base: true, text: 'Once' });
-    renderLib();
+    renderLibWithNotices();
     await userEvent.click(screen.getByRole('button', { name: /Story/ }));
     await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Duplicate' }));
     expect(getAllDocuments().map((d) => d.title)).toEqual(['Story', 'Story (copy)']);
     await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    const confirm = within(await screen.findByRole('alertdialog')).getByRole('button', {
-      name: 'Delete',
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    await waitFor(() => expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']));
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story', 'Story (copy)']);
+  });
+});
+
+describe('Restore starters answers (#327, #212)', () => {
+  it('Restore starter messages toasts what it added and flashes the first restored row', async () => {
+    createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
+    renderLib();
+    await userEvent.click(
+      within(section('Outreach messages')).getByRole('button', {
+        name: 'Restore starter messages',
+      }),
+    );
+    expect(await screen.findByText('Added 4 starter messages')).toBeInTheDocument();
+    const rows = within(section('Outreach messages')).getAllByRole('listitem');
+    expect(rows).toHaveLength(4);
+    await waitFor(() => expect(rows[0]).toHaveAttribute('data-motion', 'flash'));
+  });
+
+  it('Restore starter cover letter says so and flashes it', async () => {
+    createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
+    renderLib();
+    await userEvent.click(
+      within(section('Cover letters')).getByRole('button', {
+        name: 'Restore starter cover letter',
+      }),
+    );
+    expect(await screen.findByText('Added the starter cover letter')).toBeInTheDocument();
+    const row = within(section('Cover letters')).getByRole('listitem');
+    await waitFor(() => expect(row).toHaveAttribute('data-motion', 'flash'));
+  });
+});
+
+describe('the editor and a final copy (#328)', () => {
+  it('shows no Save for a document saveVersion would refuse', () => {
+    const r = addFinalCopy({
+      kind: 'resume',
+      jobUrl: JOB,
+      file: { name: 'cv.pdf', type: 'application/pdf', size: 3, data: 'YWJj' },
     });
-    expect(confirm).toHaveAttribute('data-variant', 'secondary');
-    await userEvent.click(confirm);
-    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']);
+    if (!r.ok) throw new Error(r.error);
+    render(
+      <ToastProvider>
+        <DocumentEditor doc={doc(r.id)} kind="resume" onBack={() => {}} onCreated={() => {}} />
+      </ToastProvider>,
+    );
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Version history/ })).toBeInTheDocument();
   });
 });

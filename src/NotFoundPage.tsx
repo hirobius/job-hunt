@@ -7,7 +7,7 @@ export default function NotFoundPage() {
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal" align="start">
-        <Text variant="title" as="h2">
+        <Text variant="title" as="h1">
           Page not found
         </Text>
         <Text variant="body" as="p" tone="secondary">
@@ -15,9 +15,9 @@ export default function NotFoundPage() {
         </Text>
         <Button
           variant="primary"
-          onClick={() => navigate({ tab: 'discover', sub: null, jobId: null })}
+          onClick={() => navigate({ tab: 'today', sub: null, jobId: null })}
         >
-          Go to Companies
+          Go to Today
         </Button>
       </Stack>
     </Box>

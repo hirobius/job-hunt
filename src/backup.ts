@@ -28,6 +28,9 @@ import {
 import { mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
 import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
 import { mergeMustInclude, sanitizeMustInclude, type MustInclude } from './feed/mustInclude';
+import { mergeProfiles, sanitizeProfiles, type Profile } from './profile';
+import { mergeSources, sanitizeSources, type Source } from './sources';
+import { mergeDecided, sanitizeDecided, type Decided } from './decided';
 
 export interface AccountState {
   jobs: Job[];
@@ -50,6 +53,10 @@ export interface AccountState {
   sweeps: Record<string, SweepTitles>;
   /** Must-include terms per track (blob v11). Older backups lack them. */
   mustInclude: Record<string, MustInclude>;
+  /** The Search profile, Sources and decided postings (blob v12). Older backups lack them. */
+  profiles: Profile[];
+  sources: Source[];
+  decided: Decided[];
 }
 
 export interface Backup extends AccountState {
@@ -57,11 +64,23 @@ export interface Backup extends AccountState {
   kind: 'backup';
   v: 1;
   exportedAt: string;
+  /** Read from a file made before blob v12 (none of profiles / sources / decided). Never written. */
+  before12?: true;
 }
 
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; reason: string };
 
-export const MAX_BACKUP_CHARS = 5 * 1024 * 1024;
+/** What one origin's localStorage holds in the browsers we support (about 5M characters), and
+ *  so the most a whole account can be: every store, final copies included, lives there. */
+export const LOCAL_STORAGE_CHARS = 5 * 1024 * 1024;
+/** The restore limit (#340). Back up pretty-prints, which at worst (storage full of tiny nested
+ *  objects) about triples the size (backup.test.ts pins it), so 20 MB takes the largest account
+ *  a browser can hold, and still refuses a runaway file. */
+export const MAX_BACKUP_CHARS = 20 * 1024 * 1024;
+export const MAX_BACKUP_MB = MAX_BACKUP_CHARS / 1024 / 1024;
+
+/** A backup file Restore would refuse: Back up warns instead of handing over a dead file. */
+export const backupTooLarge = (text: string) => text.length > MAX_BACKUP_CHARS;
 
 export function buildBackup(state: AccountState, now: Date): Backup {
   return {
@@ -83,6 +102,9 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     kit: state.kit,
     sweeps: state.sweeps,
     mustInclude: state.mustInclude,
+    profiles: state.profiles,
+    sources: state.sources,
+    decided: state.decided,
   };
 }
 
@@ -129,12 +151,60 @@ const JOB_STRING_KEYS = [
   'screenedAt',
   'mode',
   'verdict',
+  'postedAt',
+  'discoveredAt',
+  'savedAt',
+  'closedAt',
 ] as const;
+
+/** Every key on the Job model (src/types.ts). A restored job keeps only these (#341):
+ *  an unknown key rides in from a hand-edited or foreign backup — worst case `demo: true`,
+ *  which makes a real job count as sample data and silently drop out of sync and backups.
+ *  Typed as a Record over `keyof Job`, so a new Job field fails typecheck until it is listed
+ *  here (else a restore would silently drop it). */
+const JOB_KEY_LIST: Record<keyof Job, true> = {
+  url: true,
+  label: true,
+  status: true,
+  applied: true,
+  followUp: true,
+  snoozeUntil: true,
+  deadline: true,
+  note: true,
+  contact: true,
+  resume: true,
+  salary: true,
+  company: true,
+  location: true,
+  seniority: true,
+  priority: true,
+  archived: true,
+  todos: true,
+  notes: true,
+  verdict: true,
+  mode: true,
+  blockers: true,
+  angle: true,
+  screenedAt: true,
+  history: true,
+  events: true,
+  decks: true,
+  docLinks: true,
+  postedAt: true,
+  discoveredAt: true,
+  savedAt: true,
+  closedAt: true,
+};
+const JOB_KEYS = new Set(Object.keys(JOB_KEY_LIST));
 
 /** Nested job fields are rendered and computed on (agenda, .ics, metrics): keep only
  *  well-formed entries so a hand-edited backup can't crash a view after restore. */
 function cleanJobFields(j: Job): Job {
   const o = j as unknown as Rec;
+  for (const k of Object.keys(o)) if (!JOB_KEYS.has(k)) delete o[k];
+  // Boolean flags are kept only when actually boolean (#341).
+  if ('priority' in o && typeof o.priority !== 'boolean') delete o.priority;
+  if ('archived' in o && typeof o.archived !== 'boolean') delete o.archived;
   for (const k of JOB_STRING_KEYS) if (k in o && !isStr(o[k])) delete o[k];
   if ('todos' in o)
     j.todos = arr(o.todos)
@@ -283,8 +353,8 @@ function cleanTriage(raw: unknown): Triage {
 }
 
 export function parseBackup(text: string): ParseResult {
-  if (text.length > MAX_BACKUP_CHARS) {
-    return { ok: false, reason: 'That file is too large (over 5 MB).' };
+  if (backupTooLarge(text)) {
+    return { ok: false, reason: `That file is too large (over ${MAX_BACKUP_MB} MB).` };
   }
   let data: unknown;
   try {
@@ -319,6 +389,12 @@ export function parseBackup(text: string): ParseResult {
       kit: sanitizeKit(data.kit),
       sweeps: sanitizeSweeps(data.sweeps),
       mustInclude: sanitizeMustInclude(data.mustInclude),
+      profiles: sanitizeProfiles(data.profiles),
+      sources: sanitizeSources(data.sources),
+      decided: sanitizeDecided(data.decided),
+      ...(!('profiles' in data || 'sources' in data || 'decided' in data) && {
+        before12: true as const,
+      }),
     },
   };
 }
@@ -326,7 +402,7 @@ export function parseBackup(text: string): ParseResult {
 /** Replace = the backup's data. Merge = the backup plays "cloud" (it wins on shared keys). */
 export function applyBackup(
   current: AccountState,
-  backup: AccountState,
+  backup: AccountState & Pick<Backup, 'before12'>,
   mode: 'merge' | 'replace',
 ): AccountState {
   if (mode === 'replace') {
@@ -345,6 +421,11 @@ export function applyBackup(
       kit: backup.kit,
       sweeps: backup.sweeps,
       mustInclude: backup.mustInclude,
+      // A backup from before v12 has none of these: Replace keeps this device's (its stars, mutes
+      // and profile edits), and the v12 move tops Sources up from the restored tracks.
+      ...(backup.before12
+        ? { profiles: current.profiles, sources: current.sources, decided: current.decided }
+        : { profiles: backup.profiles, sources: backup.sources, decided: backup.decided }),
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
@@ -363,26 +444,58 @@ export function applyBackup(
     kit: mergeKit(backup.kit, current.kit),
     sweeps: mergeSweeps(backup.sweeps, current.sweeps),
     mustInclude: mergeMustInclude(backup.mustInclude, current.mustInclude),
+    profiles: mergeProfiles(backup.profiles, current.profiles),
+    sources: mergeSources(backup.sources, current.sources),
+    decided: mergeDecided(backup.decided, current.decided),
   };
 }
 
-export interface RestoreCounts {
-  jobs: number;
-  snippets: number;
-  tracks: number;
-  links: number;
-}
+/** What Replace changes, in the words the app uses (#338): one count per store, each with its
+ *  singular and plural. Jobs and Documents always show; the rest only when either side has some. */
+const COUNTS: { count: (s: AccountState) => number; one: string; many: string; always?: true }[] = [
+  { count: (s) => s.jobs.length, one: 'job', many: 'jobs', always: true },
+  {
+    // An older backup's messages are snippets, which become Documents once restored.
+    count: (s) => s.documents.length + s.copydeck.filter((x) => !x.migrated).length,
+    one: 'document',
+    many: 'documents',
+    always: true,
+  },
+  { count: (s) => s.curation.categories.length, one: 'track', many: 'tracks' },
+  { count: (s) => s.curation.tiles.length, one: 'link', many: 'links' },
+  { count: (s) => total(s.dreams), one: 'dream company', many: 'dream companies' },
+  { count: (s) => total(s.targets), one: 'saved target', many: 'saved targets' },
+  { count: (s) => total(s.filters), one: 'saved search', many: 'saved searches' },
+  { count: (s) => s.trash.length, one: 'removed job', many: 'removed jobs' },
+  {
+    count: (s) =>
+      Object.values(s.kit.fields).filter((v) => v?.trim()).length + s.kit.answers.length,
+    one: 'kit entry',
+    many: 'kit entries',
+  },
+  { count: (s) => Object.keys(s.sweeps).length, one: 'title list', many: 'title lists' },
+  {
+    count: (s) => Object.keys(s.mustInclude).length,
+    one: 'must-include list',
+    many: 'must-include lists',
+  },
+  { count: (s) => Object.keys(s.modes).length, one: 'work mode', many: 'work modes' },
+  { count: (s) => s.triage.dismissed.length, one: 'set-aside link', many: 'set-aside links' },
+  { count: (s) => (s.evidence.trim() ? 1 : 0), one: 'evidence note', many: 'evidence notes' },
+];
 
-const countsOf = (s: AccountState): RestoreCounts => ({
-  jobs: s.jobs.length,
-  snippets: s.copydeck.length,
-  tracks: s.curation.categories.length,
-  links: s.curation.tiles.length,
-});
+const total = (byTrack: Record<string, unknown[]>) =>
+  Object.values(byTrack).reduce((n, list) => n + list.length, 0);
 
+/** Both sides of a restore as one line each ("1 job, 2 documents, 1 track"). */
 export function summarizeRestore(
   current: AccountState,
   next: AccountState,
-): { current: RestoreCounts; next: RestoreCounts } {
-  return { current: countsOf(current), next: countsOf(next) };
+): { current: string; next: string } {
+  const rows = COUNTS.map((c) => ({ ...c, now: c.count(current), then: c.count(next) })).filter(
+    (r) => r.always || r.now > 0 || r.then > 0,
+  );
+  const line = (n: (r: (typeof rows)[number]) => number) =>
+    rows.map((r) => `${n(r)} ${n(r) === 1 ? r.one : r.many}`).join(', ');
+  return { current: line((r) => r.now), next: line((r) => r.then) };
 }

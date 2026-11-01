@@ -20,6 +20,9 @@ import { getAllMustInclude, replaceMustInclude, useAllMustInclude } from '../fee
 import { getTrash, replaceTrash, useTrash } from '../trash';
 import { getAllDreams, replaceDreams, useAllDreams } from '../feed/dreams';
 import { getAllDocuments, replaceDocuments, useDocuments } from '../documents';
+import { getProfiles, replaceProfiles, useProfiles } from '../profile';
+import { getSources, replaceSources, useSources } from '../sources';
+import { decided as decidedStore, getDecided, replaceDecided } from '../decided';
 import {
   readBlob,
   writeBlob,
@@ -33,6 +36,7 @@ import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sy
 import { getCurationState } from '../curation/curationStore';
 import {
   freezeTab,
+  liftNewerVersionFreeze,
   isAuthKey,
   onTabFrozen,
   sessionChange,
@@ -50,15 +54,15 @@ import {
 import {
   OFFLINE_MSG,
   OFFLINE_TITLE,
+  DELETE_FAILED,
   DELETE_ORDER,
   deleteFailedMsg,
   TRACK_WRITE_FAILED,
   UNSYNCED_SIGN_OUT,
   UNSYNCED_CHANGES_SIGN_OUT,
   RELOAD_ACTION,
+  TAB_FROZEN_MESSAGE,
   TAB_FROZEN_TITLE,
-  TAB_SIGNED_OUT,
-  TAB_SWITCHED,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
@@ -77,6 +81,7 @@ import {
 } from './authLink';
 import { deviceData, mergeQuestion } from './deviceData';
 import { dropSampleTrack } from '../demo/sampleTrack';
+import { dropAutoSetup } from '../autoSetup';
 import { LinkConfirmDialog, MergeConfirmDialog } from './AuthGuards';
 
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
@@ -107,6 +112,9 @@ function clearLocalData() {
   }
 }
 
+/** eraseCloud's answer when another tab took the session mid-delete (#288). */
+const STOPPED = 'stopped';
+
 export default function CloudSyncProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const jobs = useJobs();
@@ -123,6 +131,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const trash = useTrash();
   const dreams = useAllDreams();
   const documents = useDocuments();
+  const profiles = useProfiles();
+  const sources = useSources();
+  const decided = decidedStore.use();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
@@ -142,6 +153,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // this device's local-only jobs after a failed first pull.
   const seedPending = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // The pushes on the wire (a timer's and an adopt's can overlap): Delete my data waits them out,
+  // or one could land after the delete and write the row back (#393).
+  const pushing = useRef(new Set<Promise<boolean>>());
+  // From Delete my data's confirm on: nothing more is pushed or adopted (a pull in flight is
+  // dropped), so the erased account is not written back or refilled here (#393).
+  const deleting = useRef(false);
   // The cloud row's stamp as of this tab's last pull or push (null until a pull lands). A push
   // only writes over that version: another device's newer save is merged in first, never wiped.
   const known = useRef<RowStamp | null>(null);
@@ -174,6 +191,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     trash: getTrash(),
     dreams: getAllDreams(),
     documents: getAllDocuments(),
+    profiles: getProfiles(),
+    sources: getSources(),
+    decided: getDecided(),
     sourceV: BLOB_VERSION,
   });
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
@@ -239,15 +259,22 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
   // stays "dirty": the next refresh and sign-out both retry it. When another device saved since
   // this tab's last read, its copy is merged in (three-way, against the base) and sent again.
-  async function pushNow(u: User): Promise<boolean> {
-    if (!pulledOk.current || handled.current !== u.id || tabFrozen()) return false;
+  function pushNow(u: User): Promise<boolean> {
+    const run = pushOnce(u);
+    pushing.current.add(run);
+    void run.finally(() => pushing.current.delete(run));
+    return run;
+  }
+  async function pushOnce(u: User): Promise<boolean> {
+    if (!pulledOk.current || handled.current !== u.id || tabFrozen() || deleting.current)
+      return false;
     let ok = false;
     for (let i = 0; i < PUSH_TRIES && !ok; i++) {
       const sent = localJson();
       const data = writeBlob(localBlob());
       let r: 'ok' | 'conflict' | 'fail';
       try {
-        if (!(await sessionIsStill(u))) return false;
+        if (!(await sessionIsStill(u)) || deleting.current) return false;
         r = await writeRow(u.id, data);
       } catch {
         r = 'fail';
@@ -284,6 +311,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     replaceTrash(next.trash);
     replaceDreams(next.dreams);
     replaceDocuments(next.documents);
+    replaceProfiles(next.profiles);
+    replaceSources(next.sources);
+    replaceDecided(next.decided);
   }
 
   // Pull the cloud copy and merge it into this device's stores. `both` (a sign-in, or a push the
@@ -302,12 +332,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (!(await sessionIsStill(u))) return null;
       const seen = known.current;
       const r = await pull(u.id);
-      // Signed out (or another account, here or in another tab) while it pulled.
-      if (handled.current !== u.id || !(await sessionIsStill(u))) return null;
+      // Signed out (or another account, here or in another tab) while it pulled, or deleting.
+      if (handled.current !== u.id || deleting.current || !(await sessionIsStill(u))) return null;
       if (known.current === seen) got = r;
     }
     if (!got) return null;
     const { blob: cloud, stamp } = got;
+    // Written by a newer version (#382): adopting it would read it without the fields this one
+    // doesn't know, and the next push would rewrite it without them. Stop instead.
+    if (cloud && cloud.sourceV > BLOB_VERSION) {
+      freezeTab('newerVersion');
+      return null;
+    }
     const merged = both || (pulledOk.current && dirty());
     const local = localBlob();
     const next = mergeBlob(cloud, local, merged, readSyncBase(u.id), readSyncHashes(u.id));
@@ -323,7 +359,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   async function adopt(seed: boolean, u: User) {
     // Not through the sign-in path (the merge question is open), or stopped by another tab (#288).
-    if (handled.current !== u.id || tabFrozen()) return;
+    if (handled.current !== u.id || tabFrozen() || deleting.current) return;
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
     try {
@@ -410,6 +446,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         if (mergeHeld.current === u.id) return; // already asking (a second event for the same user)
         // The sample's track is sample data: never asked about, never uploaded (#107).
         dropSampleTrack();
+        // Neither is the auto profile: the account's own profile (or its v11 move) wins.
+        dropAutoSetup();
         // Never fold this device's data into an account it has not synced with without asking:
         // a crafted link could be someone else's account (login injection, security audit).
         const held =
@@ -538,6 +576,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     trash,
     dreams,
     documents,
+    profiles,
+    sources,
+    decided,
     user,
   ]);
 
@@ -555,8 +596,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // and restored on next sign-in; this only protects shared devices.
   const signOut = async () => {
     // Frozen (#288): the shared session is another tab's now; signing it out would sign that tab
-    // out. A reload is what this tab needs.
-    if (tabFrozen()) return location.reload();
+    // out. A reload is what this tab needs. Stopped by a newer version (#382), the session is this
+    // tab's own: it signs out without a push (pushNow won't send), asking first as for a failed one.
+    if (tabFrozen() && tabFrozen() !== 'newerVersion') return location.reload();
     // Flush edits still inside the push debounce (or a failed push) before the wipe.
     clearTimeout(pushTimer.current);
     if (user) {
@@ -566,6 +608,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
+    liftNewerVersionFreeze(); // the wipe below must reach storage
     // Another tab may have signed in as someone else meanwhile (the flush or a confirm found it):
     // the shared session is that tab's now, and signing it out would sign that account out.
     if (tabFrozen() || (user && !(await sessionIsStill(user)))) return location.reload();
@@ -578,34 +621,30 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // Delete removes the cloud row (RLS-scoped to this user) AND local data, then signs out.
   const deleteMyData = async () => {
-    if (!user || tabFrozen()) return;
+    if (!user || (tabFrozen() && tabFrozen() !== 'newerVersion')) return;
     if (
       !window.confirm(
-        'Delete all your synced data (jobs, categories, and boards) from the cloud and this device? This cannot be undone.',
+        'Delete all your synced data (jobs, tracks, boards, watched companies and scored postings) from the cloud and this device? This cannot be undone.',
       )
     )
       return;
     // The confirm may have stayed open while another tab switched account (#288): then the
     // deletes would run under that account's session, and the sign-out below would end it.
+    const stoppedByNewer = tabFrozen() === 'newerVersion';
+    liftNewerVersionFreeze(); // a newer version's blob is deleted like any other (#382)
     if (!(await sessionIsStill(user))) return;
     setMsg('Deleting…');
-    // Erase curated content (child → parent) plus the sync blob. RLS scopes each delete to this
-    // user; the FK cascade would cover the children, but we delete them explicitly so erasure
-    // never silently depends on it. supabase-js reports failure as `{ error }`, not a throw.
-    const failed: string[] = [];
-    const supa = await loadSupabase();
-    for (const table of DELETE_ORDER) {
-      if (!(await sessionIsStill(user))) return; // the freeze notice says why; local copy kept
-      try {
-        const r = await supa.from(table).delete().eq('user_id', user.id);
-        if (r.error) failed.push(table);
-      } catch {
-        failed.push(table);
-      }
-    }
-    if (failed.length) {
+    // No push after this one (#393): drop the debounced one, then wait out one already sent.
+    deleting.current = true;
+    clearTimeout(pushTimer.current);
+    await Promise.allSettled([...pushing.current]);
+    const why = await eraseCloud(user);
+    if (why) {
+      deleting.current = false; // the local copy is kept, so syncing it may go on
+      if (why === STOPPED) return; // the freeze notice says why; local copy kept
       // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
-      const why = deleteFailedMsg(failed);
+      // The newer version's blob may still be there: stay stopped, or the next push rewrites it.
+      if (stoppedByNewer) freezeTab('newerVersion');
       setMsg(why);
       toast({
         title: 'Delete incomplete',
@@ -618,9 +657,39 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     clearLocalData();
     setTabAccount(null);
     handled.current = null;
-    await supa.auth.signOut();
+    await (await loadSupabase()).auth.signOut();
     location.reload();
   };
+
+  // Erase the account in the cloud: '' when it is gone, else what to tell the user (STOPPED when
+  // another tab took the session). delete_my_data (#393) removes every per-user table in one
+  // transaction; until it can run (see below) the tables the app writes are deleted
+  // one by one, child → parent, so erasure never silently depends on the FK cascade. RLS scopes
+  // each to this user. supabase-js reports failure as `{ error }`, not a throw.
+  async function eraseCloud(u: User): Promise<string> {
+    const supa = await loadSupabase();
+    if (!(await sessionIsStill(u))) return STOPPED;
+    try {
+      const r = await supa.rpc('delete_my_data', { p_user: u.id });
+      if (!r.error) return '';
+      // Not applied yet (PGRST202), or applied before the scorer's tables exist (42P01): the
+      // tables the app writes are all there is to delete.
+      if (r.error.code !== 'PGRST202' && r.error.code !== '42P01') return DELETE_FAILED;
+    } catch {
+      return DELETE_FAILED;
+    }
+    const failed: string[] = [];
+    for (const table of DELETE_ORDER) {
+      if (!(await sessionIsStill(u))) return STOPPED;
+      try {
+        const r = await supa.from(table).delete().eq('user_id', u.id);
+        if (r.error) failed.push(table);
+      } catch {
+        failed.push(table);
+      }
+    }
+    return failed.length ? deleteFailedMsg(failed) : '';
+  }
 
   const sendLink = async (email: string): Promise<string | null> => {
     // The link lands on the app's root: remember this page so that tab comes back here, and that
@@ -673,7 +742,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     () =>
       onTabFrozen((why) => {
         clearTimeout(pushTimer.current);
-        const description = why === 'switched' ? TAB_SWITCHED : TAB_SIGNED_OUT;
+        const description = TAB_FROZEN_MESSAGE[why];
         setMsg(description);
         setPulling(false);
         if (frozenToasted.current) return; // a sign-out freeze turned switch: the menu line says it

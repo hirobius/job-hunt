@@ -1,6 +1,6 @@
 // Calm list 2/7 (#236): Today is gone. Due follow-ups and the next 7 days of interviews and calls
 // live at the top of the Pipeline, under To apply, as one Follow up section (due first, then the
-// rest with their dates) and one Next 7 days list. `#/today` redirects to Companies. Tested at the
+// rest with their dates) and one Next 7 days list. `#/today` is home again (#383). Tested at the
 // route seam through App and driven by role + name.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,12 +22,22 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './store';
+import {
+  addJob,
+  addJobDetailed,
+  getAllJobs,
+  jobIdOf,
+  markAppliedByUrl,
+  removeJob,
+  updateJob,
+} from './store';
+import { ymd } from './jobEvents';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import { getAllDocuments } from './documents';
+import { getProfile, replaceProfiles } from './profile';
 import { setOutreachMessages } from './test/outreach';
 
 const renderApp = () =>
@@ -48,6 +58,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   replaceCurationState({ categories: [], groups: [], tiles: [] });
+  replaceProfiles([]);
   window.history.replaceState(null, '', '/');
   window.location.hash = '#/queue';
 });
@@ -59,34 +70,29 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('#/today is retired (#236)', () => {
-  it('redirects to Companies, replacing the history entry', async () => {
+describe('#/today is home again (#383; was retired in #236)', () => {
+  it('opens Today, not Companies', async () => {
     seedPack('consulting');
     window.location.hash = '#/today';
-    const before = window.history.length;
-    const replace = vi.spyOn(window.history, 'replaceState');
     renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(replace).toHaveBeenCalled();
-    expect(window.history.length).toBe(before);
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
-    expect(screen.queryByRole('heading', { level: 2, name: 'Today' })).toBeNull();
-    replace.mockRestore();
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(window.location.hash).toBe('#/today');
+    expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
   });
 
-  it('an empty hash lands on Companies', async () => {
+  it('an empty hash lands on Today', async () => {
     seedPack('consulting');
     window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
   });
 
   it('a ?add= quick-add link still lands on the Pipeline', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
   });
 });
 
@@ -101,28 +107,30 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     renderApp();
     const rows = within(followUps()).getAllByRole('listitem');
     const due = rows.filter((r) => within(r).queryByText('Follow-up due'));
-    expect(due.map(titleOf)).toEqual(['UX Researcher', 'Design Systems Lead']);
+    expect(due.map(titleOf)).toEqual(['Design Systems Designer', 'Design Systems Lead']);
     // The due rows lead the list, and only they carry the action.
     expect(rows.slice(0, 2)).toEqual(due);
     for (const r of due) expect(within(r).getAllByRole('button')).toHaveLength(1);
     for (const r of rows.slice(2)) expect(within(r).queryByRole('button')).toBeNull();
     expect(within(due[0]).getAllByRole('link')[0]).toHaveAttribute(
       'href',
-      `#/queue/${jobIdOf('https://brambleandfinch.example.com/jobs/ux-researcher')}`,
+      `#/queue/${jobIdOf('https://brambleandfinch.example.com/jobs/design-systems-designer')}`,
     );
     // No job shows twice in the section.
     const names = rows.map(titleOf);
     expect(new Set(names).size).toBe(names.length);
   });
 
-  const UXR = 'https://brambleandfinch.example.com/jobs/ux-researcher';
+  const UXR = 'https://brambleandfinch.example.com/jobs/design-systems-designer';
   const dueNames = () =>
     within(followUps())
       .getAllByRole('listitem')
       .filter((r) => within(r).queryByText('Follow-up due'))
       .map(titleOf);
   const openFollowUp = async (user: ReturnType<typeof userEvent.setup>) => {
-    await user.click(within(followUps()).getByRole('button', { name: 'Follow up: UX Researcher' }));
+    await user.click(
+      within(followUps()).getByRole('button', { name: 'Follow up: Design Systems Designer' }),
+    );
     return screen.findByRole('dialog', { name: 'Follow up' });
   };
 
@@ -130,7 +138,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     const user = userEvent.setup();
     renderApp();
     const dialog = await openFollowUp(user);
-    expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch');
+    expect(dialog).toHaveTextContent('the Design Systems Designer role at Bramble & Finch');
     // Its blanks are chips that fill in place (rev-3 A); Edit message opens the whole text.
     expect(within(dialog).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
     // Edit message is the message card's last row, with a pencil, as in Use template.
@@ -152,7 +160,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Add starter messages' }));
     expect(getAllDocuments().some((d) => d.id === 'snippet-tpl-followup')).toBe(true);
     await waitFor(() =>
-      expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch'),
+      expect(dialog).toHaveTextContent('the Design Systems Designer role at Bramble & Finch'),
     );
     expect(within(dialog).queryByRole('button', { name: 'Add starter messages' })).toBeNull();
   });
@@ -190,26 +198,28 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     await waitFor(() =>
       expect(getAllJobs().find((j) => j.url === UXR)?.snoozeUntil).toBeUndefined(),
     );
-    expect(dueNames()).toContain('UX Researcher');
+    expect(dueNames()).toContain('Design Systems Designer');
   });
 
-  it('lists the interviews and calls in the next 7 days; Open job goes to its Interviews tab', async () => {
+  it('lists the interviews and calls in the next 7 days; Open job opens its page', async () => {
     renderApp();
     const rows = within(region(/^Next 7 days/)).getAllByRole('listitem');
     expect(rows.map((r) => r.textContent)).toEqual([
-      expect.stringMatching(/Interview · Clinical Systems Analyst.*Hiring manager/),
-      expect.stringMatching(/Interview · Senior UX Designer.*Final loop/),
+      expect.stringMatching(/Interview · Principal Design Systems Engineer.*Hiring manager/),
+      expect.stringMatching(/Interview · Design Systems Architect.*Final loop/),
     ]);
     await userEvent.click(
-      within(rows[0]).getByRole('link', { name: 'Open job: Clinical Systems Analyst' }),
+      within(rows[0]).getByRole('link', { name: 'Open job: Principal Design Systems Engineer' }),
     );
     await waitFor(() =>
       expect(window.location.hash).toBe(
-        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/clinical-systems-analyst')}?section=interviews`,
+        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/principal-design-systems-engineer')}`,
       ),
     );
-    // The event lives on the Interviews tab, so that is the one that opens (return paths).
-    expect(await screen.findByRole('tab', { name: /Interviews/, selected: true })).toBeVisible();
+    // One page since #416: the job opens on its header and Details.
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Principal Design Systems Engineer' }),
+    ).toBeVisible();
   });
 
   it('every Follow up and Next 7 days row opens its posting in one tap (Adrian 2026-10-22)', () => {
@@ -227,8 +237,13 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     }
     const event = within(region(/^Next 7 days/)).getAllByRole('listitem')[0];
     expect(
-      within(event).getByRole('link', { name: /^Open posting for Clinical Systems Analyst/ }),
-    ).toHaveAttribute('href', 'https://meridianoak.example.com/careers/clinical-systems-analyst');
+      within(event).getByRole('link', {
+        name: /^Open posting for Principal Design Systems Engineer/,
+      }),
+    ).toHaveAttribute(
+      'href',
+      'https://meridianoak.example.com/careers/principal-design-systems-engineer',
+    );
   });
 
   it('no line in a row holds three or more " · " items (#192)', () => {
@@ -264,100 +279,50 @@ describe('empty sections render nothing (#236)', () => {
   });
 });
 
-describe('first-run gate in the shell', () => {
-  it('a first visit (no tracks, no jobs) opens on setup, with sample data on offer', () => {
-    window.location.hash = '';
+describe('a solicitation’s response deadline (#308)', () => {
+  const inDays = (n: number) => {
+    const d = new Date();
+    return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+  };
+  it('a Saved job closing today, tomorrow or within the week is under Next 7 days with its day; day 8 is not (#419)', () => {
+    addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(0) });
+    addJobDetailed('https://sam.gov/opp/b/view', { label: 'Bid tomorrow', deadline: inDays(1) });
+    addJobDetailed('https://sam.gov/opp/c/view', { label: 'Bid next week', deadline: inDays(7) });
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
-    expect(screen.getByRole('heading', { name: 'Set up your board' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
+    const next = region(/^Next 7 days/);
+    const rows = within(next).getAllByRole('listitem');
+    expect(rows.map(titleOf)).toEqual([
+      'Applications close · Bid today',
+      'Applications close · Bid tomorrow',
+    ]);
+    expect(rows[0]).toHaveTextContent('Today');
+    expect(rows[1]).toHaveTextContent('Tomorrow');
+    expect(next).not.toHaveTextContent('Bid next week');
+    // Shown once: Follow up no longer repeats them.
+    expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
   });
 
-  it('trying the sample from setup lands on the Pipeline, with its follow-ups', async () => {
-    window.location.hash = '';
+  it('a job gone from its board drops out of Next 7 days', () => {
+    addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(1) });
+    updateJob(getAllJobs()[0].url, { closedAt: new Date().toISOString() });
     renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
-    expect(
-      await screen.findByRole('tab', { name: 'Pipeline', selected: true }),
-    ).toBeInTheDocument();
-    expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
-  });
-
-  it('picking a track finishes setup and stays on Companies', async () => {
-    window.location.hash = '';
-    renderApp();
-    const lead = screen.getAllByRole('checkbox')[0];
-    expect(lead).not.toBeChecked(); // the Suggested pack starts unticked (Adrian 2026-10-22)
-    await userEvent.click(lead);
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull(),
-    );
-    expect(
-      within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
-        selected: true,
-      }),
-    ).toHaveAccessibleName('Companies');
-    expect(window.location.hash).toBe('#/discover');
-  });
-
-  it('Companies needs a track even when there are jobs; the Pipeline never gates', () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/discover';
-    const { unmount } = renderApp();
-    expect(screen.getByText('Pick a track to search')).toBeInTheDocument();
-    unmount();
-    removeJob('https://acme.example/jobs/1');
-    window.location.hash = '#/queue';
-    renderApp();
-    expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull();
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
   });
 });
 
-// The "Getting started" card (#132) moved from Today to the Pipeline (#236). Ticks come from real
-// state; Dismiss is remembered per device (rjb_ui_getting_started_done).
-describe('Getting started card on the Pipeline', () => {
-  const card = () => screen.queryByRole('region', { name: 'Getting started' });
-  // Display-only rows (rev-3): no disabled checkbox (its opacity failed AA); each row says
-  // "done" / "not done" to assistive tech in a list named by the panel.
-  const ticks = () => {
-    expect(within(card()!).queryByRole('checkbox')).toBeNull();
-    return within(within(card()!).getByRole('list', { name: 'Getting started steps' }))
-      .getAllByRole('listitem')
-      .map((li) => [li.textContent, !/not done/.test(li.textContent ?? '')]);
-  };
-
-  it('is not shown before there is a job of your own, nor for sample data alone', () => {
-    seedPack('consulting');
-    const { unmount } = renderApp();
-    expect(card()).toBeNull();
-    unmount();
-    loadSample();
+describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
+  it('a first visit (no tracks, no jobs) opens on Today with the profile made', async () => {
+    window.location.hash = '';
     renderApp();
-    expect(card()).toBeNull();
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    await waitFor(() => expect(getProfile()).not.toBeNull());
+    expect(screen.queryByText('Set up your search')).toBeNull();
   });
 
-  it('after the first job it lists three steps and ticks the ones that are true', () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
+  it('the sample, tried from the Jobs empty state, shows its follow-ups', async () => {
+    window.location.hash = '#/queue';
     renderApp();
-    expect(ticks()).toEqual([
-      [expect.stringMatching(/Save a job/), true],
-      [expect.stringMatching(/Log a follow-up or mark a job applied/), false],
-      [expect.stringMatching(/Sign in to sync/), false],
-    ]);
-  });
-
-  it('Dismiss hides it and it stays gone', async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    const { unmount } = renderApp();
-    await userEvent.click(within(card()!).getByRole('button', { name: 'Dismiss' }));
-    expect(card()).toBeNull();
-    expect(localStorage.getItem('rjb_ui_getting_started_done')).toBe('1');
-    unmount();
-    renderApp();
-    expect(card()).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
+    expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
   });
 });

@@ -2,28 +2,29 @@
 // board never blanks the feed), and turn each failure into a message that says WHICH source broke
 // and what to do about it. Network goes through `FetchJson` so tests run on canned payloads.
 import { boardLabel, boardsFromUrls, fetchBoard, type Board } from './sources/ats';
+import { fetchBluesky } from './sources/bluesky';
 import { fetchHn } from './sources/hn';
 import { fetchJobicy } from './sources/jobicy';
+import { fetchMastodon } from './sources/mastodon';
 import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
+import { fetchProxied } from './sources/proxied';
+import { PROXIED_SEARCH, PROXIED_SOURCES } from './sources/proxiedIds';
 import { fetchRemotive } from './sources/remotive';
-import { fetchSam, SourceMessageError, type SamRequest } from './sources/sam';
 import { SOURCE_LABEL, type Posting } from './types';
+import { SOURCE_ENABLED } from './sourceEnabled';
 
-/** Per-source switch for the keyless aggregators we have not yet seen answer from a browser (no CORS
- *  proof from the build sandbox). Turn one off here if its first deployed check shows it blocked.
- *  A failure is already isolated and named per source either way. Remote OK stays off until its
- *  API's own legal notice has been read from a network that reaches it and its terms are checked
- *  against this adapter (#178): an attribution source does not ship on a guess of its terms. */
-export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok', boolean> = {
-  jobicy: true,
-  remoteok: false,
-};
+export { SOURCE_ENABLED };
+/** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */
+const SOCIAL = { bluesky: fetchBluesky, mastodon: fetchMastodon } as const;
 
 /** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
  *  how many boards a search reads (Adrian, 2026-10-15): every distinct watched board is read, this
  *  many at a time, and results appear as each one answers (see `onProgress`). */
-export const BOARD_CONCURRENCY = 6;
+export const BOARD_CONCURRENCY = 16;
+/** At most this many board reads on one host at once (#448): what one ATS host already saw before
+ *  BOARD_CONCURRENCY went up from 6, so mixed boards read faster and no host is asked harder. */
+export const BOARD_PER_HOST = 6;
 /** Re-use a response for this long. Sources update a few times a day. In-memory only — board
  *  payloads are far too big for browser storage. (Remotive has its own, stricter budget below.) */
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -160,13 +161,24 @@ export function createFetchJson({
     total -= e.size;
     cache.delete(url);
   };
-  const fetchJson = async (url: string, opts?: { fresh?: boolean }) => {
+  // A read still in flight is shared (Today's Feed and the auto-scan read the same boards on open),
+  // so a url is asked once; a fresh read (liveness) never waits on one.
+  const pending = new Map<string, Promise<unknown>>();
+  const fetchJson = (url: string, opts?: { fresh?: boolean }): Promise<unknown> => {
     const hit = cache.get(url);
     if (hit && !opts?.fresh && now() - hit.at < ttlMs) {
       cache.delete(url);
       cache.set(url, hit);
-      return hit.body;
+      return Promise.resolve(hit.body);
     }
+    if (opts?.fresh) return read(url);
+    const inFlight = pending.get(url);
+    if (inFlight) return inFlight;
+    const p = read(url).finally(() => pending.delete(url));
+    pending.set(url, p);
+    return p;
+  };
+  const read = async (url: string): Promise<unknown> => {
     drop(url);
     let res: Response;
     try {
@@ -201,8 +213,6 @@ export const liveFetchJson = createFetchJson();
 export function describeError(e: unknown, label: string, isBoard: boolean): string {
   if (e instanceof RemotiveBudgetSpent)
     return `${label}: daily limit reached — Remotive allows about ${REMOTIVE_DAILY_MAX} requests a day, so new terms load from it again tomorrow.`;
-  // The source's own words (the contracts function: "SAM_GOV_API_KEY is not set: …").
-  if (e instanceof SourceMessageError) return `${label}: ${e.message}`;
   if (!(e instanceof FetchError)) return `${label}: unexpected response.`;
   if (e.isTimeout) return `${label}: timed out — try again later.`;
   if (e.status === 404 && isBoard)
@@ -219,6 +229,7 @@ export async function settleAll<T>(
   thunks: (() => Promise<T>)[],
   limited: (i: number) => boolean,
   onSettled?: (i: number, result: PromiseSettledResult<T>) => void,
+  hostOf: (i: number) => string = () => '',
 ): Promise<PromiseSettledResult<T>[]> {
   const out: PromiseSettledResult<T>[] = new Array(thunks.length);
   const run = async (i: number) => {
@@ -230,8 +241,28 @@ export async function settleAll<T>(
     onSettled?.(i, out[i]);
   };
   const queue = thunks.map((_, i) => i).filter(limited);
-  const worker = async () => {
-    for (let i = queue.shift(); i !== undefined; i = queue.shift()) await run(i);
+  const busy = new Map<string, number>();
+  let wake: (() => void)[] = [];
+  // The next queued task whose host has room, else undefined (the worker waits for one to free).
+  const take = (): number | undefined => {
+    const at = queue.findIndex((i) => (busy.get(hostOf(i)) ?? 0) < BOARD_PER_HOST);
+    return at < 0 ? undefined : queue.splice(at, 1)[0];
+  };
+  const worker = async (): Promise<void> => {
+    while (queue.length) {
+      const i = take();
+      if (i === undefined) {
+        await new Promise<void>((r) => wake.push(r));
+        continue;
+      }
+      const h = hostOf(i);
+      busy.set(h, (busy.get(h) ?? 0) + 1);
+      await run(i);
+      busy.set(h, busy.get(h)! - 1);
+      const w = wake;
+      wake = [];
+      w.forEach((f) => f());
+    }
   };
   await Promise.all([
     ...thunks
@@ -312,9 +343,6 @@ export async function fetchFeed(
     onProgress?: (p: FeedProgress) => void;
     /** Read only these sources (by `SourceStatus.key`) — "Retry" on a failed source. */
     only?: string[];
-    /** A Contracts track (#275): SAM.gov by NAICS code replaces every term source, once per
-     *  search (the term only filters what is shown). */
-    contracts?: SamRequest;
   },
   fetchJson: FetchJson = liveFetchJson,
   {
@@ -322,23 +350,20 @@ export async function fetchFeed(
     now = Date.now,
     sources: enabled = SOURCE_ENABLED,
     sourceTimeoutMs = SOURCE_TIMEOUT_MS,
-    readSam = (r) => fetchSam(r),
   }: {
     kv?: KeyValue;
     now?: () => number;
     sources?: Partial<typeof SOURCE_ENABLED>;
     sourceTimeoutMs?: number;
-    /** The SAM.gov read (tests stub it). */
-    readSam?: (req: SamRequest) => Promise<Posting[]>;
   } = {},
 ): Promise<FeedResult> {
   const seen = new Set<string>();
   const terms = (req.terms ?? [req.term ?? ''])
     .map((t) => t.trim())
     .filter((t) => t && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase()));
-  const contracts = req.contracts;
-  if (!terms.length && !contracts?.naics.length) return { postings: [], sources: [] };
+  if (!terms.length) return { postings: [], sources: [] };
 
+  const proxied = PROXIED_SOURCES.filter((id) => enabled[id]);
   // One term keeps the plain keys ('hn'); a sweep names the term in each key and label.
   const many = terms.length > 1;
   const termTasks = (term: string): SourceTask[] => {
@@ -369,16 +394,35 @@ export async function fetchFeed(
             },
           ]
         : []),
+      ...proxied
+        .filter((id) => PROXIED_SEARCH.has(id))
+        .map((id) => ({
+          key: k(id),
+          label: l(SOURCE_LABEL[id]),
+          run: () => fetchProxied(id, fetchJson, term),
+        })),
+      ...(Object.keys(SOCIAL) as (keyof typeof SOCIAL)[])
+        .filter((id) => enabled[id])
+        .map((id) => ({
+          key: k(id),
+          label: l(SOURCE_LABEL[id]),
+          run: () => SOCIAL[id](term, fetchJson),
+        })),
     ];
   };
 
   const boards = boardsFromUrls(req.boardUrls, Infinity);
   const all: SourceTask[] = [
-    ...(contracts
-      ? contracts.naics.length
-        ? [{ key: 'sam', label: SOURCE_LABEL.sam, run: () => readSam(contracts) }]
-        : []
-      : terms.flatMap(termTasks)),
+    ...terms.flatMap(termTasks),
+    // A whole-feed board (designsystems.jobs, WWR) is read once per search, like a watched board,
+    // and the term matching happens downstream for every term of a sweep.
+    ...proxied
+      .filter((id) => !PROXIED_SEARCH.has(id))
+      .map((id) => ({
+        key: id,
+        label: SOURCE_LABEL[id],
+        run: () => fetchProxied(id, fetchJson),
+      })),
     ...boards.map((b) => ({
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
@@ -412,6 +456,7 @@ export async function fetchFeed(
       results[i] = r;
       req.onProgress?.(snapshot());
     },
+    (i) => tasks[i].board?.kind ?? '',
   );
   const postings: Posting[] = [];
   const have = new Set<string>();

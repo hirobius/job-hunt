@@ -1,48 +1,11 @@
-// The job's to-dos and its one Notes field, as two panels on the job page's Overview (rev-3 F).
-// All mutations flow through updateJob so they persist via the localStorage + Supabase sync path.
+// The job's one Notes field, as a panel on the job page (rev-3 F). The to-dos left the page in
+// #416; they stay on the Job. Every change flows through updateJob, so it persists and syncs.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Button,
-  Checkbox as HdsCheckbox,
-  Input as HdsInput,
-  Textarea,
-  Icon,
-  Box,
-  Stack,
-  Text,
-} from '@hirobius/design-system';
-import { X, Plus } from 'lucide-react';
-import { findJobByUrl, updateJob } from './store';
-import { addTodo, toggleTodo, deleteTodo, restoreTodo, seedStarterTodos } from './todos';
-import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
-import { collapseRow } from './feedback';
-import { notifyRemoved } from './saveNotice';
-import { nextFocus, useFocusAfter } from './useFocusAfter';
-import type { Job, Todo } from './types';
+import { Textarea, Box, Stack, Text } from '@hirobius/design-system';
+import { updateJob } from './store';
+import { Panel, PanelBody } from './PipelinePanel';
+import type { Job } from './types';
 
-/** Delete a to-do (#212): its row collapses, then it goes, and a notice offers Undo, which puts it
- *  back in its place. The job is read when the delete lands, so two deletes inside one collapse
- *  both stick. */
-function deleteWithUndo(url: string, todo: Todo, from: Element) {
-  collapseRow(from, () => {
-    const todos = findJobByUrl(url)?.todos ?? [];
-    const at = todos.findIndex((t) => t.id === todo.id);
-    if (at < 0) return;
-    updateJob(url, { todos: deleteTodo(todos, todo.id) });
-    notifyRemoved(`Deleted “${todo.text}”`, () => {
-      const now = findJobByUrl(url);
-      if (now) updateJob(now.url, { todos: restoreTodo(now.todos ?? [], todo, at) });
-    });
-  });
-}
-
-/** The job's one Notes field. The draft lives in local state and saves 300 ms after the last
- *  keystroke (so typing doesn't thrash the store/Supabase sync), and at once on blur, unmount
- *  (Back, a hash change) and pagehide / a hidden tab (reload, the phone back gesture), so a note
- *  is never lost to a missing blur. Keyed by job url upstream so it re-seeds when the job
- *  changes. Jobs carry two: `note` (where it was saved from) and `notes` (the user's). This edits
- *  `notes`, showing `note` only when `notes` is empty; when both are set `note` is a read-only
- *  line above, so neither is ever hidden. */
 const NOTES_DEBOUNCE_MS = 300;
 
 function NotesField({ job }: { job: Job }) {
@@ -50,7 +13,7 @@ function NotesField({ job }: { job: Job }) {
   const [draft, setDraft] = useState(shown);
   const draftRef = useRef(draft);
   const savedRef = useRef(shown);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const url = job.url;
   const flush = useCallback(() => {
     clearTimeout(timer.current);
@@ -58,6 +21,16 @@ function NotesField({ job }: { job: Job }) {
     savedRef.current = draftRef.current;
     updateJob(url, { notes: draftRef.current });
   }, [url]);
+  // A newer note from a sync pull replaces the field while nothing is unsaved (#330); an unsaved
+  // edit wins and is saved over it, as before. Only `notes` is followed: the older `note` the field
+  // falls back to must not come back into it when the user clears Notes.
+  const synced = job.notes;
+  useEffect(() => {
+    if (!synced || synced === savedRef.current || draftRef.current !== savedRef.current) return;
+    savedRef.current = synced;
+    draftRef.current = synced;
+    setDraft(synced);
+  }, [synced]);
   useEffect(() => {
     const onHide = () => {
       if (document.visibilityState !== 'visible') flush();
@@ -106,138 +79,6 @@ export function NotesPanel({ job }: { job: Job }) {
           </Box>
         </Stack>
       </PanelBody>
-    </Panel>
-  );
-}
-
-/** Per-role to-dos: a checklist, a quiet "Add a to-do" line that opens the field (rev-3 mock),
- *  and starter tasks while it is empty. */
-export function TodosPanel({ job }: { job: Job }) {
-  const [draft, setDraft] = useState('');
-  const [adding, setAdding] = useState(false);
-  const todos = job.todos ?? [];
-  const open = todos.filter((t) => !t.done).length;
-  // A deleted to-do hands focus to the next one (else Add a to-do); closing the field, to Add.
-  const { ref, focus } = useFocusAfter();
-  const close = () => {
-    setAdding(false);
-    focus('add');
-  };
-
-  const commitAdd = () => {
-    const next = addTodo(todos, draft);
-    if (next.length !== todos.length) {
-      updateJob(job.url, { todos: next });
-      setDraft('');
-    }
-  };
-
-  return (
-    <Panel
-      label="To-dos"
-      title="To-dos"
-      count={open}
-      countLabel={`${open} open`}
-      trailing={
-        todos.length === 0 ? (
-          // Pulled right by the tertiary's padding so its text ends on the panel's edge.
-          <Box sx={{ mr: -4 }}>
-            <Button
-              size="md"
-              variant="tertiary"
-              onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
-            >
-              Add starter tasks
-            </Button>
-          </Box>
-        ) : undefined
-      }
-    >
-      <PanelRows>
-        {todos.map((todo) => (
-          <PanelRow key={todo.id}>
-            <Stack direction="row" gap="px8" align="center">
-              <Box
-                sx={{
-                  flex: '1 1 0%',
-                  minWidth: 0,
-                  ...(todo.done && {
-                    '& label > span:last-of-type': {
-                      textDecoration: 'line-through',
-                      color: 'content.secondary',
-                    },
-                  }),
-                }}
-              >
-                <HdsCheckbox
-                  label={todo.text}
-                  checked={todo.done}
-                  onChange={() => updateJob(job.url, { todos: toggleTodo(todos, todo.id) })}
-                />
-              </Box>
-              <Button
-                size="md"
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={X} />}
-                label={`Delete “${todo.text}”`}
-                ref={ref(todo.id)}
-                onClick={(e) => {
-                  focus(
-                    nextFocus(
-                      todos.map((t) => t.id),
-                      todos.indexOf(todo),
-                      'add',
-                    ),
-                  );
-                  deleteWithUndo(job.url, todo, e.currentTarget);
-                }}
-              />
-            </Stack>
-          </PanelRow>
-        ))}
-        {/* One quiet line until it is wanted; then the field: Enter or Add, Escape closes it. */}
-        <PanelRow>
-          {adding ? (
-            <Stack direction="row" gap="px8" align="center">
-              <Box
-                sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%', maxWidth: 'none' } }}
-              >
-                <HdsInput
-                  aria-label="New to-do"
-                  placeholder="Add a to-do"
-                  value={draft}
-                  autoFocus
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitAdd();
-                    if (e.key === 'Escape') close();
-                  }}
-                  onBlur={() => {
-                    if (!draft.trim()) setAdding(false);
-                  }}
-                />
-              </Box>
-              <Button size="md" variant="secondary" disabled={!draft.trim()} onClick={commitAdd}>
-                Add
-              </Button>
-            </Stack>
-          ) : (
-            // Pulled left by the tertiary's padding: the plus sits on the panel's text edge.
-            <Box sx={{ ml: -4 }}>
-              <Button
-                size="md"
-                variant="tertiary"
-                iconLeft={<Icon icon={Plus} />}
-                ref={ref('add')}
-                onClick={() => setAdding(true)}
-              >
-                Add a to-do
-              </Button>
-            </Box>
-          )}
-        </PanelRow>
-      </PanelRows>
     </Panel>
   );
 }

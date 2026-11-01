@@ -1,5 +1,5 @@
 /* global document, location -- page.evaluate callbacks run in the browser */
-// Screenshot gallery harness (#115 Phase 0). Visits every top-level route, every Discover
+// Screenshot gallery harness (#115 Phase 0). Visits every top-level route, every
 // sub-tab and the main dialogs/menus at 1440 + 390px, light + dark, with the fictional sample
 // data loaded — the before/after record for each redesign phase. A review artefact, not a
 // pixel-diff gate.
@@ -9,7 +9,7 @@
 //
 // The steps find things by role + visible name and skip what a build doesn't have, so the same
 // script shoots the old UI and the redesigned one. Chromium: PW_CHROMIUM_PATH (cloud sessions:
-// /opt/pw-browsers/chromium-1194/chrome-linux/chrome), else Playwright's own.
+// /opt/pw-browsers/chromium), else Playwright's own.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -28,13 +28,7 @@ const OUT = args.out || 'gallery';
 const LABEL = args.label || 'current';
 const PORT = Number(args.port || 4179);
 const WIDTHS = [1440, 390];
-const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-// --pack=<regex> picks the starter track by name instead of the first (the case-study set uses it).
-const PACK = args.pack ? new RegExp(args.pack, 'i') : undefined;
-const packBox = (page) => {
-  const boxes = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox');
-  return PACK ? boxes.filter({ hasText: PACK }).first() : boxes.first();
-};
+const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium';
 const THEMES = ['light', 'dark'];
 // --format=png for lossless shots (the case-study set, #199); default is small JPEGs.
 const EXT = args.format === 'png' ? 'png' : 'jpg';
@@ -114,20 +108,8 @@ async function seed(page) {
   // Sample pipeline: the empty tracker's "Try with sample data".
   for (const name of [/^(Pipeline|Tracker)$/]) await clickIf(page, 'tab', name);
   await clickIf(page, 'button', /Try with sample data/);
-  // A Discover (Companies) track: first starter pack from onboarding.
-  if (await clickIf(page, 'tab', /^(Discover|Companies)$/)) {
-    await page.waitForTimeout(600);
-    // Discover with no track asks first (#132); the button opens the setup.
-    await clickIf(page, 'button', /^Choose a track$/);
-    const pack = packBox(page);
-    if (await pack.isVisible().catch(() => false)) {
-      await pack.click();
-      // Three steps (#132): Continue, Continue, Finish.
-      await clickIf(page, 'button', /^Continue$/);
-      await clickIf(page, 'button', /^Continue$/);
-      await clickIf(page, 'button', /^Finish$/);
-    }
-  }
+  // The design-systems Search profile is made on its own (no setup screen, 2026-10-29).
+  if (await clickIf(page, 'tab', /^Today$/)) await page.waitForTimeout(600);
 }
 
 // Dialogs and menus: [tab name, file name, steps]. Each step is [role, name]; Escape closes.
@@ -170,12 +152,14 @@ const OVERLAYS = [
       ['button', /^Cover letter/],
     ],
   ],
-  [/^(Discover|Companies)$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
-  // The location and work-mode popover in the header (#131).
+  // The Search profile (#388), from the Account menu.
   [
-    /^(Discover|Companies)$/,
-    'discover-context-popover',
-    [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]],
+    /^(Pipeline|Tracker)$/,
+    'search-profile-dialog',
+    [
+      ['button', /^Account/],
+      ['menuitem', /^Search profile$/],
+    ],
   ],
   // The details card in edit, and the header menu (Remove lives there).
   [/^(Pipeline|Tracker)$/, 'job-page-edit', [['first-job'], ['button', /^Edit details$/]]],
@@ -292,81 +276,16 @@ async function shoot(browser, base, theme, width, manifest) {
 
   // The landing screen before any data: what a first visit sees.
   await snap('First visit');
-  // The guided first run (#132): steps 2 and 3, then back out so seed() starts from step 1.
-  const firstPack = packBox(page);
-  if (await firstPack.isVisible().catch(() => false)) {
-    await firstPack.click();
-    if (await clickIf(page, 'button', /^Continue$/)) {
-      await snap('First run · location');
-      if (await clickIf(page, 'button', /^Continue$/)) await snap('First run · first job');
-      await clickIf(page, 'button', /^Back$/);
-      await clickIf(page, 'button', /^Back$/);
-    }
-    await firstPack.click();
+  // The first run's Search profile form (#388): step 2, then back so seed() starts from step 1.
+  if (await clickIf(page, 'button', /^Continue$/)) {
+    await snap('First run · where');
+    await clickIf(page, 'button', /^Back$/);
   }
   await seed(page);
 
   for (const tab of await topTabs(page)) {
     await clickIf(page, 'tab', new RegExp(`^${tab}$`));
     await snap(tab);
-    if (/^(Discover|Companies)$/.test(tab)) {
-      // The sections (tabs under "Your sections"), then each search tool (a segmented row, #131).
-      const inner = page.getByRole('tabpanel').getByRole('tablist', { name: 'Your sections' });
-      const subs = (await inner.isVisible().catch(() => false))
-        ? await inner.getByRole('tab').allInnerTexts()
-        : [];
-      for (const sub of subs.slice(1)) {
-        await inner.getByRole('tab', { name: sub, exact: true }).click();
-        await snap(`${tab} · ${sub}`);
-      }
-      const tools = page.getByRole('radiogroup', { name: 'Search tool' });
-      const labels = (await tools.isVisible().catch(() => false))
-        ? await tools.getByRole('radio').allInnerTexts()
-        : [];
-      for (const label of labels.slice(1)) {
-        await tools.getByRole('radio', { name: label, exact: true }).click();
-        await snap(`${tab} · ${label}`);
-      }
-      // The companies list's secondary views (#237): Live postings and the list checker, reached
-      // by their links; then the list checker populated with a YC batch through the board probe.
-      const companiesTool = /^(Design-system teams|Teams|Companies)$/;
-      if (labels.some((l) => companiesTool.test(l)))
-        await tools.getByRole('radio', { name: companiesTool }).click();
-      if (await clickIf(page, 'link', /^Live postings from job boards$/)) {
-        await snap(`${tab} · Live postings`);
-        await clickIf(page, 'link', /^Back to companies$/);
-      }
-      if (await clickIf(page, 'link', /^Check a list of companies$/)) {
-        await snap(`${tab} · Check a list of companies`);
-        if (await clickIf(page, 'button', /^Load batch$/)) {
-          await page.waitForTimeout(500);
-          if (await clickIf(page, 'button', /^Find boards$/)) {
-            await page
-              .getByText(/\d+ of \d+ checked/)
-              .first()
-              .waitFor({ timeout: 20000 })
-              .catch(() => {});
-            await page.waitForTimeout(4000);
-            await snap(`${tab} · Boards found`);
-          }
-        }
-        await clickIf(page, 'link', /^Back to companies$/);
-      }
-      if (labels.some((l) => companiesTool.test(l))) {
-        await tools.getByRole('radio', { name: companiesTool }).click();
-        if (await clickIf(page, 'button', /^Find design-system teams$/)) {
-          await page
-            .getByText(/\d+ teams? found/)
-            .first()
-            .waitFor({ timeout: 20000 })
-            .catch(() => {});
-          await page.waitForTimeout(4000); // the teams' boards are read after they are found
-          await snap(`${tab} · Teams found`);
-        }
-      }
-      // Back to the default tool before the overlays below.
-      if (labels[0]) await tools.getByRole('radio', { name: labels[0], exact: true }).click();
-    }
   }
 
   // Documents (Templates before #227) without a tab (#240): open it from the Menu, shoot the list.

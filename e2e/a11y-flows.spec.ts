@@ -16,8 +16,8 @@ async function seed(page: Page) {
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/discover/apply');
-  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
+  await go(page, '#/today');
+  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {
@@ -92,22 +92,22 @@ for (const theme of ['light', 'dark'] as const) {
         await page.getByRole('button', { name: /^Account/ }).click();
         await expect(page.getByRole('menu')).toBeVisible();
         bad.push(...(await axe(page, 'menu open')));
+        // Followed / Ignored companies (the Companies tab's place).
+        await page.getByRole('menuitem', { name: 'Companies' }).click();
+        await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
+        bad.push(...(await axe(page, 'companies list')));
         await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toBeHidden();
 
-        // The old Titles link lands on Live postings with Calibrate open (#223).
-        await go(page, '#/discover/titles');
-        await expect(page).toHaveURL(/#\/discover\/live/);
-        await expect(page.getByRole('checkbox').first()).toBeVisible();
-        bad.push(...(await axe(page, 'calibrate open')));
-
-        await go(page, '#/discover/teams');
-        await page
-          .getByRole('button', { name: /^Add a company/ })
-          .first()
-          .click();
-        await expect(page.getByRole('dialog')).toBeVisible();
-        bad.push(...(await axe(page, 'add a company')));
+        // The Search profile (#388: Calibrate's and Manage track's place), with remote only off.
+        await page.getByRole('button', { name: /^Account/ }).click();
+        await page.getByRole('menuitem', { name: 'Search profile' }).click();
+        const profile = page.getByRole('dialog', { name: 'Search profile' });
+        await expect(profile).toBeVisible();
+        await profile.getByRole('switch', { name: 'Remote only' }).click();
+        bad.push(...(await axe(page, 'search profile')));
         await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toBeHidden();
 
         await go(page, '#/copy-deck');
         // A row expands in place (rev-3 M): axe it open, then Open goes to the editor.
@@ -125,13 +125,17 @@ for (const theme of ['light', 'dark'] as const) {
         bad.push(...(await axe(page, 'add job')));
         await page.keyboard.press('Escape');
 
-        // The job page's other tabs (a11y.spec.ts scans Overview only).
+        // The job page is one page (#416, a11y.spec.ts scans it): axe its Add interview dialog.
         await page.locator('a[href^="#/queue/"]').first().click();
-        for (const name of ['Screening', /^Interviews/]) {
-          await page.getByRole('tab', { name }).click();
-          await page.waitForTimeout(300);
-          bad.push(...(await axe(page, `job ${name}`)));
-        }
+        await page
+          .getByRole('button', { name: /^More actions/ })
+          .first()
+          .click();
+        await page.getByRole('menuitem', { name: 'Add interview…' }).click();
+        await expect(page.getByRole('dialog', { name: 'Add interview' })).toBeVisible();
+        await page.waitForTimeout(300);
+        bad.push(...(await axe(page, 'add interview')));
+        await page.keyboard.press('Escape');
 
         expect(bad).toEqual([]);
       });
@@ -189,46 +193,36 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('Enter');
     // Opened from the Pipeline, the page remembers it and its Back goes there (return paths).
     await expect(page).toHaveURL(/#\/legal\/privacy\?from=%2Fqueue$/);
+    // React 19 holds a lazy page's reveal a beat (Suspense throttle): tab once it is on screen.
+    await expect(page.getByRole('heading', { name: 'Privacy policy' })).toBeVisible();
     expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
-  });
-
-  test('the title filter: tick and untick a title with Space', async ({ page }) => {
-    await seed(page);
-    await go(page, '#/discover/titles');
-    const first = page.getByRole('checkbox').first();
-    await expect(first).toBeChecked();
-    await first.focus();
-    await page.keyboard.press('Space');
-    await expect(first).not.toBeChecked();
-    await page.keyboard.press('Space');
-    await expect(first).toBeChecked();
   });
 
   test('job Details → Company page → Back to Pipeline', async ({ page }) => {
     await seed(page);
     await go(page, '#/company/larkspur-analytics');
-    await expect(page.getByRole('heading', { level: 2, name: /Larkspur/ })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /Larkspur/ })).toBeVisible();
     expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
   });
 
-  test('Add a company: focus moves into the dialog, Escape returns it to the button', async ({
+  test('Search profile: focus moves into the dialog, Escape returns it to Account', async ({
     page,
   }) => {
     await seed(page);
-    await go(page, '#/discover/teams');
-    const open = page.getByRole('button', { name: /^Add a company/ }).first();
-    await open.focus();
-    await page.keyboard.press('Enter');
-    const dialog = page.getByRole('dialog');
+    await go(page, '#/queue');
+    const account = page.getByRole('button', { name: /^Account/ });
+    await account.click();
+    await page.getByRole('menuitem', { name: 'Search profile' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Search profile' });
     await expect(dialog).toBeVisible();
     expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(open).toBeFocused();
+    await expect(account).toBeFocused();
   });
 
   test('Add job: Escape returns focus to the button that opened it', async ({ page }) => {
@@ -267,9 +261,9 @@ for (const width of [390, 1440] as const) {
       await link.focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/queue\/./);
-      await expect.poll(() => focused(page)).toBe(`H2 ${title}`);
+      await expect.poll(() => focused(page)).toBe(`H1 ${title}`);
       // The heading takes focus but is not a tab stop: no ring, nothing to press.
-      const heading = page.getByRole('heading', { level: 2, name: title });
+      const heading = page.getByRole('heading', { level: 1, name: title });
       expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
       // The browser's Back is a page change too: it lands on the title that opened the job (#359).
       await page.goBack();
@@ -277,12 +271,28 @@ for (const width of [390, 1440] as const) {
       await expect.poll(() => focused(page)).toBe(`A ${title}`);
       // A page never seen before gets its heading.
       await go(page, '#/legal/terms');
-      await expect.poll(() => focused(page)).toBe('H2 Terms of use');
+      await expect.poll(() => focused(page)).toBe('H1 Terms of use');
       // A top tab keeps focus on the tab (it is still there).
-      await page.getByRole('tab', { name: 'Companies' }).focus();
+      await page.getByRole('tab', { name: 'Today' }).focus();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/#\/discover/);
-      await expect.poll(() => focused(page)).toBe('BUTTON Companies');
+      await expect(page).toHaveURL(/#\/today$/);
+      await expect.poll(() => focused(page)).toBe('BUTTON Today');
+    });
+
+    // #345: the pressed control leaves with what it changed (the empty state, the banner).
+    test('Try with sample data and Clear hand focus to the Pipeline heading', async ({ page }) => {
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+      await page.goto('/#/queue');
+      await page.getByRole('button', { name: 'Try with sample data' }).focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
+      await page.waitForTimeout(300);
+      await expect.poll(() => focused(page)).toBe('H1 Pipeline');
+      await page.getByRole('button', { name: 'Clear sample data' }).focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('status', { name: 'Sample data' })).toHaveCount(0);
+      await page.waitForTimeout(300);
+      await expect.poll(() => focused(page)).toBe('H1 Pipeline');
     });
 
     test('a row that leaves the list hands focus on, and the notice is announced', async ({
@@ -296,7 +306,11 @@ for (const width of [390, 1440] as const) {
         new MutationObserver(() => {
           document
             .querySelectorAll('[aria-live="polite"], [aria-live="assertive"], [role="status"]')
-            .forEach((r) => said.push(r.textContent ?? ''));
+            .forEach((r) => {
+              if (r.closest('[aria-hidden="true"]') || r.getAttribute('aria-live') === 'off')
+                return;
+              said.push(`${r.getAttribute('aria-live')}|${r.textContent ?? ''}`);
+            });
         }).observe(document.body, { childList: true, subtree: true, characterData: true });
       });
       const mark = page.getByRole('button', { name: /^Mark applied/ }).first();
@@ -308,9 +322,13 @@ for (const width of [390, 1440] as const) {
       expect(
         await page.evaluate(() => document.querySelector('main')!.contains(document.activeElement)),
       ).toBe(true);
-      // The toast's text reaches a live region (HDS Toast, Radix's announcer).
+      // The toast's text reaches a live region politely, the title and the job's name apart (#365:
+      // Radix's assertive announcer ran them together, "…7 daysDesign Engineer").
       const said = await page.evaluate(() => (window as unknown as { said: string[] }).said);
-      expect(said.some((t) => t.includes('Marked applied'))).toBe(true);
+      const notice = said.filter((t) => t.includes('Marked applied'));
+      expect(notice.length).toBeGreaterThan(0);
+      expect(notice.every((t) => t.startsWith('polite|'))).toBe(true);
+      expect(notice.some((t) => /Marked applied[^|]*\. \S/.test(t))).toBe(true);
     });
   });
 }

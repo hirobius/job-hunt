@@ -1,7 +1,16 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { applyBrand } from './src/brandHtml.ts';
 import { fontPreloadTag } from './src/fontPreload.ts';
+import { checkBudget } from './src/sizeBudget.ts';
+
+const emptyBoards = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+  if (!req.url?.startsWith('/api/boards')) return next();
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.end(JSON.stringify({ postings: [] }));
+};
 
 export default defineConfig({
   // brand-html: index.html's %BRAND_*% placeholders come from src/brand.ts (#55).
@@ -18,6 +27,38 @@ export default defineConfig({
           const tag = fontPreloadTag(Object.keys(ctx.bundle ?? {}));
           return tag ? html.replace('</title>', `</title>\n    ${tag}`) : html;
         },
+      },
+    },
+    // local-api-boards: /api/boards is a Vercel edge function (api/boards.ts), which nothing
+    // serves under `vite dev` / `vite preview`. Answer it with no postings there, so dev, the E2E
+    // specs and the gallery/screenshots show an empty designsystems.jobs row, not a failing one.
+    // A spec that needs board postings can still page.route('**/api/boards*') over this.
+    {
+      name: 'local-api-boards',
+      configureServer: (server) => void server.middlewares.use(emptyBoards),
+      configurePreviewServer: (server) => void server.middlewares.use(emptyBoards),
+    },
+    // size-budget: the build fails when the first-paint JS/CSS or a lazy chunk outgrows
+    // src/sizeBudget.ts. Locally only (`npm run verify`, the gate before a push): on Vercel it
+    // warns, so a budget miss never blocks a production deploy (like `npm run audit`).
+    {
+      name: 'size-budget',
+      apply: 'build',
+      generateBundle(_options, bundle) {
+        const files = Object.values(bundle).map((f) =>
+          f.type === 'chunk'
+            ? { fileName: f.fileName, code: f.code, isEntry: f.isEntry, imports: f.imports }
+            : { fileName: f.fileName, code: f.source },
+        );
+        const { initialJs, initialCss, over } = checkBudget(files);
+        if (over.length) {
+          const msg = `Size budget (src/sizeBudget.ts): ${over.join('; ')}`;
+          if (process.env.VERCEL) return this.warn(msg);
+          this.error(msg);
+        }
+        this.info(
+          `size budget ok: initial JS ${(initialJs / 1000).toFixed(1)} kB gzip, CSS ${(initialCss / 1000).toFixed(1)} kB gzip`,
+        );
       },
     },
   ],

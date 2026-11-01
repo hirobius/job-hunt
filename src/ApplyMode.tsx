@@ -37,7 +37,7 @@ import { JobBadges } from './JobRowParts';
 import { changeWithUndo } from './jobUndo';
 import { MetaCaption } from './MetaCaption';
 import { statusAgo } from './jobState';
-import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { getRoute, goBack, linkTo, navigate, openApply, useRoute, type Route } from './route';
@@ -45,11 +45,12 @@ import { scrollToTop } from './scrollMemory';
 import { useRemembered } from './viewMemory';
 import { titleOf } from './jobRow';
 import { toApplyQueue } from './applyQueue';
-import { followUpDate } from './jobEvents';
+import { followUpDate, respondByDate } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import {
   KIT_FIELDS,
   addAnswer,
+  clearStaleKitTemplates,
   filledTemplates,
   getApplyKit,
   removeAnswer,
@@ -61,6 +62,7 @@ import {
   type KitAnswer,
 } from './applyKit';
 import { useOutreachTemplates } from './outreachTemplates';
+import { useSnippets } from './copyDeckStore';
 import { AddStarterMessages } from './StarterMessages';
 import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
@@ -68,6 +70,7 @@ import { notifyRemoved, showNotice } from './saveNotice';
 import { useCloudSync } from './account/accountContext';
 import { usePageTitle } from './pageTitle';
 import type { Job } from './types';
+import { useFocusAfter } from './useFocusAfter';
 import { collapseRow, useArrived } from './feedback';
 
 const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
@@ -110,7 +113,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           description={
             queue.length
               ? `${queue.length} ${queue.length === 1 ? 'job is' : 'jobs are'} waiting to be applied to.`
-              : 'Save jobs from Companies or paste a link, then come back here to apply.'
+              : 'Save postings from Review new on Today, or paste a link, then come back here to apply.'
           }
           action={
             queue.length ? (
@@ -121,9 +124,9 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
               // Never a dead end: the one action points to where jobs come from (rev-3 empty).
               <Button
                 variant="secondary"
-                onClick={() => navigate({ tab: 'discover', sub: null, jobId: null })}
+                onClick={() => navigate({ tab: 'today', sub: null, jobId: null })}
               >
-                Find the next company
+                Review new postings
               </Button>
             )
           }
@@ -175,7 +178,10 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const company = job.company?.trim();
   // rev-3 B: company · location · the applied date once applied, else when it was saved.
   const when = statusAgo(job);
-  const dueOn = followUpDate(job, new Date());
+  const now = new Date();
+  const dueOn = followUpDate(job, now);
+  // A saved solicitation's deadline is a day to respond by, not to follow up on (#308).
+  const respondBy = respondByDate(job, now);
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
@@ -198,13 +204,21 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           </Box>
         </Stack>
         <PageHeader
-          level={2}
+          level={1}
           metadata={<JobBadges job={job} />}
           title={titleOf(job)}
           description={
-            job.company || job.location || when ? (
+            job.company || job.location || when || respondBy ? (
               // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
-              <MetaCaption as="span" items={[company, job.location?.trim(), when]} />
+              <MetaCaption
+                as="span"
+                items={[
+                  company,
+                  job.location?.trim(),
+                  when,
+                  respondBy && `Apply by ${dayLabel(respondBy, now)}`,
+                ]}
+              />
             ) : undefined
           }
         />
@@ -240,7 +254,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
               {[
                 company ? `Applied to ${company}.` : '',
                 "It's under Follow up in the Pipeline.",
-                dueOn ? `Follow up on ${dayLabel(dueOn, new Date())}.` : '',
+                dueOn ? `Follow up on ${dayLabel(dueOn, now)}.` : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -350,9 +364,17 @@ function CopyRow({
 }) {
   const [editing, setEditing] = useRemembered(`kit-edit:${remember}`, false);
   const [draft, setDraft] = useRemembered(`kit-draft:${remember}`, value);
+  // Closing the field hands focus back to its Edit / Add button (#312).
+  const { ref, focus } = useFocusAfter();
   const done = () => {
     onSave(draft.trim());
     setEditing(false);
+    focus('edit');
+  };
+  const cancel = () => {
+    setDraft(value);
+    setEditing(false);
+    focus('edit');
   };
   const Field = multiline ? Textarea : HdsInput;
   const body = (
@@ -367,14 +389,19 @@ function CopyRow({
               setDraft(e.target.value)
             }
             onKeyDown={(e: React.KeyboardEvent) => {
-              if (!multiline && e.key === 'Enter') done();
+              // Handled here, so Enter never reaches the button focus moves to.
+              if (!multiline && e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                done();
+              }
+              if (e.key === 'Escape') cancel();
             }}
           />
           <Stack direction="row" gap="tight">
             <Button size="md" variant="secondary" onClick={done}>
               Done
             </Button>
-            <Button size="md" variant="tertiary" onClick={() => setEditing(false)}>
+            <Button size="md" variant="tertiary" onClick={cancel}>
               Cancel
             </Button>
           </Stack>
@@ -395,6 +422,7 @@ function CopyRow({
               size="sm"
               variant="secondary"
               aria-label={`${value ? 'Edit' : 'Add'} ${label}`}
+              ref={ref('edit')}
               onClick={() => {
                 setDraft(value);
                 setEditing(true);
@@ -408,9 +436,9 @@ function CopyRow({
       )}
     </>
   );
-  // A kit field is one card of its list (Adrian 2026-10-23); an answer's own row stays in its card.
+  // A kit field is one row of its list (#449); an answer's own row stays in its panel.
   return as === 'li' ? (
-    <ListCard label={label}>{body}</ListCard>
+    <ItemRow label={label}>{body}</ItemRow>
   ) : (
     <Box sx={{ py: 'xs' }} aria-label={label}>
       {body}
@@ -418,9 +446,9 @@ function CopyRow({
   );
 }
 
-/** A list inside a panel: a card per row (Adrian 2026-10-23: cards, not hairlines). */
+/** A list inside a panel: plain rows, a hairline between them (#449: no cards within cards). */
 function Rows({ label, children }: { label?: string; children: ReactNode }) {
-  return <CardList label={label}>{children}</CardList>;
+  return <ItemList label={label}>{children}</ItemList>;
 }
 
 /** An expandable row (HDS Disclosure variant="row") as one list item. */
@@ -440,7 +468,7 @@ function DisclosureItem({
 }) {
   const [open, setOpen] = useRemembered(`apply:${remember}`, false);
   return (
-    <ListCard label={label} dense>
+    <ItemRow label={label} dense>
       <Disclosure
         variant="row"
         label={label}
@@ -451,7 +479,7 @@ function DisclosureItem({
       >
         {children}
       </Disclosure>
-    </ListCard>
+    </ItemRow>
   );
 }
 
@@ -505,7 +533,7 @@ function ApplyTemplates({ job }: { job: Job }) {
               the row's one action, so there is no chevron (rev-3 review). The whole text is in
               Documents. */}
           {rows.map((r) => (
-            <ListCard key={r.id} label={r.label}>
+            <ItemRow key={r.id} label={r.label}>
               <BlankText
                 preview
                 text={r.text}
@@ -518,7 +546,7 @@ function ApplyTemplates({ job }: { job: Job }) {
                 }
                 action={<CopyButton label={r.label} value={r.text} />}
               />
-            </ListCard>
+            </ItemRow>
           ))}
         </Rows>
       )}
@@ -550,7 +578,16 @@ function ApplicationKit({ job }: { job: Job }) {
     />
   );
   const answered = kit.answers.length;
-  const { user } = useCloudSync(); // signed out, the kit stays on this device
+  const { user, settled } = useCloudSync(); // signed out, the kit stays on this device
+  // #314: a pick whose message was deleted reads as "No template" (the Select value below only
+  // ever names a live message), and once sync has settled the stale id is cleared from the kit
+  // itself, so it stops syncing and re-adding the starters cannot silently re-link it. Not while
+  // legacy snippets wait for their move into the library (App's SnippetMigration, whose effect runs
+  // after this child's on the commit sync settles): a picked snippet is not stale, only not moved.
+  const moving = useSnippets().some((s) => !s.migrated);
+  useEffect(() => {
+    if (settled && !moving) clearStaleKitTemplates(snippets.map((s) => s.id));
+  }, [settled, moving, snippets]);
   return (
     <Panel
       label="Application kit"
@@ -573,10 +610,10 @@ function ApplicationKit({ job }: { job: Job }) {
             label={`Fill in ${missing.length} more`}
             preview={missing.map((f) => f.label).join(', ')}
           >
-            {/* Nested cards, like the panel's own rows. */}
-            <CardList label="More fields" inset="none">
+            {/* Rows, like the panel's own. */}
+            <ItemList label="More fields" inset="none">
               {missing.map((f) => fieldRow(f))}
-            </CardList>
+            </ItemList>
           </DisclosureItem>
         )}
         {(
@@ -606,7 +643,7 @@ function ApplicationKit({ job }: { job: Job }) {
                   <Select
                     label={`${label} template`}
                     options={options}
-                    value={kit[slot] ?? ''}
+                    value={template(kit[slot]) ? (kit[slot] ?? '') : ''}
                     onChange={(v) => setKitTemplate(slot, v)}
                   />
                 ) : (

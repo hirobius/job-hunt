@@ -8,7 +8,14 @@ import { Panel, PanelRow, PanelRows } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { deriveJobState } from './jobState';
 import { followUpJobs } from './applyQueue';
-import { dueFollowUps, followUpDate, KIND_WORD, UPCOMING_DAYS, upcomingEvents } from './jobEvents';
+import {
+  dueFollowUps,
+  followUpDate,
+  KIND_WORD,
+  respondByJobs,
+  UPCOMING_DAYS,
+  upcomingEvents,
+} from './jobEvents';
 import { dayLabel } from './dayLabel';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
@@ -69,7 +76,8 @@ function AgendaRow({
 
 const jobs$ = (n: number, noun = 'job') => `${n} ${noun}${n === 1 ? '' : 's'}`;
 
-/** Applied or interviewing jobs: the due ones first (most overdue first), then the rest by date. */
+/** Applied or interviewing jobs: the due ones first (most overdue first), then the rest by date.
+ *  Saved jobs closing this week (#308) are under Next 7 days (#419). */
 export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
   const due = dueFollowUps(jobs, now).map((d) => d.job);
   const dueUrls = new Set(due.map((j) => j.url));
@@ -118,42 +126,66 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
   );
 }
 
-/** Interviews, calls and other events from today through the next 6 days. */
+/** Interviews, calls and other events from today through the next 6 days, and the saved jobs
+ *  whose applications close in that window (#419; a closing day sits first on its day, like an
+ *  all-day event). */
 export function NextDaysSection({ jobs, now }: { jobs: Job[]; now: Date }) {
   const upcoming = upcomingEvents(jobs, now);
-  if (upcoming.length === 0) return null;
+  const closing = respondByJobs(jobs, now);
+  const count = upcoming.length + closing.length;
+  if (count === 0) return null;
+  const rows = [
+    ...closing.map(({ job, dueDate }) => ({ date: dueDate, closes: job })),
+    ...upcoming.map((it) => ({ date: it.date, event: it })),
+  ].sort(
+    (a, b) => a.date.localeCompare(b.date) || ('closes' in b ? 1 : 0) - ('closes' in a ? 1 : 0),
+  );
   return (
     <Panel
-      label={`Next ${UPCOMING_DAYS} days (${upcoming.length})`}
+      label={`Next ${UPCOMING_DAYS} days (${count})`}
       title={`Next ${UPCOMING_DAYS} days`}
-      count={upcoming.length}
-      countLabel={jobs$(upcoming.length, 'event')}
+      count={count}
+      countLabel={jobs$(count, 'item')}
     >
       <PanelRows>
-        {upcoming.map((it) => (
-          <PanelRow key={`${it.jobUrl}-${it.id}`}>
-            <AgendaRow
-              title={`${KIND_WORD[it.kind]} · ${it.label}`}
-              posting={{ url: it.jobUrl, title: it.label, company: it.company }}
-              notes={metaLines([
-                `${dayLabel(it.date, now)}, ${timeLabel(it.time)}`,
-                it.company,
-                it.note,
-              ])}
-              trailing={
-                // Opens the job on its Interviews tab, where the event lives.
-                <Button asChild variant="secondary">
-                  <a
-                    href={jobHash(jobIdOf(it.jobUrl), 'interviews')}
-                    aria-label={`Open job: ${it.label}`}
-                  >
-                    Open
-                  </a>
-                </Button>
-              }
-            />
-          </PanelRow>
-        ))}
+        {rows.map((r) =>
+          'closes' in r ? (
+            <PanelRow key={`close-${r.closes.url}`}>
+              <AgendaRow
+                title={
+                  <InlineLink href={jobHref(r.closes.url)} externalIcon={false}>
+                    {`Applications close · ${titleOf(r.closes)}`}
+                  </InlineLink>
+                }
+                posting={postingOf(r.closes)}
+                notes={metaLines([dayLabel(r.date, now), r.closes.company])}
+              />
+            </PanelRow>
+          ) : (
+            <PanelRow key={`${r.event.jobUrl}-${r.event.id}`}>
+              <AgendaRow
+                title={`${KIND_WORD[r.event.kind]} · ${r.event.label}`}
+                posting={{ url: r.event.jobUrl, title: r.event.label, company: r.event.company }}
+                notes={metaLines([
+                  `${dayLabel(r.event.date, now)}, ${timeLabel(r.event.time)}`,
+                  r.event.company,
+                  r.event.note,
+                ])}
+                trailing={
+                  // Opens the job's page (one page since #416; the event stays on the job).
+                  <Button asChild variant="secondary">
+                    <a
+                      href={jobHash(jobIdOf(r.event.jobUrl))}
+                      aria-label={`Open job: ${r.event.label}`}
+                    >
+                      Open
+                    </a>
+                  </Button>
+                }
+              />
+            </PanelRow>
+          ),
+        )}
       </PanelRows>
     </Panel>
   );

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>We Work Remotely: Design Jobs</title>
+    <item>
+      <title>Acme Inc: Senior Designer, Design Systems</title>
+      <region>Anywhere in the World</region>
+      <type>Full-Time</type>
+      <description>&lt;p&gt;Own the &lt;strong&gt;design system&lt;/strong&gt; end to end.&lt;/p&gt;</description>
+      <pubDate>Tue, 28 Oct 2026 10:00:00 +0000</pubDate>
+      <guid>https://weworkremotely.com/remote-jobs/acme-inc-senior-designer-design-systems</guid>
+      <link>https://weworkremotely.com/remote-jobs/acme-inc-senior-designer-design-systems</link>
+    </item>
+    <item>
+      <title>Beta: Brand Designer</title>
+      <region>USA Only</region>
+      <type>Contract</type>
+      <description><![CDATA[<p>Logos and campaigns.</p>]]></description>
+      <pubDate>Mon, 27 Oct 2026 10:00:00 +0000</pubDate>
+      <guid>https://weworkremotely.com/remote-jobs/beta-brand-designer</guid>
+      <link>https://weworkremotely.com/remote-jobs/beta-brand-designer</link>
+    </item>
+  </channel>
+</rss>

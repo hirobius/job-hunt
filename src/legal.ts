@@ -3,11 +3,13 @@
 // lets the browser reach is named in `THIRD_PARTIES`). Starting templates for review, not legal
 // advice: while `LEGAL_DRAFT` is true the page says so. Adrian approves any wording before it ships.
 import { BRAND } from './brand';
+import { LEGAL_TITLES } from './legalRoute';
 
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
- *  on 2026-10-20; set it back to true while a revision is under review. */
+ *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. The server job
+ *  searches entry (2026-10-29) is waiting for his review. */
 export const LEGAL_DRAFT = false;
-export const LEGAL_UPDATED = '20 October 2026';
+export const LEGAL_UPDATED = '29 October 2026';
 export const OPERATOR = 'Hirobius';
 export const CONTACT_EMAIL = 'hello@hirobius.com';
 
@@ -51,12 +53,15 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Public job sources',
     purpose:
-      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
+      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, Bluesky and Mastodon (mastodon.social and hachyderm.io) public posts, and the Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio, BambooHR, Rippling, Gem, Pinpoint and Breezy HR job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
     hosts: [
       'https://hn.algolia.com',
       'https://remotive.com',
       'https://jobicy.com',
       'https://remoteok.com',
+      'https://public.api.bsky.app',
+      'https://mastodon.social',
+      'https://hachyderm.io',
       'https://boards-api.greenhouse.io',
       'https://api.lever.co',
       'https://api.eu.lever.co',
@@ -66,7 +71,18 @@ export const THIRD_PARTIES: ThirdParty[] = [
       'https://api.smartrecruiters.com',
       'https://*.teamtailor.com',
       'https://*.jobs.personio.de',
+      'https://*.bamboohr.com',
+      'https://api.rippling.com',
+      'https://api.gem.com',
+      'https://*.pinpointhq.com',
+      'https://*.breezy.hr',
     ],
+  },
+  {
+    name: 'Job searches our server runs',
+    purpose:
+      'If you sign in and your search is for design systems roles, our server (not your browser) looks for openings on designsystems.jobs, Arbeitnow, Remote OK and We Work Remotely and, once each is switched on, TheirStack, Adzuna, Jooble and Into Design Systems. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. Each opening links back to the site it came from and names it; openings from Adzuna are labelled “Jobs by Adzuna”.',
+    hosts: [],
   },
   {
     name: 'DuckDuckGo',
@@ -86,7 +102,7 @@ const name = BRAND.name;
 
 export const PRIVACY: LegalDoc = {
   slug: 'privacy',
-  title: 'Privacy policy',
+  title: LEGAL_TITLES.privacy,
   sections: [
     {
       heading: 'Who we are',
@@ -157,7 +173,7 @@ export const PRIVACY: LegalDoc = {
 
 export const TERMS: LegalDoc = {
   slug: 'terms',
-  title: 'Terms of use',
+  title: LEGAL_TITLES.terms,
   sections: [
     {
       heading: 'The service',
@@ -211,9 +227,6 @@ export const TERMS: LegalDoc = {
 };
 
 export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = { privacy: PRIVACY, terms: TERMS };
-
-/** The route slug for the legal pages: `#/legal/privacy`, `#/legal/terms`. */
-export const LEGAL_ROUTE = 'legal';
 
 /** An unknown or missing sub-slug shows the Privacy policy. */
 export const legalDocFor = (sub: string | null): LegalDoc => (sub === 'terms' ? TERMS : PRIVACY);

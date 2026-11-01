@@ -1,22 +1,21 @@
-import { Fragment, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Fragment, lazy, Suspense, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Form } from '@hirobius/design-system/patterns';
-import { Search, Briefcase, ChevronDown, Download, MoreHorizontal, Plus } from 'lucide-react';
+import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
   Menu as HdsMenu,
   Dialog,
-  Icon,
   Box,
   Stack,
   Text,
   VisuallyHidden,
-  useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { MetaCaption } from './MetaCaption';
 import { useJobs } from './store';
 import { saveWithNotice } from './saveNotice';
+import { importFresh } from './staleBuild';
 import { SORTS, type SortKey } from './jobSort';
 import {
   FILTER_GROUPS,
@@ -29,19 +28,18 @@ import {
 } from './pipelineView';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import ApplyQueueSummary from './ApplyQueueSummary';
-import GettingStarted from './GettingStarted';
-import ScoredQueue from './ScoredQueue';
 import JobListCard from './JobListCard';
-import { CardList, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, Panel, PanelBody } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
-import { RecentlyRemovedLink } from './RecentlyRemoved';
-import { useTrash } from './trash';
-import { openExportLinks } from './exportLinks';
 import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
 import './account/sheet.css';
-import { openTab } from './tabMemory';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { useListFocusKeeper } from './listFocus';
+import { focusAsHeading } from './focusRescue';
+
+// The Find box (#384) loads when Add job turns into it: the board probe stays out of the Pipeline.
+const loadFindBox = importFresh(() => import('./FindBox'));
+const FindBox = lazy(loadFindBox);
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
@@ -70,14 +68,21 @@ export default function TrackerView() {
   // A control that clears the view unmounts as it does, so focus goes to the search (audit).
   const searchField = useRef<HTMLInputElement>(null);
   const focusSearch = () => searchField.current?.focus();
+  // Try with sample data and Clear leave with what they changed: focus goes to the heading (#345).
+  const heading = useRef<HTMLHeadingElement>(null);
+  const focusPageHeading = () => {
+    if (heading.current?.isConnected) focusAsHeading(heading.current);
+  };
   // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
   const cleared = filter !== 'active' || q.trim() !== '';
   const [url, setUrl] = useState('');
   // Said under the field (QA): an empty or unreadable link keeps the dialog open and says why.
   const [urlError, setUrlError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  // The Add job dialog can turn into the Find box (#384): paste a company, board or title too.
+  const [findMode, setFindMode] = useState(false);
   const urlField = useRef<HTMLInputElement>(null);
-  // Pinned to the top of what the phone keyboard leaves visible, like Sign in (sheet.css).
+  // Pinned to the top of what the phone keyboard leaves visible, like Reset (sheet.css).
   const sheetRef = useVisualViewportVars<HTMLDivElement>();
   // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
   // remember which button opened it and give focus back there on close (a11y pass).
@@ -89,9 +94,6 @@ export default function TrackerView() {
   const statusTrigger = useRef<HTMLButtonElement>(null);
   const statusSheet = useBackSheet('pipeline-status');
   const sortSheet = useBackSheet('pipeline-sort');
-  const moreSheet = useBackSheet('pipeline-more');
-  // Export links sits beside Status and Sort; on a phone it folds into a ⋯ menu so they keep room.
-  const roomy = useAtLeast('sm');
 
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const shownUrls = useMemo(() => shown.map((j) => j.url), [shown]);
@@ -101,9 +103,6 @@ export default function TrackerView() {
   // The trigger shows the short form; its name says the same words (WCAG label in name).
   const sortLabel = sortDef?.short ?? sortDef?.label ?? '';
   const counts = useMemo(() => filterCounts(jobs), [jobs]);
-  // Recently removed's link is the only thing under the list besides the first-run empty; no
-  // empty wrapper (and no extra gap) when neither shows.
-  const removedCount = useTrash().length;
 
   // Add job is never greyed out (rev-3): an empty or unreadable link gets a field error instead,
   // and the dialog stays open. A link already saved closes it; saveWithNotice says so.
@@ -118,7 +117,10 @@ export default function TrackerView() {
   };
   const onAddOpenChange = (open: boolean) => {
     setAddOpen(open);
-    if (!open) setUrlError(null);
+    if (!open) {
+      setUrlError(null);
+      setFindMode(false);
+    }
   };
 
   // Start applying is the page's one primary once there are jobs; Add job steps down.
@@ -146,7 +148,7 @@ export default function TrackerView() {
         <Box as="header">
           <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Stack gap="px4">
-              <Text as="h2" variant="title">
+              <Text as="h1" variant="title" ref={heading}>
                 Pipeline
               </Text>
               <MetaCaption
@@ -159,18 +161,13 @@ export default function TrackerView() {
             {jobs.length > 0 && addJobButton}
           </Stack>
         </Box>
-        <SampleBanner jobs={jobs} />
+        <SampleBanner jobs={jobs} onCleared={focusPageHeading} />
       </Stack>
       <Stack gap="px24">
-        {/* What the sync scored and queued (signed in; hidden while there is nothing). */}
-        <ScoredQueue />
-        {jobs.length > 0 && (
-          <>
-            {/* Shown after your first job until dismissed (#132; moved from Today in #236). */}
-            <GettingStarted jobs={jobs} />
-            <ApplyQueueSummary jobs={jobs} />
-          </>
-        )}
+        {/* Simplify Jobs (#416, Adrian's keep list): To apply + Start applying, Follow up and Next
+            7 days, then the job list. Getting started and the scored queue are gone; Recently
+            removed and Export links live in the Account menu. */}
+        {jobs.length > 0 && <ApplyQueueSummary jobs={jobs} />}
         {/* The Jobs panel (rev-3 item 1): a full-width search, then Status and Sort as one row
             of select-style menus, all 40px, and a quiet Clear only when something is
             non-default. No panel until there is something to search or filter. */}
@@ -281,31 +278,6 @@ export default function TrackerView() {
                         </HdsMenu.RadioGroup>
                       </HdsMenu.Content>
                     </HdsMenu>
-                    {roomy ? (
-                      <UiButton
-                        variant="tertiary"
-                        iconLeft={<Icon icon={Download} />}
-                        onClick={() => openExportLinks('view')}
-                      >
-                        Export links
-                      </UiButton>
-                    ) : (
-                      <HdsMenu modal={false} {...moreSheet}>
-                        <HdsMenu.Trigger asChild>
-                          <UiButton
-                            variant="secondary"
-                            iconOnly
-                            iconLeft={<Icon icon={MoreHorizontal} />}
-                            label="More job actions"
-                          />
-                        </HdsMenu.Trigger>
-                        <HdsMenu.Content align="end">
-                          <HdsMenu.Item onSelect={() => openExportLinks('view')}>
-                            Export links
-                          </HdsMenu.Item>
-                        </HdsMenu.Content>
-                      </HdsMenu>
-                    )}
                   </Stack>
                   {/* Liveness sits with the list it checks: one caption-sized row under the
                       toolbar, never above the page title. */}
@@ -379,50 +351,34 @@ export default function TrackerView() {
             ) : (
               // Cards at every width (Adrian 2026-10-24): the 920 shell wrapped table titles to
               // three lines.
-              <CardList as="div">
+              <ItemList as="div">
                 {shown.map((j) => (
                   <JobListCard key={j.url} job={j} />
                 ))}
-              </CardList>
+              </ItemList>
             )}
           </Panel>
         )}
-        {(jobs.length === 0 || removedCount > 0) && (
-          <Stack gap="normal">
-            {jobs.length === 0 && (
-              // First use: the shared teaching empty (#132): what this will hold, one primary action,
-              // one way to see it working.
-              // rev-3 "Pipeline, empty": one centred panel (icon tile, title, sentence,
-              // Add job + sample data); Find the next company stays below it.
-              <EmptyState
-                framed
-                icon={Briefcase}
-                title="Track your first job"
-                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
-                action={
-                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
-                    {addJobButton}
-                    <TrySampleButton />
-                  </Stack>
-                }
-              />
-            )}
-            {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
-            <RecentlyRemovedLink />
-          </Stack>
+        {jobs.length === 0 && (
+          // First use: the shared teaching empty (#132): what this will hold, one primary action,
+          // one way to see it working (rev-3 "Pipeline, empty").
+          <EmptyState
+            framed
+            icon={Briefcase}
+            title="Track your first job"
+            description="Paste a job link to save it here, then apply and follow up. You can also save postings from Review new on Today."
+            action={
+              <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                {addJobButton}
+                <TrySampleButton onLoaded={focusPageHeading} />
+              </Stack>
+            }
+          />
         )}
-        {/* The list always ends by pointing back to Companies (#238), empty or not. Secondary, so
-          Add job / Start applying stay the page's one primary. It opens Companies where it was
-          left (its last tool or section), like the Companies tab (return paths). */}
-        <Stack direction="row">
-          <UiButton variant="secondary" onClick={() => openTab('discover')}>
-            Find the next company
-          </UiButton>
-        </Stack>
       </Stack>
       {/* Portals out, so it takes no slot in the page's rhythm. */}
       <Dialog open={addOpen} onOpenChange={onAddOpenChange}>
-        {/* Placed like the other shell dialogs with a field (`.rjb-sheet`: Sign in, Reset), so the
+        {/* Placed like the other shell dialogs with a field (`.rjb-sheet`: Reset), so the
             phone keyboard never covers the field or Add job, with the 16px phone gutter (`.rjb-form-sheet`). The rev-3 mock has no close X and no
             description: Cancel closes, and the field says where the title comes from. */}
         <Dialog.Content
@@ -431,6 +387,8 @@ export default function TrackerView() {
           hideClose
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => {
+            // Fetch the Find box now, so turning into it never leaves the dialog empty.
+            void loadFindBox().catch(() => undefined);
             e.preventDefault();
             urlField.current?.focus();
           }}
@@ -441,47 +399,68 @@ export default function TrackerView() {
           }}
         >
           <Dialog.Header>
-            <Dialog.Title>Add a job</Dialog.Title>
+            <Dialog.Title>{findMode ? 'Find' : 'Add a job'}</Dialog.Title>
           </Dialog.Header>
-          <Form noValidate onSubmit={submit}>
-            <Stack gap="normal">
-              <HdsInput
-                ref={urlField}
-                label="Job link"
-                type="url"
-                inputMode="url"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                enterKeyHint="go"
-                placeholder="Job link"
-                value={url}
-                helperText="The title fills in from the link. You can edit it after."
-                error={!!urlError}
-                errorMessage={urlError ?? undefined}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  if (urlError) setUrlError(null);
-                }}
+          {findMode ? (
+            <Suspense fallback={null}>
+              <FindBox
+                initial={url}
+                autoFocus
+                onDone={() => onAddOpenChange(false)}
+                footer={
+                  <Dialog.Close asChild>
+                    <UiButton variant="secondary">Cancel</UiButton>
+                  </Dialog.Close>
+                }
               />
-              {/* Phone: the full-width primary over a full-width Cancel (rev-3 mock). From sm, one
+            </Suspense>
+          ) : (
+            <Form noValidate onSubmit={submit}>
+              <Stack gap="normal">
+                <HdsInput
+                  ref={urlField}
+                  label="Job link"
+                  type="url"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
+                  placeholder="Job link"
+                  value={url}
+                  helperText="The title fills in from the link. You can edit it after."
+                  error={!!urlError}
+                  errorMessage={urlError ?? undefined}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    if (urlError) setUrlError(null);
+                  }}
+                />
+                {/* One Find box (#384) until Today hosts it: the same dialog takes anything. */}
+                <div>
+                  <UiButton variant="tertiary" size="sm" onClick={() => setFindMode(true)}>
+                    Paste a company, board or title instead
+                  </UiButton>
+                </div>
+                {/* Phone: the full-width primary over a full-width Cancel (rev-3 mock). From sm, one
                   row with Add job right-most. Add job comes first in the DOM either way. */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: { base: 'column', sm: 'row-reverse' },
-                  gap: 'xs',
-                }}
-              >
-                <UiButton type="submit" variant="primary">
-                  Add job
-                </UiButton>
-                <Dialog.Close asChild>
-                  <UiButton variant="secondary">Cancel</UiButton>
-                </Dialog.Close>
-              </Box>
-            </Stack>
-          </Form>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { base: 'column', sm: 'row-reverse' },
+                    gap: 'xs',
+                  }}
+                >
+                  <UiButton type="submit" variant="primary">
+                    Add job
+                  </UiButton>
+                  <Dialog.Close asChild>
+                    <UiButton variant="secondary">Cancel</UiButton>
+                  </Dialog.Close>
+                </Box>
+              </Stack>
+            </Form>
+          )}
         </Dialog.Content>
       </Dialog>
     </Stack>

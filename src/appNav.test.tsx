@@ -41,7 +41,7 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders two tabs (Companies · Pipeline), each associated with a tabpanel', () => {
+  it('renders two tabs (Today · Jobs), each associated with a tabpanel', () => {
     renderApp();
     const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
     expect(tabs).toHaveLength(2);
@@ -66,45 +66,45 @@ describe('App top-level tab wiring', () => {
     expect(screen.getByRole('tabpanel').getAttribute('tabindex')).toBe('-1');
   });
 
-  it('defaults to the Companies tab when the hash carries no route', () => {
+  it('defaults to the Today tab when the hash carries no route (#383)', () => {
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 });
 
 describe('an unknown route (review nit)', () => {
-  it('#/nope shows a not-found page with a way home, not Companies', async () => {
+  it('#/nope shows a not-found page with a way home, not Today', async () => {
     window.location.hash = '#/nope';
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
     // No tab is selected and no tab panel mounts, like Documents.
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
     expect(screen.queryByRole('tabpanel')).toBeNull();
-    screen.getByRole('button', { name: 'Go to Companies' }).click();
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    screen.getByRole('button', { name: 'Go to Today' }).click();
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/today'));
   });
 
   // Supabase's email link signs in through the hash (implicit flow), and an expired or used link
-  // comes back as #error=…. Neither is a route: Companies shows. The tokens are left for auth-js;
-  // the error is said in a toast and replaced by Companies (shell.test.tsx has the toast).
+  // comes back as #error=…. Neither is a route: home (Today) shows. The tokens are left for auth-js;
+  // the error is said in a toast and replaced by Today (shell.test.tsx has the toast).
   it.each([
     ['#access_token=a&refresh_token=b&expires_in=3600&token_type=bearer&type=magiclink', 'kept'],
     [
       '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired',
       'replaced',
     ],
-  ])('a sign-in callback (%s) lands on Companies, not Page not found', (hash, kept) => {
+  ])('a sign-in callback (%s) lands on Today, not Page not found', (hash, kept) => {
     window.location.hash = hash;
     renderApp();
-    expect(screen.getByRole('tab', { name: 'Companies', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Today', selected: true })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
-    expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/discover');
+    expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/today');
   });
 
-  it('the old Trades slug (#/apprenticeships) still lands on Companies', () => {
+  it('the old Trades slug (#/apprenticeships) still lands on home', () => {
     window.location.hash = '#/apprenticeships';
     renderApp();
-    expect(screen.getByRole('tab', { name: 'Companies', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Today', selected: true })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
   });
 });

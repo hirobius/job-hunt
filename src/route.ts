@@ -58,6 +58,20 @@ export function parseHash(hash: string): Route {
   };
 }
 
+/** Home: an empty hash and every retired route land here. */
+export const HOME_TAB = 'today';
+/** Routes the final shell retired (simplify Q6): the Companies tab (`discover`, every tool, section
+ *  and secondary view under it) and the old Trades slug. */
+const RETIRED_TABS = new Set(['discover', 'apprenticeships']);
+
+/** Where a retired route goes instead (Today), or null for a live one. Pure. The redirect lives
+ *  here only: the snapshot reads a retired hash as Today, the URL is rewritten in place (no
+ *  history step of its own) and `navigate` never writes one. */
+export function redirectOf(r: Route): Route | null {
+  if (!RETIRED_TABS.has(r.tab)) return null;
+  return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
+}
+
 /** Supabase's email link signs in through the hash (`#access_token=…`, implicit flow), and an
  *  expired or used link comes back as `#error=…`. That is a callback for auth-js to read and
  *  clear, not a route: a slug never holds `=`. Leave the hash alone (the tokens are in it). */
@@ -183,7 +197,20 @@ function popLanded() {
   }
 }
 
+/** A retired hash in the address bar becomes Today's, in place (replaceState: no hashchange). */
+function rewriteRetired() {
+  const to = redirectOf(parseHash(window.location.hash));
+  if (!to) return;
+  const h = buildHash(to);
+  window.history.replaceState(
+    window.history.state,
+    '',
+    window.location.pathname + window.location.search + h,
+  );
+}
+
 if (typeof window !== 'undefined') {
+  rewriteRetired();
   const found = readEntry();
   if (found) {
     entry = { ...found, hash: window.location.hash };
@@ -204,6 +231,7 @@ if (typeof window !== 'undefined') {
   });
 
   window.addEventListener('hashchange', (ev) => {
+    rewriteRetired();
     const found = readEntry();
     if (found) {
       // Back or forward onto a page already visited: bring its scroll back.
@@ -230,12 +258,14 @@ if (typeof window !== 'undefined') {
 // Cache the parsed snapshot so useSyncExternalStore gets a stable reference between changes.
 let snapHash = typeof window !== 'undefined' ? window.location.hash : '';
 let snap: Route = parseHash(snapHash);
+snap = redirectOf(snap) ?? snap;
 
 function getSnapshot(): Route {
   const h = window.location.hash;
   if (h !== snapHash) {
     snapHash = h;
-    snap = parseHash(h);
+    const r = parseHash(h);
+    snap = redirectOf(r) ?? r;
   }
   return snap;
 }
@@ -287,7 +317,8 @@ export function navigate(
     return;
   }
   const cur = getSnapshot();
-  const next: Route = { ...cur, ...patch };
+  const asked: Route = { ...cur, ...patch };
+  const next: Route = redirectOf(asked) ?? asked;
   // A job id belongs to the tab it was opened in: switching tabs without naming a job drops it.
   if (patch.tab !== undefined && patch.tab !== cur.tab && !('jobId' in patch)) next.jobId = null;
   const moved = pageKey(next) !== pageKey(cur);
@@ -312,7 +343,7 @@ export function goBackTo(target: Route | Route[]): void {
     afterPops.push(() => goBackTo(target));
     return;
   }
-  const targets = Array.isArray(target) ? target : [target];
+  const targets = (Array.isArray(target) ? target : [target]).map((t) => redirectOf(t) ?? t);
   const want = new Set(targets.map(pageKey));
   if (want.has(pageKey(getSnapshot()))) return;
   const trail = entry?.trail ?? [];
@@ -470,12 +501,12 @@ export function pageKey(r: Route): string {
 
 /** Where a page's Back goes when nothing recorded an origin: the job page, Apply mode, a Company
  *  and Documents go to the Pipeline list, an open document to the library, the legal pages to
- *  Companies. Null for the top-level lists, which have no Back. */
+ *  Today. Null for the top-level lists, which have no Back. */
 export function defaultBack(r: Route): string | null {
   if (r.tab === JOB_TAB) return r.jobId ? PIPELINE_HASH : null;
   if (r.tab === 'apply' || r.tab === COMPANY_TAB) return PIPELINE_HASH;
   if (r.tab === DOCUMENTS_TAB) return r.sub ? `#/${DOCUMENTS_TAB}` : PIPELINE_HASH;
-  if (r.tab === LEGAL_TAB) return '#/discover';
+  if (r.tab === LEGAL_TAB) return `#/${HOME_TAB}`;
   return null;
 }
 

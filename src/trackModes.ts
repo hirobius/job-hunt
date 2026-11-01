@@ -94,14 +94,6 @@ const subscribe = (l: () => void) => {
   };
 };
 
-/** A track's work mode, live. */
-export const useMode = (categoryId: string): WorkMode =>
-  useSyncExternalStore(
-    subscribe,
-    () => readMode(categoryId),
-    () => 'any' as WorkMode,
-  );
-
 /** Every track's mode, live (the sync provider pushes when this changes). */
 export function useAllModes(): Record<string, WorkMode> {
   const snap = useSyncExternalStore(

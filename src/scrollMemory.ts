@@ -45,6 +45,11 @@ let pending: {
   holding?: boolean;
 } | null = null;
 let installed = false;
+/** The page the route has announced (route.ts emits once a hash change has been handled). The
+ *  browser's Back changes the URL a moment before that (popstate, then hashchange): a scroll event
+ *  dispatched in between is the page being left (a job page's scroll to its top, queued just
+ *  before the Back), and must not be saved as the position of the page coming back. */
+let shown = '';
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
 const raf = (f: () => void) =>
@@ -75,6 +80,7 @@ function save() {
 
 function onScroll() {
   const key = norm(window.location.hash);
+  if (key !== shown) return;
   // A restore in progress here: its steps are not the user's position. (One still waiting for its
   // navigation is about another page.)
   if (pending?.hash === key) return;
@@ -176,8 +182,10 @@ export function installScrollMemory(): void {
   subscribeScrollRestore(restore);
   // A new top-level page opens at its top (Companies from the Pipeline's end, a Company page from
   // a scrolled job, Documents from the menu); a page coming back restores instead.
+  shown = norm(window.location.hash);
   let last = getRoute();
   subscribeRoute(() => {
+    shown = norm(window.location.hash);
     const r = getRoute();
     if (r.tab !== last.tab && !isRestoring()) window.scrollTo(0, 0);
     last = r;

@@ -42,7 +42,7 @@ ol.slices li{margin-bottom:8px}
 <body>
 <main>
 <h1>Simplify RoleForge</h1>
-<p class="lede">Spec, 2026-10-28. Draft for Adrian's pick: no code changes yet. Branch <code>claude/rf-simplify-spec</code>.</p>
+<p class="lede">Spec, 2026-10-28. <strong>Historical record: picked (design C) and shipped</strong> in #383–#390 and #414–#416. The live behaviour is in CLAUDE.md, CONTEXT.md and ADR 0009; read this page for the reasoning.</p>
 
 <div class="card pick">
 <strong>Picked: C, with no loss of breadth (amended 2026-10-28).</strong> One home page, <strong>Today</strong>, with three buttons:
@@ -82,7 +82,7 @@ You lose multiple tracks, the curated tile boards, SAM.gov, and Calibrate's sepa
 
 <h2 id="problem">1. The problem in numbers</h2>
 <ul>
-<li><strong>11 ways to find a job</strong> and <strong>8 ways to find or keep a company</strong>, spread over two tabs, two secondary views, a Refine disclosure, a Calibrate disclosure and Manage track.</li>
+<li><strong>19 ways in all:</strong> <strong>11 ways to find a job</strong> and <strong>8 ways to find or keep a company</strong>, spread over two tabs, two secondary views, a Refine disclosure, a Calibrate disclosure and Manage track.</li>
 <li><strong>13 synced fields</strong> in the blob (v11), plus 3 curation tables, plus 4 server tables that were never deployed.</li>
 <li>Companies is <strong>three different things</strong>: watched board tiles, outreach targets and dream companies, each with its own store, plus a fourth derived "Company page".</li>
 <li>Filtering is <strong>four overlapping layers</strong>: title filter, must include (with related titles), Calibrate (leave-out, level, pay) and the track scorer, which replaces some of the others on one track only.</li>

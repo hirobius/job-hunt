@@ -1,0 +1,58 @@
+{
+  "data": [
+    {
+      "slug": "design-systems-engineer-acme-berlin-123",
+      "company_name": "Acme GmbH",
+      "title": "Design Systems Engineer (m/w/d)",
+      "description": "<p>Build and own our <strong>design system</strong> in React.</p>",
+      "remote": true,
+      "url": "https://www.arbeitnow.com/jobs/companies/acme/design-systems-engineer-acme-berlin-123",
+      "tags": ["Frontend", "React"],
+      "job_types": ["Full Time"],
+      "location": "Berlin",
+      "created_at": 1761696000
+    },
+    {
+      "slug": "product-designer-beta-456",
+      "company_name": "Beta AG",
+      "title": "Product Designer",
+      "description": "<p>You will contribute to our design system and shape new features.</p>",
+      "remote": true,
+      "url": "https://www.arbeitnow.com/jobs/companies/beta/product-designer-beta-456",
+      "tags": [],
+      "job_types": [],
+      "location": "Remote",
+      "created_at": 1761609600
+    },
+    {
+      "slug": "design-system-lead-onsite-789",
+      "company_name": "Gamma",
+      "title": "Design System Lead",
+      "description": "On-site in Munich.",
+      "remote": false,
+      "url": "https://www.arbeitnow.com/jobs/companies/gamma/design-system-lead-onsite-789",
+      "location": "Munich",
+      "created_at": 1761609600
+    },
+    {
+      "slug": "backend-engineer-101",
+      "company_name": "Delta",
+      "title": "Backend Engineer",
+      "description": "Our ecosystem of services.",
+      "remote": true,
+      "url": "https://www.arbeitnow.com/jobs/companies/delta/backend-engineer-101",
+      "location": "Remote",
+      "created_at": 1761609600
+    },
+    {
+      "slug": "no-link",
+      "company_name": "Epsilon",
+      "title": "Design Systems Designer",
+      "remote": true,
+      "url": "javascript:alert(1)",
+      "created_at": 1761609600
+    }
+  ],
+  "links": { "next": "https://www.arbeitnow.com/api/job-board-api?page=2" },
+  "meta": { "current_page": 1 }
+}

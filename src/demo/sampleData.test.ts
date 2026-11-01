@@ -31,6 +31,10 @@ describe('sampleJobs', () => {
     for (const j of jobs) expect(new URL(j.url).hostname).toMatch(RESERVED);
   });
 
+  it('is design-systems roles only (Adrian 2026-10-29)', () => {
+    for (const j of jobs) expect(j.label, j.label).toMatch(/design system|design technologist/i);
+  });
+
   it('has no duplicate URLs', () => {
     expect(new Set(jobs.map((j) => j.url)).size).toBe(jobs.length);
   });

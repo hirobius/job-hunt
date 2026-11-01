@@ -1,18 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import DocumentsView from './DocumentsView';
 import { setOutreachMessages } from './test/outreach';
 import { STARTER_SNIPPETS } from './copyDeckStore';
-import DiscoverView from './DiscoverView';
-import { Onboarding } from './Onboarding';
+import { TitlesField, WhereFields } from './ProfileFields';
+import { NEW_PROFILE } from './searchDefaults';
 import { addJob, getAllJobs, removeJob } from './store';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
-import { seedPack } from './curation/starterPacks';
 
 /**
  * Accessibility audit — every primary surface must be free of WCAG 2.0/2.1
@@ -31,11 +29,8 @@ async function auditA11y(el: Element) {
   expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
 }
 
-// Discover renders first-run Onboarding on an empty curation store; seed a track so we audit the
-// actual Discover surface (Onboarding is covered separately by its own render below).
 beforeEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
-  seedPack('consulting');
 });
 
 afterEach(() => {
@@ -51,7 +46,6 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
   const views: [string, React.ReactNode][] = [
     ['TrackerView', <TrackerView />],
     ['DocumentsView', <DocumentsView />],
-    ['DiscoverView', <DiscoverView />],
   ];
 
   it.each(views)('%s', async (_name, ui) => {
@@ -94,11 +88,14 @@ describe('a11y — the Pipeline list with the sample pipeline (#129)', () => {
   });
 });
 
-describe('a11y — first-run Onboarding (#104)', () => {
-  it('pack picker with a pack and "Build your own" selected', async () => {
-    const { container, getByRole } = withTheme(<Onboarding />);
-    getByRole('checkbox', { name: 'ServiceNow' }).click();
-    getByRole('checkbox', { name: 'Build your own' }).click();
+describe('a11y — the Search profile fields (#388)', () => {
+  it('titles with the error, and the place fields with Remote only off', async () => {
+    const { container } = withTheme(
+      <>
+        <TitlesField titles={[]} onChange={() => {}} error />
+        <WhereFields draft={{ ...NEW_PROFILE, remoteOnly: false }} onChange={() => {}} />
+      </>,
+    );
     await auditA11y(container);
   });
 });
@@ -117,32 +114,14 @@ describe('a11y — Documents (#227)', () => {
     const { container } = withTheme(<DocumentsView />);
     await auditA11y(container);
   });
-
-  it('the Delete confirmation', async () => {
-    window.location.hash = '#/copy-deck/snippet-tpl-cover';
-    const { getByRole, findByRole } = withTheme(<DocumentsView />);
-    await userEvent.click(getByRole('button', { name: 'More actions' }));
-    await userEvent.click(await findByRole('menuitem', { name: 'Delete' }));
-    await findByRole('alertdialog');
-    await auditA11y(document.body);
-  });
 });
 
-describe('a11y — the three first-run steps and Getting started (#132)', () => {
-  it('each step of the guided first run', async () => {
-    const { container, getByRole } = withTheme(<Onboarding offerSample />);
-    await auditA11y(container);
-    getByRole('checkbox', { name: 'ServiceNow' }).click();
-    await act(async () => getByRole('button', { name: 'Continue' }).click());
-    await auditA11y(container);
-    await act(async () => getByRole('button', { name: 'Continue' }).click());
-    await auditA11y(container);
-  });
-
-  it('the Getting started card on the Pipeline', async () => {
+describe('a11y — the Pipeline after the first job (#132)', () => {
+  // Getting started left the Pipeline (#416); the page after the first job is still audited.
+  it('the Pipeline after the first job', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     const { container, getByRole } = withTheme(<TrackerView />);
-    expect(getByRole('region', { name: 'Getting started' })).toBeInTheDocument();
+    expect(getByRole('region', { name: /To apply/ })).toBeInTheDocument();
     await auditA11y(container);
   });
 });

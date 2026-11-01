@@ -24,6 +24,7 @@ const SOURCES: Partial<Record<FeedSourceId, NormalizedPosting['source']>> = {
   ashby: 'ashby',
   remotive: 'remotive',
   hn: 'hn',
+  dsjobs: 'rss',
 };
 
 export function toNormalized(p: Posting): NormalizedPosting {

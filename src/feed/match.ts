@@ -2,45 +2,12 @@
 // screener, src/jdScreener.ts). Every Posting a source returns passes through here: it must mention
 // the search term as a PHRASE (not loose words — "system design" is not "design system"), survive
 // the location/work-mode filter, and is then scored so the openings worth acting on float up.
-import type { JobMode } from '../types';
 import type { WorkMode } from '../jobsData';
 import { dedupKey } from '../store';
 import type { Posting, RankedPosting, Signal, SignalId } from './types';
 
-const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** One word of a term, singular/plural-tolerant: library ↔ libraries, system ↔ systems,
- *  process ↔ processes. Short or non-alphabetic words ("UI", "front-end") match exactly, and
- *  words that only look plural ("status", "analysis") never lose their final s. */
-export function inflect(word: string): string {
-  if (word.length < 3 || /[^a-z]/i.test(word)) return escapeRe(word);
-  if (/[^aeiou]y$/i.test(word)) return escapeRe(word.slice(0, -1)) + '(?:y|ies)';
-  if (/[^aeiou]ies$/i.test(word)) return escapeRe(word.slice(0, -3)) + '(?:y|ies)';
-  if (/(?:ss|x|z|ch|sh)es$/i.test(word)) return escapeRe(word.slice(0, -2)) + '(?:es)?';
-  if (/(?:ss|us|is|x|z|ch|sh)$/i.test(word)) return escapeRe(word) + '(?:es)?';
-  if (/s$/i.test(word)) return escapeRe(word.slice(0, -1)) + 's?';
-  return escapeRe(word) + 's?';
-}
-
-/** Phrase regex for a search term: its words in order, whitespace or a hyphen between them,
- *  whole words only, each word singular/plural-tolerant. "system design" is NOT "design system".
- *  The edges are lookarounds, not `\b`, so a term that starts or ends on a symbol (C++, C#, .NET)
- *  still matches, and + or # continue a word: "C" is not "C++", ".NET" is not "ASP.NET". */
-export function termRegex(term: string): RegExp | null {
-  // A hyphen between words reads like a space: "front-end" also finds "Front End".
-  const words = term.trim().split(/\s+|(?<=\w)-(?=\w)/).filter(Boolean);
-  if (words.length === 0) return null;
-  return new RegExp(`(?<![\\w+#])${words.map(inflect).join('[\\s-]+')}(?![\\w+#])`, 'i');
-}
-
-/** Where (if anywhere) a posting mentions the term. Title wins over body. */
-export function matchTerm(p: Posting, term: string): 'title' | 'text' | null {
-  const re = termRegex(term);
-  if (!re) return null;
-  if (re.test(p.title)) return 'title';
-  if (re.test(p.text)) return 'text';
-  return null;
-}
+export { inflect, matchTerm, termRegex } from './term';
+import { matchTerm, termRegex } from './term';
 
 // ---- signals: why an opening is worth a closer look (beyond matching the term) ----
 
@@ -99,16 +66,7 @@ export function detectSignals(text: string): Signal[] {
   return out;
 }
 
-/** Work mode from a short location-ish string. Only a single unambiguous mode counts — "ONSITE or
- *  REMOTE" says nothing. Call it on a location line, never a whole description (which mentions
- *  "remote" in a dozen unrelated ways). */
-export function inferMode(s: string): JobMode | undefined {
-  const found: JobMode[] = [];
-  if (/\bremote\b/i.test(s)) found.push('remote');
-  if (/\bhybrid\b/i.test(s)) found.push('hybrid');
-  if (/\bon[- ]?site\b|\bin[- ]office\b/i.test(s)) found.push('onsite');
-  return found.length === 1 ? found[0] : undefined;
-}
+export { inferMode } from './mode';
 
 /** ~`max` chars of `text` centred on the first term hit (head of the text when there's none). */
 export function snippetAround(text: string, term: string, max = 200): string {

@@ -4,6 +4,7 @@ import {
   createFetchJson,
   describeError,
   BOARD_CONCURRENCY,
+  BOARD_PER_HOST,
   fetchFeed,
   memoryKv,
   REMOTIVE_DAILY_MAX,
@@ -16,7 +17,7 @@ import { FetchError } from './sources/http';
 // fetchFeed's default Remotive budget lives in localStorage — never let it leak between tests.
 beforeEach(() => localStorage.clear());
 
-const NO_AGGREGATORS = { jobicy: false, remoteok: false };
+const NO_AGGREGATORS = { jobicy: false, remoteok: false, bluesky: false, mastodon: false };
 const res = (status: number, body: unknown = {}) =>
   ({
     ok: status >= 200 && status < 300,
@@ -46,6 +47,29 @@ describe('createFetchJson', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
     await fetchJson('https://a/b');
     expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
+  // Today reads the Feed while the auto-scan reads the same boards on open: one request each.
+  it('shares a read already in flight for the same url (a fresh read never waits on one)', async () => {
+    let answer: (r: Response) => void = () => {};
+    const fetchImpl = vi.fn((u: string) =>
+      u.endsWith('slow')
+        ? new Promise<Response>((r) => (answer = r))
+        : Promise.resolve(res(200, { ok: 1 })),
+    );
+    const fetchJson = createFetchJson({ fetchImpl, now: () => 0 });
+    const one = fetchJson('https://a/slow');
+    const two = fetchJson('https://a/slow');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    answer(res(200, { n: 1 }));
+    expect(await one).toEqual({ n: 1 });
+    expect(await two).toEqual({ n: 1 });
+    // A failed read is not kept: the next asks again.
+    const bad = vi.fn(async () => res(500, {}));
+    const failing = createFetchJson({ fetchImpl: bad, now: () => 0 });
+    await Promise.allSettled([failing('https://a/x'), failing('https://a/x')]);
+    await failing('https://a/x').catch(() => {});
+    expect(bad).toHaveBeenCalledTimes(2);
   });
 
   it('never caches a body larger than the whole budget', async () => {
@@ -136,7 +160,7 @@ describe('fetchFeed', () => {
       if (url.includes('search_by_date')) return hnListing;
       if (url.includes('hn.algolia.com'))
         return {
-          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | Design Engineer' }],
         };
       if (url.includes('remotive.com')) throw new FetchError(429, url);
       if (url.includes('ashbyhq'))
@@ -261,8 +285,34 @@ describe('fetchFeed', () => {
       inFlight--;
       return [];
     });
-    expect(BOARD_CONCURRENCY).toBe(6);
-    expect(peak).toBe(6);
+    // One host never sees more than BOARD_PER_HOST at once (#448).
+    expect(peak).toBe(BOARD_PER_HOST);
+  });
+
+  it('reads boards on different hosts in parallel up to BOARD_CONCURRENCY (#448)', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const urls = Array.from({ length: 40 }, (_, i) =>
+      i % 2 ? `https://jobs.lever.co/co${i}` : `https://boards.greenhouse.io/co${i}`,
+    );
+    const hosts = new Map<string, number>();
+    let hostPeak = 0;
+    await fetchFeed({ term: 'x', boardUrls: urls }, async (url) => {
+      if (url.includes('search_by_date')) return { hits: [] };
+      const host = new URL(url).host;
+      if (!/lever|greenhouse/.test(host)) return url.includes('remotive') ? { jobs: [] } : [];
+      inFlight++;
+      hosts.set(host, (hosts.get(host) ?? 0) + 1);
+      peak = Math.max(peak, inFlight);
+      hostPeak = Math.max(hostPeak, hosts.get(host)!);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      hosts.set(host, hosts.get(host)! - 1);
+      return host.includes('lever') ? [] : { jobs: [] };
+    });
+    expect(BOARD_CONCURRENCY).toBeGreaterThan(6);
+    expect(hostPeak).toBeLessThanOrEqual(BOARD_PER_HOST);
+    expect(peak).toBe(Math.min(BOARD_CONCURRENCY, 2 * BOARD_PER_HOST));
   });
 
   it('skips the network entirely for a blank term', async () => {
@@ -278,7 +328,9 @@ describe('fetchFeed', () => {
       if (url.includes('hn.algolia.com'))
         return Promise.resolve(
           res(200, {
-            hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+            hits: [
+              { objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | Design Engineer' },
+            ],
           }),
         );
       if (url.includes('remotive.com')) {
@@ -561,5 +613,70 @@ describe('fetchFeed — the wide sweep (#213)', () => {
     expect(calls.filter((u) => u.includes('lever.co'))).toHaveLength(1);
     // Remotive answered the same job for both terms: it is in the pool once.
     expect(out.postings.filter((p) => p.source === 'remotive')).toHaveLength(1);
+  });
+});
+
+describe('boards read through /api/boards', () => {
+  const dsRow = {
+    id: 'dsjobs:https://designsystems.jobs/companies/acme/lead',
+    title: 'Design Systems Lead',
+    company: 'Acme',
+    url: 'https://designsystems.jobs/companies/acme/lead',
+  };
+  const sources = { dsjobs: true, himalayas: true };
+
+  it('a whole-feed board is read once per sweep, under its plain name; a search board per term', async () => {
+    const urls: string[] = [];
+    const out = await fetchFeed(
+      { terms: ['design systems', 'design technologist'], boardUrls: [] },
+      async (url) => {
+        urls.push(url);
+        if (url.startsWith('/api/boards?src=dsjobs')) return { postings: [dsRow] };
+        if (url.startsWith('/api/boards')) return { postings: [] };
+        return url.includes('remotive') ? { jobs: [] } : { hits: [] };
+      },
+      { kv: memoryKv(), sources },
+    );
+    expect(urls.filter((u) => u.startsWith('/api/boards'))).toEqual([
+      '/api/boards?src=himalayas&q=design+systems',
+      '/api/boards?src=himalayas&q=design+technologist',
+      '/api/boards?src=dsjobs',
+    ]);
+    expect(out.sources).toContainEqual({ key: 'dsjobs', label: 'designsystems.jobs', fetched: 1 });
+    expect(out.sources.map((s) => s.key)).toContain('himalayas|design systems');
+    expect(out.postings.map((p) => p.id)).toEqual([dsRow.id]);
+  });
+
+  it('ships with designsystems.jobs on, We Work Remotely and the unchecked three off', () => {
+    expect(SOURCE_ENABLED).toMatchObject({
+      dsjobs: true,
+      wwr: false,
+      workingnomads: false,
+      himalayas: false,
+      authenticjobs: false,
+    });
+  });
+});
+
+describe('community sources', () => {
+  it('reads Mastodon by default, Bluesky only when switched on, and never Reddit', async () => {
+    const calls: string[] = [];
+    const fetchJson = async (u: string) => {
+      calls.push(u);
+      return {};
+    };
+    const req = { term: 'design systems', boardUrls: [] };
+    const off = await fetchFeed(req, fetchJson, { kv: memoryKv() });
+    const keys = off.sources.map((s) => s.key);
+    expect(keys).toContain('mastodon');
+    expect(keys).not.toContain('bluesky');
+    expect(calls.some((u) => u.startsWith('https://hachyderm.io/'))).toBe(true);
+    const on = await fetchFeed(req, fetchJson, {
+      kv: memoryKv(),
+      sources: { ...SOURCE_ENABLED, bluesky: true },
+    });
+    expect(on.sources.map((s) => s.key)).toContain('bluesky');
+    expect(calls.some((u) => u.startsWith('https://public.api.bsky.app/'))).toBe(true);
+    expect(calls.some((u) => u.includes('reddit.com'))).toBe(false);
   });
 });

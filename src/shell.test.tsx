@@ -22,11 +22,13 @@ import { addDeviceDataIfAsked } from './test/renderAccount';
 import { loadSupabase } from './supabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { QUICK_ADD_INVALID } from './saveNotice';
 import { addStarterMessages } from './addStarters';
 import { BRAND } from './brand';
 import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
 import { backInFlight, resetHistoryRecord } from './route';
+import { LEGAL_DRAFT } from './legal';
 
 const fake = () => h.fake!;
 
@@ -73,9 +75,9 @@ afterEach(() => {
 describe('app shell (#115 Phase 1)', () => {
   it('has a slim header: the product name, the top tabs and one account menu', () => {
     renderApp();
-    expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Jobs']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -89,40 +91,46 @@ describe('app shell (#115 Phase 1)', () => {
     const banners = screen.getAllByRole('banner').filter((el) => !el.closest('main'));
     expect(banners).toHaveLength(1);
     const banner = banners[0];
-    expect(within(banner).getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
+    // The wordmark names the product, not the page (#363): it is no heading; the page's own name
+    // is the one h1, inside main.
+    expect(within(banner).getByRole('img', { name: BRAND.name })).toBeInTheDocument();
+    expect(within(banner).queryByRole('heading')).toBeNull();
     expect(within(banner).getByRole('tablist')).toBeInTheDocument();
     expect(within(banner).getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     const mains = screen.getAllByRole('main');
     expect(mains).toHaveLength(1);
     expect(within(mains[0]).getByRole('tabpanel')).toBeInTheDocument();
     expect(
-      within(mains[0]).getByRole('heading', { level: 2, name: 'Pipeline' }),
+      within(mains[0]).getByRole('heading', { level: 1, name: 'Pipeline' }),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
   it('the page with no tab (Documents) is inside main too', async () => {
     window.location.hash = '#/copy-deck';
     renderApp();
     expect(
-      await within(screen.getByRole('main')).findByRole('heading', { name: 'Documents' }),
+      await within(screen.getByRole('main')).findByRole('heading', { level: 1, name: 'Documents' }),
     ).toBeInTheDocument();
   });
 
   it('the wordmark is the brand lockup at 19px, never a page-title step', () => {
     renderApp();
-    const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
+    const wordmark = screen.getByRole('img', { name: BRAND.name });
     expect(wordmark.className).toBe('rjb-logo-word');
     expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
-    expect((wordmark.parentElement as HTMLElement).style.getPropertyValue('--rjb-logo-size')).toBe('19px');
+    expect((wordmark.parentElement as HTMLElement).style.getPropertyValue('--rjb-logo-size')).toBe(
+      '19px',
+    );
   });
 
-  it('the flame sits left of the wordmark, hidden from assistive tech', () => {
+  it('the flame leads the wordmark, hidden from assistive tech', () => {
     renderApp();
-    const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    const mark = wordmark.parentElement?.querySelector('svg.rjb-flame');
-    expect(mark).not.toBeNull();
-    expect(mark?.getAttribute('aria-hidden')).toBe('true');
-    expect(mark!.compareDocumentPosition(wordmark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const wordmark = screen.getByRole('img', { name: BRAND.name });
+    const mark = wordmark.querySelector('.rjb-wordmark-flame .rjb-flame');
+    expect(wordmark.firstElementChild).toBe(mark?.parentElement);
+    expect(mark?.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(mark?.querySelector('svg path')).not.toBeNull();
   });
 
   it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {
@@ -133,6 +141,8 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Sign in to sync…',
       '---',
       'item:Documents',
+      'item:Search profile',
+      'item:Companies',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -224,7 +234,10 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Back up' }));
-    expect(name).toMatch(new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`));
+    // The backup format loads on demand (#371).
+    await waitFor(() =>
+      expect(name).toMatch(new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`)),
+    );
   });
 
   it('a bad restore file is reported as a toast', async () => {
@@ -292,6 +305,8 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'label:Synced',
       '---',
       'item:Documents',
+      'item:Search profile',
+      'item:Companies',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -327,9 +342,10 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
 
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
-    ['#/queue', 'Pipeline'],
-    ['#/discover', 'Companies'],
-    ['', 'Companies'],
+    ['#/queue', 'Jobs'],
+    ['#/discover', 'Today'],
+    ['#/today', 'Today'],
+    ['', 'Today'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
@@ -341,7 +357,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     expect(screen.queryByRole('tab', { name: 'Templates' })).toBeNull();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
-    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
       'href',
       '#/queue',
@@ -353,15 +369,15 @@ describe('routes keep working (#115 Phase 1)', () => {
     async (hash) => {
       window.location.hash = hash;
       renderApp();
-      await screen.findByRole('heading', { level: 2 });
+      await screen.findByRole('heading', { level: 1 });
       const user = userEvent.setup();
       screen.getByRole('button', { name: /^Account/ }).focus();
       await user.tab();
-      expect(screen.getByRole('tab', { name: 'Companies' })).toHaveFocus();
+      expect(screen.getByRole('tab', { name: 'Today' })).toHaveFocus();
       expect(window.location.hash).toBe(hash);
       // Enter still opens it.
       await user.keyboard('{Enter}');
-      await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+      await waitFor(() => expect(window.location.hash).toBe('#/today'));
     },
   );
 
@@ -378,18 +394,19 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
-    // It remembers the page it was opened from (Companies here), for its Back (return paths).
-    expect(window.location.hash).toBe('#/copy-deck?from=%2Fdiscover');
-    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    // It remembers the page it was opened from (Today here), for its Back (return paths).
+    expect(window.location.hash).toBe('#/copy-deck?from=%2Ftoday');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
   });
 
   it('the Menu opens Privacy and terms: a page with no tab selected (#43)', async () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
+    // Today is the legal pages' own way back, so no origin is written.
     expect(window.location.hash).toBe('#/legal/privacy');
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Privacy policy' }),
+      await screen.findByRole('heading', { level: 1, name: 'Privacy policy' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
   });
@@ -398,19 +415,21 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.location.hash = '#/legal/terms';
     renderApp();
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Terms of use' }),
+      await screen.findByRole('heading', { level: 1, name: 'Terms of use' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
       'href',
       '#/legal/privacy',
     );
-    expect(screen.getByRole('link', { name: 'Back to Companies' })).toHaveAttribute(
-      'href',
-      '#/discover',
-    );
-    // The wording is approved (2026-10-20): the page carries its date and no draft notice.
-    expect(screen.getByText(/^Last updated/)).toBeInTheDocument();
-    expect(screen.queryByText(/This is a draft under review/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Back to Today' })).toHaveAttribute('href', '#/today');
+    // Approved wording carries its date and no notice; a revision under review says it is a draft.
+    if (LEGAL_DRAFT) {
+      expect(screen.getByText(/^Draft of/)).toBeInTheDocument();
+      expect(screen.getByText(/This is a draft under review/)).toBeInTheDocument();
+    } else {
+      expect(screen.getByText(/^Last updated/)).toBeInTheDocument();
+      expect(screen.queryByText(/This is a draft under review/)).toBeNull();
+    }
     expect(screen.getByRole('link', { name: 'hello@hirobius.com' })).toHaveAttribute(
       'href',
       'mailto:hello@hirobius.com',
@@ -421,8 +440,100 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
+  });
+
+  it('a ?add= quick-add link says where the job went (the landing does not drop the notice)', async () => {
+    window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
+    renderApp();
+    expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+  });
+
+  it('a quick-add link that is not a web link says so instead of landing in silence', async () => {
+    window.history.replaceState(null, '', '/?add=nonsense');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('an ?applied= link marks a job saved under another form of its link (www, trailing slash)', () => {
+    addJob('https://acme.example/jobs/9/');
+    window.history.replaceState(null, '', '/?applied=https://www.acme.example/jobs/9');
+    renderApp();
+    expect(getAllJobs()).toHaveLength(1);
+    expect(getAllJobs()[0].status).toBe('Applied');
+  });
+
+  it('an ?applied= link says what it did, with Open (#333)', async () => {
+    window.history.replaceState(null, '', '/?applied=https://acme.example/jobs/9&t=Designer');
+    renderApp();
+    expect(await screen.findByText('Marked applied')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()[0].status).toBe('Applied');
+  });
+
+  it('a ?status= link says what it did, with Open (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Interviewing&u=https://acme.example/jobs/9');
+    renderApp();
+    expect(await screen.findByText('Set to Interviewing')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('#/queue');
+    expect(getAllJobs()[0].status).toBe('Interviewing');
+  });
+
+  it('a ?status= link with an unknown status says so and leaves no params behind (#333)', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/?status=Bogus&u=https://acme.example/jobs/9&keep=1#/queue',
+    );
+    renderApp();
+    expect(await screen.findByText(/“Bogus” is not a status/)).toBeInTheDocument();
+    expect(window.location.search).toBe('?keep=1');
+    expect(window.location.hash).toBe('#/queue');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('a ?status= link with no job link says so and leaves no params behind (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Applied');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('an empty ?add= or ?applied= says so too (#333)', async () => {
+    window.history.replaceState(null, '', '/?applied=&t=Designer');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+  });
+
+  it('Undo on a ?status= notice removes the job the link saved (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Offer&u=https://acme.example/jobs/9');
+    renderApp();
+    await screen.findByText('Set to Offer');
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('Undo on an ?applied= notice puts an already-saved job back as it was (#333)', async () => {
+    addJob('https://acme.example/jobs/9');
+    window.history.replaceState(null, '', '/?applied=https://acme.example/jobs/9');
+    renderApp();
+    await screen.findByText('Marked applied');
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs()[0].status).toBe('Saved');
+  });
+
+  it('a lone ?t= or ?u= is cleaned from the URL too (#333)', () => {
+    window.history.replaceState(null, '', '/?t=Designer&u=https://acme.example/jobs/9');
+    renderApp();
+    expect(window.location.search).toBe('');
   });
 
   it('an expired sign-in link says so in a toast and leaves no error in the URL', async () => {
@@ -438,10 +549,10 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(
       await screen.findByText('That sign-in link has expired. Send a new one from Account.'),
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#/discover');
+    expect(window.location.hash).toBe('#/today');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {
@@ -458,7 +569,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     // The menu's entry pops at once: the route knows the hash it is on, so it doesn't wait ~2 s
     // for a hashchange that never comes.
     await waitFor(() => expect(backInFlight()).toBe(false), { timeout: 500 });
-    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
-    await waitFor(() => expect(window.location.hash).toMatch(/^#\/discover/), { timeout: 500 });
+    await userEvent.click(screen.getByRole('tab', { name: 'Today' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/today'), { timeout: 500 });
   });
 });

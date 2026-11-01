@@ -38,10 +38,10 @@ describe('Try with sample data (Tracker)', () => {
       expect(banner()).toHaveTextContent(/10 fictional jobs/);
       // Saved jobs + the pinned follow-ups/interviews show in the default Active view (their
       // agenda sits above the list, #236).
-      expect(screen.getAllByText('Solutions Engineer')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Design Technologist')[0]).toBeInTheDocument();
       // Applied jobs are also listed under Follow up, so this title appears twice.
-      expect(screen.getAllByText('Clinical Systems Analyst').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('UX Researcher')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Principal Design Systems Engineer').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Design Systems Designer')[0]).toBeInTheDocument();
       expect(tryButton()).toBeNull();
 
       await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
@@ -50,6 +50,22 @@ describe('Try with sample data (Tracker)', () => {
       expect(tryButton()).toBeInTheDocument();
     },
   );
+
+  // #345: the pressed control leaves with what it changed; focus goes to the Pipeline heading,
+  // never to <body>.
+  it('Try with sample data and Clear hand focus to the Pipeline heading', async () => {
+    const user = userEvent.setup();
+    renderTracker();
+    const heading = () => screen.getByRole('heading', { name: 'Pipeline' });
+
+    await user.click(tryButton()!);
+    expect(banner()).toBeInTheDocument();
+    expect(heading()).toHaveFocus();
+
+    await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
+    expect(banner()).toBeNull();
+    expect(heading()).toHaveFocus();
+  });
 
   it('is not offered when the tracker already has real jobs', () => {
     addJob('https://boards.greenhouse.io/acme/jobs/7');

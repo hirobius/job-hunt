@@ -10,8 +10,11 @@ export interface JobFields {
   location: string;
   mode?: JobMode;
   note: string;
-  /** A solicitation's response deadline (YYYY-MM-DD): the job's follow-up date. */
+  /** When applications close (YYYY-MM-DD), where the source says. */
   deadline?: string;
+  /** When the employer posted it and when the feed first read it (#419). */
+  postedAt?: string;
+  discoveredAt?: string;
 }
 
 export function jobFieldsFor(p: RankedPosting, term: string, from = 'Live postings'): JobFields {
@@ -26,10 +29,11 @@ export function jobFieldsFor(p: RankedPosting, term: string, from = 'Live postin
   const found = term
     ? `Found in ${from} · ${SOURCE_LABEL[p.source]} · “${term}”`
     : `Found in ${from} · ${SOURCE_LABEL[p.source]}`;
-  const note = [found, p.deadline && `Response due ${p.deadline}`, signals]
-    .filter(Boolean)
-    .join(' · ');
+  // A job's closing date shows on its own line.
+  const note = [found, signals].filter(Boolean).join(' · ');
   const fields: JobFields = { label, company: p.company, location: p.location, mode: p.mode, note };
   if (p.deadline) fields.deadline = p.deadline;
+  if (p.postedAt) fields.postedAt = p.postedAt;
+  if (p.discoveredAt) fields.discoveredAt = p.discoveredAt;
   return fields;
 }

@@ -1,7 +1,8 @@
 // Recently removed: removing a job moves it here instead of deleting it. Each entry keeps the
-// whole job (to-dos, notes, interviews) for 30 days, then drops on the next read. Persisted in
+// whole job (to-dos, notes, interviews) for 30 days, then drops (at read time, #307). Persisted in
 // `rjb_trash` and synced in the blob (v8), like every store the user edits (ADR 0008).
 // Storage and the cloud are untrusted: everything goes through sanitizeTrash.
+import { useEffect, useState } from 'react';
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 import { loadPersisted, savePersisted } from './persisted';
@@ -47,8 +48,54 @@ const store = createStore<Removed[]>(sanitizeTrash(loadPersisted<unknown>(TRASH_
   onSet: (next) => savePersisted(TRASH_KEY, next),
 });
 
-export const useTrash = store.use;
-export const getTrash = store.get;
+const expiresAt = (r: Removed) => Date.parse(r.removedAt) + TRASH_DAYS * DAY;
+
+/** Whole days until an entry drops (1 on its last day). */
+export const daysLeft = (removedAt: string, now = Date.now()) =>
+  Math.max(0, Math.ceil((Date.parse(removedAt) + TRASH_DAYS * DAY - now) / DAY));
+
+// Entries age out at read time (#307), not only when the store loads or is written: a tab left
+// open for days would otherwise list (and sync back) jobs past their 30 days. Reads never write;
+// the same array comes back until the store changes or the next entry expires.
+let memo: { from: Removed[]; out: Removed[]; until: number } | null = null;
+
+/** Recently removed as of now (past 30 days left out). */
+export function getTrash(): Removed[] {
+  const all = store.get();
+  const now = Date.now();
+  if (memo && memo.from === all && now < memo.until) return memo.out;
+  const kept = all.filter((r) => expiresAt(r) > now);
+  const out = kept.length === all.length ? all : kept;
+  memo = { from: all, out, until: Math.min(Infinity, ...out.map(expiresAt)) };
+  return out;
+}
+
+/** Forget what has aged out, so storage and the cloud copy drop it too. */
+function expireTrash() {
+  const fresh = getTrash();
+  if (fresh !== store.get()) store.set(fresh);
+}
+
+const MAX_TIMEOUT = 2 ** 31 - 1; // setTimeout's ceiling (~24.8 days)
+
+/** Recently removed in a component: re-renders when an entry ages out, open tab or not. */
+export function useTrash(): Removed[] {
+  const all = store.use();
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const next = Math.min(Infinity, ...all.map(expiresAt));
+    if (!Number.isFinite(next)) return;
+    const id = setTimeout(
+      () => {
+        expireTrash();
+        setTick((t) => t + 1); // a long wait is split: check again
+      },
+      Math.min(Math.max(next - Date.now(), 0) + 1, MAX_TIMEOUT),
+    );
+    return () => clearTimeout(id);
+  }, [all, tick]);
+  return getTrash();
+}
 export const replaceTrash = (next: Removed[]) => store.set(sanitizeTrash(next));
 
 /** First sign-in: both sides kept, cloud wins a shared job. */
@@ -73,12 +120,13 @@ const OWN: ReadonlySet<string> = new Set([
   'todos',
   'events',
   'decks',
+  'docLinks',
 ]);
 
 /** The removed copy folded into the copy saved since. The saved copy's own fields win; a field
  *  only the removed copy holds (contact, pay, screening…) comes across, and a copy saved again
  *  that is still Saved takes the removed copy's further status with its dates. Notes, to-dos,
- *  interviews, decks and status history are joined. Nothing either copy holds is dropped. */
+ *  interviews, decks, document links and status history are joined. Nothing either copy holds is dropped. */
 function mergeRemovedInto(saved: Job, removed: Job): Job {
   const a = notesOf(saved);
   const b = notesOf(removed);
@@ -90,6 +138,7 @@ function mergeRemovedInto(saved: Job, removed: Job): Job {
   const todos = byId(saved.todos, removed.todos);
   const events = byId(saved.events, removed.events);
   const decks = byId(saved.decks, removed.decks);
+  const docLinks = byId(saved.docLinks, removed.docLinks);
   const seen = new Set((saved.history ?? []).map((h) => `${h.status}|${h.at}`));
   const history = [
     ...(saved.history ?? []),
@@ -116,6 +165,7 @@ function mergeRemovedInto(saved: Job, removed: Job): Job {
     ...(todos.length ? { todos } : {}),
     ...(events.length ? { events } : {}),
     ...(decks.length ? { decks } : {}),
+    ...(docLinks.length ? { docLinks } : {}),
     ...(history.length ? { history } : {}),
   };
 }

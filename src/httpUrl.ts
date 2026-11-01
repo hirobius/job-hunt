@@ -16,7 +16,7 @@ export const httpUrl = (v: unknown): string | undefined => {
 const SCRIPT_SCHEMES = ['javascript:', 'data:', 'vbscript:', 'blob:', 'file:'];
 
 /** A stored job link may be kept: anything but a scheme that runs code. The store keeps web links,
- *  bare addresses (`acme.com/jobs/1`) and placeholders with no link (`notes:welder`), and every
+ *  bare addresses (`acme.com/jobs/1`) and placeholders with no link (`notes:designer`), and every
  *  view puts the link in an href, so `javascript:` / `data:` are refused here, read the way a
  *  browser reads them (it drops tabs and newlines, so `java\tscript:` is still `javascript:`). */
 export const safeJobUrl = (v: string): boolean => {

@@ -19,6 +19,9 @@ const FEED_HOSTS = [
   'https://remotive.com',
   'https://jobicy.com',
   'https://remoteok.com',
+  'https://public.api.bsky.app',
+  'https://mastodon.social',
+  'https://hachyderm.io',
   'https://boards-api.greenhouse.io',
   'https://api.lever.co',
   'https://api.eu.lever.co',
@@ -28,6 +31,11 @@ const FEED_HOSTS = [
   'https://api.smartrecruiters.com',
   'https://*.teamtailor.com',
   'https://*.jobs.personio.de',
+  'https://*.bamboohr.com',
+  'https://api.rippling.com',
+  'https://api.gem.com',
+  'https://*.pinpointhq.com',
+  'https://*.breezy.hr',
   'https://yc-oss.github.io',
   'https://api.github.com',
 ];
@@ -101,5 +109,45 @@ describe('content security policy', () => {
 
   it('loads no external scripts from index.html (script-src is self only)', () => {
     expect(indexHtml).not.toMatch(/<script\b[^>]*src=["']?(?:https?:)?\/\//);
+  });
+});
+
+// The other security headers (#394, security review 2026-10-28).
+describe('security headers', () => {
+  const all = vercel.headers.find((h) => h.source === '/(.*)')?.headers ?? [];
+  const header = (key: string) => all.find((h) => h.key === key)?.value ?? '';
+
+  it('keeps the app’s files to its own pages (Cross-Origin-Resource-Policy)', () => {
+    expect(header('Cross-Origin-Resource-Policy')).toBe('same-origin');
+  });
+
+  it('denies the powerful features the app never uses', () => {
+    const denied = header('Permissions-Policy')
+      .split(',')
+      .map((d) => d.trim());
+    for (const feature of [
+      'camera',
+      'microphone',
+      'geolocation',
+      'browsing-topics',
+      'payment',
+      'usb',
+    ])
+      expect(denied, feature).toContain(`${feature}=()`);
+  });
+
+  // Accepted risk: anyone can register a subdomain on these hosts, so after an XSS they could
+  // take data out. script-src 'self' is what stops the XSS; a same-origin proxy would close it.
+  // Pinned so no other wildcard joins them without the same call being made.
+  it('allows tenant wildcards only for the boards hosted on a per-company subdomain', () => {
+    const csp = policy();
+    expect((csp.get('connect-src') ?? []).filter((s) => s.includes('*'))).toEqual([
+      'https://*.recruitee.com',
+      'https://*.teamtailor.com',
+      'https://*.jobs.personio.de',
+      'https://*.bamboohr.com',
+      'https://*.pinpointhq.com',
+      'https://*.breezy.hr',
+    ]);
   });
 });

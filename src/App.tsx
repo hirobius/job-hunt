@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   useRoute,
   navigate,
@@ -19,56 +19,82 @@ import {
   Stack,
   useToast,
 } from '@hirobius/design-system';
-import { FollowUpHost } from './FollowUp';
-import { ApplyMode, CompanyPage, JobPage, TrackerView } from './routeViews';
-import { JobPageLiveness } from './LivenessViews';
-import { Onboarding, ChooseTrack } from './Onboarding';
+import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
+import { ApplyMode, CompanyPage, JobPage, Today, TrackerView } from './routeViews';
+import { JobPageLiveness } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
-import { BrandLogo } from './components/brand/BrandFlame';
-import { LEGAL_ROUTE } from './legal';
+import { BrandLogo } from './brand/Flame';
+import { BootHold } from './brand/BootHold';
+import { needsClientAtBoot } from './supabase';
+import { LEGAL_ROUTE } from './legalRoute';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
-import SignInDialog from './account/SignInDialog';
-import { markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import SignInHost from './account/SignInHost';
+import { useJobs } from './store';
+import { useProfile } from './profile';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
+import { scanOnOpenEnabled } from './feed/scanOnOpenFlag';
 import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { authLinkErrorMessage } from './account/authLinkError';
-import { saveWithNotice } from './saveNotice';
+import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNotice';
+import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
-import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
-import { STATUSES } from './types';
-import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
+import { STATUSES, type Status } from './types';
+import { CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
+import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
+import { PageErrorBoundary } from './ErrorBoundary';
 
-// Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
+// Code-split every route view: Documents and the rest here, the Pipeline, job page,
 // Apply mode and Company page through routeViews.ts (they render without a Suspense step once
 // loaded, so moving between them never flashes a skeleton).
-const DiscoverView = lazy(importFresh(() => import('./DiscoverView')));
 const DocumentsView = lazy(importFresh(() => import('./DocumentsView')));
 const LegalPage = lazy(importFresh(() => import('./LegalPage')));
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
+const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
+// The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan
+// (importFresh still raises the new-version notice).
+const AutoScanOnOpen = lazy(() =>
+  importFresh(() => import('./feed/useAutoScan'))().then(
+    (m) => ({ default: m.AutoScanOnOpen }),
+    () => ({ default: () => null }),
+  ),
+);
 
-// Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
-// slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
-// retired (#236): it redirects to Companies. Templates lost its tab (#240) and became the
+// Top-level tabs, in render order: exactly two, Today · Jobs (simplify #383 + amendment 2, Q6).
+// The URL hash carries the slug (`queue` is the Pipeline, its tab named Jobs). The Companies tab is
+// gone with its screens (#389): route.ts sends `#/discover/*` (and the Trades slug) to Today, and
+// Followed / Ignored companies sit under the Account menu. Templates lost its tab (#240) and became the
 // Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
 // from the Apply sheet and the Menu.
-const TAB_SLUGS = ['discover', 'queue'] as const;
-const RETIRED_TODAY = 'today';
+const TAB_SLUGS = ['today', 'queue'] as const;
 const DOCUMENTS_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
-// Companies is home; quick-add always shows the Pipeline, where the new job is.
-const HOME_ROUTE = 'discover';
+// Today is home; quick-add always shows the Pipeline, where the new job is.
+const HOME_ROUTE = 'today';
 const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
-// The old Trades tab's slug: its bookmarks still land on Companies, like an empty hash.
-const LEGACY_HOME = 'apprenticeships';
+// The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
+const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
+
+/** On Today, a signed-in device with nothing on it shows the flame until its cloud copy lands,
+ *  instead of flashing an empty Today (brand/BootHold.tsx). Decided once, at boot; offline
+ *  there is nothing to wait for. Pages that never gate (Jobs, Documents, legal) are never held. */
+function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNode }) {
+  const { settled, offline } = useCloudSync();
+  const [waiting] = useState(() => firstRun && needsClientAtBoot());
+  return (
+    <BootHold waiting={waiting} settled={settled || offline}>
+      {children}
+    </BootHold>
+  );
+}
 
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
  *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
@@ -88,8 +114,19 @@ function SystemsOnlyMigration() {
   const categories = useCategories();
   const { toast } = useToast();
   useEffect(() => {
-    if (settled && migrateSystemsOnly(categories) > 0)
-      toast({ title: SYSTEMS_ONLY_NOTICE, tone: 'info', duration: 10000 });
+    if (!settled) return;
+    let live = true;
+    // Loaded on demand: the starter packs it reads are off the first paint (#371).
+    void loadSystemsOnly().then(
+      ({ migrateSystemsOnly, SYSTEMS_ONLY_NOTICE }) => {
+        if (live && migrateSystemsOnly(categories) > 0)
+          toast({ title: SYSTEMS_ONLY_NOTICE, tone: 'info', duration: 10000 });
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
   }, [settled, categories, toast]);
   return null;
 }
@@ -103,20 +140,14 @@ export default function App() {
   const documents = route.tab === DOCUMENTS_ROUTE;
   // The Privacy policy and Terms (#43): pages with no tab, like Documents.
   const legal = route.tab === LEGAL_ROUTE;
-  // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show Companies.
-  // A sign-in link's callback hash is not a link: Companies shows while auth-js reads it.
-  const known: string[] = [...TAB_SLUGS, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
-  const notFound =
-    route.tab !== '' &&
-    route.tab !== RETIRED_TODAY &&
-    route.tab !== LEGACY_HOME &&
-    !isAuthCallback(route) &&
-    !known.includes(route.tab);
+  // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
+  // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
+  const slugs: string[] = [...TAB_SLUGS];
+  const known: string[] = [...slugs, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
+  const notFound = route.tab !== '' && !isAuthCallback(route) && !known.includes(route.tab);
   const noTab = documents || legal || notFound;
-  const slugIndex = TAB_SLUGS.indexOf(
-    (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
-  );
-  const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
+  const slugIndex = slugs.indexOf(applying || company ? QUICK_ADD_LANDING : route.tab);
+  const tabSlug = slugIndex >= 0 ? slugs[slugIndex] : slugs[defaultTabIndex];
   // The section pages' titles; a job, Apply mode, a Company and the legal pages set their own.
   usePageTitle(
     notFound
@@ -125,9 +156,9 @@ export default function App() {
         ? 'Documents'
         : applying || company || legal || route.jobId
           ? null
-          : TAB_SLUGS[tab] === 'queue'
+          : tabSlug === 'queue'
             ? 'Pipeline'
-            : 'Companies',
+            : 'Today',
   );
 
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
@@ -135,7 +166,7 @@ export default function App() {
   // whether the tab was already open is read before that, on pointer or key down.
   const tappedOpen = useRef<TopTab | null>(null);
   const pressed = (slug: TopTab) => () => {
-    tappedOpen.current = !noTab && TAB_SLUGS[tab] === slug ? slug : null;
+    tappedOpen.current = !noTab && tabSlug === slug ? slug : null;
   };
   const tapped = (slug: TopTab) => () => {
     if (tappedOpen.current !== slug) return;
@@ -154,13 +185,15 @@ export default function App() {
     onClick: tapped(slug),
   });
 
-  // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
-  // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an
-  // empty home. The Pipeline and Documents never gate: quick-add and sample data work before setup.
+  // No setup screen (Adrian 2026-10-29): a first run (no Search profile, no jobs, no old tracks)
+  // gets the design-systems profile on its own once sync settles (V12Migration → ensureProfile)
+  // and opens on Today with the scan running. `firstRun` only holds Today for a signed-in device
+  // whose cloud copy is on its way. Sample data is offered from the Jobs page's empty state.
   const hasTracks = useCategories().length > 0;
+  const hasProfile = !!useProfile();
   const jobs = useJobs();
   const hasJobs = jobs.length > 0;
-  const firstRun = !hasTracks && !hasJobs;
+  const firstRun = !hasProfile && !hasTracks && !hasJobs;
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
   // After ingesting, land on the Pipeline so the just-added job is visible; with no route at all,
@@ -170,32 +203,48 @@ export default function App() {
     const linkError = authLinkErrorMessage(window.location.hash);
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
-    let acted = false;
-    if (qp.get('add')) {
-      saveWithNotice(qp.get('add')!, label);
-      acted = true;
-    }
-    if (qp.get('applied')) {
-      markAppliedByUrl(qp.get('applied')!, label);
-      acted = true;
-    }
-    const st = qp.get('status'),
+    const add = qp.get('add'),
+      applied = qp.get('applied'),
+      st = qp.get('status'),
       su = qp.get('u');
-    if (st && su && (STATUSES as string[]).includes(st)) {
-      setStatusByUrl(su, st as never, label);
-      acted = true;
-    }
-    if (acted) {
-      ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
+    const knownStatus = !!st && (STATUSES as string[]).includes(st);
+    const setsStatus = knownStatus && !!su;
+    const warn = (title: string) => toast({ title, tone: 'warning', duration: 10000 });
+    if (QUICK_ADD_PARAMS.some((k) => qp.has(k))) {
+      const asks = { add: qp.has('add'), applied: qp.has('applied'), status: qp.has('status') };
+      // Every quick-add param leaves the URL, whether the link was usable or not (#333).
+      QUICK_ADD_PARAMS.forEach((k) => qp.delete(k));
       const s = qp.toString();
-      // Through the route seam, so it knows the hash it is on (a sheet's pop would wait otherwise).
+      const acts = !!(add || applied || setsStatus);
+      // Land first, then save: the save notice drops itself on any move away from the page it was
+      // raised on, so raised before the landing it was gone at once. Through the route seam, so it
+      // knows the hash it is on (a sheet's pop would wait otherwise). A link that does nothing
+      // stays on the page it named.
       navigate(
-        { tab: QUICK_ADD_LANDING, sub: null, pillar: null, jobId: null, from: null, section: null },
+        acts
+          ? {
+              tab: QUICK_ADD_LANDING,
+              sub: null,
+              pillar: null,
+              jobId: null,
+              from: null,
+              section: null,
+            }
+          : getRoute().tab
+            ? {}
+            : { tab: HOME_ROUTE },
         true,
         { search: s ? '?' + s : '' },
       );
+      // A link that did something says so in its own notice; one that did nothing says why, once.
+      let did = false;
+      if (add) did = saveWithNotice(add, label) !== 'invalid' || did;
+      if (applied) did = setStatusWithNotice(applied, 'Applied', label) || did;
+      if (setsStatus) did = setStatusWithNotice(su!, st as Status, label) || did;
+      if (!did && (asks.add || asks.applied || asks.status))
+        warn(st && !knownStatus ? quickAddBadStatus(st) : QUICK_ADD_INVALID);
     } else if (linkError) {
-      // An expired or refused sign-in link (#error=…): say so, and replace the error with Companies.
+      // An expired or refused sign-in link (#error=…): say so, and replace the error with home.
       toast({ title: linkError, tone: 'warning', duration: 10000 });
       navigate(
         { tab: HOME_ROUTE, sub: null, pillar: null, jobId: null, from: null, section: null },
@@ -208,15 +257,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // An old #/today link or bookmark (#236) lands on Companies; replace, so Back skips it.
-  useEffect(() => {
-    if (route.tab === RETIRED_TODAY) navigate({ tab: HOME_ROUTE, sub: null, jobId: null }, true);
-  }, [route.tab]);
-
   return (
     <CloudSyncProvider>
       <SnippetMigration />
       <SystemsOnlyMigration />
+      <V12Migration />
+      {/* The scan starts once the profile is here (made on its own on a first run). */}
+      {scanOnOpenEnabled() && hasProfile && (
+        <Suspense fallback={null}>
+          <AutoScanOnOpen />
+        </Suspense>
+      )}
       <DataToolsProvider>
         {/* The portfolio's shell (Adrian 2026-10-22): 1048 in all (narrowed 2026-10-24), gutters that grow with the
             viewport, so content stops near 920. Header, tabs and every page share it. */}
@@ -226,7 +277,7 @@ export default function App() {
                 Manual activation there: Tab past the Account button focuses the first tab, which
                 would otherwise select it and leave the page before a keyboard user reaches it. */}
             <HdsTabs
-              value={noTab ? '' : TAB_SLUGS[tab]}
+              value={noTab ? '' : tabSlug}
               activationMode={noTab ? 'manual' : 'automatic'}
               onValueChange={(v) => openTab(v as TopTab)}
             >
@@ -237,79 +288,79 @@ export default function App() {
                     landmark-one-main / region). */}
                 <Box as="header">
                   <Stack gap="normal">
-                    {/* Slim app bar: the brand lockup (live flame + Sora wordmark, the page's one h1;
-                      Adrian 2026-10-24) · the Account avatar. */}
+                    {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
+                      wordmark, named for the product; the page's own name is its h1, #363) · the
+                      Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
                       <BrandLogo fontSize={19} />
                       <AccountMenu />
                     </Stack>
-                    <TabsList
-                      style={{ marginBottom: 0 }}
-                      className="rjb-top-tabs"
-                      aria-label="Sections"
-                    >
-                      <TabsTrigger value="discover" {...trigger('discover')}>
-                        Companies
+                    <TabsList className="rjb-top-tabs" aria-label="Sections">
+                      <TabsTrigger value="today" {...trigger('today')}>
+                        Today
                       </TabsTrigger>
                       <TabsTrigger value="queue" {...trigger('queue')}>
-                        Pipeline
+                        Jobs
                       </TabsTrigger>
                     </TabsList>
                   </Stack>
                 </Box>
                 <Box as="main">
-                  <Stack gap="px24">
-                    <TabsContent value="queue" variant="bare" tabIndex={-1}>
-                      <Suspense fallback={<PipelineSkeleton />}>
-                        {applying ? (
-                          <ApplyMode jobId={route.sub} />
-                        ) : company ? (
-                          <CompanyPage slug={route.sub ?? ''} />
-                        ) : route.jobId ? (
-                          <>
-                            <JobPageLiveness jobId={route.jobId} />
-                            <JobPage jobId={route.jobId} />
-                          </>
-                        ) : (
-                          // No sync banner: the Account menu's sync line says where data lives.
-                          <TrackerView />
-                        )}
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="discover" variant="bare" tabIndex={-1}>
-                      {firstRun ? (
-                        <Onboarding offerSample />
-                      ) : hasTracks ? (
-                        <Suspense fallback={<DiscoverSkeleton />}>
-                          <DiscoverView />
+                  {/* A page whose chunk is gone after a deploy says so here, not over the shell
+                      (#331); a move to another page clears it. */}
+                  <PageErrorBoundary resetKey={pageKey(route)}>
+                    <Stack gap="px24">
+                      <TabsContent value="today" variant="bare" tabIndex={-1}>
+                        <Suspense fallback={<PipelineSkeleton />}>
+                          <PageHold firstRun={firstRun}>
+                            <Today />
+                          </PageHold>
                         </Suspense>
-                      ) : (
-                        <ChooseTrack />
+                      </TabsContent>
+                      <TabsContent value="queue" variant="bare" tabIndex={-1}>
+                        <Suspense fallback={<PipelineSkeleton />}>
+                          {applying ? (
+                            <ApplyMode jobId={route.sub} />
+                          ) : company ? (
+                            <CompanyPage slug={route.sub ?? ''} />
+                          ) : route.jobId ? (
+                            <>
+                              <Suspense fallback={null}>
+                                <JobPageLiveness jobId={route.jobId} />
+                              </Suspense>
+                              <JobPage jobId={route.jobId} />
+                            </>
+                          ) : (
+                            // No sync banner: the Account menu's sync line says where data lives.
+                            <TrackerView />
+                          )}
+                        </Suspense>
+                      </TabsContent>
+                      {documents && (
+                        <Suspense fallback={<CopyDeckSkeleton />}>
+                          <DocumentsView />
+                        </Suspense>
                       )}
-                    </TabsContent>
-                    {documents && (
-                      <Suspense fallback={<CopyDeckSkeleton />}>
-                        <DocumentsView />
-                      </Suspense>
-                    )}
-                    {legal && (
-                      <Suspense fallback={null}>
-                        <LegalPage />
-                      </Suspense>
-                    )}
-                    {notFound && (
-                      <Suspense fallback={null}>
-                        <NotFoundPage />
-                      </Suspense>
-                    )}
-                  </Stack>
+                      {legal && (
+                        <Suspense fallback={null}>
+                          <LegalPage />
+                        </Suspense>
+                      )}
+                      {notFound && (
+                        <Suspense fallback={null}>
+                          <NotFoundPage />
+                        </Suspense>
+                      )}
+                    </Stack>
+                  </PageErrorBoundary>
                 </Box>
               </Stack>
             </HdsTabs>
           </Box>
         </PageShell>
-        <SignInDialog />
-        <FollowUpHost />
+        <SignInHost />
+        <LazyFollowUpHost />
+        <LazyAddInterviewHost />
         <NoticeHost />
         <StaleBuildNotice />
       </DataToolsProvider>

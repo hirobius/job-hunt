@@ -55,14 +55,14 @@ describe('job route (#127)', () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     renderApp();
-    expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Design Engineer');
     // The shell's own tab list: the job page has its own tabs now.
     expect(
       within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
         selected: true,
       }),
-    ).toHaveAccessibleName('Pipeline');
+    ).toHaveAccessibleName('Jobs');
   });
 
   it('a retired job says so on its page, without fading its text', () => {
@@ -70,7 +70,7 @@ describe('job route (#127)', () => {
     updateJob(URL_A, { archived: true });
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     const { container: page } = renderApp();
-    expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     // The header says Retired next to the status (it replaced the card's "Retired · Saved" eyebrow).
     expect(screen.getByText('Retired')).toBeInTheDocument();
     expect(
@@ -86,7 +86,7 @@ describe('job route (#127)', () => {
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: /Back to Pipeline/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeInTheDocument();
   });
 
   it('a job in the list links to its page', async () => {
@@ -101,7 +101,7 @@ describe('job route (#127)', () => {
     window.location.hash = '#/queue/doesnotexist';
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeInTheDocument();
   });
 
   it('signed in but offline, an unknown id stays put instead of guessing it is gone', async () => {
@@ -122,15 +122,15 @@ describe('job route (#127)', () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     renderApp();
-    await screen.findByRole('heading', { level: 2, name: 'Design Engineer' });
-    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await screen.findByRole('heading', { level: 1, name: 'Design Engineer' });
+    await userEvent.click(screen.getByRole('tab', { name: 'Today' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Design Engineer' }),
+      await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pipeline' })).toBeInTheDocument();
   });
 
   it('a ?add= quick-add link still lands on the Pipeline, not a job page', () => {

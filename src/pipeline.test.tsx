@@ -102,6 +102,16 @@ describe('Pipeline on a phone (#129)', () => {
     expect(title.closest('h3')!.textContent).toBe('Design Engineer');
   });
 
+  it('reads the badges fit first, then status, then Follow-up due (#360)', () => {
+    updateJob(APPLIED, { verdict: 'match' });
+    renderApp();
+    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    const badges = [...card.querySelectorAll('[class*="--component-badge-height"]')].map((b) =>
+      b.textContent?.trim(),
+    );
+    expect(badges).toEqual(['Strong fit', 'Applied', 'Follow-up due']);
+  });
+
   it('opens the posting in one tap from beside the title (Adrian 2026-10-22)', () => {
     renderApp();
     const card = screen.getByRole('article', { name: 'Design Engineer' });
@@ -138,7 +148,7 @@ describe('Pipeline on a phone (#129)', () => {
     const items = within(await screen.findByRole('menu'))
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
-    expect(items).toEqual(['Open posting', 'Star', 'Retire', 'Find more like this', 'Remove']);
+    expect(items).toEqual(['Open posting', 'Add interview…', 'Star', 'Retire', 'Remove']);
     // One inset for every item: the stages are plain items marked by a trailing check, still
     // radio items for assistive tech (rev-3 mock).
     const stages = within(screen.getByRole('menu')).getAllByRole('menuitemradio');
@@ -321,6 +331,8 @@ describe('Pipeline filter (#129)', () => {
       'Applied',
       'Interviewing',
       'Offer',
+      'Closing soon',
+      'Closed',
       'Rejected',
       'Retired',
       'All',
@@ -433,39 +445,6 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
   });
 });
 
-describe('the Pipeline ends with "Find the next company" (#238)', () => {
-  const findNext = () => screen.getByRole('button', { name: 'Find the next company' });
-
-  it('with jobs: an action after the list opens Companies', async () => {
-    viewport(1440);
-    renderApp();
-    const btn = findNext();
-    // It follows the list: the last thing the Pipeline offers.
-    expect(
-      screen.getAllByRole('article').slice(-1)[0].compareDocumentPosition(btn) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    await userEvent.click(btn);
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
-  });
-
-  it('empty: shown under the empty state, secondary beside the primary Add job', async () => {
-    getAllJobs()
-      .slice()
-      .forEach((j) => removeJob(j.url));
-    viewport(390);
-    renderApp();
-    const add = screen.getByRole('button', { name: 'Add job' });
-    const btn = findNext();
-    expect(add.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(btn.className).not.toBe(add.className);
-    await userEvent.click(btn);
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
-  });
-});
-
 describe('Active empty action and Star Undo (#361)', () => {
   beforeEach(() => viewport(390));
   const notice = () => screen.getByRole('region', { name: /^Notifications/ });
@@ -494,8 +473,12 @@ describe('Active empty action and Star Undo (#361)', () => {
       within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Starred/ }),
     );
     const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
-    await user.click(within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }));
-    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Unstar' }));
+    await user.click(
+      within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }),
+    );
+    await user.click(
+      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Unstar' }),
+    );
     expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBeFalsy();
     expect(screen.queryByRole('article', { name: 'Zenith Product Designer' })).toBeNull();
     expect(within(notice()).getByText('Unstarred')).toBeInTheDocument();
@@ -509,7 +492,9 @@ describe('Active empty action and Star Undo (#361)', () => {
     renderApp();
     const card = screen.getByRole('article', { name: 'Design Engineer' });
     await user.click(within(card).getByRole('button', { name: 'More actions: Design Engineer' }));
-    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Star' }));
+    await user.click(
+      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Star' }),
+    );
     expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBe(true);
     expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
     expect(card.getAttribute('data-motion')).toBe('flash');

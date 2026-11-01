@@ -59,12 +59,14 @@ export function spotOf(el: Element): Spot {
 const shownInBrowser = (el: Element) =>
   !el.closest('[hidden], [inert], [aria-hidden="true"]') && el.getClientRects().length > 0;
 
-/** The page's heading: the first h1 or h2 in main outside a side rail (the job rail's list). */
+/** The page's heading: its h1 in main (#363), else the first h2, outside a side rail (the job
+ *  rail's list). */
 export function pageHeading(shown = shownInBrowser): HTMLElement | null {
   const main = document.querySelector('main');
   if (!main) return null;
-  for (const h of main.querySelectorAll<HTMLElement>('h1, h2'))
-    if (!h.closest('nav, aside') && shown(h)) return h;
+  for (const level of ['h1', 'h2'])
+    for (const h of main.querySelectorAll<HTMLElement>(level))
+      if (!h.closest('nav, aside') && shown(h)) return h;
   return null;
 }
 
@@ -99,13 +101,19 @@ export function successor(spot: Spot, shown = shownInBrowser): HTMLElement | nul
   return null;
 }
 
-function focusHeading(shown: (el: Element) => boolean): boolean {
-  const h = pageHeading(shown);
-  if (!h) return false;
+/** Focus a heading as a page's landing spot: it takes focus (tabindex -1) but is no tab stop and
+ *  draws no ring. Also for a control that leaves with what it changed (Try with sample data,
+ *  Clear sample data, #345), so focus lands on its page's heading, never on <body>. */
+export function focusAsHeading(h: HTMLElement): boolean {
   if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
   h.setAttribute('data-focus-heading', '');
   h.focus({ preventScroll: true });
   return document.activeElement === h;
+}
+
+function focusHeading(shown: (el: Element) => boolean): boolean {
+  const h = pageHeading(shown);
+  return h ? focusAsHeading(h) : false;
 }
 
 const lost = () => {

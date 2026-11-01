@@ -13,7 +13,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
-import { addCategory, replaceCurationState } from './curation/curationStore';
+import { replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 
 const A = 'https://acme.example/jobs/1';
@@ -62,12 +62,4 @@ describe('PageHeader descriptions hold inline content only', () => {
     expect(nestingErrors()).toEqual([]);
   });
 
-  it('Companies: the where · Change row is not a <div> inside the header <p>', async () => {
-    addCategory({ label: 'Design systems', titles: ['Design engineer'] });
-    window.location.hash = '#/discover';
-    renderApp();
-    expect(await screen.findByRole('button', { name: /^Change where/ })).toBeVisible();
-    expect(badNesting()).toEqual([]);
-    expect(nestingErrors()).toEqual([]);
-  });
 });

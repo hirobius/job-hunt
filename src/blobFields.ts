@@ -15,6 +15,9 @@ export const FIELD_SINCE = {
   dreams: 9,
   documents: 10,
   mustInclude: 11,
+  profiles: 12,
+  sources: 12,
+  decided: 12,
 } as const;
 
 export type VersionedField = keyof typeof FIELD_SINCE;

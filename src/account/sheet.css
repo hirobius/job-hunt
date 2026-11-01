@@ -1,4 +1,5 @@
-/* Shell dialogs (sign-in, Reset local data) sit in one place (rev-3). HDS Dialog centres its
+/* Shell dialogs (Reset local data; sign-in is its own full screen, SignInDialog.css) sit in one
+   place (rev-3). HDS Dialog centres its
    panel; on a phone the iOS keyboard then covers the field and the button. Below the HDS sm
    breakpoint (640) the panel is a sheet pinned to the top of the visual viewport (vars from
    hds-gaps/useVisualViewportVars; without them, the top of the page), capped to the height the

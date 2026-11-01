@@ -2,13 +2,18 @@
 // normalizes into. A Posting is a raw opening pulled from a public, keyless, CORS-open API at view
 // time; it is never stored. Saving one turns it into a tracked Job (src/types.ts) by URL.
 import type { ScoreResult } from '../tracks/score.ts';
-import type { JobMode } from '../types';
+import type { JobMode } from '../types.ts';
 
 export type FeedSourceId =
   | 'hn'
   | 'remotive'
   | 'jobicy'
   | 'remoteok'
+  | 'dsjobs'
+  | 'wwr'
+  | 'workingnomads'
+  | 'himalayas'
+  | 'authenticjobs'
   | 'greenhouse'
   | 'lever'
   | 'ashby'
@@ -17,13 +22,33 @@ export type FeedSourceId =
   | 'smartrecruiters'
   | 'teamtailor'
   | 'personio'
-  | 'sam';
+  | 'bamboohr'
+  | 'rippling'
+  | 'gem'
+  | 'pinpoint'
+  | 'breezy'
+  | 'bluesky'
+  | 'mastodon'
+  | 'reddit'
+  // designsystems.jobs: read on the server only (the sync), so it reaches the app as a stored row.
+  | 'rss'
+  // The sync's own searches (src/tracks/feeds): stored rows only, like 'rss'.
+  | 'theirstack'
+  | 'adzuna'
+  | 'jooble'
+  | 'ids'
+  | 'arbeitnow';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
   remotive: 'Remotive',
   jobicy: 'Jobicy',
   remoteok: 'Remote OK',
+  dsjobs: 'designsystems.jobs',
+  wwr: 'We Work Remotely',
+  workingnomads: 'Working Nomads',
+  himalayas: 'Himalayas',
+  authenticjobs: 'Authentic Jobs',
   greenhouse: 'Greenhouse',
   lever: 'Lever',
   ashby: 'Ashby',
@@ -32,7 +57,22 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   smartrecruiters: 'SmartRecruiters',
   teamtailor: 'Teamtailor',
   personio: 'Personio',
-  sam: 'SAM.gov',
+  bamboohr: 'BambooHR',
+  rippling: 'Rippling',
+  gem: 'Gem',
+  pinpoint: 'Pinpoint',
+  breezy: 'Breezy HR',
+  rss: 'designsystems.jobs',
+  theirstack: 'TheirStack',
+  // Adzuna's terms: every result shows "Jobs by Adzuna".
+  adzuna: 'Jobs by Adzuna',
+  jooble: 'Jooble',
+  ids: 'Into Design Systems',
+  // Its terms: link back to Arbeitnow (each row links to its Arbeitnow page) and name it.
+  arbeitnow: 'Arbeitnow',
+  bluesky: 'Bluesky',
+  mastodon: 'Mastodon',
+  reddit: 'Reddit',
 };
 
 export interface Posting {
@@ -55,9 +95,14 @@ export interface Posting {
   salaryMax?: number;
   /** ISO currency code ('USD'); absent when the source doesn't say. */
   currency?: string;
-  /** A solicitation's response deadline (YYYY-MM-DD, SAM.gov only): saved as the job's
-   *  follow-up date. */
+  /** When applications close (YYYY-MM-DD), where the source says: Greenhouse's application
+   *  deadline, Teamtailor's end date. Saved as the job's `deadline`. */
   deadline?: string;
+  /** Remote only (feed/autoScan.ts): the posting states no work mode or place, so it may not be
+   *  remote. Shown as "Remote not stated". */
+  remoteUnstated?: true;
+  /** When this browser's feed first read it (ISO), stamped by the source's fetch (#419). */
+  discoveredAt?: string;
   /** The track scorer's verdict and reasons (src/tracks), on a scored track only. */
   trackScore?: ScoreResult;
 }

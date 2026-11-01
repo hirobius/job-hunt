@@ -1,10 +1,10 @@
-# CLAUDE.md — RoleForge (formerly Apply Board)
+# CLAUDE.md — hiraga (formerly Stoke, RoleForge, Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**RoleForge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
+**hiraga** (lowercase everywhere; renamed 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
 **https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
 `job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
@@ -15,15 +15,38 @@ commit `f15fd52`).
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
-**Brand mark (2026-10-22):** a placeholder until a logo exists (Adrian: "leave the logo blank").
-`src/BrandMark.tsx` is a plain 24px rounded square left of the wordmark (aria-hidden; `.rjb-brand-mark`
-in `base.css`, HDS tokens only, no motion). The cobalt flame (`flameMark.ts`) is deleted. `npm run
-icons` writes `public/favicon.svg` and renders the PNG icons, `favicon.ico` + og-image with the same
-square on the graphite tile; `BrandMark.test.tsx` pins it.
+**Flame logo: one source, `src/brand/flame.svg`; motion: Adrian's Version E (2026-10-29).**
+`src/brand/flameEngine.ts` is the Visuals Lab's "family" engine ported as given (squash / stretch / pinch
+keyframes, 3 layers, embers), `FLAME_E` = his locked settings (endless, 10 fps; tune only there).
+`npm run icons` writes its still frame (loop frame 0, no embers, HDS primitive fills, classes
+`flame-1|2|3`) to `src/brand/flame.svg`, then favicon.svg, PNG icons, favicon.ico, og-image from it;
+`flameEngine.test.ts` fails when flame.svg is not the engine's still frame. Everything static derives
+from flame.svg: the wordmark in the header and on sign-in (`src/brand/Flame.tsx` inlines it, ids made
+unique per instance) and the icons. `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its
+path data, a stale `public/favicon.svg`, or non-HDS fills.
+**Motion:** `flameMotion.ts` `animateFlame(svg, letters)` rewrites the three paths' `d` every 1/fps (the
+box never changes) and flickers each wordmark letter (skew ≤ 2.5°, fade ≤ 5%, transform/opacity only);
+the header/sign-in `Wordmark` and `Flame` reach it only through `startFlame.ts` (a lazy chunk, `entryChunk.test.ts`: the
+entry is at its 250 kB budget; the still frame shows until it lands);
+it animates continuously (Adrian 2026-10-30: never settles);
+still under prefers-reduced-motion (also when turned on mid-run), paused while the tab is hidden, off
+where matchMedia is missing (jsdom). The header/sign-in `Wordmark` and `BootHold` (`<Flame animate />`)
+animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine's 8-frame loop baked in
+by `brandHtml.ts` (one `.rjb-boot-f` group per frame, frames 1-7 `visibility="hidden"`), stepped by
+base.css (`rjb-boot-frame`, delays and loop length inline from FLAME_E.fps); reduced motion / no CSS
+shows frame 0. The splash still fades in after a short beat. The old rise-in reveal is gone.
+**Wordmark: the flame, then "hiraga" (Adrian 2026-10-30; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
+sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
+`.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
+`.rjb-wordmark-l` for the flicker; the og-image keeps a plain run). `wordmark.css` sets them on one baseline, the
+flame `1.35cap` tall with its extra height taken back by a negative top margin, so the line is plain text's height
+and the name's run is plain text's width (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named
+by `aria-label`, its parts aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
+copy, max 4 s.
 
 ## Stack & conventions
 
-- **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`) — and nothing else for UI
+- **Vite + React 19 + TypeScript + HDS (`@hirobius/design-system`) — and nothing else for UI
   (epic #89, 2026-10).** Every element is real HDS: layout (`Box` with HDS's token-only `sx`,
   `Stack`, `Switcher`, `Grid`, `Container`), type (`Text` on the HDS ramp: display / title / body
   / ui / caption / mono), and components (Button incl. icon-only `Button iconOnly` + `Icon`, Card,
@@ -76,7 +99,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   sign-in) and stays out of every manualChunks group (a named group pulls tslib in and vendor then
   imports it). Never import `@supabase/supabase-js` statically (`supabaseLazy.test.tsx`); tests
   that sign in call `loadSupabase()` first. The Pipeline, job page, Apply mode and Company page are
-  `routeViews.ts` lazy views (`lazyView.tsx`); `test/setup.ts` preloads them. App wraps the bar in
+  `routeViews.ts` lazy views (`lazyView.tsx`); `test/setup.ts` preloads them. Follow up, Add interview, Recently removed and the job page's liveness note load on first use too (`lazyHosts.tsx`, `lazyDialogs.ts`, #368 pass); the stores read only `feed/sources/boardUrl.ts` / `feed/term.ts` / `boardSet` `BOARD_KINDS`, never ats.ts, match.ts or the probe (`entryChunk.test.ts`). What's left at startup is mostly HDS (motion, tailwind-merge, styles.css): upstream asks in `docs/hds-upstream-asks-0.9.md` "Startup cost asks". App wraps the bar in
   `header` and every page in one `main`; each route sets `document.title` (`pageTitle.ts`).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
@@ -90,40 +113,60 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   the Application kit (v6), sweep titles (v7, #220), the trash (v8, #214) and dream companies
   (`rjb_dreams`, v9)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
-  Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_found_teams:<trackId>` (Companies' found list, add-only, newest 500, `feed/foundTeams.ts`; dropped with its track), `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
+  Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_found_teams:<trackId>` (the old Companies' found list, `feed/foundTeams.ts`; dropped with its track), `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
   stay local. Deletes stay deleted across devices: the seed merge runs on every load and is three-way against the device-local `rjb_sync_base` (`src/syncBase.ts`, #219). Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
   chars; per-track data is dropped when its track is deleted (`src/trackData.ts`; no sweep after sync, orphans are harmless). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
-  content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
-  `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
-- **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
-  is still `apprenticeships` for URL back-compat) → `ApprenticeshipsView.tsx` +
-  `apprenticeships.ts`, the curated Spokane board. **Trades pivot (2026-07):** hands-on
-  metal leads — the live order is set by `VISIBLE_GROUP_ORDER` (apply-first → welding/fab
-  shops → foundry/casting → union JATCs → programs → live searches → veteran → finders);
-  groups flagged `archived: true` on the `Group` type (healthcare, remote programs, AI/expert,
-  SaaS) stash under a collapsed "Archived tracks" disclosure at the bottom (board-wide search
-  still spans them). Then **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
-  incl. five starter templates, one of them the generic "Intro call script" (`tpl-intro-call`; `restoreStarterSnippets` adds any missing `tpl-*`, never touches existing snippets); pillar-scoping removed — flat pinned-first list),
-  **Discover** (`DiscoverView.tsx` + `jobsData.ts` groups and Title/ATS generators; the generators
-  take a **user-set location + work-mode** (#58, no baked-in Spokane), and the trade/pillar switcher
-  lives at the top of this view, not the header). `types.ts` for the Job model. Board rule: **NO
-  static one-off job postings** —
-  live searches or durable portals/company pages only, so tiles never go stale.
-- **Pillars = trades** (`pillars.ts`): built-ins are **Sheet Metal & Fab** (default),
-  **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
-  terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
-  pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (the one `h1`, `Text variant="body"` semibold, so the
-  page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
+  content (the old tracks and their tile boards) lives separately in normalized RLS tables
+  `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`: no UI since #389, still synced and
+  read by the v12 move; the tables are not dropped yet (ADR 0009).
+- **Blob v12 (simplify 4/9; read by the whole app since #388, ADR 0009):** three synced stores on top of v11, each `getAll/replace/merge/use`:
+  `src/profile.ts` (`rjb_profiles`, `profiles[]` with one entry: titles + on/off, ATS roles, must include,
+  leave out, pay floor, level, location, mode, `scorer`; `useProfile`), `src/sources.ts` (`rjb_sources`:
+  `{ kind, ref, label, star?, muted? }`, boards of all 8 kinds, `company`, `github`, `yc`, `feed`; key
+  `kind:ref` ignoring case; `useSources`, `addSources`, `followBoard`, `starCompany`, `starSource`, `muteSource`;
+  `removeSource` only undoes a fresh add, any other removal is a mute, since the move tops up from v11) and `src/decided.ts` (`rjb_decided`, by posting fingerprint only, never by
+  company; `decided.get/has/set/undo/use`). All three are in the sync base (deletes stick), backups and the
+  merge guard. **The v11 move** (`src/v12Migration.ts`, run by `V12Migration` in App after sync settles, a
+  lazy chunk) reads **design-systems tracks only** (scored by `scorerFor`, or the Design Systems pack's label via
+  `packIdForLabel`; 2026-10-29): the profile once (scored track, else the busiest; titles from every DS track, its
+  own first; no DS track = no profile, and `ensureProfile` gives the default); Sources = the union across DS tracks
+  of watched board tiles (archived ones muted), dreams (starred) and targets, plus every saved job's board and the
+  keyless feeds; links offered are DS tracks' only; the evidence becomes a Note either way; Sources are topped up add-only on every run (an older
+  client can still write v11), never switching back a star or mute the person changed, and writing nothing
+  when nothing is new. Titles come in on only where v11 searched them (a live track's first 12 on), once:
+  since #389 titles are not topped up, so one removed in the Search profile stays removed. A track with no
+  mode moves as remote only; a profile moved earlier with 'any' from an unset mode gets it once (`fromTrack`
+  goes with the fix; the Search profile form drops it too, so the person's choice sticks). A
+  Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
+  fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
+  lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
+- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Today**
+  (`Today.tsx`, home) and **Jobs** (`TrackerView.tsx`, slug `queue`, page head "Pipeline"), plus
+  tab-less pages (Documents, legal, a job, Apply mode, a Company). `types.ts` holds the Job model.
+  The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Today.
+- **Design-systems only (Adrian 2026-10-29):** content is design systems and nothing else. The one starter pack
+  is Design Systems (`curation/starterPacks.ts` `STARTER_PACKS`; `radar/directory.ts` `DIRECTORY_BY_PACK` /
+  `TARGETS_BY_PACK` keyed `designsystems` only; `jobsData.GROUPS` = `ds-brief`, `ds-watch`); the sample jobs are
+  design-systems roles. The trades / Spokane / apprenticeship content, the Implementation Consulting, ServiceNow and
+  Skilled Trades packs, `curation/localize.ts` (Spokane link rewriting), the `'sam'` source and the non-design
+  `companySource` / `teamTopics` branches are deleted. Older accounts' other tracks stay stored (curation tables, v11
+  stores, sync, Back up, CSV) but never surface: the v12 move reads design-systems tracks only. Guard:
+  `src/dsOnly.test.ts` (pack ids, directory keys, curated groups, no `sam` source, and a scan of app source for
+  Spokane / welding / sheet metal / apprenticeship / ServiceNow / SAM.gov with a commented allow-list).
+- **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (never a heading: `role="img"` named by
+  BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
+  Pipeline, Today, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
+  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
-  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Back up,
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,
   Restore…, Export CSV, theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
-  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
+  tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
+  itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Documents, Back up, Restore…, Export CSV).
+  data = Documents, Search profile, Companies, Back up, Restore…, Export CSV). Pillars and tracks are gone from the UI (ADR 0009).
 - **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local, needs Chromium; update baselines with `npm run test:visual -- --update-snapshots`).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
@@ -134,7 +177,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   **Job page (#130; rev-3 mobile slice 2):** `JobPage.tsx` = `JobHeader` ("← Pipeline", one
   `JobBadges` row above the title (fit first, status, Follow-up due), company · location, then one
   row: 40px icon Star ("Star"/"Starred"), the one primary next step, the menu, which holds Remove)
-  over **three** `Tabs` (rev-3 F): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
+  over **one page, no tabs since #416** (see Simplify Jobs below; the rest of this paragraph is
+  the older three-tab layout, kept for history): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
   `jobFacts` `MetadataList` that turns into its fields on Edit: title, company, location, pay, link
   (saves on blur, the page follows the new id), contact, with seniority and résumé under More
   fields; starts in edit for a job without title and company; research links under the facts ·
@@ -161,7 +205,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   origin is the page's default way back, `route.defaultBack`; one level of the origin's own origin
   kept; a job → its Company → the same job doesn't nest). The page's Back is `BackLink` (`back.ts`
   `useBack`): it names the origin (`routeLabel.ts`: "← Senior UX Designer", "← Apply mode (2 of
-  3)", "← Companies") and calls `route.goBackTo`, which pops to that page when it is an earlier
+  3)", "← Today") and calls `route.goBackTo`, which pops to that page when it is an earlier
   entry of this tab (a trail kept in `history.state.rjb`, matched by `pageKey`) and replaces
   otherwise, so the browser's Back never bounces. `goBackTo` is **single-flight**: until its pop
   lands (popstate, then the hashchange), further `goBackTo`/`navigate` calls wait, and one that
@@ -176,50 +220,57 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   tall enough, or as far as it goes once its height has held for 150 ms (a row left the list on
   the way: Mark applied, Remove), and is held while rows load above it or the browser's scroll
   anchoring moves it; a new top-level page opens at its top; pages that scroll to top on open use
-  `scrollToTop()`. Companies' rows reorder as their boards answer, so their lists opt out of scroll
+  `scrollToTop()`. Lists whose rows reorder as their boards answer opt out of scroll
   anchoring (`overflow-anchor: none`). **Focus** (`focusRescue.ts`, set up in `main.tsx`) is never dropped to `<body>`: a page change focuses the new page's main heading (tabindex -1, no ring), coming back focuses the control that left it (#359), a row that leaves a list hands focus to what took its place (pinned in `e2e/a11y-flows.spec.ts`). **Top tabs** (`tabMemory.ts`) reopen where they
-  were left (`openTab`; Find the next company uses it too), except a job page or Apply mode whose
+  were left (`openTab`), except a job page or Apply mode whose
   job is no longer saved, which reopens the list; the open tab tapped again goes to its root. Start applying resumes at the last Apply job ("Resume applying (2 of 3)"). The Apply pager,
   Not a fit's next job and rail hops move in place (replace). **Sheets** (`useBackCloses.ts`):
   every dialog, menu and popover pushes a same-URL entry, so Back closes it and stays on the page
   (`useBackCloses` with its open state, or `useBackSheet` for one with none; `backCloses.test.ts`
-  fails on a sheet root that is not wired). The entry stacks open sheets (Delete track over Manage
-  track): Back closes the top one, closing one on screen pops it and any over it, a push waits for
+  fails on a sheet root that is not wired). The entry stacks open sheets (a confirm over a dialog):
+  Back closes the top one, closing one on screen pops it and any over it, a push waits for
   a pop in flight (Sign in picked from the Account menu), a sheet gone while open pops its entry,
   and a navigation or Back from a menu item drops the sheets' entries first. Use template reopens
-  on its message when its Edit message / Write a message editor comes back. **View memory** (`viewMemory.ts` `useRemembered`, in memory per page load, written at once so a row unmounting in the same commit keeps its value): coming back restores what was being done, not only the page. Apply mode's open rows and a half-typed kit field / custom answer (open + draft); Live postings per track (term, Show more, focus, leave-out / pay floor / level / salary-only, sweep + title chip, Calibrate, and the fetched rows, so Back shows them with no new read and the scroll lands on the saved row); Companies per track (Hiring now | All, the open row, the roles read, Find teams / Suggest companies results; a read cut short by leaving is read again); the ATS search per track + origin + seed (title, All selected, Recency, Engagement). The Find more like this seed stays with its `?from=` job (`discoverSeed.seedFor`), so only that job's search shows it. A magic link
+  on its message when its Edit message / Write a message editor comes back. **View memory** (`viewMemory.ts` `useRemembered`, in memory per page load, written at once so a row unmounting in the same commit keeps its value): coming back restores what was being done, not only the page. Apply mode's open rows and a half-typed kit field / custom answer (open + draft); Review new (Browse | Deck, sort, filters, pages shown, the open preview, and the read rows, so Back shows them with no new read). A magic link
   returns to the page the sign-in was asked from (`account/signInReturn.ts`). Pinned in
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
-- **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
-  **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
-  `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
-  lands on the Pipeline. The Pipeline always ends with a secondary **Find the next company** button
-  (→ `#/discover`, empty or not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
+- **Final shell (simplify #383 + amendment 2, Q6; PR from `claude/simplify-shell`):** exactly **two top tabs,
+  Today · Jobs** (Jobs = the Pipeline, slug `queue`, unchanged inside; its page head and Backs still say Pipeline).
+  **No Companies tab:** `route.ts` `redirectOf` sends `#/discover/*` and `#/apprenticeships` to `#/today` (the
+  snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
+  write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
+  and a sign-in error land on Today; there is no setup screen (see First run).
+  `Today.tsx`, top to bottom: `ScanStatus` (Scan now + "Last scanned hh:mm · N new from M sources"; N and M are the
+  Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review new**
+  = `ReviewView` itself (`label="Review new" scanStatus`: it hosts the status; one panel holding sources that didn't
+  answer as one quiet "N sources unavailable · details" disclosure, Browse | Deck, Sort as a menu, two filter chips
+  (New today, Remote) and the Browse list; a row's title opens the in-app preview, Open posting beside it), **Apply**
+  (`toApplyQueue`, Start / Resume applying → Apply mode, `?from=/today`), **Follow up** (`today.ts`: the due rows with
+  "Due <day>" and their own Follow up button, "Upcoming: N this week" = due in the next 7 days, else "Nothing due
+  today" / "Nothing waiting on a reply") and **New companies** (`NewCompanies`, Follow / Ignore). Followed and Ignored
+  companies are the Account menu's **Companies** item (`CompaniesDialog.tsx`, lazy; `companiesList.ts` reads the
+  Feed's Sources: followed = boards + companies, A to Z, once by name; ignored = the muted Sources; one list at a
+  time, Ignore = `muteCompany`, Follow again = `unmuteCompany`, plus `followCompany` for one with no Source). Merges #426
+  (Jobs keep list, one-page job page, no fit badge); "Find more like this" left the job menu with the ATS search. Pinned in `today.test.ts`, `todayHome.test.tsx`,
+  `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
+- **Calm list shell (PR #208) and "Today is gone" (#236)** are history: the final shell above brought Today
+  back as home and removed Companies.
 - **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**
-  Getting started, To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
+  To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
   `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
-  metadata = badge row above the title, fit first, then status, then Follow-up due; `Card.Facts` with
-  location and applied date; `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
-  margins. **Lists are cards, not hairlines (Adrian changed it on 2026-10-23):** the Companies list
-  and its inline roles, dream companies, saved targets, More ways to find companies, Live postings'
-  Openings, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, the
-  Documents library and the interview log are `PipelinePanel` `CardList` (8 apart, `.rjb-cards`) of
-  `ListCard` (an HDS `Card`, `.rjb-card-inset`: the page fill so it reads on the raised panel; a card
-  inside one goes back to raised). `.rjb-rows` and `rowsStyle` are gone. Desktop tables stay tables;
-  panel rows that are not lists of things (Getting started, Follow up, Next 7 days, to-dos) keep
-  their hairlines. Pinned in `src/calmLayout.test.tsx`.
-- **Today is gone (Calm list 2/7, #236):** `#/today` redirects to Companies (`navigate(…, true)`,
-  so Back skips it); `TodayView`, `TodayNotice` and `rjb_ui_today_home_seen` are deleted. Its lists
-  live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one
-  **Follow up (M)** section (due first from `dueFollowUps`, Due badge + the one Follow up button,
-  then the rest of `followUpJobs` with their day) and **Next 7 days (N)** (`upcomingEvents`); a
-  section with nothing in it renders nothing. `GettingStarted` sits over them. Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
-  live in `src/hds-gaps/`, each naming its upstream ask. **The onboarding gate lives in the
-  shell:** Companies shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
-  there) and `ChooseTrack` whenever there are no tracks; Pipeline and Documents never gate. Pinned
-  in `src/pipelineFollowUps.test.tsx`.
+  metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
+  location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
+  margins. **No cards within cards, ever (Adrian 2026-11-01, #449; replaced 2026-10-23's "lists are cards"):**
+  one card level max. A list inside a panel (Review new's Browse list, New companies, the Account menu's Companies
+  list, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, Documents, the interview log,
+  the job page's links) is `PipelinePanel` `ItemList` (`.rjb-items`, a hairline between rows) of `ItemRow` (a plain
+  row, never an HDS `Card`); `JobListCard` is an `article` row with Card's Header/Facts/Footer parts, no Card root.
+  **Review new has no card at all** (`Panel flat`): its heading, count and metadata declare the group, and its
+  content lines up with the page gutter. A lone card in the page flow (Review new's Deck posting) is fine;
+  `calmLayout.test.tsx` fails on any Card inside a Card.
+  Pinned in `src/calmLayout.test.tsx`.
 - **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
   is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
   Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to
@@ -248,66 +299,67 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
   live in the synced blob, capped at 500 KB per file and 1 MB per account. Removing an unsent one has no
   confirm: it collapses and Undo re-adds it (`documents.restoreDocument`, the file with it).
-- **Decks per job (#287):** the job page's Overview ends with a **Decks** panel (`JobDecks.tsx`, pure helpers
-  in `decks.ts`): deck links (Google Slides, Figma, Pitch…) with an optional label and a Sent on day; add / edit
-  inline, Remove soft with Undo. Only http(s) (`httpUrl`; `sanitizeDecks` in `sanitizeJobs` drops the rest from
+- **Decks per job (#287):** the job page ends with a **Decks** panel (`JobLinks.tsx` since #416, pure helpers
+  in `decks.ts`): deck links (Google Slides, Figma, Pitch…) with an optional label (an older Sent on day stays in
+  storage, no longer edited); Add, Remove soft with Undo. Only http(s) (`httpUrl`; `sanitizeDecks` in `sanitizeJobs` drops the rest from
   storage, cloud and backups). `Job.decks` rides in the synced blob (no version bump: an additive Job field), Back
   up and the CSV's `decks` column; Recently removed merges them back by id. **Links only:** uploads need a Supabase
   Storage bucket (Adrian). Pinned in `decks.test.ts` and `jobPage.test.tsx`.
+- **Simplify Jobs (#416, Adrian 2026-10-28; spec `docs/specs/simplify.html` on `claude/rf-simplify-spec`):**
+  the Jobs page (`TrackerView`) is To apply + Start applying, Follow up, Next 7 days and the Jobs list
+  (search, Status incl. Closing soon / Closed from #423, Sort) and nothing else: `GettingStarted`,
+  `ScoredQueue` and Find the next company are deleted (`gettingStarted.ts` too, in #390; an old
+  `rjb_ui_getting_started_done` key is ignored). **Recently removed** is an Account menu item ("Recently removed (N)", only when the trash
+  has some; `RecentlyRemovedHost` in `DataToolsProvider`, open state in `jobDialogs.ts`); **Export links** is
+  Account menu only. The **job page is one page** (`JobPage` → `JobHeader` + `JobOverview`): Details, Notes,
+  then **Documents** (`Job.docLinks`, additive, same shape and `sanitizeDecks` rule as `decks`, CSV `doc_links`
+  appended last, Back up, Recently removed merge) and **Decks**, both `JobLinks.tsx` `LinksPanel` (a label and
+  an http(s) link, Add, Remove with Undo). To-dos, Screening (Fit, JD screener), the Interviews log, Use
+  template and the per-job document library are off the page; **their data (`todos`, screening fields,
+  `events`, documents) is never deleted** and stays in storage, sync, Back up and the CSV. An old
+  `?section=` link opens the one page. **Add interview…** is one item in every job's ⋯ menu (`RowMenu`, now
+  `modal={false}` so its dialog opens cleanly) and an Interviewing job's header primary: one
+  `AddInterviewHost` dialog (App) writes `events`, which feed Next 7 days. Each card shows one date (Posted,
+  else Found) plus the closing-date badge (#423). Pinned in `simplifyJobs.test.tsx`.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
-- **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
-  first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
-  Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
-  to `#/discover`). Sample data is a step 1 offer on a first run. A sign-in drops its Sample track first (`demo/sampleTrack.ts`): never asked about, never uploaded. Discover with no track shows
-  `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
-  Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
-  gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
-  `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
-  `pipelineFollowUps.test.tsx`.
+  An unknown slug shows a skeleton until `useCloudSync().settled`, then "No company here" (#303).
+  Each Documents row links to its editor via `linkTo` (Back says "← <Company>"; an uploaded final copy is
+  text only, #304). Notes are "Note 2 of 3" when several, each with a soft Remove + Undo; a notes-only
+  company's last note goes back from the page and Undo reopens it (#305).
+- **First run: no setup screen (Adrian 2026-10-29; was the Search profile form, #388):** after sync settles, App's
+  `V12Migration` runs the v11 move, then `searchDefaults.ts` `ensureProfile`: with no profile it calls `finishSetup`
+  with `NEW_PROFILE` (the design-systems titles, remote only, the broad ATS terms, include "design system", scorer
+  `design-systems`) and follows the starter design-system companies (`seedSources()`) as Sources. Today opens on
+  Review new (a skeleton holds its place until the profile lands) and `AutoScanOnOpen` mounts once a profile exists,
+  so the scan runs with no click. Signed in, `PageHold` shows the flame until the cloud copy lands, so nobody's own
+  profile is overwritten. The Account menu's **Search profile** (`SearchProfileDialog.tsx`, lazy; fields in
+  `ProfileFields.tsx`) is the only place to edit it. Sample data is the Jobs page's empty-state offer, jobs only (no
+  Sample track; an older one is still dropped on sign-in). One empty pattern (`EmptyState`) in Documents and the
+  Pipeline. Pinned in `firstRun.test.tsx`, `todayHome.test.tsx`, `pipelineFollowUps.test.tsx`, `entryChunk.test.ts`.
 - **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
   at 1048 in all (Adrian 2026-10-24, was 1180) with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
   is at most 920; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
   Inputs, focus, selected/current, overlays, row dividers and feedback tones keep theirs.
   `e2e/no-outlines.spec.ts` fails on a Card or container box that draws an edge.
-- **Pipeline rows (#129):** the Pipeline and Discover's tile grid use the shell width; the job page and Documents sit at
-  the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders `JobListCard` at
-  **every width** (Adrian 2026-10-24: the 920 shell wrapped the table's titles to three lines, so `JobsTable` and
-  the column-sort helpers were deleted). Cards render `jobRow.rowView` with `JobRowParts.tsx`: one next step per
-  card (Mark applied / Follow up, secondary so Add job stays the page's one primary) + the row `Menu` (also on the
-  job page's header, minus Remove); 40px controls. Sorting is the toolbar's Sort menu only. A non-default filter
-  or search shows a quiet Clear filters button. Titles link to `#/queue/<jobId>`; details, to-dos, the screener
-  and templates live on the job page (tabs, #130). The filter/search/sort survive opening a job and Back
-  (`pipelineView.ts`). Pinned in `src/pipeline.test.tsx`.
-- **Discover (#131, `docs/specs/discover.md`):** `DiscoverHeader` = `PageHeader` (track name, Manage
-  track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
-  holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
-  `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
-  no location props). Tools are one `SegmentedControl` (Watched / Apply now / ATS search; the
-  Watched slug is still `teams`; hidden on the secondary views Live postings and Check a list,
-  where "Back to companies" is the second and last nav level, rev-3 G); the track's sections are `Tabs` under
-  "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
-  `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
-  `tileMeta.parseMeta` (raw text is the fallback; no data migration), a `Details` disclosure with
-  tap-to-call for every phone, and a labelled Set aside. Live postings states go through
-  HDS `AsyncState` (skeleton + "still trying" at 10 s; `fetchFeed` has a 15 s per-source cap and
-  `only: [keys]` for the per-source Retry, merged by `feed/mergeFeed`); Watch a company, suggested
-  companies and Your evidence sit in a collapsed **Refine** disclosure under the search. Fit wording
-  is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
-  `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
+- **Pipeline rows (#129):** the Pipeline uses the shell width; the job page and Documents sit at
+- **Discover (#131), Live postings, Calibrate, wide sweep (#213), title filter (#223), Contracts / SAM.gov (#275),
+  Find boards, Check a list, Teams, Add a company, dream company rows, the tile board and Manage track** were deleted
+  in #389 (ADR 0009). Their stores stay readable (sync, Back up, CSV) and feed the v12 move; the pure helpers the
+  auto-scan uses (probe, identity check, YC / GitHub / Adele leads, `companySource`, `teamRoles`) stay.
+  `feed/liveList.ts` stays as the breadth guard's baseline. `/api/sam` is gone; `SAM_GOV_API_KEY` can go from Vercel.
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
   furniture: unsynced is only the Account menu's sync line (no Avatar dot), and `SampleBanner` is a one-line note under the page header. Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
   reduced motion); secondary colour is `Text tone="secondary"`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
-  `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
-  held HDS gap, hds#748; also tracked upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
+  `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (all at 4.5 since the 0.32.0 audit; tracked
+  upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
-- **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
-  / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
+- **Rapid apply (2026-10-17):** every save (Review new, the Find box, quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
   Open + Undo (`NoticeHost` in the shell: an HDS Toast with `actions`, one at a time).
   The Pipeline opens on `ApplyQueueSummary`: **To apply (N)** + the one primary **Start applying**, and
   **Follow up (M)** with dates (`applyQueue.ts`: Saved & not set aside, pinned first then newest).
@@ -324,84 +376,121 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   filled profile fields as copy rows, the empty ones folded into one "Fill in N more" row, the two
   template-filled letters and Custom answers. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
-- **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
-  title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
-  `hn|<term>`), merged/deduped/tagged by `feed/sweep.ts` `sweepRank` ("Matched …" on each row). Per-title
-  `Tag` chips with counts hide rows with no re-fetch. The list and on/off live in `feed/sweepTitles.ts`
-  (`rjb_sweep_titles`, seeded from the track's titles, max 12 on, synced in blob **v7**, dropped with its
-  track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
-  "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
-  apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
+- **Feed + Review new (simplify 5/9, #386):** Review new is on Today (`ReviewView`). `feed/feed.ts` is the Feed:
+  `buildFeed(read, profile, sources, …)` lists **every design-system posting, newest first, no fit tiers** (Adrian
+  2026-10-28): every posting read that passes the work mode (no term gate; the profile's mode, **remote** by default:
+  on-site/hybrid out, a posting that does not say stays and reads "Location not stated"), then the plain inclusion check
+  (`profile.designSystemRule`: the design-system phrase on the title, or a related title that is on; `targeting.phrases`
+  keeps the scorer out) and the profile filters; minus saved jobs, Skips (by posting fingerprint, `tracks/score.ts`
+  `fingerprint`) and muted companies; the rest are counted ("N not design-system roles"). Reads go through the
+  `PostingReader` seam (`feed/reader.ts`; `browserReader` = `fetchFeed` sweeping every profile title); `useFeed` keeps
+  the rows up while a changed request reads, and a source or title added since reads only what was added
+  (`mergeReads`), so a new company's jobs show at once. **Inputs (#388): the synced Search profile and Sources**
+  (`useFeedInputs` → `feed/profile.ts` `searchProfileOf` / `feedSourcesOf`: titles on + ATS roles on + related titles;
+  every board and followed company + the keyless feeds). `feed/decided.ts` is the Feed's view of the synced stores:
+  Skips are `src/decided.ts` (`decided[]`), muted / followed companies are Sources (`muteCompany` returns its Undo);
+  it used to keep its own object under the same `rjb_decided` key, which a pull dropped, so `moveLegacyDecided`
+  (`main.tsx`, before sync) moves an old one over once. `rjb_feed_seen` (first-seen days, "N new today") stays local.
+  A row's title opens an in-app preview (`PostingPreview`, Back closes it) with Open posting beside the title and in
+  the preview. Save = `notifySaved` + `follow.ts` (a board posting follows its board as a Source, else the company by
+  name; Undo takes both back). **Breadth guard** (`feed/breadth.test.ts` on `breadth.fixture.ts`): the deleted Live
+  postings' list (`feed/liveList.ts`, kept as the baseline) at its widest; the Feed must list every design-system
+  posting it lists, and every one the recorded answers hold; it fails otherwise. Pinned in `feed/feed.test.ts`, `review.test.tsx`, `e2e/review.spec.ts`.
 - **Remote Rocketship (2026-10-22):** a "Big job boards" link (`BOARDS`, tag "Remote only",
   `modes: ['remote','any']`, shown through `boardsFor(mode)`): `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=<first ticked title>`.
   Link only: no API (its paid one needs a personal key; a later bring-your-own-key slice), no fetch, so CSP and
   `legal.ts` are unchanged. The query form is **unverified live** (the host was unreachable from the build container).
-- **Must include / systems-only (Adrian 2026-10-23):** per track, `feed/mustInclude.ts` (`rjb_must_include`,
-  blob **v11**, ADR 0008 addendum): a posting is listed only when its title or description says a term as whole
-  words (`termRegex`: "systems" ↔ "design system", never "ecosystem"). Applied in `applyTargeting` (Live postings,
-  sweep, Save all; "N hidden by must include"), `foldRolesState(…, include)` (Companies' matching roles, counts,
-  Hiring now) and `DreamCompanies` (new openings). Edited in Calibrate (`ChipEditor`, shared with Manage track).
-  The entry also holds `atsOff` (ATS roles switched off; `activeAtsRoles` in DiscoverView; Calibrate's "Switched
-  off" chips turn one back on). The Design Systems pack (label "Design Systems"; `FORMER_LABELS` keeps "Design
-  Systems / Design Eng" in `packIdForLabel`) is systems-only titles/ATS roles and seeds must include `systems`.
-  `App`'s `SystemsOnlyMigration` runs `migrateSystemsOnly` after sync settles: a pack track with no entry gets
-  `systems`, its sweep titles and ATS roles without "system" switched off (never deleted), and one toast. Pinned
-  in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`,
+- **Must include / systems-only (Adrian 2026-10-23):** `feed/mustInclude.ts` holds the phrase rules every
+  inclusion check uses (`termRegex`, `passesInclude`: whole words, "systems" ↔ "design system", never "ecosystem";
+  **phrases break at separators**: a spaced hyphen, en/em dash, `, | / : ; & · •`; a hyphen inside a word joins).
+  **A design system rule reads the title only** (`hasRelatedTitles`), so Design Engineers never come in through a
+  description; **related titles** = Design Technologist only (`related` absent = on, `relatedOff` ids). The per-track
+  store (`rjb_must_include`, blob **v11**, incl. `atsOff` and a Contracts track's stored `naics`, `cleanNaics`) stays
+  readable and feeds the v12 move; its editors (Calibrate, Manage track) are gone. `App`'s `SystemsOnlyMigration`
+  still runs `migrateSystemsOnly` on old pack tracks. Pinned in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`,
   `systemsOnlyNotice.test.tsx`.
-  **Phrases break at separators** (2026-10-23): a spaced hyphen, en/em dash, `, | / : ; & · •` end a phrase
-  ("Manager, Design - Systems & Infrastructure" is not "design systems"); a hyphen inside a word joins.
-  **Match in description is off by default** (Adrian 2026-10-23: `inText` absent = off, only `true` is kept, so a
-  stored default now reads off). **A design system rule reads the title only** (`hasRelatedTitles`, whatever the
-  toggles say; Calibrate hides the two toggles there): the only roles wanted are titled "design system(s)" or Design
-  Technologist, so Design Engineers ("Design Engineer – UK", "Staff Design Engineer") never come in through a
-  description. **Related titles** (same entry, `related` absent = on, `relatedOff` ids): Design Technologist only,
-  on its title alone (Design Engineer, UI Platform, Component Library, Frontend Platform were cut the same day; a
-  stored id for them is dropped). Calibrate's "Related titles" switch, then its chip with `relatedCounts`. Applies
-  everywhere `passesInclude` does (Live postings, Companies, dreams).
-- **Track scorer (Muse handoff, 2026-10-24, branch `claude/rf-track-scorer`):** `src/tracks/` is pure and shared by
-  the app and the sync edge function: `score.ts` + `track-config.ts` (+ `score.test.ts`) are ported as given; tune a track
-  only through its config (one tune: "design engineer" is out of `titleAdjacent`, Adrian 2026-10-23). `scoreForTrack`
-  = scorer then `fitRejectReason` (no interns). A track is **scored** when its must include asks for "design system(s)"
-  (`forTrack.scorerFor`): the scorer then replaces must include, related titles, the title filter, role-type ordering and
-  the engineering-heavy fold in Live postings (no term gate: `match.rankAll`; Review (N) disclosure; "N left out by the
-  scorer"), Companies' roles (`readRoles(…, { include })` → `scoredRoles`) and dreams (`keepForTrack`); every card shows
-  `reasonsLine` ("Queued because: …"). Other tracks keep the phrase rules. The Pipeline's `ScoredQueue` (signed in) reads
-  the user's `postings` rows (`tracks/postings.ts`): verdict queue by score then newest, Review with a count, Skip → `skips`
-  (Undo deletes it); hidden when empty or before the tables exist. Server: migrations `2026102410*` (watched_companies
-  seeded from the DS track's Watched group via `board_from_url` + `tracks/verified.ts`; postings with track_slug, score,
-  verdict, reasons, matched_signals, fingerprint, unique (user, source, source_id); skips; sync_log; per-user RLS;
-  `mark_missed_postings` closes after 2 missed answered reads) and `supabase/functions/sync-postings` (2× daily cron,
-  Ashby sequential, 404 disables + logs, RSS designsystems.jobs on the morning run). Not applied or deployed: see its
-  README. `npm run sync:dry-run` runs the read + score with no database. Pinned in `src/tracks/*.test.ts`,
-  `scoredQueue.test.tsx`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`.
-- **Contracts track (#275, a cheap test: drop it if nothing useful shows in ~2 weeks):** the "Contracts" starter
-  pack (`isContractsTrack`, no titles/sections/boards). Its Live postings reads **SAM.gov only**, through the
-  same-origin edge function `api/sam.ts` → `src/contracts/samHandler.ts` (key `SAM_GOV_API_KEY`, server-side
-  only; without it 503 `NO_KEY_MESSAGE` "SAM_GOV_API_KEY is not set: add it in Vercel → Settings → Environment
-  Variables", shown on the `ContractsSource` row). The function: GET only, 20 calls / 10 min per IP (in-instance),
-  1 to 10 NAICS codes of 2-6 digits and an optional US state code validated before the key is read, one SAM.gov
-  v2 search per code (last 30 days, place-of-performance state), 6 h answer cache, awards / closed / past-deadline
-  notices dropped, only sam.gov links, the key never in an answer. NAICS per track ride in the must-include entry
-  (`naics`, default `DEFAULT_NAICS` 332322, 332312, 541511, 541512, 541430); the state comes from the track's
-  location (`stateCodeFor`); the term only narrows the list. Saving makes a Job with `deadline` (YYYY-MM-DD), its
-  follow-up date while Saved (`jobEvents.followUpDate`). CSP and `legal.ts` unchanged ('self'). SAM.gov's shape is
-  **unverified live**. Pinned in `src/contracts/*.test.ts`, `feed/sources/sam.test.ts`,
-  `LiveFeedContracts.test.tsx`, `jobDeadline.test.ts`.
+- **Track scorer (Muse handoff, 2026-10-24):** `src/tracks/` is pure and shared by the app and the sync edge
+  function: `score.ts` + `track-config.ts` are ported as given; tune only through the config. `scoreForTrack` = scorer
+  then `fitRejectReason` (no interns); a profile with `scorer: 'design-systems'` (onboarding sets it) or a must include
+  asking for "design system(s)" (`forTrack.scorerFor`) uses it. The Feed sorts by it ("Best match"), never hides by it.
+  **Server (Simplify 6/9, #387):** `sync-postings` reads each user's Sources and Search profile from their `tracker`
+  blob (`tracks/plan.ts` `planFromBlob`: v12 `sources[]` + `profiles[0]`, else v11 dreams, targets, saved jobs'
+  boards and the Watched tiles via the `watched_tile_urls()` RPC, + `verified.ts` for a DS user); `compileProfile`
+  gives the DS config when the profile asks for design systems, else one from its titles. Boards of every kind and
+  HN/Remotive/Jobicy are read with the app's own parsers (`src/feed/sources/*` and their imports use explicit `.ts`
+  specifiers so Deno and Node load them; `inferMode` lives in `feed/mode.ts`). No `watched_companies` or `skips`
+  table: the blob is the one source of truth, and the sync never writes it. Migrations `2026102410*`: postings,
+  sync_log, `mark_missed_postings`, `watched_tile_urls`, the cron. Auth is `SYNC_SECRET` only. The Feed's
+  **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
+  posting and adds the server's, so signed in is never fewer. Not applied or deployed: see its README.
+  `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
+  `feed/postingReader.test.ts`.
+- **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/tracks/feeds/` holds sources only
+  `sync-postings` reads (pure, injected fetch, `.ts` specifiers): `dsjobsCatalog.ts` (designsystems.jobs' sitemap + each
+  job page's JSON-LD; stored as `rss`, source id = page URL like the RSS guid; known rows reused, ≤ 40 new pages a run,
+  1/s, known rows from the `known_dsjobs_postings()` RPC; partial reads never close) and four windowed searches in
+  `serverFeeds.ts`, never counted as answered (rows age out 30 days after last seen): TheirStack
+  (`THEIRSTACK_API_KEY`, due 10 days a month × 18 rows), Adzuna (`ADZUNA_APP_ID`/`ADZUNA_APP_KEY`, rows say "Jobs by
+  Adzuna"), Jooble (`JOOBLE_API_KEY`, in the URL: never logged) and Into Design Systems (MCP, waits on its operator's
+  yes). **Gates live in `serverFeeds.ts` `SERVER_FEED_GATES` (claude/src-free-aggs), not `SOURCE_ENABLED`:** a keyed
+  one runs as soon as any of its secrets is set (one of two missing → `MissingKeyError` names it in `sync_log`, the run
+  goes on); the function's answer lists `serverFeedsOff` with the secret each needs. Plus three **keyless** remote boards
+  read whole and kept only when remote + design-systems (`dsRole.ts`): Arbeitnow (link back to Arbeitnow), Remote OK
+  (its API `legal` notice is checked on every read; a change stops the read, loud) and We Work Remotely (Design +
+  Front-End RSS); a muted Remote OK Source mutes it. All unverified live. Himalayas and Working Nomads stay off (terms
+  unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
+  Migrations `20261029100000` and `20261029100200` widen the `postings.source` check.
+- **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
+  buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles; on only when `main.tsx` calls
+  `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →
+  GitHub DS orgs → Adele → `SEED_LEADS`, empty until the seed list lands) → the probe (≤ 40 new leads a run, the
+  rest queued; its limiter and cache) → the **identity check** (`feed/identity.ts`, #417: one ATS only, and the
+  website's domain must match the slug or name; else unconfirmed, shown but never read) → the Feed's
+  `PostingReader` over followed + confirmed found boards and every feed (Remotive / GitHub budgets hold) → the
+  inclusion check (the profile's must include, else "design system") and **remote only** (Adrian 2026-10-28:
+  `remoteOnly`: remote keeps, on-site/hybrid drops, no mode and no city keeps with `remoteUnstated`, "Remote not
+  stated"). Kept per browser: `rjb_autoscan` (last run, lead queue, probed, found companies) and
+  `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
+  through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
+  `AutoScanViews.tsx`: `ScanStatus` ("Last scanned hh:mm · N new from M sources", Scan now / Stop scan) and
+  `NewCompanies` (Follow → the board joins the Sources, Ignore → `muteCompany`, each with Undo), both on Today. With
+  no Search profile yet the scan searches the design-system titles (`searchDefaults.ts`). Pinned in `feed/autoScan.test.ts`, `feed/identity.test.ts`, `autoScanViews.test.tsx`,
+  `review.test.tsx`; E2E `e2e/auto-scan.spec.ts` (a fresh profile gets postings with zero clicks).
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
   list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
-  No runtime host. On a design systems track (`hasRelatedTitles` or the GitHub design-system search) Companies' More
-  ways to find companies has "Add companies with public design systems (N)" (`AdeleSeed.tsx`): the names go through
-  `discoverBoards` (the probe's limits, its own limiter so a 429 never stops the panel's role reads; public bodies
-  left out) and each live board is watched as it is found (`watchAdeleBoards`), with no review step. The run belongs
-  to the track, not the row (leaving Companies keeps it going; Cancel keeps what it watched). Credited in the row
-  with a link to the repo; the MIT notice rides in the JSON (`licenseText`). Pinned in `feed/adele.test.ts`,
-  `AdeleSeed.test.tsx`, `companies.test.tsx`.
-- **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
-  its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
-  titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
-  disclosure beside leave-out / pay / level. The Titles tool is gone: its big-board links sit on the ATS
-  tool ("Big job boards"), and every link there reads the ticked titles (All selected by default).
-  `#/discover/titles` → `#/discover/live` with Calibrate open (hash replaced). Pinned in `titleFilter.test.tsx`.
+  No runtime host. The auto-scan takes its names as leads (`adeleNames`); its old "Add companies with public design
+  systems" row went with Companies (#389). The MIT notice rides in the JSON (`licenseText`). Pinned in
+  `feed/adele.test.ts`.
+- **Design-system company seed (2026-10-28):** `src/feed/seed/` (pure, injected fetch): `parse.ts` reads Adele
+  (MIT), awesome-design-systems (Unlicense), designsystems.jobs (sitemap slugs + RSS names), HN Who is hiring posts
+  naming a design system (Algolia) and GitHub `topic:design-system` orgs (keyless; **unverified live**, the build
+  proxy refuses GitHub search); `resolve.ts` probes each company (`probe.ts` limiter, every probe kind, 3 slugs) and
+  confirms the board is theirs (`linked` by the source, its `domain` in the payload, a designsystems.jobs `title`,
+  or its own `name`; a description saying "At <Name>" confirms only a `distinctName`: ≥ 7 letters and not in
+  `COMMON_WORDS`, so Close, Promise or Ledger never do); `run.ts` builds the snapshot. `npm run seed:companies` (`scripts/seed-companies.mjs`, vite
+  `runnerImport`, ~1 h) writes `src/feed/data/ds-companies.json` (company, website, board, evidence, licence) and
+  `ds-seed-boards.json` (confirmed boards with at most `MAX_SEED_JOBS` = 300 roles: every watched board is read on
+  each search, Greenhouse with descriptions, so Anduril's 2,500 would bust the 16 MB feed cache on a phone). `radar/directory.ts` appends those to the design systems pack, which
+  onboarding follows as Sources (#388). Not used:
+  component.gallery (private Airtable, no licence), designsystemsrepo / Design Systems for Figma (no licence).
+  Pinned in `src/feed/seed/*.test.ts`, `radar/directory.test.ts`.
+- **Bulk board set + scan rotation (#src-bulk, 2026-10-29):** `npm run boards:discover`
+  (`scripts/discover-boards.mjs`, `src/feed/bulk/`) harvests public board links (HN comments via Algolia,
+  GitHub job lists, job-board-aggregator's MIT slug lists, Common Crawl's index (unreachable from the build
+  container), the DS seed), probes each with the probe's limiter, and writes `src/feed/data/boards.json`
+  (kind, slug, company, website, jobs, lastChecked, evidence; read only through `src/feed/boardSet.ts`) plus
+  `board-keys.json` (keys only; Today's lazy chunk, the size budget's 70 kB). Probe answers cache in
+  `node_modules/.cache/boards-discover.json`; `--cached-only` / `--reuse-harvest` rebuild without asking
+  again. The server's `sync-postings` `{rotate:true}` (1-minute cron) walks the set in a hashed order
+  (`src/tracks/rotation.ts`: cursor, 40 s time box, 3 per host, 429 backoff + carry list, 404 retry list
+  then disabled; migration `20261029100100_scan_rotation.sql`), storing only remote queue/review postings for
+  design systems profiles. Today reads "Scanning N sources · Last scanned hh:mm, K new"
+  (`feed/scanningCount.ts`): the browser's boards + feeds, plus the board set only when signed in with a
+  design systems profile. Pinned in `src/feed/bulk/*.test.ts`, `boardSet.test.ts`, `scanningCount.test.ts`,
+  `tracks/rotation.test.ts`, `autoScanViews.test.tsx`. **Live check (2026-10-30, claude/live-fixtures):** a 25-board `--rotate --read` batch all
+  answered; recorded Greenhouse/Lever/Ashby answers in `src/tracks/fixtures/` back `rotationDryRun.test.ts` and
+  `npm run sync:dry-run -- --rotate --fixtures` (offline). Arbeitnow, Remote OK and WWR hosts were refused by the build
+  network, so those stay unverified live.
 - **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
   like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
@@ -413,7 +502,11 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Supabase table `client_errors` (`supabase/migrations/20261020_client_errors.sql`, 90-day pg_cron
   sweep) from `ErrorBoundary` and window error/rejection handlers. `installErrorReporting` in
   `main.tsx` skips localhost, so dev, E2E and the gallery never report. Read reports in the
-  Supabase dashboard (Table editor → client_errors).
+  Supabase dashboard (Table editor → client_errors). The only door is the `report_client_error` RPC,
+  limited per client (a salted hash of the gateway's IP header, never stored with a report, swept
+  after 2 days) under global ceilings (`20261030100000`). **DB caps (#320):** curation tables have
+  length checks, per-user row ceilings and same-user composite FKs (`20261030100100`); all pinned by
+  text in `src/supabaseHardening.test.ts`.
   **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
   service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
   `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
@@ -430,14 +523,13 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
   row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
   raise a notice with Undo; **Remove is soft everywhere**: every Remove (a Pipeline job, a job's to-do or interview,
-  a final copy, an outreach target, Manage track's links and sections) collapses the row first, then a notice
+  a final copy, a company note, a Base document (Documents' row and editor Delete, #329, `documentRemove.ts`)) collapses the row first, then a notice
   (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place (`restoreTodo` / `restoreEvent` /
-  `targets.restoreTarget` / `documents.restoreDocument` / `curationStore.restoreTile` / `restoreGroup`, a section
-  with its links in order, its row sent before its links). Inside a modal dialog (Manage track) the notice is
+  `documents.restoreDocument`). Review new's Skip and Not this company say so with Undo too. Inside a modal dialog the notice is
   `inDialog`: the dialog's footer shows it (`NoticeHost.DialogNotice`, reachable by keyboard and screen reader,
   which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
   ATS search's Copy the query toasts "Copied the query"; Duplicate and Pin flash the row they land on. Pinned
-  by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
+  by `e2e/feedback.spec.ts` (timed on the production build, `PROD_URL` = the e2e config's second webServer on :4173, never the dev server, whose StrictMode double renders flaked it under load; the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
   earlier toast leaving does not count; it checks the card's flash and collapse at 1440 and 390)
   and `src/feedback.test.ts`.
 - **Posting links (Adrian 2026-10-22: anywhere a job is listed, its posting is one tap away).** A
@@ -452,15 +544,13 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
   and is stacked above the text there, so all of it takes the tap; 40x40 on a phone. Rows only a line
   tall that each end in one (`.rjb-posting-rows`) grow to the target instead, so targets never
-  overlap. Unsaved listings (Live postings, team and dream roles, tiles, Manage track's links) have
-  no page: their title is the link out, with HDS's external icon. Apply mode keeps Open application.
+  overlap. Unsaved listings (Review new's rows) have no page: their title is the link out, with HDS's external icon. Apply mode keeps Open application.
   Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts` (hit-tests
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Company logos (2026-10-22):** `CompanyLogo.tsx` is an HDS `Avatar` per company (the To apply stack, Pipeline table and cards, job header, job rail, Company page, Companies and dream rows): letter first, the logo only once `new Image()` has loaded it at 16px or more (lazy, no referrer; errors and DuckDuckGo's tiny placeholder keep the letter). `companyLogo.ts` is the one table-tested rule for the domain (company website first, then the posting's host; never a job board, ATS or aggregator host, `*.example.com`, localhost, IPs). Icons come from `icons.duckduckgo.com` (`img-src`, `legal.ts` THIRD_PARTIES, `csp.test.ts`); e2e specs abort that host, so baselines show letters.
 - **Export links (2026-10-22):** one `ExportLinksHost` dialog (mounted in `DataToolsProvider`, open
-  scope in `exportLinks.ts`) opened from the Jobs panel (a tertiary "Export links" beside Status/Sort;
-  below `sm` a ⋯ "More job actions" menu) on **This view** (`visibleJobs`) and from the Account menu
-  (after Export CSV) on **All saved jobs**. Format Links only / With title and company; read-only
+  scope in `exportLinks.ts`) opened from the Account menu only (after Export CSV; #416 took it off the Jobs
+  panel) on **All saved jobs**; its **This view** scope is the Jobs list as filtered (`visibleJobs`). Format Links only / With title and company; read-only
   Preview; Copy (`copyFilled`, falls back to selecting the text) and Download .txt
   (`linksFilename`: `<slug>-links-YYYY-MM-DD.txt`). `buildLinkList` skips non-web links (counted),
   dedupes, keeps order. Pinned in `exportLinks.test.ts`, `exportLinksDialog.test.tsx`,
@@ -473,14 +563,23 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (`StarterMessages.tsx` → `addStarters.ts` → `restoreStarterOutreach`) adds them in one tap from
   Documents' empty state ("No documents yet": Add starter messages | Start from scratch), the
   follow-up dialog (an empty message box until then), the Apply sheet and the kit's letters. Sample
-  data stays opt-in and adds no messages. Setup defaults (Adrian 2026-10-22): every starter pack starts
-  unticked (Suggested keeps its badge); a track with no location means anywhere (packs have no
-  "Remote" default); the packs' Spokane search links follow the track's location when seeded or topped
-  up (`curation/localize.ts`; blank drops the place; only the place param is rewritten, the rest of the URL
-  stays byte for byte), employer pages stay as they are. Top-up dedupes by `placeKey` (URL without its place, params
-  decoded), so a link seeded on the live release (raw Spokane) never comes back as a second, localized copy. Documents'
+  data stays opt-in and adds no messages. The Search profile form prefills only the design-system titles
+  (onboarding, #388) and adds nothing else the user did not finish. Documents'
   empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,
   `pipelineFollowUps`, `rapidApply`, `copyDeckStore`, `syncBlob` tests; e2e seeds call `addStarters`.
+- **Job dates (#419, `src/jobDates.ts`):** additive Job fields `postedAt` (the source's), `discoveredAt` (when this
+  page load's feed first read it: `stampSeen` in `feed/sources/http.ts`), `savedAt` (stamped on save; `sanitizeJobs`
+  backfills it from a Saved history entry, else blank) and `closedAt` (stamped by `runLivenessCheck` →
+  `recordBoardChecks` when a posting is gone from its board, every board kind; cleared when it is back). Sanitize,
+  Back up (`JOB_KEY_LIST`) and CSV (four appended columns) carry them; no blob bump. **One date per job (Adrian
+  2026-10-28):** `dateLabel` = "Posted 3d ago", else "Found 3d ago"; saved/found are stored, not shown. The closing
+  date is the job's `deadline` (sources: Greenhouse `application_deadline`, read live; Teamtailor `end-date`,
+  unverified; or the job page's "Applications close" date input, saved on blur), shown as a badge by `closingOf`:
+  "Closes Nov 3" (warning within today + 6 days, while Saved), "Closed" (gone from the board while Saved/Applied, or
+  past its day while Saved). Pipeline filters **Closing soon** and **Closed** (group "Closing date"; the old "Closed"
+  group is "Ended"). Saved jobs closing in the window are in Next 7 days ("Applications close · …"), no longer in Follow
+  up; the calendar and Apply mode say "Apply by". Pinned in `jobDates.test.ts`, `jobDatesUi.test.tsx`,
+  `pipelineView.test.ts`, `pipelineFollowUps.test.tsx`, `jobPage.test.tsx`, `feed/liveness.test.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links. The URL is cleaned through the route seam
@@ -507,14 +606,17 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   someone else), the tab freezes: no pull/push/track write, a "Reload to continue" toast + menu
   line, and after a switch its `rjb_` writes are dropped (a sign-out keeps them: the wiped sync
   base makes the next sign-in ask; any sign-in heard while stopped, the same account too, drops them from then on, and Sign out / Delete my data re-check the session after their confirms, so they never end another tab's account). Same-user refreshes change nothing. Pinned in
-  `account/tabSwitch.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
+  `account/tabSwitch.test.tsx`. **Forward guard (#382):** a pull that reads a blob `v` above `BLOB_VERSION`
+  freezes the tab the same way (`'newerVersion'`: nothing adopted or pushed, storage guarded, "Reload to
+  continue"); Sign out and Delete my data still work there (`liftNewerVersionFreeze`). Pinned in
+  `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.
 - **Stale tab after a deploy** (`staleBuild.ts`, `chunkError.ts`, `StaleBuildNotice.tsx`): every
-  dynamic import goes through `importFresh` (App's and DiscoverView's `lazy`, `routeViews.ts`,
+  dynamic import goes through `importFresh` (App's `lazy`, `routeViews.ts`, `lazyDialogs.ts`,
   `loadSupabase`), plus Vite's `vite:preloadError`. A chunk that is gone raises one toast "A new
   version is ready. Reload to continue." with Reload; `ErrorBoundary` shows the same line instead of
   "Something broke"; Sign in says it inline. Reload notes the time in sessionStorage
@@ -554,8 +656,9 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (Adrian: ~3 min → ~30-60 s per deploy). Vercel no longer runs the checks, so **`npm run verify`
   (typecheck → lint → vitest → build) must pass locally before every push to `main`**; `main` is the
   live production site. `deployGate.test.ts` pins both halves. Branch pushes only
-  build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
-  `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
+  build a preview when the commit message contains `[preview]`. E2E in cloud sessions: plain
+  `npm run test:e2e` (`playwright.config.ts` falls back to the stable `/opt/pw-browsers/chromium`
+  link; set `PW_CHROMIUM_PATH` only to use another build).
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
   `src/csp.test.ts`. **Any new fetch host must go in `connect-src`, the test and `legal.ts` `THIRD_PARTIES`, or it's blocked.**
   Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).
@@ -606,49 +709,23 @@ re-litigate decisions already in `docs/adr/`.
   JD screener (#61) is **rules-based, client-side** — no AI. `docs/adr/0002` + `README`/`FEATURES`
   still describe the old AI design as historical context.
 
-## 2026-07 — agnostic-product pivot + screening pipeline
+## 2026-07 — screening pipeline (history)
 
-The app is pivoting from a personal Spokane-trades board to an **agnostic, pillar-driven job-hunt
-product** (design: `docs/agnostic-product-redesign.md`, decision: `docs/adr/0006`). Execution is
-tracked under epic #30; the self-driving build backlog lives in `docs/loop-queue.md`. Shipped so
-far this cycle:
+_The 2026-07 pillar / track / Discover model (ADR 0006) was replaced by one Search profile and one Sources list
+(ADR 0009), and its trades / consulting content by design systems only (2026-10-29)._ What still stands from it:
 
-- **Search is location-agnostic (#58).** `BOARDS` in `jobsData.ts` no longer hard-code Spokane —
-  `build(term, { where, mode })` takes a user-set location + work-mode (Any/Remote/Hybrid/On-site).
-  There is **no remote default** (remote roles draw ~5× the applicants); one `LocationControl`
-  (`src/LocationControl.tsx`, in the Discover header's popover) drives the Title, ATS and Live postings panels.
 - **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
   `mode`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
   `src/screening.ts` (which also strips the retired `travelPct` / `applicants` from old records).
-  Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort.
-- **Rules-based JD screener (#61).** `src/jdScreener.ts` + `JdScreenPanel` (inline in a job's Screening tab) — paste a JD → suggested
-  mode/blockers/verdict from deterministic keyword rules, one-click apply.
-- **Board↔Queue interop (#57).** Saved tiles leave the board (`partitionTiles`); enriched save
-  carries a tile's meta into the job; a save toast; "Find more like this" seeds Discover.
-- **Implementation Consulting** built-in pillar; simplified Trades board nav; top-level
-  **error boundary** (#46).
-- **Supabase provisioned (#31).** `tracker` + `categories`/`groups`/`tiles` tables now exist with
-  RLS (the DB had been empty — cloud sync never had a backing table until now).
-- **#30 IA/curation chain COMPLETE (B1→B5), live on `main`.** Discover now reads the per-account
-  **curation store** (`useCategories`/`useGroups`/`useTiles`), not hardcoded pillars — a `Category`
-  _is_ a track. Shipped via per-area PRs: **#75 B1** (wire Discover→curationStore + first-run
-  `Onboarding` picking starter packs, D1) · **#76 B2/B3** (strip hardcoded content, retire the Trades
-  tab, tabs → Discover/Tracker/Templates, slugs kept for back-compat) · **#78 B4** (in-app curation
-  controls — `ManageTrackDialog` creates/edits/deletes tracks + sections + links; D2 pin/set-aside
-  triage on Discover tiles) · **#79 B5** (teaching `EmptyState`s across Discover; retired the
-  now-consumerless `Divider` primitive; #38 layout cleanup). The starter-pack list
-  (`src/curation/starterPacks.ts`) is deliberately trivial to edit (v1 provisional).
-- **Done (#99, 2026-10-13):** `pillarStore` + `pillars.ts` are retired — sync is blob v4 (jobs,
-  snippets, set-aside tiles); curation syncs through its own tables. ⚠️ GitHub Actions CI is non-functional org-wide AND disabled by owner
+- **Rules-based JD screener (#61).** `src/jdScreener.ts`: deterministic keyword rules, no AI.
+- **Supabase (#31).** `tracker` + `categories`/`groups`/`tiles` tables with RLS. `pillarStore` + `pillars.ts`
+  are retired (#99); curation syncs through its own tables. ⚠️ GitHub Actions CI is disabled by owner
   preference (`.github/workflows/ci.yml` removed); merges rely on local verify + Vercel.
 
-## 2026-10 — Live postings feed (Discover → "Live postings", `#/discover/live`)
+## 2026-10 — the feed data layer (`src/feed/`; its Live postings screen went in #389)
 
-Real openings pulled **at view time** from public, keyless, CORS-open APIs — no server, no keys, no
-new deps — then phrase-matched and ranked. Nothing is stored until the user saves one (it becomes a
-`Job` via `addJobDetailed`, which now also takes `mode`). Built for finding design-systems work
-(contract/fractional and first-hire roles), but driven by the active track's terms, so it is
-track-agnostic like everything else in Discover.
+Real openings pulled from public, keyless, CORS-open APIs, then phrase-matched. Nothing is stored as a Job until
+the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan read through it.
 
 - **`src/feed/`** is the whole data layer, pure + table-tested: `types.ts` (Posting / RankedPosting),
   `match.ts` (phrase matching — "system design" is NOT "design system" — filters, signals
@@ -663,15 +740,13 @@ track-agnostic like everything else in Discover.
   cache, 4 calls per rolling 24h; over budget it says so), and
   **Greenhouse / Lever / Ashby company boards**. All take an injected `FetchJson` (tests never hit
   the network).
-- **Watched companies = curated tiles.** Any tile on the track whose URL is a Greenhouse/Lever/Ashby
-  board is pulled live (cap 25 per search). "Watch a company" files a tile into a `Watched companies`
-  group (synced like all curation; removable in Manage track); that group is never the featured
-  "Apply Now" tab. This keeps the board rule: durable portals in, fresh openings out.
+- **Watched tiles** (v11): a track's board tiles are still read into the v12 Sources by the move; new follows are
+  Sources (#388).
 - Key-backed aggregators (Adzuna, TheirStack) would need a serverless function for the secret —
   deliberately not built yet.
 - **Job sources slice (2026-10-15, `docs/specs/job-sources.md`).**
   - **No board cap.** `fetchFeed` reads every distinct watched board, 6 at a time (`BOARD_CONCURRENCY`),
-    and calls `onProgress` as each answers; the panel repaints every 250ms with "Read N of M boards".
+    and calls `onProgress` as each answers; Review new repaints every 250ms with "Read N of M boards".
   - **More sources.** HN also reads the monthly "Freelancer? Seeking freelancer?" thread (only
     SEEKING FREELANCER posts, marked contract). Jobicy and Remote OK sit behind `SOURCE_ENABLED` in
     `fetchFeed.ts` (Jobicy on; Remote OK off until its live legal notice is read and checked), and Workable and Recruitee are watchable boards. All four are
@@ -685,75 +760,40 @@ track-agnostic like everything else in Discover.
     (`EMPTY_MEANS_NONE`). `slugCandidates` gives up to 4 slugs (folds accents, `&` → and, drops a
     leading "The" and a trailing Labs/Software-like word in its bare forms).
   - **Targeting** (`feed/targeting.ts`): leave-out terms, level from the title only, a pay floor
-    (only where a source states pay), each with a "hidden by" count. **Saved searches**
-    (`feed/savedFilters.ts`, `rjb_feed_filters`, per track, synced in the blob).
+    (only where a source states pay), each with a "hidden by" count; the Feed applies the profile's.
+    **Saved searches** (`feed/savedFilters.ts`, `rjb_feed_filters`) are v11 data, still synced, with no UI.
   - **Liveness** (`feed/liveness.ts`, `livenessStore.ts`, `LivenessViews.tsx`): re-reads a saved
     Saved/Applied board job's board (once per board), flags "Closed on the board", never changes
     status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
     Pipeline and the job page from `App.tsx`.
-  - **Per-track boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; `seedPack` files a pack's
-    boards into the track's `Watched companies` group (one `addTiles` bulk write, sent as upserts of
-    `TILE_CHUNK` = 50 rows; a refused chunk leaves only its rows journalled as failed), and Live postings offers "Add suggested
-    companies (N)" to an existing track whose label matches a pack (`packIdForLabel`). Live postings
-    no longer reads a global list.
-  - **By company was cut (2026-10-17):** Live postings is one Openings list; an old `?view=companies`
-    link is ignored and shows Openings.
-- **Hidden-job discovery (2026-10-15, `docs/specs/discovery-methods.md`).** Discover tools **Boards** and
-  **Teams** (`#/discover/boards`, `#/discover/teams`). `feed/probe.ts` asks Greenhouse / Lever / Ashby /
-  Workable / Recruitee for a company's board (200 + job list = live, 404 = none, anything else =
+  - **Starter boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; onboarding follows the design-systems
+    list as Sources (`searchDefaults.seedSources`). `seedPack` / `topUpFromPack` (no app caller now) file the
+    pack's boards as tiles (`addTiles`, upserts of `TILE_CHUNK` = 50 rows).
+  - **Board feeds via `/api/boards` (2026-10-28, `docs/specs/job-sources.md`):** RSS/JSON boards with no CORS
+    (designsystems.jobs on; We Work Remotely, Working Nomads, Himalayas, Authentic Jobs off pending terms or a
+    live read) go through the same-origin edge function `api/boards.ts` → `feed/sources/boardsHandler.ts`: fixed
+    upstream URLs per `src`, 1 h shared cache, parsed by `feed/sources/<board>.ts`, re-checked in
+    `feed/sources/proxied.ts` and matched downstream like a watched board (read once per search). CSP and `legal.ts` unchanged (browser only reaches 'self'). Under `vite dev`/`preview` (E2E, gallery) the `local-api-boards` plugin in `vite.config.ts` answers it with no postings. A new board: adapter
+    - one line each in `PROXIED_SOURCES` (`proxiedIds.ts`), `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
+- **Board identity + five more boards (#src-ats, 2026-10-28).** A board found from a _name_ must show
+  it is the company's (`feed/boardIdentity.ts`): the company's website domain on its apply links /
+  website / job text (YC, Adele, GitHub org sites; github.io-style hosts are no evidence), else the
+  name the board states (Dice ≥ 0.9). A lone board that says nothing either way is kept; the rest are
+  **unconfirmed** (`DiscoverResult.unconfirmed`, with why), listed with "Watch anyway", never
+  auto-watched. Pasted board URLs skip the check. Evidence rides in `rjb_probe` (`e`); an older live
+  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds
+  (`sources/atsExtra.ts`, **unverified live**, CORS too; why JazzHR, Comeet, Freshteam, Workday aren't is
+  in its header). Pinned in `feed/boardIdentity.test.ts`, `probe.test.ts`, `sources/atsExtra.test.ts`.
+- **Hidden-job discovery helpers (2026-10-15, `docs/specs/discovery-methods.md`; their screens went in #389).**
+  `feed/probe.ts` asks each board kind for a company's board (200 + job list = live, 404 = none, anything else =
   **unknown, never none**; 6 in flight, 2 per host, 150 ms gap, 3×429 stops a host, cache `rjb_probe`);
-  `discoverBoards.ts` + `FindBoardsPanel` take a pasted list (500 max) or a YC batch (`yc.ts`, community
-  mirror) and offer Watch. `dsOrgs.ts` + `githubBudget.ts` find design-system orgs via keyless GitHub
-  search (3 pages, 30 org lookups per run, 8 searches/min and 40 core/hour in `rjb_gh_budget`, stops with
-  "wait until" on 403/429); results are outreach targets (`targets.ts`, `rjb_targets`, per track, synced in the blob,
-  shown in the Teams tool). A target needs a repo, a board, a website or a `yc:` login, so a board-less
-  suggested company saved with "Save as target" persists, syncs and shows under Saved targets. YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
-  (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
-  in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never
-  fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
-- **Company type-ahead (rev-3 L).** Check a list of companies is a chip input (HDS creatable `Combobox`)
-  fed by `feed/companySuggest.ts`: your own companies (watched boards, saved jobs, dreams, targets), the YC
-  mirror's `companies/hiring.json` (read once; no other directory, Adrian 2026-10-21: no new third party),
-  250 ms debounce, 5 s timeout, failure isolation,
-  in-memory cache; Enter adds the typed name as is. Paste a list / Load a YC batch stay as secondaries; a
-  company with no board is a row with "Keep as a target" (a dream company). The YC source is
-  **unverified live**. Pinned in `findBoards.test.tsx`, `feed/companySuggest.test.ts`.
-- **Companies as one tool (#237, Calm list 3/7).** The Teams tool (slug `teams`, label kept) is the
-  companies list, `CompaniesPanel.tsx` (was `OutreachTargets.tsx`): one list of company rows (watched
-  board tiles + GitHub teams, one row per board) with matching roles inline (first 3, then "Show N
-  more"); the first 10 watched boards are read on arrival, the rest on "Check open roles at N
-  companies". **Add a company** (`AddCompany.tsx`, a Dialog) is the one way on: a board link is watched
-  at once, a name goes through `discoverBoards` (watch what it finds, or star it if there is no board).
-  **Find more / Suggest again only add to the list** (`feed/foundTeams.ts` `addFound`, by login; a repeat that
-  knows less keeps what was known): it was emptied before each run, so a run GitHub held back left only the
-  watched boards (2026-10-23, "160 → 125"). The found list is per page load (viewMemory), never synced.
-  Dream companies + "Check dream companies" sit on top. It leads `#/discover` when it has a team search,
-  a watched or a dream company; else Apply now leads. **Live postings and Find boards are not tools**:
-  `#/discover/live` and `#/discover/boards` open them as secondary views (Teams selected, "Back to
-  companies"), linked under "More ways to find companies". Pinned in `src/companies.test.tsx`.
-- **Teams tool (2026-10-17).** The Discover tool is labelled **Teams** (slug `teams`; not "Companies",
-  which is the top tab since the Calm list shell). Its GitHub
-  search follows the track: `feed/teamTopics.ts` `teamSearchFor` maps the track's titles/ATS roles to
-  topics (design systems → `design-system`, ServiceNow → `servicenow`); where it finds one, Teams
-  leads and `#/discover` opens it (`#/discover/apply` is Apply now), else Apply now leads, Teams
-  sits second and says there is no search for this track (PR #217 review). Open roles first: each
-  team's board is read live (`feed/teamRoles.ts` `readRoles`, the probe's limiter, any failure =
-  "Couldn't check") and filtered by the track's terms (`matchRoles` over `match.rankPostings`); a
-  **Hiring now** Toggle (on by default) hides teams known to have no matching role (`orderTeams`).
-  `dsOrgs` marks `boardCheck: 'unknown' | 'unchecked'` so unknown is never none. Roles save inline
-  (`TeamRoles.tsx` `RoleList`, through `saveNotice.notifySaved`: Open + Undo). **Dream
-  companies** (`feed/dreams.ts`, `rjb_dreams`, per track, **blob v9**, ADR 0008 addendum; v8 is left for #214) are starred
-  from team rows (`DreamStar`), always show on top (`DreamCompanies.tsx`), and "Check
-  dream companies" re-reads boards fresh and flags openings new since the last check. Pinned in
-  `src/outreach.test.tsx`, `discover.test.tsx`, `feed/teamRoles.test.ts`, `feed/dreams.test.ts`.
-- **Company source follows the track (#215).** `feed/companySource.ts` `companySourceFor`: GitHub where
-  `teamSearchFor` finds a topic in the titles/ATS roles; a physical discipline in those or in the track's label
-  ("Mechanical engineering", "Civil", "Skilled Trades") makes a bare "Design engineer" a CAD title, so no
-  design-system search; otherwise **Suggest companies** lists the track's starter-pack
-  boards not yet watched (`packIdForLabel` → `boardsForPack`) then YC companies hiring now (`hiring.json`)
-  whose one-liner/tags match its titles/ATS roles as phrases (max 15, probed for a board). One caption line
-  names the source; never design-system orgs on a non-design track; no new hosts. Pinned in
-  `feed/companySource.test.ts` and `outreach.test.tsx` ("a non-design track").
+  `discoverBoards.ts` (used by the Find box's company lookup), `yc.ts` (community mirror), `dsOrgs.ts` +
+  `githubBudget.ts` (keyless GitHub search, 8 searches/min and 40 core/hour in `rjb_gh_budget`) feed the
+  auto-scan's leads. Targets (`rjb_targets`) and dreams (`rjb_dreams`) are v11 stores the move reads. Big-company
+  ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only (Search elsewhere): never fetch them.
+  `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
+- **Company source (#215):** `feed/companySource.ts` is the YC hiring-now match (`ycMatches`) for the auto-scan's
+  leads; `feed/teamTopics.ts` `teamSearchFor` is the design-system topic test (`roleType`, `dsOrgs`).
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").
@@ -773,6 +813,7 @@ decisions.
 ## PR previews: screenshots, not Vercel (Adrian 2026-10-24, all repos)
 
 Vercel preview builds are OFF (production only). Every PR carries its own preview:
+
 1. Run the production build locally (`pnpm build` / `npm run build`) and serve the built app (`pnpm preview` / `npm run preview`, or the repo's screenshot tooling).
 2. Attach screenshots of the affected routes only: 390x844, light AND dark, plus a desktop shot if the route is used on desktop. At most ~6 images, inline in the PR body or a PR comment. Adrian reviews on his phone: no zips, nothing he has to build.
 3. Backend/infra PRs with no visual change: write "no visual change" instead.

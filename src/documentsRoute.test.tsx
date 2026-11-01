@@ -26,7 +26,7 @@ import { addJob, getAllJobs, jobIdOf, removeJob, setStatus, updateJob } from './
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 import { replaceSnippets, restoreStarterSnippets } from './copyDeckStore';
-import { getAllDocuments, replaceDocuments } from './documents';
+import { addFinalCopy, createDocument, getAllDocuments, replaceDocuments } from './documents';
 import { openFollowUp } from './followUpFlow';
 
 const JOB = 'https://acme.example/jobs/1';
@@ -76,7 +76,7 @@ describe('the Documents page', () => {
   it('is a page with no tab selected: a Documents heading and a way back', async () => {
     await renderApp();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
-    expect(screen.getByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
       'href',
       '#/queue',
@@ -91,7 +91,7 @@ describe('the Documents page', () => {
     expect(within(menu).queryByRole('menuitem', { name: 'Templates' })).toBeNull();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
     expect(window.location.hash).toBe('#/copy-deck');
-    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
   });
 
   it('moves the snippets into the library as Outreach messages at startup', async () => {
@@ -137,9 +137,6 @@ describe('the Documents page', () => {
     await screen.findByRole('textbox', { name: 'Title' });
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
     expect(ids()).not.toContain('snippet-tpl-cover');
     // A reload runs the startup move again: the snippet was moved once, so nothing comes back.
@@ -286,17 +283,6 @@ describe('editing a message changes what the fill paths use', () => {
     expect(dialog).toHaveTextContent('P.S. Acme Metals rocks.');
   });
 
-  it('Use template on the job page', async () => {
-    await editFollowUp();
-    window.location.hash = `#/queue/${jobIdOf(JOB)}`;
-    await renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Follow-up after applying' }));
-    expect(screen.getByRole('region', { name: 'Preview' })).toHaveTextContent(
-      'P.S. Acme Metals rocks.',
-    );
-  });
-
   it('the Apply sheet, with a link to edit them in Documents', async () => {
     await editFollowUp();
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;
@@ -325,9 +311,9 @@ describe('the Company page (#230)', () => {
     window.location.hash = '#/company/acme-metals';
     await renderApp();
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),
+      await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',
@@ -342,7 +328,40 @@ describe('the Company page (#230)', () => {
     expect(link).toHaveAttribute('href', `#/company/acme-metals?from=%2Fqueue%2F${jobIdOf(JOB)}`);
     await userEvent.click(link);
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),
+      await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
+  });
+});
+
+// #328: the library edits Base documents only. A job's own document or an uploaded final copy
+// named by a hand-typed or stale link opens its job page (Documents live there), else the library.
+describe('a link to a document that is not a Base one', () => {
+  const FILE = { name: 'cv.pdf', type: 'application/pdf', size: 3, data: 'YWJj' };
+
+  it("a job's document opens its job page", async () => {
+    addJob(JOB, 'Designer');
+    const id = createDocument({ kind: 'cover', title: 'Acme letter', text: 'Hi', jobUrl: JOB });
+    window.location.hash = `#/copy-deck/${id}`;
+    await renderApp();
+    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(JOB)}`));
+    expect(screen.queryByRole('button', { name: /^Version history/ })).toBeNull();
+  });
+
+  it('a final copy opens its job page, never the editor', async () => {
+    addJob(JOB, 'Designer');
+    const r = addFinalCopy({ kind: 'resume', jobUrl: JOB, file: FILE });
+    if (!r.ok) throw new Error(r.error);
+    window.location.hash = `#/copy-deck/${r.id}`;
+    await renderApp();
+    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(JOB)}`));
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+  });
+
+  it("one whose job isn't saved falls back to the library", async () => {
+    const id = createDocument({ kind: 'note', title: 'Orphan', text: 'x', jobUrl: JOB });
+    window.location.hash = `#/copy-deck/${id}`;
+    await renderApp();
+    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
   });
 });

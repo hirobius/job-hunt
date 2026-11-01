@@ -26,7 +26,10 @@ test('a row menu on a phone fits the screen and its last item can be clicked', a
   const box = await menu.boundingBox();
   expect(box!.y + box!.height).toBeLessThanOrEqual(844);
   await menu.getByRole('menuitem', { name: /^Remove$/ }).click();
-  await expect(page.getByRole('button', { name: /^Recently removed/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  // Recently removed is in the Account menu (#416).
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await expect(page.getByRole('menuitem', { name: /^Recently removed/ })).toBeVisible();
 });
 
 // A dialog opened from an Account menu item hands focus back to the Account button on close: the

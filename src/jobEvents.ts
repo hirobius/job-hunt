@@ -1,7 +1,7 @@
 // Interview / call log on a Job, plus the calendar views derived from it: .ics export events and
 // the Pipeline's agenda (due follow-ups, the next 7 days; Today's until #236). Pure and DOM-free; `now` is always injected (local time).
-import type { IcsEvent } from './ics';
-import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
+import { DEFAULT_EVENT_MIN, type IcsEvent } from './ics';
+import { deriveJobState, FOLLOWUP_DAYS, localDay } from './jobState';
 import type { Job, JobEvent, JobEventKind } from './types';
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})/;
@@ -54,16 +54,24 @@ export function restoreEvent(events: readonly JobEvent[] | undefined, ev: JobEve
   return [...list, ev].sort(cmpEvents);
 }
 
-/** Local YYYY-MM-DD on which the job's follow-up falls due, or null when not tracked / archived. */
+/** A saved job's closing day (#275 a solicitation's response deadline, #419 any job's), today or
+ *  later; null once it has passed or the posting is gone from its board (nothing left to apply
+ *  to), once applied, or when set aside. */
+export function respondByDate(job: Job, now: Date): string | null {
+  if (job.archived || job.closedAt || !job.deadline) return null;
+  if (deriveJobState(job, now).status !== 'Saved') return null;
+  return job.deadline >= ymd(now) ? job.deadline : null;
+}
+
+/** Local YYYY-MM-DD on which the job's follow-up falls due, or null when not tracked / archived.
+ *  A saved solicitation follows up on its response deadline until it is applied. */
 export function followUpDate(job: Job, now: Date): string | null {
   if (job.archived) return null;
   const { status, followUp } = deriveJobState(job, now);
-  // A saved solicitation (#275) follows up on its response deadline until it is applied; once
-  // the deadline has passed there is nothing left to respond to.
-  if (status === 'Saved' && job.deadline) return job.deadline >= ymd(now) ? job.deadline : null;
+  if (status === 'Saved' && job.deadline) return respondByDate(job, now);
   if (!followUp.tracked) return null;
-  const ref = job.followUp || job.applied;
-  const m = ref ? DATE_RE.exec(ref.slice(0, 10)) : null;
+  const ref = localDay(job.followUp || job.applied);
+  const m = ref ? DATE_RE.exec(ref) : null;
   if (!m) return null;
   const clock = ymd(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + FOLLOWUP_DAYS));
   return job.snoozeUntil && job.snoozeUntil > clock ? job.snoozeUntil : clock;
@@ -104,7 +112,7 @@ export function jobIcsEvents(job: Job, now: Date): IcsEvent[] {
   if (fu) {
     out.push({
       uid: `${key}-followup`,
-      summary: `Follow up: ${job.label}${where}`,
+      summary: `${respondByDate(job, now) ? 'Apply by' : 'Follow up'}: ${job.label}${where}`,
       date: fu < today ? today : fu,
       description: job.url,
       url: job.url,
@@ -129,8 +137,39 @@ export interface AgendaItem {
   company?: string;
 }
 
+/** When a timed event today ends (time + duration); null for all-day events, which last the
+ *  day, and for any other day's. */
+function endToday(e: JobEvent, now: Date, today: string): Date | null {
+  if (e.date !== today || !e.time || !TIME_RE.test(e.time)) return null;
+  const [h, m] = e.time.split(':').map(Number);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+  end.setMinutes(end.getMinutes() + (e.durationMin ?? DEFAULT_EVENT_MIN));
+  return end;
+}
+
+const endedToday = (e: JobEvent, now: Date, today: string) => {
+  const end = endToday(e, now, today);
+  return end != null && now >= end;
+};
+
+/** The soonest end still to come of a timed event today: the next moment Next N days changes
+ *  before midnight, or null. */
+export function nextEventEnd(jobs: readonly Job[], now: Date): Date | null {
+  const today = ymd(now);
+  let next: Date | null = null;
+  for (const job of jobs) {
+    if (job.archived) continue;
+    for (const e of job.events ?? []) {
+      const end = endToday(e, now, today);
+      if (end && end > now && (!next || end < next)) next = end;
+    }
+  }
+  return next;
+}
+
 /** Interviews, calls and other events from today through the next `days - 1` days (a rolling
- *  window, not the calendar week). Archived jobs excluded. Sorted by date, all-day first. */
+ *  window, not the calendar week), less today's timed ones that have ended (#311). Archived jobs
+ *  excluded. Sorted by date, all-day first. */
 export function upcomingEvents(
   jobs: readonly Job[],
   now: Date,
@@ -142,7 +181,7 @@ export function upcomingEvents(
   for (const job of jobs) {
     if (job.archived) continue;
     for (const e of job.events ?? []) {
-      if (e.date < start || e.date > end) continue;
+      if (e.date < start || e.date > end || endedToday(e, now, start)) continue;
       const item: AgendaItem = {
         id: e.id,
         date: e.date,
@@ -163,6 +202,22 @@ export function upcomingEvents(
 export interface DueFollowUp {
   job: Job;
   dueDate: string;
+}
+
+/** Saved solicitations whose response deadline falls from today through the next `days - 1`
+ *  days, soonest first (#308). `dueDate` is the deadline. */
+export function respondByJobs(
+  jobs: readonly Job[],
+  now: Date,
+  days = UPCOMING_DAYS,
+): DueFollowUp[] {
+  const end = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + days - 1));
+  const out: DueFollowUp[] = [];
+  for (const job of jobs) {
+    const dueDate = respondByDate(job, now);
+    if (dueDate && dueDate <= end) out.push({ job, dueDate });
+  }
+  return out.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
 /** Jobs whose follow-up is due now, most overdue first. */

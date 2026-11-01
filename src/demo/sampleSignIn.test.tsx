@@ -42,6 +42,10 @@ async function sampleThenSignIn() {
   const { loadSample } = await import('./loadSample');
   const { getCurationState } = await import('../curation/curationStore');
   expect(loadSample()).toBe(true);
+  // A Sample track as an older build added one (the sample is jobs only since 2026-10-29).
+  const { seedPack } = await import('../curation/starterPacks');
+  const { rememberSampleTrack } = await import('./sampleTrack');
+  rememberSampleTrack(seedPack('designsystems', undefined, { label: 'Sample' }));
   expect(getCurationState().categories.map((c) => c.label)).toEqual(['Sample']);
   rememberSignInRequest(ME);
   const { default: CloudSyncProvider } = await import('../account/CloudSyncProvider');

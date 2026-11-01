@@ -42,9 +42,9 @@ export function clearSignInRequest(): void {
   }
 }
 
-/** The account email an access token names (its JWT payload; for display and matching only, the
- *  server checks the token itself when the session is set). */
-export function tokenEmail(accessToken: string): string | null {
+/** An access token's JWT payload (unverified: for display and matching only, the server checks
+ *  the token itself when the session is set). */
+function tokenClaims(accessToken: string): { email?: unknown; exp?: unknown } | null {
   try {
     const part = accessToken.split('.')[1];
     if (!part) return null;
@@ -54,20 +54,34 @@ export function tokenEmail(accessToken: string): string | null {
         .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
         .join(''),
     );
-    const email = (JSON.parse(json) as { email?: unknown }).email;
-    return typeof email === 'string' && email.includes('@') ? email : null;
+    const o = JSON.parse(json) as unknown;
+    return o && typeof o === 'object' ? (o as { email?: unknown; exp?: unknown }) : null;
   } catch {
     return null;
   }
 }
 
+/** The account email an access token names. */
+export function tokenEmail(accessToken: string): string | null {
+  const email = tokenClaims(accessToken)?.email;
+  return typeof email === 'string' && email.includes('@') ? email : null;
+}
+
 export type LinkDecision =
   { kind: 'auto'; email: string } | { kind: 'confirm'; email: string } | { kind: 'reject' };
 
-/** What to do with tokens a page load arrived with. */
-export function decideAuthLink(tokens: AuthTokens, requested: string | null): LinkDecision {
+/** What to do with tokens a page load arrived with. A token with no expiry, or one already
+ *  expired, is refused: supabase-js would swap it for the link's refresh token without checking
+ *  it, so the email it names (forged, unsigned) would sign in someone else's session. A real
+ *  magic link always carries a fresh token. */
+export function decideAuthLink(
+  tokens: AuthTokens,
+  requested: string | null,
+  now = Date.now(),
+): LinkDecision {
   const email = tokenEmail(tokens.access_token);
-  if (!email) return { kind: 'reject' };
+  const exp = tokenClaims(tokens.access_token)?.exp;
+  if (!email || typeof exp !== 'number' || exp * 1000 <= now) return { kind: 'reject' };
   return requested && norm(requested) === norm(email)
     ? { kind: 'auto', email }
     : { kind: 'confirm', email };

@@ -6,11 +6,15 @@
 // to the job's own Remote OK `url`, exactly as given and followed (never rewritten, never
 // `nofollow`), and shows "Remote OK" as its source. Their logo is never used. Off by default
 // (`SOURCE_ENABLED.remoteok` in fetchFeed.ts) until the live `legal` notice has been read and checked.
+// 2026-10-28: still unread first-hand (the build sandbox's network policy refuses remoteok.com).
+// Copies of it quoted elsewhere ask for exactly the above (a followed link to the job's Remote OK
+// URL, "Remote OK" named as the source, no logo) and threaten suspension otherwise; turn it on once
+// someone reads `legal` from https://remoteok.com/api and it still says that.
 import { htmlToText } from '../html';
 import { matchTerm } from '../match';
 import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
-import { arr, num, obj, str, type FetchJson } from './http';
+import { arr, num, obj, stampSeen, str, type FetchJson } from './http';
 
 export const REMOTEOK_URL = 'https://remoteok.com/api';
 
@@ -45,7 +49,9 @@ export function parseRemoteOkJob(j: unknown): Posting | null {
 
 export async function fetchRemoteOk(term: string, fetchJson: FetchJson): Promise<Posting[]> {
   const body = await fetchJson(REMOTEOK_URL);
-  return arr(body)
-    .map(parseRemoteOkJob)
-    .filter((p): p is Posting => !!p && matchTerm(p, term) !== null);
+  return stampSeen(
+    arr(body)
+      .map(parseRemoteOkJob)
+      .filter((p): p is Posting => !!p && matchTerm(p, term) !== null),
+  );
 }

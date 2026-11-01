@@ -256,12 +256,10 @@ const pairs: Pair[] = [
     },
   ]),
   ...(['hover', 'pressed'] as const).map((state): Pair => ({
-    // KNOWN HDS GAP: the dark-mode pressed accent is under 4.5:1 with the on-accent label (a
-    // moment of press, not a resting state; 4.17:1). Held at a 3.0 floor until hds#748 ships.
-    name: `on-accent label on the ${state} accent${state === 'pressed' ? ' (hds#748, floor 3.0)' : ''}`,
+    name: `on-accent label on the ${state} accent`,
     fg: 'semantic-color-content-onAccent',
     bg: `semantic-accent-${state}`,
-    min: state === 'pressed' ? 3 : 4.5,
+    min: 4.5,
   })),
 ];
 

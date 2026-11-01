@@ -4,6 +4,7 @@ import {
   filledTemplates,
   getApplyKit,
   mergeKit,
+  pruneKitTemplates,
   removeAnswer,
   replaceApplyKit,
   restoreAnswer,
@@ -80,11 +81,29 @@ describe('application kit', () => {
     expect(m.answers.map((x) => x.a)).toEqual(['cloud', 'b']);
   });
 
+  it('prunes template picks whose message no longer exists (#314)', () => {
+    const kit = {
+      fields: { name: 'Sam' },
+      answers: [],
+      whyTemplate: 'gone',
+      coverTemplate: 'still-here',
+    };
+    expect(pruneKitTemplates(kit, ['still-here'])).toEqual({
+      fields: { name: 'Sam' },
+      answers: [],
+      whyTemplate: undefined,
+      coverTemplate: 'still-here',
+    });
+    // Both picks live (or absent): the kit is returned untouched.
+    expect(pruneKitTemplates(kit, new Set(['gone', 'still-here']))).toBe(kit);
+    expect(pruneKitTemplates(emptyKit(), [])).toEqual(emptyKit());
+  });
+
   it('rides in the sync blob (since v6); an older cloud copy keeps this device kit on refresh', () => {
-    expect(BLOB_VERSION).toBe(11);
+    expect(BLOB_VERSION).toBe(12);
     const local = { ...emptyBlob(), kit: { fields: { name: 'Sam' }, answers: [] } };
     const written = writeBlob(local);
-    expect(written.v).toBe(11);
+    expect(written.v).toBe(12);
     expect(readBlob(written).kit.fields.name).toBe('Sam');
     const oldCloud = readBlob({ v: 5, jobs: [] });
     expect(mergeBlob(oldCloud, local, false).kit.fields.name).toBe('Sam');

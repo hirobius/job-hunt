@@ -3,9 +3,18 @@
 // theme, feedback and the Privacy and terms pages (#43) — one home for everything about "my account and my data".
 // Troubleshooting (rev-3 O) holds the error page's two actions: Reload app, and Reset local data
 // behind a confirm that says exactly what goes. Reset is never a loose button on a page.
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Download } from 'lucide-react';
-import { AlertDialog, Avatar, Button, Icon, Menu, Stack, Text } from '@hirobius/design-system';
+import {
+  AlertDialog,
+  Avatar,
+  Button,
+  Dialog,
+  Icon,
+  Menu,
+  Stack,
+  Text,
+} from '@hirobius/design-system';
 import { useJobs } from '../store';
 import { useDocuments } from '../documents';
 import { clearLocalData } from '../localReset';
@@ -13,8 +22,11 @@ import { useColorMode } from '../ColorMode';
 import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
 import { getRoute, navigate, withOrigin } from '../route';
 import { useBackCloses } from '../useBackCloses';
-import { LEGAL_ROUTE } from '../legal';
+import { LEGAL_ROUTE } from '../legalRoute';
 import { openExportLinks } from '../exportLinks';
+import { CompaniesDialog, SearchProfileDialog, useLoadedWhen } from '../lazyDialogs';
+import { openRecentlyRemoved } from '../jobDialogs';
+import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
@@ -26,9 +38,31 @@ export default function AccountMenu() {
   const data = useDataTools();
   const { mode, toggle } = useColorMode();
   const [resetting, setResetting] = useState(false);
+  // Followed and Ignored companies (simplify Q6: the Companies tab's place).
+  const [companies, setCompanies] = useState(false);
+  useBackCloses(companies, () => setCompanies(false), 'companies');
+  const companiesReady = useLoadedWhen(CompaniesDialog, companies, () => setCompanies(false));
+  // Kept across this menu's own renders: the menu closes as the dialog takes focus, and redrawing
+  // the list then held the dialog's first paint past 300 ms (#212).
+  const companiesDialog = useMemo(
+    () => <CompaniesDialog onCloseAutoFocus={refocusAccount(accountTrigger)} />,
+    [accountTrigger],
+  );
+  // The Search profile (#388: Calibrate's and Manage track's place).
+  const [profile, setProfile] = useState(false);
+  useBackCloses(profile, () => setProfile(false), 'search-profile');
+  const profileReady = useLoadedWhen(SearchProfileDialog, profile, () => setProfile(false));
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
   useBackCloses(open, () => setOpen(false), 'account-menu');
+  // Fetch the two lazy dialogs' chunks as the menu opens, so Companies and Search profile answer
+  // within 300 ms of the press (#212) instead of waiting on the fetch. A failure is retried on
+  // the item's press (useLoadedWhen), which closes the sheet and raises the reload notice.
+  const openMenu = (next: boolean) => {
+    if (next)
+      for (const view of [CompaniesDialog, SearchProfileDialog]) view.preload().catch(() => {});
+    setOpen(next);
+  };
   useBackCloses(resetting, () => setResetting(false), 'reset-local-data');
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   /** Run an item that opens a dialog; the dialog gives focus back to this trigger on close. */
@@ -39,13 +73,15 @@ export default function AccountMenu() {
   // The trigger is the HDS Avatar (rev-3 P): your initial when signed in, a neutral person icon
   // when not. No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
   const initial = sync.user?.email?.trim()[0]?.toUpperCase();
+  // Recently removed moved here from the Jobs page (#416); shown only when there is something.
+  const removed = useTrash().length;
 
   // Header lines are Menu.Labels (not focusable, not clickable). The email is plain text;
   // index.html's format-detection meta stops iOS turning it into a mailto link.
   return (
     <>
       {/* Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly. */}
-      <Menu modal={false} open={open} onOpenChange={setOpen}>
+      <Menu modal={false} open={open} onOpenChange={openMenu}>
         <Menu.Trigger asChild>
           <Button
             ref={(el: HTMLButtonElement | null) => {
@@ -88,6 +124,8 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => navigate(withOrigin({ tab: 'copy-deck' }, getRoute()))}>
             Documents
           </Menu.Item>
+          <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
+          <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
           <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
           <Menu.Item onSelect={data.exportCsv} disabled={!data.canExport}>
@@ -96,6 +134,11 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => openExportLinks('all')} disabled={!data.canExport}>
             Export links
           </Menu.Item>
+          {removed > 0 && (
+            <Menu.Item onSelect={opensDialog(openRecentlyRemoved)}>
+              {`Recently removed (${removed})`}
+            </Menu.Item>
+          )}
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
@@ -123,6 +166,17 @@ export default function AccountMenu() {
           )}
         </Menu.Content>
       </Menu>
+      <Dialog open={companies && companiesReady} onOpenChange={setCompanies}>
+        {companies && companiesReady && companiesDialog}
+      </Dialog>
+      <Dialog open={profile && profileReady} onOpenChange={setProfile}>
+        {profile && profileReady && (
+          <SearchProfileDialog
+            onDone={() => setProfile(false)}
+            onCloseAutoFocus={refocusAccount(accountTrigger)}
+          />
+        )}
+      </Dialog>
       <ResetLocalData
         open={resetting}
         onOpenChange={setResetting}
@@ -154,7 +208,7 @@ function ResetLocalData({
   const docs = useDocuments().length;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      {/* Placed like the sign-in dialog (`.rjb-sheet`): every shell dialog sits in one place. */}
+      {/* Placed like the other shell dialogs with a field (`.rjb-sheet`, sheet.css). */}
       <AlertDialog.Content className="rjb-sheet" onCloseAutoFocus={refocusAccount(returnFocus)}>
         <AlertDialog.Header>
           <AlertDialog.Title>Reset local data?</AlertDialog.Title>

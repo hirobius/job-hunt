@@ -1,4 +1,4 @@
-// Liveness: is a saved job still on its company's board? A saved Greenhouse, Lever, Ashby, Workable or Recruitee posting
+// Liveness: is a saved job still on its company's board? A saved posting on any board in sources/ats.ts
 // can be pulled by the employer at any time, and nothing else tells you. This re-reads each job's
 // board (once per board, however many jobs it holds) and looks the job up by its posting ref.
 //
@@ -9,7 +9,14 @@ import { dedupKey } from '../store';
 import type { Job } from '../types';
 import { loadPersisted, savePersisted } from '../persisted';
 import { settleAll } from './fetchFeed';
-import { boardApiUrl, boardJobs, fetchBoard, parseBoardUrl, type Board } from './sources/ats';
+import {
+  boardApiUrl,
+  boardJobs,
+  fetchBoard,
+  parseBoardUrl,
+  type Board,
+  type BoardKind,
+} from './sources/ats';
 import { FetchError, type FetchJson } from './sources/http';
 
 export type LiveState = 'open' | 'closed' | 'unknown';
@@ -64,19 +71,49 @@ export function boardOfJobUrl(url: string): { board: Board; ref: string } | null
     case 'personio':
       ref = seg[0] === 'job' ? seg[1]?.match(/^\d+/)?.[0] : undefined;
       break;
+    case 'bamboohr':
+      ref = seg[0] === 'careers' ? seg[1] : undefined;
+      break;
+    case 'rippling': {
+      const i = seg.indexOf('jobs');
+      ref = i >= 0 ? seg[i + 1] : undefined;
+      break;
+    }
+    case 'gem':
+      ref = seg[1];
+      break;
+    case 'pinpoint': {
+      // A locale may come first ("/en/postings/<id>").
+      const i = seg.indexOf('postings');
+      ref = i >= 0 ? seg[i + 1] : undefined;
+      break;
+    }
+    // Breezy's friendly id is the posting id, then a title slug that may change.
+    case 'breezy':
+      ref = seg[0] === 'p' ? seg[1]?.split('-')[0] || undefined : undefined;
+      break;
   }
   return ref ? { board, ref } : null;
 }
 
+/** Boards whose list shape is unverified live: one may page (a next cursor), and a job on page 2
+ *  would read as closed. Not liveness-checked until a real board is seen to answer in one page. */
+const UNVERIFIED_LIVENESS: ReadonlySet<BoardKind> = new Set([
+  'bamboohr',
+  'rippling',
+  'gem',
+  'pinpoint',
+  'breezy',
+]);
+
 /** Saved or Applied jobs that sit on a supported board. Everything else is not checked, and so
  *  shows nothing (not even "unknown"). */
 export function eligibleJobs(jobs: Job[]): Job[] {
-  return jobs.filter(
-    (j) =>
-      !j.archived &&
-      (j.status === 'Saved' || j.status === 'Applied') &&
-      boardOfJobUrl(j.url) !== null,
-  );
+  return jobs.filter((j) => {
+    if (j.archived || (j.status !== 'Saved' && j.status !== 'Applied')) return false;
+    const b = boardOfJobUrl(j.url);
+    return b !== null && !UNVERIFIED_LIVENESS.has(b.board.kind);
+  });
 }
 
 /** Eligible jobs worth checking now: never checked, last answer unknown, or older than the TTL.

@@ -1,10 +1,15 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E config. Spins up the Vite dev server, runs specs in e2e/ against Chromium.
 // PW_CHROMIUM_PATH (optional) points at a pre-installed Chromium when Playwright's own
-// pinned build isn't downloaded, e.g. cloud sessions:
-//   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e
-const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
+// pinned build isn't downloaded. Unset or missing, cloud sessions' stable link is used
+// (/opt/pw-browsers/chromium: the versioned folder behind it moves with each image, #315),
+// else Playwright's own browser.
+const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium';
+const executablePath = [process.env.PW_CHROMIUM_PATH, CLOUD_CHROMIUM].find(
+  (p): p is string => !!p && existsSync(p),
+);
 
 export default defineConfig({
   testDir: './e2e',
@@ -28,10 +33,21 @@ export default defineConfig({
     launchOptions: { executablePath },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    // The production build, for specs that time the app (e2e/feedback.spec.ts, PROD_URL): the
+    // dev server's StrictMode double renders and unbundled modules took presses past 300 ms
+    // under parallel load that the shipped build answers in ~100 ms.
+    {
+      command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+      url: 'http://localhost:4173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+  ],
 });

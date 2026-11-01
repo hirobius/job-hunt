@@ -1,0 +1,28 @@
+/* The wordmark (Wordmark.tsx, wordmarkMarkup.ts; also inlined into the og-image by npm run icons):
+   the flame, then the name, on one text baseline (Adrian 2026-10-30). The flame is sized from the
+   font (a little taller than a capital) and its extra height is taken back by a negative top
+   margin, so the line stays plain text's height. Nothing here touches the font's metrics or
+   tracking. */
+.rjb-logo-word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18em;
+}
+.rjb-wordmark-flame {
+  display: inline-flex;
+  align-self: baseline;
+}
+.rjb-wordmark-flame > .rjb-flame svg {
+  display: block;
+  width: auto;
+  height: 0.95em;
+  height: 1.35cap;
+  margin-top: -0.35cap;
+  overflow: visible;
+}
+/* Each letter flickers on its own (flameMotion.ts: a lean and a fade). A transform needs a box; the
+   lean pivots on the baseline, like the flame's. */
+.rjb-wordmark-l {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}

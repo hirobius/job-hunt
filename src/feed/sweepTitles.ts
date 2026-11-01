@@ -207,19 +207,3 @@ export function useAllSweeps(): Record<string, SweepTitles> {
     }
   }, [raw]);
 }
-
-/** A track's sweep titles, live. `seed` is the track's own titles. */
-export function useSweep(categoryId: string, seed: string[]): SweepTitles {
-  const all = useAllSweeps();
-  const seedKey = seed.join('\n');
-  return useMemo(
-    () => sweepFor(all, categoryId, seedKey ? seedKey.split('\n') : []),
-    [all, categoryId, seedKey],
-  );
-}
-
-/** A track's titles that are on, live. */
-export function useActiveTitles(categoryId: string, seed: string[]): string[] {
-  const sweep = useSweep(categoryId, seed);
-  return useMemo(() => activeTitles(sweep), [sweep]);
-}

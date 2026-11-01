@@ -11,7 +11,9 @@ import {
 } from './jobState';
 import { normalizeScreening } from './screening';
 import { sanitizeDecks } from './decks';
-import { parseBoardUrl } from './feed/sources/ats';
+import { normDate, normJobDates, recordLiveness } from './jobDates';
+import type { LiveCheck } from './feed/liveness';
+import { parseBoardUrl } from './feed/sources/boardUrl';
 import { prettySlug } from './feed/sources/http';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app
@@ -53,7 +55,8 @@ export function prettyTitle(u: string): string {
     const labels = host.split('.');
     let li = 0;
     while (li < labels.length && GENERIC_HOST_LABELS.has(labels[li])) li++;
-    const brandLabel = li < labels.length - 1 ? labels[li] : li === 0 && labels.length === 1 ? labels[0] : '';
+    const brandLabel =
+      li < labels.length - 1 ? labels[li] : li === 0 && labels.length === 1 ? labels[0] : '';
     const brand = brandLabel ? brandLabel.charAt(0).toUpperCase() + brandLabel.slice(1) : '';
     let title = company || brand;
     let words = decodeURIComponent((company ? segments.slice(1) : segments).pop() || '')
@@ -81,7 +84,11 @@ export function companyFromUrl(u: string): string {
   return b ? prettySlug(b.slug) : '';
 }
 export function cleanUrl(u: string): string {
-  u = (u || '')
+  u = (typeof u === 'string' ? u : '')
+    // Control characters (a decoded %0D%0A) never stay in a link: `new URL` drops them silently,
+    // so a check would pass while the stored text could still break a line in a .ics or CSV.
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, '')
     .trim()
     .replace(/[<>]/g, '')
     .replace(/^["'(\s]+/, '')
@@ -139,25 +146,40 @@ export function sanitizeJobs(arr: unknown): Job[] {
   const out: Job[] = [];
   const seen = new Set<string>();
   for (const it of arr as Job[]) {
-    if (!it || !it.url) continue;
+    // A tampered blob or backup can hold anything: a job that is not an object with a string
+    // link is dropped, never thrown on (a throw here stops restore and every sync merge).
+    if (!it || typeof it !== 'object' || typeof it.url !== 'string' || !it.url) continue;
     const url = cleanUrl(it.url);
     // A synced or restored job's link becomes an href: `javascript:` / `data:` never load.
     if (!url || RETIRED[url] || !safeJobUrl(url)) continue;
     const key = dedupKey(url);
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
-    const label = (it.label || '').replace(/[<>]/g, '').trim();
-    const { snoozeUntil: rawSnooze, decks: rawDecks, deadline: rawDeadline, ...rest } = it;
+    const label = (typeof it.label === 'string' ? it.label : '').replace(/[<>]/g, '').trim();
+    const {
+      snoozeUntil: rawSnooze,
+      decks: rawDecks,
+      docLinks: rawDocLinks,
+      deadline: rawDeadline,
+      postedAt: _p,
+      discoveredAt: _d,
+      savedAt: _s,
+      closedAt: _c,
+      ...rest
+    } = it;
     const snoozeUntil = normSnooze(rawSnooze);
     // Deck links become hrefs: only well-formed http(s) ones are kept (#287).
     const decks = sanitizeDecks(rawDecks);
+    const docLinks = sanitizeDecks(rawDocLinks); // the same rule for document links (#416)
     const deadline = normSnooze(rawDeadline); // the same YYYY-MM-DD rule
     out.push(
       normalizeScreening({
         ...rest,
         ...(snoozeUntil ? { snoozeUntil } : {}),
         ...(decks.length ? { decks } : {}),
+        ...(docLinks.length ? { docLinks } : {}),
         ...(deadline ? { deadline } : {}),
+        ...normJobDates(it),
         url,
         status: normStatus(it.status),
         label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
@@ -216,7 +238,12 @@ export function addJobOutcome(rawUrl: string, label?: string, note?: string): Ad
     set(c);
     return 'restored';
   }
-  const job: Job = { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' };
+  const job: Job = {
+    url: u,
+    label: (label || '').trim() || prettyTitle(u),
+    status: 'Saved',
+    savedAt: new Date().toISOString(),
+  };
   const company = companyFromUrl(u);
   if (company) job.company = company;
   if (note?.trim()) job.note = note.trim();
@@ -241,6 +268,8 @@ export function addJobDetailed(
     seniority?: string;
     mode?: JobMode;
     deadline?: string;
+    postedAt?: string;
+    discoveredAt?: string;
   },
 ): string | null {
   const jobs = store.get();
@@ -253,6 +282,11 @@ export function addJobDetailed(
     label: (fields.label || '').trim() || prettyTitle(u),
     status: 'Saved',
   };
+  const postedAt = normDate(fields.postedAt);
+  if (postedAt) job.postedAt = postedAt;
+  const discoveredAt = normDate(fields.discoveredAt);
+  if (discoveredAt) job.discoveredAt = discoveredAt;
+  job.savedAt = new Date().toISOString();
   if (fields.salary?.trim()) job.salary = fields.salary.trim();
   if (fields.note?.trim()) job.note = fields.note.trim();
   const company = fields.company?.trim() || companyFromUrl(u);
@@ -309,6 +343,24 @@ export function setJobUrl(url: string, rawNext: string): string | null {
   set(jobs.map((j) => (j.url === url ? { ...j, url: next } : j)));
   return next;
 }
+/** Set or clear the day applications close (#419: the job page's "Applications close"). */
+export function setJobDeadline(url: string, raw: string) {
+  const deadline = normSnooze(raw);
+  const jobs = store.get();
+  set(
+    jobs.map((j) => {
+      if (j.url !== url) return j;
+      const { deadline: _d, ...rest } = j;
+      return deadline ? { ...rest, deadline } : rest;
+    }),
+  );
+}
+/** Put a board check's answers on the saved jobs: `closedAt` when a posting is gone (#419). */
+export function recordBoardChecks(results: ReadonlyMap<string, LiveCheck>) {
+  const jobs = store.get();
+  const next = recordLiveness(jobs, results);
+  if (next !== jobs) set(next);
+}
 /** Delete a job outright. The UI removes through trash.ts (Recently removed) instead. */
 export function removeJob(url: string) {
   const jobs = store.get();
@@ -344,10 +396,10 @@ export const mergeJobs = (cloud: Job[] | null, local: Job[]): Job[] =>
 /** Quick-link helper: add the job (if new) then set a status. */
 export function setStatusByUrl(rawUrl: string, status: Status, label?: string) {
   addJob(rawUrl, label);
-  let u = cleanUrl(rawUrl);
-  if (!u) return;
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  setStatus(u, status);
+  // The saved copy may be under another form of the link (www, a trailing slash): match as a save
+  // dedupes, not on the exact text.
+  const job = findJobByUrl(rawUrl);
+  if (job) setStatus(job.url, status);
 }
 export function markAppliedByUrl(rawUrl: string, label?: string) {
   setStatusByUrl(rawUrl, 'Applied', label);

@@ -40,30 +40,34 @@ test('Add job explains a bad link and an already saved one', async ({ page }) =>
   await expect(page).toHaveURL(/#\/queue\/./);
 });
 
-// A first visit offers the sample pipeline, which lands on the Pipeline with its follow-ups
-// (#236: Today is gone; its follow-ups live in the Pipeline).
-test('opens on Companies setup; the sample pipeline lists due follow-ups', async ({ page }) => {
+// A first visit opens on Today with no setup screen; the Jobs empty state offers the sample
+// pipeline, with its follow-ups.
+test('opens on Today with no setup; the sample pipeline lists due follow-ups', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/#\/discover$/);
+  await expect(page).toHaveURL(/#\/today$/);
+  await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+  await expect(page.getByText('Set up your search')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Jobs' }).click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page).toHaveURL(/#\/queue$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
   await expect(followUps).toBeVisible();
-  await followUps.getByRole('button', { name: 'Follow up: UX Researcher' }).click();
+  await followUps.getByRole('button', { name: 'Follow up: Design Systems Designer' }).click();
   const dialog = page.getByRole('dialog', { name: 'Follow up' });
   // A first run has no messages (Adrian 2026-10-22): one tap adds the starters and fills it.
   await dialog.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(dialog).toContainText('UX Researcher role');
+  await expect(dialog).toContainText('Design Systems Designer role');
   await dialog.getByRole('button', { name: 'Copy message' }).click();
   await dialog.getByRole('button', { name: 'Mark as sent' }).click();
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();
 });
 
-// An old #/today link (#236) lands on Companies and leaves no history entry behind.
-test('#/today redirects to Companies', async ({ page }) => {
+// #/today is home again (#383): it opens Today, and Back goes to the page before.
+test('#/today opens Today', async ({ page }) => {
   await page.goto('/#/queue');
   await page.goto('/#/today');
-  await expect(page).toHaveURL(/#\/discover$/);
+  await expect(page).toHaveURL(/#\/today$/);
+  await expect(page.getByRole('tab', { name: 'Today', selected: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/#\/queue$/);
 });

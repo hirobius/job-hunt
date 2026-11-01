@@ -24,9 +24,11 @@ import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { getApplyKit, replaceApplyKit, emptyKit, setKitField } from './applyKit';
 import { setOutreachMessages } from './test/outreach';
+import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
+import { ymd } from './jobEvents';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://bolt.example/jobs/2';
@@ -96,7 +98,7 @@ describe('To apply queue and Apply mode', () => {
     expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', A);
   });
 
-  it('with nothing to apply to, Apply mode points to Companies instead of a dead end', async () => {
+  it('with nothing to apply to, Apply mode points to Review new instead of a dead end', async () => {
     const user = userEvent.setup();
     getAllJobs()
       .slice()
@@ -104,8 +106,8 @@ describe('To apply queue and Apply mode', () => {
     window.location.hash = '#/apply/nope';
     renderApp();
     expect(await screen.findByText('To apply is empty')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Find the next company' }));
-    expect(window.location.hash).toBe('#/discover');
+    await user.click(screen.getByRole('button', { name: 'Review new postings' }));
+    expect(window.location.hash).toBe('#/today');
   });
 
   it('kit fields are entered once inline and copied with a Copied confirmation', async () => {
@@ -124,6 +126,26 @@ describe('To apply queue and Apply mode', () => {
     await user.click(screen.getByRole('button', { name: 'Copy Name' }));
     expect(writeText).toHaveBeenCalledWith('Sam Placeholder');
     expect(await screen.findByRole('button', { name: 'Copied Name' })).toBeInTheDocument();
+  });
+
+  it('Escape cancels a kit field edit: the value stays, focus returns to its button (#312)', async () => {
+    const user = userEvent.setup();
+    setKitField('name', 'Sam');
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo{Escape}');
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(getApplyKit().fields.name).toBe('Sam');
+    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
+    // Opened again, the dropped draft is gone.
+    await user.click(screen.getByRole('button', { name: 'Edit Name' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Sam');
+    // Enter saves and hands focus back the same way, without reopening the field.
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Lee{Enter}');
+    expect(getApplyKit().fields.name).toBe('Sam Lee');
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
   });
 
   it('Mark applied → follow-up date → pager Next; Not a fit sets aside with Undo', async () => {
@@ -203,6 +225,18 @@ describe('To apply queue and Apply mode', () => {
     await user.click(screen.getByRole('button', { name: 'Mark applied' }));
     expect(header).toHaveTextContent('Applied today');
     expect(header).not.toHaveTextContent(/Saved \d+ days ago/);
+  });
+
+  it('a solicitation says when to respond by, not when to follow up (#308)', async () => {
+    const d = new Date();
+    updateJob(A, { deadline: ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const header = (await screen.findByRole('heading', { name: 'Acme Designer' })).closest(
+      'header',
+    )!;
+    expect(header).toHaveTextContent('Apply by Tomorrow');
+    expect(screen.queryByText(/Follow up on/)).toBeNull();
   });
 
   it('a job opened already applied shows its Applied note still: only Mark applied moves it', async () => {
@@ -338,6 +372,62 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
   });
 });
 
+describe('Application kit: a deleted template pick (#314)', () => {
+  afterEach(() => setOutreachMessages([]));
+
+  it('delete-then-open-Apply-mode: the pick reads as No template, is cleared, and re-adding the message does not re-link it', async () => {
+    const user = userEvent.setup();
+    setOutreachMessages([
+      { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
+      { id: 'other', label: 'Other note', body: 'Other body' },
+    ]);
+    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-gone' });
+    // The picked message is deleted in Documents; the other message stays.
+    setOutreachMessages([{ id: 'other', label: 'Other note', body: 'Other body' }]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const kit = await screen.findByRole('region', { name: 'Application kit' });
+    await user.click(within(kit).getByRole('button', { name: /^Why this company/ }));
+    const picker = (await within(kit).findByRole('combobox', {
+      name: /^Why this company template/,
+    })) as HTMLSelectElement;
+    expect(picker.value).toBe('');
+    // Once sync has settled the stale id is cleared from the kit itself, not just hidden.
+    await waitFor(() => expect(getApplyKit().whyTemplate).toBeUndefined());
+    // Re-adding a message under the same id must not silently re-link the old pick.
+    act(() =>
+      setOutreachMessages([
+        { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
+        { id: 'other', label: 'Other note', body: 'Other body' },
+      ]),
+    );
+    expect(getApplyKit().whyTemplate).toBeUndefined();
+    expect(
+      (
+        within(kit).getByRole('combobox', {
+          name: /^Why this company template/,
+        }) as HTMLSelectElement
+      ).value,
+    ).toBe('');
+  });
+});
+
+describe('Application kit: a pick on a snippet not moved yet (#314 review)', () => {
+  afterEach(() => setOutreachMessages([]));
+
+  it('keeps the pick while the snippet waits for its move into the library', async () => {
+    // A device that never ran the move: the picked message is still a legacy snippet.
+    setOutreachMessages([]);
+    replaceSnippets([{ id: 'why-legacy', label: 'Why Acme', body: 'Because [Company]' }]);
+    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-legacy' });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('region', { name: 'Application kit' });
+    await waitFor(() => expect(getSnippets().every((s) => s.migrated)).toBe(true));
+    expect(getApplyKit().whyTemplate).toBe('why-legacy');
+  });
+});
+
 describe('Apply mode header keeps to two items per dotted line (#192)', () => {
   it('badges above the title, company on its line, the position in the pager', async () => {
     updateJob(A, { location: 'Remote', verdict: 'match' });
@@ -350,9 +440,9 @@ describe('Apply mode header keeps to two items per dotted line (#192)', () => {
     const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
     expect(header).toHaveTextContent(/Acme\s*·?\s*Remote/);
     expect(texts).toContain('1 of 3');
-    // The status first, then fit (rev-3 B).
+    // Fit first, then status (#360, as CLAUDE.md says).
     const badges = texts.filter((t) => t === 'Strong fit' || t === 'Saved');
-    expect(badges).toEqual(['Saved', 'Strong fit']);
+    expect(badges).toEqual(['Strong fit', 'Saved']);
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });

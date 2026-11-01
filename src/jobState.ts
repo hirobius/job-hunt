@@ -32,21 +32,33 @@ export function normSnooze(s: unknown): string | undefined {
   return d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? s : undefined;
 }
 
-/** Whole days between an ISO-ish date string and `now`; null for missing/invalid input. */
+/** The local calendar day (YYYY-MM-DD) a stored date names: a bare YYYY-MM-DD as is, a timestamp
+ *  (a restored backup or a CSV import, #310) as the local day of that instant; undefined when it
+ *  is not a date. Every follow-up rule reads days through this, so the day shown and the moment it
+ *  falls due agree in any time zone. */
+export function localDay(s: string | undefined): string | undefined {
+  if (!s) return undefined;
+  const day = /^\d{4}-\d{2}-\d{2}/.exec(s)?.[0];
+  // A bare day, or one exported as UTC midnight (`toISOString()` of a date): the day as written.
+  if (day && (s.length === 10 || /^T00:00(:00(\.0+)?)?Z$/.test(s.slice(10)))) return day;
+  const t = Date.parse(s);
+  if (!isNaN(t)) return today(new Date(t));
+  // A day with words after it ("2026-10-20 (approx)") keeps its day.
+  return day;
+}
+
+/** Whole calendar days (local) between an ISO-ish date string and `now`; null for missing/invalid
+ *  input. */
 export function daysSince(s: string | undefined, now: Date = new Date()): number | null {
-  if (!s) return null;
   // A bare YYYY-MM-DD is a LOCAL calendar day (Date.parse would read it as UTC midnight, which
   // shifts day boundaries by the UTC offset and disagrees with the calendar/This-week views).
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (m) {
-    // Calendar days, counted between local midnights in UTC so a daylight-saving change (a 23 or
-    // 25 hour day) never moves the count by one for the hour after midnight.
-    const day = Date.UTC(+m[1], +m[2] - 1, +m[3]);
-    const nowDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-    return Math.round((nowDay - day) / 86400000);
-  }
-  const t = Date.parse(s);
-  return isNaN(t) ? null : Math.floor((now.getTime() - t) / 86400000);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(localDay(s) ?? '');
+  if (!m) return null;
+  // Calendar days, counted between local midnights in UTC so a daylight-saving change (a 23 or
+  // 25 hour day) never moves the count by one for the hour after midnight.
+  const day = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  const nowDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((nowDay - day) / 86400000);
 }
 
 /** Everything the UI needs to render a Job's lifecycle state, derived in one pass. */

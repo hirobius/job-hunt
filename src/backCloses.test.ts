@@ -18,10 +18,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 /** Sheets whose open state, and so their Back wiring, lives in the file that mounts them. */
-const WIRED_ELSEWHERE: Record<string, number> = {
-  // Manage track: `manageOpen` and its useBackCloses are in DiscoverView.
-  'ManageTrackDialog.tsx': 1,
-};
+const WIRED_ELSEWHERE: Record<string, number> = {};
 
 /** An overlay root's opening tag: `<Dialog`, `<AlertDialog`, `<Menu`, `<HdsMenu`, `<Popover`. */
 const ROOT = /<(?:Dialog|AlertDialog|Menu|HdsMenu|Popover)(?=[\s>])[^>]*>/g;

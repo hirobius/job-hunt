@@ -1,8 +1,9 @@
 // What this device holds that a sign-in would add to the account (the merge guard, security
-// audit). Starter templates, an empty kit and sample jobs are not "data": a fresh device has the
-// first two, and sample data is never pushed.
+// audit). Starter templates, an empty kit, sample jobs and the auto profile (with its starter
+// companies) are not "data": a fresh device has them, and sample data is never pushed.
 import { emptyBlob, type SyncData } from '../syncBlob';
 import { isSample } from '../demo/isSample';
+import { untouchedAuto } from '../autoSetup';
 
 const starterSnippet = (id: string) => id.startsWith('tpl-');
 const starterDocument = (id: string) => id.startsWith('snippet-tpl-');
@@ -31,7 +32,11 @@ export function deviceData(d: SyncData, tracks: number): DeviceData {
     anyList(d.dreams) ||
     anyKey(d.modes) ||
     anyKey(d.sweeps) ||
-    anyKey(d.mustInclude);
+    anyKey(d.mustInclude) ||
+    // The auto profile, its starter companies and the keyless feeds are not the person's.
+    d.profiles.some((p) => !p.auto) ||
+    d.sources.some((s) => s.kind !== 'feed' && !untouchedAuto(s)) ||
+    d.decided.length > 0;
   return { jobs, any };
 }
 

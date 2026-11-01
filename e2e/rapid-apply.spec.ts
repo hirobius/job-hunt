@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// The rapid-apply loop end to end: cast a wide net in Live postings, see where the saves went,
+// The rapid-apply loop end to end: save from Review new on Today, see where the saves went,
 // then walk the To apply queue in Apply mode until it is empty and everything waits on a follow-up.
 // The feed is answered with synthetic Hacker News posts (no real people); every other host fails.
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
@@ -38,29 +38,28 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
     });
   });
 
-  // A track first (Discover needs one): the first starter pack, three steps.
-  await page.goto('/#/discover');
-  // Every pack starts unticked (Adrian 2026-10-22): tick the Suggested (first) one.
-  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().check();
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Finish' }).click();
+  // A first visit gets the design-systems Search profile on its own (no setup screen).
+  await page.goto('/#/today');
 
-  // Wide net: save all three postings in one go, from the Openings menu.
-  await page.goto('/#/discover/live');
-  const list = page.getByRole('list', { name: 'Live postings' });
-  await expect(list.getByRole('listitem')).toHaveCount(3);
-  await page.getByRole('button', { name: 'Openings options' }).click();
-  await page.getByRole('menuitem', { name: 'Save all (3)' }).click();
+  // Save all three postings from Review new; each leaves the list and says where it went.
+  const list = page.getByRole('list', { name: 'New postings' });
+  await expect(list.getByRole('listitem')).toHaveCount(3, { timeout: 30_000 });
+  for (let left = 3; left > 0; left--) {
+    await list
+      .getByRole('button', { name: /^Save / })
+      .first()
+      .click();
+    await expect(list.getByRole('listitem')).toHaveCount(left - 1);
+  }
   const notice = page
     .getByRole('region', { name: /^Notifications/ })
     .getByRole('listitem')
-    .filter({ hasText: 'Saved 3 to Pipeline · To apply' });
+    .filter({ hasText: 'Saved to Pipeline · To apply' });
   await expect(notice).toBeVisible();
-  // Each saved row shows a "Saved" status in Save's slot (rev-3 K), not a disabled button.
-  await expect(list.getByText('Saved', { exact: true })).toHaveCount(3);
-  await expect(list.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+  // A single save's Open opens that job's page; the Jobs tab has all three in To apply.
   await notice.getByRole('button', { name: 'Open' }).click();
+  await expect(page).toHaveURL(/#\/queue\/[^/?]+/);
+  await page.getByRole('tab', { name: 'Jobs' }).click();
 
   await expect(page.getByRole('region', { name: 'To apply (3)' })).toBeVisible();
   await page.getByRole('button', { name: 'Start applying' }).click();

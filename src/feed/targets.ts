@@ -6,7 +6,9 @@ import { httpUrl } from '../httpUrl';
 import { liveStorage } from '../liveStorage';
 import { mergeByKey } from '../mergeByKey';
 import { loadPersisted, savePersisted } from '../persisted';
-import { PROBE_KINDS } from './probe';
+// boardSet's copy of the probe's kinds (pinned equal): importing probe.ts would pull the whole
+// probe into the first chunk, since DataToolsProvider reads targets at startup.
+import { BOARD_KINDS } from './boardSet';
 import type { Board } from './sources/ats';
 
 export const TARGETS_KEY = 'rjb_targets';
@@ -33,7 +35,7 @@ export { httpUrl };
 export function sanitizeBoard(v: unknown): Board | undefined {
   const b = typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : null;
   return b &&
-    PROBE_KINDS.includes(b.kind as Board['kind']) &&
+    BOARD_KINDS.includes(b.kind as Board['kind']) &&
     typeof b.slug === 'string' &&
     SLUG.test(b.slug)
     ? { kind: b.kind as Board['kind'], slug: b.slug, ...(b.eu === true && { eu: true as const }) }
@@ -162,18 +164,6 @@ export function restoreTarget(categoryId: string, t: Target, at: number): Target
   all[categoryId] = list.slice(-MAX_TARGETS_PER_TRACK);
   write(all);
   return all[categoryId];
-}
-
-/** A track's saved targets, live. */
-export function useTargets(categoryId: string): Target[] {
-  const raw = live.useRaw();
-  return useMemo(() => {
-    try {
-      return sanitizeTargets(raw ? JSON.parse(raw) : {})[categoryId] ?? [];
-    } catch {
-      return [];
-    }
-  }, [raw, categoryId]);
 }
 
 /** Every track's targets, live (the sync provider pushes when this changes). */

@@ -24,6 +24,9 @@ export interface Targeting {
    * A rule that asks for "design system(s)" makes the track a scored one (src/tracks): the scorer
    * replaces must include and the title filter, and `include` counts what it rejected. */
   include?: IncludeRule;
+  /** Phrase rules only, never the scorer, even for a design system rule (the Feed: no fit tiers,
+   *  Adrian 2026-10-28). */
+  phrases?: true;
 }
 
 export const NO_TARGETING: Targeting = { exclude: [], seniority: 'any', salaryOnly: false };
@@ -61,7 +64,7 @@ export function applyTargeting<P extends RankedPosting>(
 ): { postings: P[]; hidden: HiddenCounts; review: P[] } {
   const hidden: HiddenCounts = { include: 0, exclude: 0, seniority: 0, salary: 0, titles: 0 };
   const include = t.include ?? [];
-  const track = scorerFor(include);
+  const track = t.phrases ? null : scorerFor(include);
   if (track) {
     // A scored track: the scorer decides (and orders); the leave-out, level and pay rules still
     // narrow both the queue and the review bucket.

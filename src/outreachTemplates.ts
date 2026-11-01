@@ -10,7 +10,13 @@
 // the snippet id, so a run that races another device never duplicates one either.
 import { useMemo } from 'react';
 import { getSnippets, replaceSnippets, type Snippet } from './copyDeckStore';
-import { getAllDocuments, replaceDocuments, useDocuments, type Document } from './documents';
+import {
+  getAllDocuments,
+  isFinalCopy,
+  replaceDocuments,
+  useDocuments,
+  type Document,
+} from './documents';
 import {
   documentIdForSnippet,
   fileStarterCover,
@@ -53,12 +59,24 @@ export function useOutreachTemplates(): OutreachTemplate[] {
 /** The library link for a template or document. */
 export const documentHref = (id: string) => `#/copy-deck/${encodeURIComponent(id)}`;
 
+/** A document the library's editor can open: a Base one with text (a final copy takes none). */
+const editable = (d: Document) => !!d.base && !isFinalCopy(d);
+
 /** The document a `#/copy-deck/<id>` route names: the id itself, or the message an old snippet
- *  link's snippet became. Null when there is none (yet). */
+ *  link's snippet became. Null when there is none (yet), or when it is not a Base document with
+ *  text (#328: a job's own document or a final copy lives on its job page). */
 export function resolveDocumentId(id: string, docs: readonly Document[]): string | null {
-  if (docs.some((d) => d.id === id)) return id;
+  const has = (x: string) => docs.some((d) => d.id === x && editable(d));
+  if (has(id)) return id;
   const moved = documentIdForSnippet(id);
-  return docs.some((d) => d.id === moved) ? moved : null;
+  return has(moved) ? moved : null;
+}
+
+/** The job a `#/copy-deck/<id>` route's document belongs to, when it is a job's own document or
+ *  final copy (#328): the link opens that job's page instead. */
+export function documentJobUrl(id: string, docs: readonly Document[]): string | null {
+  const d = docs.find((x) => x.id === id);
+  return d && !editable(d) && d.jobUrl ? d.jobUrl : null;
 }
 
 /** Move every snippet not moved yet into the library and mark it. Returns how many messages were
