@@ -262,13 +262,15 @@ copy, max 4 s.
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
   metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
   location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
-  margins. **Lists are cards, not hairlines (Adrian changed it on 2026-10-23):** Review new's Browse
-  list, New companies, the Account menu's Companies list, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, the
-  Documents library and the interview log are `PipelinePanel` `CardList` (8 apart, `.rjb-cards`) of
-  `ListCard` (an HDS `Card`, `.rjb-card-inset`: the page fill so it reads on the raised panel; a card
-  inside one goes back to raised). `.rjb-rows` and `rowsStyle` are gone. Desktop tables stay tables;
-  panel rows that are not lists of things (Getting started, Follow up, Next 7 days, to-dos) keep
-  their hairlines. Pinned in `src/calmLayout.test.tsx`.
+  margins. **No cards within cards, ever (Adrian 2026-11-01, #449; replaced 2026-10-23's "lists are cards"):**
+  one card level max. A list inside a panel (Review new's Browse list, New companies, the Account menu's Companies
+  list, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, Documents, the interview log,
+  the job page's links) is `PipelinePanel` `ItemList` (`.rjb-items`, a hairline between rows) of `ItemRow` (a plain
+  row, never an HDS `Card`); `JobListCard` is an `article` row with Card's Header/Facts/Footer parts, no Card root.
+  **Review new has no card at all** (`Panel flat`): its heading, count and metadata declare the group, and its
+  content lines up with the page gutter. A lone card in the page flow (Review new's Deck posting) is fine;
+  `calmLayout.test.tsx` fails on any Card inside a Card.
+  Pinned in `src/calmLayout.test.tsx`.
 - **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
   is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
   Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to

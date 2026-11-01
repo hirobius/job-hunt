@@ -4,7 +4,7 @@
 // posting one tap away), Apply, Follow up (what is due, with dates, and what falls due this week)
 // and the companies the scan found (Follow / Ignore). The read model is today.ts; this lays it out.
 import { Button, InlineLink, Skeleton, Stack, Text } from '@hirobius/design-system';
-import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { MetaCaption } from './MetaCaption';
 import { JobPostingTitle } from './PostingLink';
@@ -54,7 +54,7 @@ export default function Today() {
         // `ensureProfile`); until then Review new holds its place, or says why it can't.
         <Stack gap="normal">
           <ScanStatus />
-          <Panel label="Review new" title="Review new">
+          <Panel label="Review new" title="Review new" flat>
             <PanelBody>
               {offline ? (
                 <Text variant="caption" as="p" tone="secondary">
@@ -108,11 +108,11 @@ export default function Today() {
       >
         {due.length > 0 ? (
           // The most overdue first; Mark as sent in the dialog moves the next one up.
-          <CardList label="Due follow-ups">
+          <ItemList label="Due follow-ups">
             {due.map((j) => (
               <DueRow key={j.url} job={j} now={now} />
             ))}
-          </CardList>
+          </ItemList>
         ) : (
           <PanelBody>
             <Text variant="caption" as="p" tone="secondary">
@@ -132,7 +132,7 @@ export default function Today() {
 function DueRow({ job, now }: { job: Job; now: Date }) {
   const date = followUpDate(job, now);
   return (
-    <ListCard>
+    <ItemRow>
       <Stack direction="row" gap="px8" align="center" justify="space-between">
         <Stack gap="px4" align="start">
           <JobPostingTitle job={job}>
@@ -150,6 +150,6 @@ function DueRow({ job, now }: { job: Job; now: Date }) {
         </Stack>
         <FollowUpButton job={job} size="sm" />
       </Stack>
-    </ListCard>
+    </ItemRow>
   );
 }

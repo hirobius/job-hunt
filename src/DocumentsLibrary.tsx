@@ -21,7 +21,6 @@ import {
   Badge,
   Box,
   Button,
-  Card,
   Disclosure,
   Icon,
   Menu,
@@ -42,7 +41,7 @@ import {
 import { documentIdForSnippet, kindForSnippet, restoreStarterOutreach } from './snippetMigration';
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import type { Document, DocumentKind } from './documents';
-import { CardList, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, Panel, PanelBody } from './PipelinePanel';
 import { WithChips } from './BlankText';
 import { postedAgo } from './feed/format';
 import { metaLines } from './metaLines';
@@ -292,7 +291,7 @@ export default function DocumentsLibrary({
                 </PanelBody>
               )}
               {items.length > 0 && (
-                <CardList label={PLURAL[kind]}>
+                <ItemList label={PLURAL[kind]}>
                   {items.map((d) => (
                     <DocumentRow
                       key={d.id}
@@ -302,7 +301,7 @@ export default function DocumentsLibrary({
                       onEdit={() => go({ id: d.id })}
                     />
                   ))}
-                </CardList>
+                </ItemList>
               )}
             </Panel>
           );
@@ -374,16 +373,10 @@ function DocumentRow({
       });
     collapseRow(card.current, () => removeDocumentWithUndo(doc));
   };
-  // A card of its kind's list (Adrian 2026-10-23: cards, not hairlines).
+  // A row of its kind's list: the panel is the one card (Adrian 2026-11-01, #449).
   return (
-    <Card
-      as="li"
-      ref={cardRef}
-      aria-label={title}
-      padding="none"
-      className="rjb-doc-row rjb-card-inset"
-    >
-      <Box sx={{ px: 4, py: 1 }}>
+    <Box as="li" ref={cardRef} aria-label={title} className="rjb-doc-row">
+      <Box sx={{ py: 1 }}>
         <Disclosure
           variant="row"
           open={open}
@@ -460,6 +453,6 @@ function DocumentRow({
           )}
         </Disclosure>
       </Box>
-    </Card>
+    </Box>
   );
 }

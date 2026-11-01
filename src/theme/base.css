@@ -89,14 +89,10 @@ p {
   --hds-form-control-max-width: none;
 }
 
-/* Cards, not hairlines (Adrian 2026-10-23): a list's cards (PipelinePanel CardList / ListCard) sit
- * on a raised panel, so they take the page fill to read as separate surfaces; a card inside one of
- * those goes back to raised. Borderless, like every HDS 0.31 surface. */
-[data-hds] .rjb-card-inset {
-  background-color: var(--semantic-color-surface-page);
-}
-[data-hds] .rjb-card-inset .rjb-card-inset {
-  background-color: var(--semantic-color-surface-raised);
+/* No cards within cards (Adrian 2026-11-01, #449): a list inside a panel (PipelinePanel ItemList /
+ * ItemRow) is rows in the panel's flow, a hairline between them, no surface of their own. */
+[data-hds] .rjb-items > * + * {
+  border-top: thin solid var(--semantic-color-border-default);
 }
 
 /* Apply mode copy rows: keep a saved answer's line breaks. */

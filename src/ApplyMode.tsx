@@ -37,7 +37,7 @@ import { JobBadges } from './JobRowParts';
 import { changeWithUndo } from './jobUndo';
 import { MetaCaption } from './MetaCaption';
 import { statusAgo } from './jobState';
-import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { getRoute, goBack, linkTo, navigate, openApply, useRoute, type Route } from './route';
@@ -436,9 +436,9 @@ function CopyRow({
       )}
     </>
   );
-  // A kit field is one card of its list (Adrian 2026-10-23); an answer's own row stays in its card.
+  // A kit field is one row of its list (#449); an answer's own row stays in its panel.
   return as === 'li' ? (
-    <ListCard label={label}>{body}</ListCard>
+    <ItemRow label={label}>{body}</ItemRow>
   ) : (
     <Box sx={{ py: 'xs' }} aria-label={label}>
       {body}
@@ -446,9 +446,9 @@ function CopyRow({
   );
 }
 
-/** A list inside a panel: a card per row (Adrian 2026-10-23: cards, not hairlines). */
+/** A list inside a panel: plain rows, a hairline between them (#449: no cards within cards). */
 function Rows({ label, children }: { label?: string; children: ReactNode }) {
-  return <CardList label={label}>{children}</CardList>;
+  return <ItemList label={label}>{children}</ItemList>;
 }
 
 /** An expandable row (HDS Disclosure variant="row") as one list item. */
@@ -468,7 +468,7 @@ function DisclosureItem({
 }) {
   const [open, setOpen] = useRemembered(`apply:${remember}`, false);
   return (
-    <ListCard label={label} dense>
+    <ItemRow label={label} dense>
       <Disclosure
         variant="row"
         label={label}
@@ -479,7 +479,7 @@ function DisclosureItem({
       >
         {children}
       </Disclosure>
-    </ListCard>
+    </ItemRow>
   );
 }
 
@@ -533,7 +533,7 @@ function ApplyTemplates({ job }: { job: Job }) {
               the row's one action, so there is no chevron (rev-3 review). The whole text is in
               Documents. */}
           {rows.map((r) => (
-            <ListCard key={r.id} label={r.label}>
+            <ItemRow key={r.id} label={r.label}>
               <BlankText
                 preview
                 text={r.text}
@@ -546,7 +546,7 @@ function ApplyTemplates({ job }: { job: Job }) {
                 }
                 action={<CopyButton label={r.label} value={r.text} />}
               />
-            </ListCard>
+            </ItemRow>
           ))}
         </Rows>
       )}
@@ -610,10 +610,10 @@ function ApplicationKit({ job }: { job: Job }) {
             label={`Fill in ${missing.length} more`}
             preview={missing.map((f) => f.label).join(', ')}
           >
-            {/* Nested cards, like the panel's own rows. */}
-            <CardList label="More fields" inset="none">
+            {/* Rows, like the panel's own. */}
+            <ItemList label="More fields" inset="none">
               {missing.map((f) => fieldRow(f))}
-            </CardList>
+            </ItemList>
           </DisclosureItem>
         )}
         {(

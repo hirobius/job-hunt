@@ -3,7 +3,7 @@
 // end. Every action says so with an Undo.
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';
 import { RefreshCw } from 'lucide-react';
-import { CardList, ListCard, Panel } from './PipelinePanel';
+import { ItemList, ItemRow, Panel } from './PipelinePanel';
 import { showNotice } from './saveNotice';
 import {
   cancelScan,
@@ -124,9 +124,9 @@ export function NewCompanies() {
       countLabel={`${list.length} companies`}
       description="Found by the scan. A confirmed board’s matching jobs are already in Review new."
     >
-      <CardList label="New companies">
+      <ItemList label="New companies">
         {list.map((f) => (
-          <ListCard key={f.key}>
+          <ItemRow key={f.key}>
             <Stack gap="tight">
               <Stack gap="px4">
                 <Text variant="body" as="p" className="rjb-semibold">
@@ -155,9 +155,9 @@ export function NewCompanies() {
                 </Button>
               </Stack>
             </Stack>
-          </ListCard>
+          </ItemRow>
         ))}
-      </CardList>
+      </ItemList>
     </Panel>
   );
 }

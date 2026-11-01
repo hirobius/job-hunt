@@ -1,10 +1,14 @@
 // One Pipeline panel (rev-3 mock, mobile slice 1): an HDS Card with a header (the section's name,
 // its count as an HDS Badge, an optional trailing control) over padded content and hairline rows.
-// Lists of things (companies, roles, openings, jobs, documents, the Apply sheet) are cards, not
-// hairline rows (Adrian 2026-10-23): `CardList` of `ListCard`s.
+// No cards within cards, ever (Adrian 2026-11-01, #449): a list inside a panel is rows in the
+// panel's flow, split by spacing and a hairline (`ItemList` of `ItemRow`s), never a Card per item.
+// `flat` drops the panel's own surface: the heading, count and metadata declare the group (Review new).
 // Getting started, To apply, Follow up, Next 7 days and Jobs all use it, so they read as one set.
-import type { CSSProperties, ReactNode } from 'react';
+import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { Badge, Box, Card, Stack, Text } from '@hirobius/design-system';
+
+/** Inside a flat panel, content lines up with the page gutter instead of a card's inset. */
+const FlatPanel = createContext(false);
 
 export function Panel({
   label,
@@ -14,6 +18,7 @@ export function Panel({
   badge,
   trailing,
   description,
+  flat = false,
   children,
 }: {
   /** The region's accessible name. */
@@ -28,11 +33,13 @@ export function Panel({
   trailing?: ReactNode;
   /** A caption under the title ("Sent: Cover letter, Oct 9"). */
   description?: string;
+  /** No card: a plain section in the page flow, declared by its heading (#449). */
+  flat?: boolean;
   children?: ReactNode;
 }) {
-  return (
-    <Card as="section" aria-label={label} padding="none">
-      <Box sx={{ px: 'md', pt: 'md', pb: children ? 'xs' : 'md' }}>
+  const body = (
+    <>
+      <Box sx={{ px: flat ? 0 : 'md', pt: flat ? 0 : 'md', pb: children ? 'xs' : 'md' }}>
         <Stack direction="row" gap="px8" align="center" justify="space-between">
           <Stack gap="px4">
             <Stack direction="row" gap="px8" align="center">
@@ -52,13 +59,25 @@ export function Panel({
         </Stack>
       </Box>
       {children}
+    </>
+  );
+  return flat ? (
+    <FlatPanel.Provider value>
+      <Box as="section" aria-label={label}>
+        {body}
+      </Box>
+    </FlatPanel.Provider>
+  ) : (
+    <Card as="section" aria-label={label} padding="none">
+      {body}
     </Card>
   );
 }
 
 /** Padded content under a panel's header. */
 export function PanelBody({ children }: { children: ReactNode }) {
-  return <Box sx={{ px: 'md', pb: 'md' }}>{children}</Box>;
+  const flat = useContext(FlatPanel);
+  return <Box sx={{ px: flat ? 0 : 'md', pb: 'md' }}>{children}</Box>;
 }
 
 /** A panel's list: rows split by hairlines, each padded like the header. */
@@ -97,9 +116,10 @@ export function PanelRow({
   );
 }
 
-/** A list as separate HDS Card surfaces, 8 apart (Adrian 2026-10-23: cards, not hairlines). Inset
- *  from the panel's edges like its header (`inset`), or flush inside something already padded. */
-export function CardList({
+/** A list of things inside a panel (#449: no cards within cards): rows in the panel's flow, a
+ *  hairline between them (`.rjb-items` in base.css). Inset from the panel's edges like its header
+ *  (`inset`), or flush inside something already padded. */
+export function ItemList({
   children,
   label,
   as = 'ul',
@@ -115,21 +135,22 @@ export function CardList({
   hidden?: boolean;
   style?: CSSProperties;
 }) {
+  const flat = useContext(FlatPanel);
+  const pad = flat ? 'none' : inset;
   return (
     <Box
       as={as}
       aria-label={label}
       aria-hidden={hidden || undefined}
-      className="rjb-cards"
+      className="rjb-items"
       style={style}
       sx={{
         listStyle: 'none',
         m: 0,
         p: 0,
-        ...(inset === 'none' ? {} : { px: inset, pb: inset }),
+        ...(pad === 'none' ? {} : { px: pad, pb: pad }),
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
       }}
     >
       {children}
@@ -137,8 +158,8 @@ export function CardList({
   );
 }
 
-/** One item of a CardList: an HDS Card, filled so it reads on the raised panel it sits in. */
-export function ListCard({
+/** One item of an ItemList: a plain row, never a Card (#449). */
+export function ItemRow({
   children,
   as = 'li',
   label,
@@ -150,12 +171,12 @@ export function ListCard({
   label?: string;
   /** Less vertical padding: the child already stands 40px+ tall (an HDS Disclosure row). */
   dense?: boolean;
-  /** No padding: the child (an HDS Card's parts) pads itself. */
+  /** No padding: the child pads itself. */
   flush?: boolean;
 }) {
   return (
-    <Card as={as} aria-label={label} padding="none" className="rjb-card-inset">
-      {flush ? children : <Box sx={{ px: 4, py: dense ? 1 : 3 }}>{children}</Box>}
-    </Card>
+    <Box as={as} aria-label={label} sx={flush ? {} : { py: dense ? 1 : 3 }}>
+      {children}
+    </Box>
   );
 }
