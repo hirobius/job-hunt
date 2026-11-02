@@ -142,3 +142,35 @@ describe('sync-postings auth (#322)', () => {
     expect(hits).toEqual([]);
   });
 });
+
+describe('live verification queries (#285)', () => {
+  const file = 'supabase/verification/security_285_checks.sql';
+  const raw = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  const body = raw
+    .replace(/--[^\n]*/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+
+  it('exists and is read-only (selects only, no writes or DDL)', () => {
+    expect(raw).not.toBe('');
+    expect(body).not.toMatch(
+      /\b(insert into|delete from|alter table|create table|create policy|drop table|drop policy|grant |revoke |update public\.)/,
+    );
+    expect(body).toContain('select');
+  });
+
+  it('checks RLS, policies and anon grants for the four user tables', () => {
+    for (const t of ['tracker', 'categories', 'groups', 'tiles']) expect(body).toContain(t);
+    expect(body).toContain('relrowsecurity');
+    expect(body).toContain('pg_policies');
+    expect(body).toContain('role_table_grants');
+    expect(body).toContain("'anon'");
+  });
+
+  it('checks the client_errors door and the tracker blob cap', () => {
+    expect(body).toContain('report_client_error');
+    expect(body).toContain('prosecdef');
+    expect(body).toContain('tracker_data_size_cap');
+    expect(body).toContain('octet_length(data::text) < 8000000');
+  });
+});
