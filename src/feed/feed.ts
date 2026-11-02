@@ -25,6 +25,8 @@ import { companyKey, dayOf, postingFingerprint, type DecidedState } from './deci
 import { boardUrlsOf, type SearchProfile, type Source } from './profile';
 import type { FeedRequest } from './reader';
 import { parseBoardUrl } from './sources/ats';
+import { loadPersisted, savePersisted } from '../persisted';
+import type { Posting } from './types';
 
 export interface FeedRow extends SweptPosting {
   fingerprint: string;
@@ -265,4 +267,47 @@ export function payLabel(p: Pick<SweptPosting, 'salaryMin' | 'salaryMax' | 'curr
     return `${k(p.salaryMin)} to ${k(p.salaryMax)}`;
   const one = p.salaryMax ?? p.salaryMin;
   return one ? k(one) : '';
+}
+
+// The last read, kept across a reload (#448 slice 2): Today shows it at once and refreshes behind
+// it. Only the postings the Feed listed (the rest would never show), newest first, capped and cut
+// the way the auto-scan's `rjb_autoscan_postings` are. A cache: local, never synced.
+export const LAST_READ_KEY = 'rjb_feed_last';
+export const LAST_READ_MAX = 300;
+export const LAST_READ_TEXT_MAX = 1500;
+
+const postedMs = (p: Posting) => Date.parse(p.postedAt ?? '') || 0;
+
+export function saveLastRead(read: FeedResult, view: FeedView, at: number): void {
+  const listed = new Set(view.listed);
+  const postings = read.postings
+    .filter((p) => listed.has(postingFingerprint(p)))
+    .sort((a, b) => postedMs(b) - postedMs(a))
+    .slice(0, LAST_READ_MAX)
+    .map((p) => ({ ...p, text: p.text.slice(0, LAST_READ_TEXT_MAX) }));
+  savePersisted(LAST_READ_KEY, { at, postings, sources: read.sources });
+}
+
+const isStr = (v: unknown): v is string => typeof v === 'string';
+
+export function loadLastRead(): { at: number; result: FeedResult } | null {
+  const raw = loadPersisted<unknown>(LAST_READ_KEY, null);
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as { at?: unknown; postings?: unknown; sources?: unknown };
+  if (typeof o.at !== 'number' || !Array.isArray(o.postings)) return null;
+  const postings = (o.postings as Partial<Posting>[]).filter(
+    (p): p is Posting =>
+      !!p &&
+      typeof p === 'object' &&
+      isStr(p.id) &&
+      isStr(p.title) &&
+      isStr(p.company) &&
+      isStr(p.text) &&
+      isStr(p.location) &&
+      /^https?:\/\//i.test(String(p.url)),
+  );
+  const sources = (Array.isArray(o.sources) ? (o.sources as Partial<SourceStatus>[]) : []).filter(
+    (s): s is SourceStatus => !!s && typeof s === 'object' && isStr(s.key) && isStr(s.label),
+  );
+  return { at: o.at, result: { postings: postings.slice(0, LAST_READ_MAX), sources } };
 }

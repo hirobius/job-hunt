@@ -31,6 +31,7 @@ import { saveProfile } from './profile';
 import { addSources, getSources, replaceSources } from './sources';
 import { getAllDecided, unmuteCompany } from './feed/decided';
 import { resetScan, runScan } from './feed/autoScan';
+import { resetViewMemory } from './viewMemory';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -83,6 +84,22 @@ const titles = (ul: HTMLElement) =>
     .map((h) => h.textContent?.replace(/\s*\(opens in new tab\)$/, ''));
 
 describe('Review new: Browse', () => {
+  it('shows the last read straight away after a reload, then refreshes behind it (#448)', async () => {
+    const first = renderReview();
+    await list();
+    await waitFor(() => expect(localStorage.getItem('rjb_feed_last')).not.toBeNull());
+    first.unmount();
+    resetViewMemory();
+    // The next read hangs: the rows on screen can only come from storage.
+    let answer: (r: FeedResult) => void = () => {};
+    feed.fetchFeed.mockReset().mockReturnValue(new Promise<FeedResult>((r) => (answer = r)));
+    renderReview();
+    expect(titles(await list())).toHaveLength(3);
+    await waitFor(() => expect(feed.fetchFeed).toHaveBeenCalledTimes(1));
+    await act(async () => answer(result([post('hn:9', 'Design Systems Lead', 'Delta')])));
+    await waitFor(async () => expect(titles(await list())).toEqual(['Design Systems Lead']));
+  });
+
   it('lists every undecided posting and says how many are new from how many sources', async () => {
     const { container } = renderReview();
     const ul = await list();

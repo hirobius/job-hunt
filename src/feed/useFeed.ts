@@ -9,7 +9,14 @@ import { useProfile } from '../profile';
 import { useSources } from '../sources';
 import { noteSeen, readSeen, useDecided } from './decided';
 import { feedSourcesOf, searchProfileOf, type SearchProfile, type Source } from './profile';
-import { buildFeed, feedRequest, fingerprintsOf, type FeedView } from './feed';
+import {
+  buildFeed,
+  feedRequest,
+  fingerprintsOf,
+  loadLastRead,
+  saveLastRead,
+  type FeedView,
+} from './feed';
 import { browserReader, type PostingReader } from './reader';
 import { scanReader, useScan } from './autoScan';
 import type { FeedResult } from './fetchFeed';
@@ -37,6 +44,24 @@ interface Read {
   /** First-seen days, noted once the read fully answered (a board that answers late still counts
    *  as new today when it does). */
   seen?: Record<string, string>;
+  /** Loaded from the last page load (#448): shown at once, never folded into a new read. */
+  stored?: boolean;
+}
+
+/** The last read kept across a reload, as the first rows on screen while a fresh read runs. */
+function storedRead(): Read | null {
+  const last = loadLastRead();
+  if (!last || !last.result.postings.length) return null;
+  return {
+    key: '',
+    terms: [],
+    boardUrls: [],
+    attempt: -1,
+    at: last.at,
+    result: last.result,
+    seen: readSeen(),
+    stored: true,
+  };
 }
 
 const REPAINT_MS = 250;
@@ -68,7 +93,7 @@ export function useFeed(given?: PostingReader): FeedState {
     .map((f) => `${f.key}=${f.status}`)
     .join(',')}`;
   const key = `${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}`;
-  const [read, setRead] = useRemembered<Read | null>('review:read', null);
+  const [read, setRead] = useRemembered<Read | null>('review:read', storedRead);
   const [attempt, setAttempt] = useRemembered('review:attempt', 0);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
 
@@ -84,7 +109,9 @@ export function useFeed(given?: PostingReader): FeedState {
     // A company or title added since the last full read (Adrian 2026-10-28: a new company's jobs
     // show straight away): read only what was added and fold it into the rows already up.
     const base =
-      read?.result && !read.progress && !read.error && read.attempt === attempt ? read : null;
+      read?.result && !read.stored && !read.progress && !read.error && read.attempt === attempt
+        ? read
+        : null;
     const added = base && {
       terms: req.terms.filter((t) => !base.terms.includes(t)),
       boardUrls: req.boardUrls.filter((u) => !base.boardUrls.includes(u)),
@@ -162,6 +189,13 @@ export function useFeed(given?: PostingReader): FeedState {
         : null,
     [current, profile, sources, decided, saved],
   );
+  // A fresh, fully answered read is kept for the next page load.
+  useEffect(() => {
+    if (view && current?.result && !current.stored && !current.progress && !current.error)
+      saveLastRead(current.result, view, current.at);
+    // Only when the read itself changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.result, current?.at]);
   return {
     view,
     profile,

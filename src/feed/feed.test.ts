@@ -4,6 +4,11 @@ import {
   countSources,
   filterCounts,
   filterRows,
+  LAST_READ_KEY,
+  LAST_READ_MAX,
+  LAST_READ_TEXT_MAX,
+  loadLastRead,
+  saveLastRead,
   newTodayLine,
   payLabel,
   whyLine,
@@ -320,5 +325,52 @@ describe('row words', () => {
     expect(payLabel({ salaryMin: 95000, salaryMax: 120000 })).toBe('$95k to $120k');
     expect(payLabel({ salaryMax: 80000, currency: 'EUR' })).toBe('EUR 80k');
     expect(payLabel({})).toBe('');
+  });
+});
+
+describe('last read (#448 slice 2): kept across a reload', () => {
+  const listedRead = (postings: Posting[]) => {
+    const r = read(postings);
+    const view = buildFeed(r, phraseProfile, [], {
+      now: NOW,
+      decided: none,
+      seen: {},
+      saved: new Set(),
+    });
+    return { r, view };
+  };
+
+  it('keeps only the postings the Feed listed, text cut, and reads them back', () => {
+    const ds = p('1', 'Design Systems Designer', 'Acme', { text: 'x'.repeat(5000) });
+    const other = p('2', 'Accountant', 'Acme');
+    const { r, view } = listedRead([ds, other]);
+    saveLastRead(r, view, NOW);
+    const back = loadLastRead();
+    expect(back?.at).toBe(NOW);
+    expect(back?.result.postings.map((x) => x.id)).toEqual(['1']);
+    expect(back?.result.postings[0].text).toHaveLength(LAST_READ_TEXT_MAX);
+    expect(back?.result.sources).toEqual(r.sources);
+  });
+
+  it('caps what it keeps, newest first', () => {
+    const many = Array.from({ length: LAST_READ_MAX + 20 }, (_, i) =>
+      p(String(i), 'Design Systems Designer', `Co${i}`, {
+        postedAt: new Date(NOW - i * 60e3).toISOString(),
+      }),
+    );
+    const { r, view } = listedRead(many);
+    saveLastRead(r, view, NOW);
+    const kept = loadLastRead()!.result.postings;
+    expect(kept).toHaveLength(LAST_READ_MAX);
+    expect(kept[0].id).toBe('0');
+  });
+
+  it('reads nothing from a missing or broken store', () => {
+    expect(loadLastRead()).toBeNull();
+    localStorage.setItem(LAST_READ_KEY, '{"at":"x","postings":[{"id":1}]}');
+    expect(loadLastRead()).toBeNull();
+    const bad = { id: 'a', title: 'T', company: 'C', text: '', location: '', url: 'javascript:x' };
+    localStorage.setItem(LAST_READ_KEY, JSON.stringify({ at: NOW, postings: [bad], sources: [] }));
+    expect(loadLastRead()?.result.postings).toEqual([]);
   });
 });
