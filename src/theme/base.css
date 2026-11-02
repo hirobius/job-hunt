@@ -735,6 +735,20 @@ p {
 .rjb-arrive {
   animation: rjb-arrive var(--hds-motion-spatial-duration) var(--hds-motion-productive-easing);
 }
+/* View enter (v1.5, #279): a page's content rises and fades in as its route mounts (App keys the
+ * page stack by pageKey, so a tab switch or a move to a job, Documents or the error page replays
+ * it). The arrive's shape at the productive duration, so a whole page settles faster than the
+ * single element the arrive was made for. Direction-independent: no illustration pick involved. */
+@keyframes rjb-view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--primitive-space-1));
+  }
+}
+.rjb-view-enter {
+  animation: rjb-view-enter var(--hds-motion-productive-duration)
+    var(--hds-motion-productive-easing);
+}
 /* Reduced motion: the state change and the toast stay, the movement goes. A flash holds still for
  * its length (feedback.ts clears it); a pop and a collapse don't run. */
 @media (prefers-reduced-motion: reduce) {
@@ -745,6 +759,7 @@ p {
   .rjb-pop,
   .rjb-pop-off,
   .rjb-arrive,
+  .rjb-view-enter,
   [data-motion='collapse'] {
     animation: none;
   }

@@ -309,7 +309,9 @@ export default function App() {
                   {/* A page whose chunk is gone after a deploy says so here, not over the shell
                       (#331); a move to another page clears it. */}
                   <PageErrorBoundary resetKey={pageKey(route)}>
-                    <Stack gap="px24">
+                    {/* Keyed by the page, so a route change remounts the stack and the
+                        view-enter motion (base.css .rjb-view-enter, #279) replays. */}
+                    <Stack gap="px24" key={pageKey(route)} className="rjb-view-enter">
                       <TabsContent value="today" variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
                           <PageHold firstRun={firstRun}>
