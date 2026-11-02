@@ -81,9 +81,12 @@ top of the Shortlist.
 - **Offline still works.** The list always saves to your browser first and mirrors
   to the cloud; if you're offline it just syncs next time you're back.
 - **Free tier** is far more than enough for a personal job tracker.
-- **Sign-in link rate limit:** Supabase's built-in email is limited to a few
-  messages per hour — plenty for occasional logins. (For heavier use you can plug
-  in your own SMTP later, but you almost certainly won't need to.)
+- **Sign-in link rate limit:** Supabase's built-in email sender is capped at a
+  few messages per hour for the whole project — Adrian hit that cap on
+  2026-10-21. The fix (#278) is a custom SMTP sender (Resend, on
+  `mail.hirobius.com`) with the Auth rate limit raised to 60/hour. Both are
+  dashboard-only settings (this repo has no `supabase/config.toml`); the exact
+  fields and steps are in `docs/resend-smtp-runbook.md`.
 - **One small caveat:** if you _delete_ a job on one device while the other device
   is offline with an older copy, the delete may not propagate to that stale device.
   Day-to-day adding/updating syncs cleanly; this only bites in that offline-delete
