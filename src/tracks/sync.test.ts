@@ -242,7 +242,7 @@ describe('readAll + scoreBatch (one sync, no database)', () => {
     );
   });
 
-  it('reads Ashby boards one at a time', async () => {
+  it('reads Ashby boards two at a time (#448)', async () => {
     let inFlight = 0;
     let most = 0;
     const slow = async () => {
@@ -256,7 +256,34 @@ describe('readAll + scoreBatch (one sync, no database)', () => {
       ['a', 'b', 'c'].map((slug) => ({ company: slug, ats: 'ashby' as const, slug })),
       { fetch: slow, rss: false },
     );
-    expect(most).toBe(1);
+    expect(most).toBe(2);
+  });
+
+  it('reads Ashby while pooled boards are still in flight (#448)', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const done: string[] = [];
+    const gated = async (u: string) => {
+      if (u.includes('ashbyhq')) {
+        done.push('ashby');
+        return json({ jobs: [] });
+      }
+      await gate;
+      done.push('pooled');
+      return json({ jobs: [] });
+    };
+    const run = readAll(
+      [
+        { company: 'G', ats: 'greenhouse' as const, slug: 'g' },
+        { company: 'A', ats: 'ashby' as const, slug: 'a' },
+      ],
+      { fetch: gated, rss: false },
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    expect(done).toEqual(['ashby']);
+    release();
+    const reads = await run;
+    expect(reads.map((r) => r.board)).toEqual(['greenhouse:g', 'ashby:a']);
   });
 
   it('a board that throws is a failed read, never "no jobs"', async () => {
