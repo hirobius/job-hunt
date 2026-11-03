@@ -28,7 +28,9 @@
     "verify:ui": "npm run hds:check && playwright test e2e/layout-rules.spec.ts e2e/visual.spec.ts",
     "seed:companies": "node scripts/seed-companies.mjs",
     "boards:discover": "node scripts/discover-boards.mjs",
-    "check:exact-pins": "node scripts/check-exact-pins.mjs"
+    "check:exact-pins": "node scripts/check-exact-pins.mjs",
+    "prepare": "husky",
+    "learned:check": "node scripts/check-learned-trailer.mjs"
   },
   "dependencies": {
     "@hirobius/design-system": "0.32.0",
@@ -54,6 +56,7 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.7",
     "globals": "17.13.0",
+    "husky": "9.1.7",
     "jsdom": "30.1.3",
     "prettier": "3.9.10",
     "typescript": "5.9.3",
