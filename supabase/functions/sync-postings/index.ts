@@ -94,9 +94,12 @@ const CHUNK = 500;
 const LOOKUP = 50;
 const MAX_TEXT = 20_000;
 /** Boards read and written per pass. */
-const BOARD_BATCH = 4;
-/** Boards per invocation. */
-const SLICE = 8;
+const BOARD_BATCH = 8;
+/** Boards per invocation. Widened 8 → 16 for #448: scoring measured ~5 s for 152 boards
+ *  (~34 ms a board) locally, so a 16-board slice scores in ~0.6 s — inside the worker's ~2 s
+ *  CPU budget with the reads now scheduled concurrently (src/tracks/sync.ts) — and a 152-board
+ *  run chains 10 invocations instead of 19, halving the per-slice overheads below. */
+const SLICE = 16;
 /** Blobs per select (each holds a user's whole job list). */
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
@@ -439,8 +442,9 @@ type DeadRow = {
 type Loaded = { plans: Map<string, SyncPlan>; planless: string[]; tilesError: string | null };
 /** Every user's plan, kept in a warm worker for ROTATION.plansTtlMs: the rotation runs every minute
  *  and reading every blob each time would cost more than the batch itself. A Sources change (a
- *  board followed or dropped, a profile switched) reaches the scan within that time; the
- *  twice-a-day sync always reads fresh. */
+ *  board followed or dropped, a profile switched) reaches the scan within that time. The
+ *  twice-a-day sync uses the same cache: its chained slices land inside the TTL, so one run
+ *  plans once (#448); a new run hours later reads fresh again. */
 let plansCache: { at: number; loaded: Loaded } | null = null;
 
 async function cachedPlans(db: SupabaseClient, logs: Log[]): Promise<Loaded | { error: string }> {
@@ -767,7 +771,9 @@ Deno.serve(async (req) => {
   const runStart = body.runStart ?? new Date().toISOString();
   const logs: Log[] = [];
 
-  const loaded = await loadPlans(db, logs);
+  // Cached like the rotation's (#448): a run's chained slices land inside the TTL, so one run
+  // plans once instead of re-reading every blob and tile on each of its ~10 slices.
+  const loaded = await cachedPlans(db, logs);
   if ('error' in loaded) return json({ error: loaded.error }, 500);
   const { plans, planless, tilesError } = loaded;
 

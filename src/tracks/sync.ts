@@ -2,8 +2,10 @@
 // feeds and the RSS feed, then score and dedupe what came back. The edge function
 // (supabase/functions/sync-postings) adds the database; scripts/dry-run-sync.ts runs the same two
 // steps with no database. Boards are read with the app's own parsers (src/feed/sources), so every
-// board kind the browser reads, the server reads too. Ashby boards are read one at a time (their
-// payloads are huge); the rest a few at a time.
+// board kind the browser reads, the server reads too. Ashby boards are read two at a time (their
+// payloads are huge, ~0.9 MB on average measured 2026-11-02); the rest eight at a time, and the
+// two groups run at the same time instead of one after the other (#448: measured on 152 boards,
+// the old schedule spent 86.5 s on the pooled boards and then a further 39.2 s on serial Ashby).
 import { fetchBoard } from '../feed/sources/ats.ts';
 import { fetchHn } from '../feed/sources/hn.ts';
 import { FetchError, type FetchJson } from '../feed/sources/http.ts';
@@ -53,7 +55,10 @@ export function forWatcher<C extends WatchedCompany>(r: ReadOutcome, w: C): Read
   return { ...r, company: w, postings: r.postings.map((p) => ({ ...p, company: w.company })) };
 }
 
-const PARALLEL = 4;
+const PARALLEL = 8;
+/** Ashby in flight at once: its payloads run ~0.9 MB, so this stays gentle on memory while
+ *  halving the serial Ashby tail (#448). */
+const ASHBY_PARALLEL = 2;
 
 /** Sources the postings table's `source` check doesn't list (the sync never reads them; the
  *  browser's newer board kinds are scored as 'manual'). */
@@ -207,11 +212,19 @@ export async function readAll<C extends WatchedCompany>(
   },
 ): Promise<ReadOutcome<C>[]> {
   const out: ReadOutcome<C>[] = [];
-  const pooled = companies.filter((c) => c.ats !== 'ashby');
-  for (let i = 0; i < pooled.length; i += PARALLEL)
-    out.push(...(await Promise.all(pooled.slice(i, i + PARALLEL).map((c) => readOne(c, o.fetch)))));
-  // Ashby, sequentially.
-  for (const c of companies.filter((x) => x.ats === 'ashby')) out.push(await readOne(c, o.fetch));
+  // Pooled and Ashby at the same time (#448): the old schedule ran the pooled boards to
+  // completion before starting Ashby, so a run paid both waits back to back.
+  const inChunks = async (list: C[], size: number): Promise<ReadOutcome<C>[]> => {
+    const part: ReadOutcome<C>[] = [];
+    for (let i = 0; i < list.length; i += size)
+      part.push(...(await Promise.all(list.slice(i, i + size).map((c) => readOne(c, o.fetch)))));
+    return part;
+  };
+  const [pooled, ashby] = await Promise.all([
+    inChunks(companies.filter((c) => c.ats !== 'ashby'), PARALLEL),
+    inChunks(companies.filter((c) => c.ats === 'ashby'), ASHBY_PARALLEL),
+  ]);
+  out.push(...pooled, ...ashby);
   // Term feeds one request at a time: they are shared public APIs.
   for (const feed of TERM_FEEDS)
     for (const term of o.terms?.[feed] ?? []) out.push(await readFeed(feed, term, o.fetch));
