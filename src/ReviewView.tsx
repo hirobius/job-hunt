@@ -24,7 +24,8 @@ import {
   Text,
 } from '@hirobius/design-system';
 import {
-  Banknote,
+  Briefcase,
+  Calendar,
   ChevronDown,
   ExternalLink,
   MapPin,
@@ -32,7 +33,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
-import { metaLines } from './metaLines';
 import { PostingTitle } from './PostingLink';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
@@ -378,6 +378,9 @@ const rowActions: RowActions = {
     }),
 };
 
+/** Browse (Adrian 2026-11-02, #458): one standalone card per posting, in the reference card
+ *  anatomy — the Review panel is flat (no surface of its own), so a card per posting is not a
+ *  card within a card (#449). The Pipeline's job rows keep the hairline-row anatomy. */
 function RowList({
   label,
   rows,
@@ -398,16 +401,36 @@ function RowList({
   const left = rows.length - shown;
   return (
     <>
-      <ItemList label={label}>
+      <Box
+        as="ul"
+        aria-label={label}
+        sx={{
+          listStyle: 'none',
+          m: 0,
+          p: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'sm',
+        }}
+      >
         {rows.slice(0, shown).map((r) => (
-          <ItemRow key={r.fingerprint}>
-            <PostingSummary r={r} now={now} onOpen={onOpen} />
-            <Box sx={{ pt: 'xs' }}>
-              <RowButtons r={r} actions={actions} />
-            </Box>
-          </ItemRow>
+          <Box as="li" key={r.fingerprint}>
+            <Card as="article" bordered padding="none">
+              <Box sx={{ p: 'md' }}>
+                <Stack gap="px8">
+                  <PostingSummary
+                    r={r}
+                    now={now}
+                    onOpen={onOpen}
+                    actions={<SaveAction r={r} actions={actions} big />}
+                  />
+                  <QuietActions r={r} actions={actions} />
+                </Stack>
+              </Box>
+            </Card>
+          </Box>
         ))}
-      </ItemList>
+      </Box>
       {left > 0 && (
         <PanelBody>
           <Button variant="secondary" onClick={onMore}>
@@ -416,6 +439,57 @@ function RowList({
         </PanelBody>
       )}
     </>
+  );
+}
+
+/** A posting card's one primary action (the reference footer's solid button): Save. */
+function SaveAction({
+  r,
+  actions,
+  big = false,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  big?: boolean;
+}) {
+  const name = `${r.title}${r.company ? ` at ${r.company}` : ''}`;
+  return (
+    <Button
+      size={big ? 'md' : 'sm'}
+      variant="primary"
+      aria-label={`Save ${name}`}
+      onClick={(e) => actions.save(r, e.currentTarget)}
+    >
+      Save
+    </Button>
+  );
+}
+
+/** A posting card's quiet decisions, under its footer: Skip hides this one posting, Not this
+ *  company mutes the company. Tertiary and small, so the footer's Save stays the loud action. */
+function QuietActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  const name = `${r.title}${r.company ? ` at ${r.company}` : ''}`;
+  return (
+    <Stack direction="row" wrap="wrap" gap="tight" align="center">
+      <Button
+        size="sm"
+        variant="tertiary"
+        aria-label={`Skip ${name}`}
+        onClick={(e) => actions.skip(r, e.currentTarget)}
+      >
+        Skip
+      </Button>
+      {r.company.trim() && (
+        <Button
+          size="sm"
+          variant="tertiary"
+          aria-label={`Not this company: ${r.company}`}
+          onClick={(e) => actions.mute(r, e.currentTarget)}
+        >
+          Not this company
+        </Button>
+      )}
+    </Stack>
   );
 }
 
@@ -461,24 +535,49 @@ function RowButtons({
   );
 }
 
-function Fact({ icon, text }: { icon: LucideIcon; text: string }) {
+function Fact({
+  icon,
+  text,
+  truncate = false,
+}: {
+  icon: LucideIcon;
+  text: string;
+  /** One line, cut with an ellipsis (the reference's location line). */
+  truncate?: boolean;
+}) {
   return (
-    <Stack direction="row" gap="px4" align="center">
+    <Stack
+      direction="row"
+      gap="px4"
+      align="center"
+      className={truncate ? 'min-w-0' : undefined}
+    >
       <Icon icon={icon} size="small" />
-      <Text variant="caption" as="span" tone="secondary">
+      <Text
+        variant="caption"
+        as="span"
+        tone="secondary"
+        className={truncate ? 'rjb-truncate min-w-0' : undefined}
+      >
         {text}
       </Text>
     </Stack>
   );
 }
 
-/** One posting (Adrian 2026-10-28): the title as the link into the posting; company, place and
- *  pay; one short line of why it matched; then New, freshness and the source, small. */
+/** One posting, in the reference card anatomy (Adrian 2026-11-02, #458): a badge row above the
+ *  title (the source, muted; New, accent), the title the loudest text on the card (the ramp's
+ *  title step — this surface steps up from the rev-3 compact body, per the reference), the
+ *  company on its own line, the facts with icons (the place on one truncating line; the mode
+ *  and the posted date side by side), one short line of why it matched, and a footer: the pay,
+ *  large, with the card's primary action at the right. */
 function PostingSummary({
   r,
   now,
   onOpen,
   noTitle = false,
+  actions,
+  children,
 }: {
   r: FeedRow;
   now: number;
@@ -486,6 +585,10 @@ function PostingSummary({
   onOpen?: (r: FeedRow) => void;
   /** The preview names the posting in its own header. */
   noTitle?: boolean;
+  /** The card's primary action, at the footer's right (Browse and the Deck pass Save). */
+  actions?: ReactNode;
+  /** Extra card content above the footer (the Deck's snippet). */
+  children?: ReactNode;
 }) {
   // Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
   const place = r.remoteUnstated
@@ -493,16 +596,20 @@ function PostingSummary({
     : r.location || (r.mode ? modeLabel(r.mode) : 'Location not stated');
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
-  const small = [
-    posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`),
-    SOURCE_LABEL[r.source],
-  ].filter(Boolean);
+  const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
+  // The mode is the place line's own fallback; it earns a second-line slot only when the place
+  // line doesn't already say it (a stated location with a stated mode).
+  const mode = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-      <Stack gap="px4">
+      <Stack gap="px8">
+        <Stack direction="row" wrap="wrap" gap="px8" align="center">
+          <Badge>{SOURCE_LABEL[r.source]}</Badge>
+          {r.isNew && <Badge tone="info">New</Badge>}
+        </Stack>
         {noTitle ? null : onOpen ? (
           <PostingTitle url={r.url} title={r.title} company={r.company}>
-            <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
+            <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
               <Button
                 variant="tertiary"
                 size="sm"
@@ -515,28 +622,42 @@ function PostingSummary({
             </Text>
           </PostingTitle>
         ) : (
-          <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
+          <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
             <InlineLink href={r.url}>{r.title}</InlineLink>
           </Text>
         )}
-        <Stack direction="row" wrap="wrap" gap="tight" align="center">
-          {r.company && !noTitle && (
-            <Text variant="ui" as="span">
-              {r.company}
-            </Text>
+        {r.company && !noTitle && (
+          <Text variant="ui" as="p">
+            {r.company}
+          </Text>
+        )}
+        <Stack gap="px4">
+          {place && <Fact icon={MapPin} text={place} truncate />}
+          {(mode || postedLabel) && (
+            <Stack direction="row" wrap="wrap" gap="tight" align="center">
+              {mode && <Fact icon={Briefcase} text={mode} />}
+              {postedLabel && <Fact icon={Calendar} text={postedLabel} />}
+            </Stack>
           )}
-          {place && <Fact icon={MapPin} text={place} />}
-          {pay && <Fact icon={Banknote} text={pay} />}
         </Stack>
         <Text variant="caption" as="p">
           {r.why}
         </Text>
-        <Stack direction="row" wrap="wrap" gap="px8" align="center">
-          {r.isNew && <Badge tone="info">New</Badge>}
-          <Text variant="caption" as="span" tone="secondary">
-            {metaLines(small).join(' ')}
-          </Text>
-        </Stack>
+        {children}
+        {(pay || actions) && (
+          <Box sx={{ pt: 'xs' }}>
+            <Stack direction="row" gap="tight" align="center" justify="space-between">
+              {pay ? (
+                <Text variant="title" as="span" weight="bold">
+                  {pay}
+                </Text>
+              ) : (
+                <span />
+              )}
+              {actions}
+            </Stack>
+          </Box>
+        )}
       </Stack>
     </Box>
   );
@@ -577,17 +698,23 @@ function Deck({
       </Stack>
       <Card
         as="article"
+        bordered
         aria-label={r.company ? `${r.title} at ${r.company}` : r.title}
         padding="none"
       >
         <DeckBody>
-          <PostingSummary r={r} now={now} />
-          {r.snippet && (
-            <Text variant="body" as="p" tone="secondary">
-              {r.snippet}
-            </Text>
-          )}
-          <RowButtons r={r} actions={actions} big />
+          <PostingSummary
+            r={r}
+            now={now}
+            actions={<SaveAction r={r} actions={actions} big />}
+          >
+            {r.snippet && (
+              <Text variant="body" as="p" tone="secondary">
+                {r.snippet}
+              </Text>
+            )}
+          </PostingSummary>
+          <QuietActions r={r} actions={actions} />
         </DeckBody>
       </Card>
     </Stack>
