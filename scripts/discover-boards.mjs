@@ -42,7 +42,7 @@ const H = M;
 const D = M;
 const { createLimiter, FetchError } = M;
 
-const UA = { 'user-agent': 'RoleForge board discovery (github.com/hirobius/job-hunt)' };
+const UA = { 'user-agent': 'Roleflame board discovery (github.com/hirobius/job-hunt)' };
 async function get(url, timeout = 30_000) {
   let r;
   try {

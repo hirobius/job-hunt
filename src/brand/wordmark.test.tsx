@@ -1,4 +1,4 @@
-// The wordmark: the flame, then "hiraga" (Adrian 2026-10-30; was St(flame)ke). One markup builder
+// The wordmark: the flame, then "Roleflame" (Adrian 2026-11-02, was hiraga 2026-10-30; was St(flame)ke). One markup builder
 // (wordmarkMarkup) serves the header, the sign-in screen and the og-image (npm run icons). The
 // name's own run is plain text's box, and the flame never makes the line taller;
 // e2e/brand.spec.ts measures that in a real browser.
