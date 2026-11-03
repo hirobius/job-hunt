@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# Pre-push gate (hirobius/ops#943). Template: ops scripts/hooks/fleet/pre-push;
+# install guide: ops docs/security/secret-pii-hook.md.
+set -e
+
+# Secret + PII scan: vendored scripts/hooks/secret-pii-scan.mjs from ops (do not
+# edit the copy; fix it in ops). Stays the FIRST stage: it reads git's pre-push
+# stdin, which husky passes straight through (no hook runner here), and scans
+# only the commits this push adds: gitleaks (--redact, .gitleaks.toml) for
+# secrets, plus emails / US phones / SSNs on added lines and commit messages.
+# gitleaks missing FAILS with the install command (brew install gitleaks); one
+# push without it: SKIP_SECRET_SCAN=1 git push.
+# Reviewed PII false positive: `pii-allow` on the line.
+echo "▸ secret + PII scan"
+node scripts/hooks/secret-pii-scan.mjs
+
+# Repo-specific stages go below (typecheck, tests, ...).
