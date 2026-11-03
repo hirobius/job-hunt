@@ -33,6 +33,16 @@ export function boardsFromUrls(urls: string[], max: number): Board[] {
   return out;
 }
 
+/** A Greenhouse board's job list WITHOUT descriptions (~14× smaller than `boardApiUrl`'s
+ *  `?content=true` list; each job still carries `updated_at`). The server sync's delta read
+ *  (#448) starts here and downloads a description only for a job whose stamp moved. */
+export const greenhouseListUrl = (slug: string) =>
+  `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}/jobs`;
+
+/** One Greenhouse job WITH its description (the single-job endpoint includes `content`). */
+export const greenhouseJobUrl = (slug: string, id: string) =>
+  `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}`;
+
 export function boardApiUrl(b: Board): string {
   const slug = encodeURIComponent(b.slug);
   switch (b.kind) {
@@ -116,6 +126,7 @@ export function parseGreenhouseJob(j: unknown, slug: string): Posting | null {
     location,
     mode: inferMode(location),
     postedAt: str(o.first_published) || str(o.updated_at) || undefined,
+    updatedAt: str(o.updated_at) || undefined,
     // Greenhouse escapes its HTML once more than everyone else.
     text: htmlToText(decodeEntities(str(o.content))),
     // Read live 2026-10-28: a timestamp with the employer's offset, null when none is set.

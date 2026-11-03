@@ -146,6 +146,36 @@ async function knownDsJobs(db: SupabaseClient): Promise<Map<string, NormalizedPo
   return known;
 }
 
+/** Stored Greenhouse rows, one per job (any user's: the posting is public), so a board read
+ *  can go the delta way — light list, downloads only for jobs whose stamp moved (#448).
+ *  `known_board_postings` is in the 20261102 migration; it only returns rows whose stored
+ *  description is provably complete. Without it (or before the migration lands) the map is
+ *  empty and every board takes the full read, exactly as before. */
+async function knownBoardPostings(db: SupabaseClient): Promise<Map<string, NormalizedPosting>> {
+  const known = new Map<string, NormalizedPosting>();
+  const { data, error } = await db.rpc('known_board_postings');
+  if (error) return known;
+  for (const r of (data ?? []) as Record<string, string | boolean | null>[]) {
+    const id = String(r.source_id ?? '');
+    if (!id || known.has(id)) continue;
+    known.set(id, {
+      source: 'greenhouse',
+      sourceId: id,
+      title: String(r.title ?? ''),
+      company: String(r.company ?? ''),
+      location: r.location ? String(r.location) : undefined,
+      // False is kept (unlike knownDsJobs): the rotation's remote-only rule tells "not
+      // remote" from "doesn't say", and a reused row must score exactly as a fresh read.
+      remote: r.remote === null || r.remote === undefined ? undefined : r.remote === true,
+      url: String(r.url ?? ''),
+      descriptionText: String(r.description_text ?? ''),
+      postedAt: r.posted_at ? String(r.posted_at) : undefined,
+      sourceUpdatedAt: r.source_updated_at ? String(r.source_updated_at) : undefined,
+    });
+  }
+  return known;
+}
+
 /** What the sync's own searches get: the function's secrets (never logged), the clock. */
 const envOf = (name: string) => Deno.env.get(name);
 const feedContext: FeedContext = {
@@ -303,6 +333,9 @@ async function writeScored(
     description_text:
       s.verdict === 'reject' ? '' : (s.posting.descriptionText ?? '').slice(0, MAX_TEXT),
     posted_at: iso(s.posting.postedAt),
+    // The source's last-changed stamp, so the next run's delta read can tell an unchanged
+    // Greenhouse job from a changed one (#448; the 20261102 migration adds the column).
+    source_updated_at: iso(s.posting.sourceUpdatedAt),
     score: s.score,
     verdict: s.verdict,
     reasons: s.reasons,
@@ -564,10 +597,18 @@ async function rotate(db: SupabaseClient): Promise<Response> {
 
     const pick = pickBatch(BOARD_SET.boards, state, dead, startedAt);
     const steps = new Map(pick.steps.filter((s) => s.action === 'read').map((s) => [s.key, s]));
+    // Stored Greenhouse rows for the delta reads (#448): one load for the whole batch.
+    const knownBoards = await knownBoardPostings(db);
     const results = await runBatch(
       [...steps.values()].map((s) => ({ key: s.key, host: s.host })),
       async ({ key }) =>
-        (await readAll([toWatched(steps.get(key)!.board)], { fetch: timedFetch, rss: false }))[0],
+        (
+          await readAll([toWatched(steps.get(key)!.board)], {
+            fetch: timedFetch,
+            rss: false,
+            knownBoards,
+          })
+        )[0],
       { ...ROTATION, now: Date.now, startedAt },
     );
     const moved = advance(BOARD_SET.boards, state, pick, results, dead, Date.now());
@@ -804,6 +845,9 @@ Deno.serve(async (req) => {
   const next = last ? null : boardOf(boards[boards.length - 1]);
   let feedsRead = 0;
   const summary: Record<string, unknown>[] = [];
+  // Stored Greenhouse rows for the delta reads (#448): loaded once per invocation, so a
+  // chained run plans once and reads light wherever it can.
+  const knownBoards = await knownBoardPostings(db);
   // Whatever breaks in this slice, the next one still starts (below): one bad board or write must
   // not stop every board after it until the next cron run.
   try {
@@ -811,6 +855,7 @@ Deno.serve(async (req) => {
       const reads = await readAll(boards.slice(i, i + BOARD_BATCH), {
         fetch: timedFetch,
         rss: false,
+        knownBoards,
       });
       const perUser = new Map<string, ReadOutcome[]>();
       for (const r of reads) {

@@ -38,6 +38,10 @@ export interface NormalizedPosting {
   url: string;
   descriptionText: string;
   postedAt?: string;
+  /** The source's last-changed stamp for the job (Greenhouse `updated_at`), when it gives one.
+   *  Stored with the row so the next sync can tell an unchanged job from a changed one and
+   *  reuse this description instead of downloading it again (#448 delta reads). */
+  sourceUpdatedAt?: string;
 }
 
 export type Verdict = 'queue' | 'review' | 'reject';
