@@ -26,6 +26,8 @@ import {
 } from '@hirobius/design-system';
 import {
   Banknote,
+  Briefcase,
+  Calendar,
   ChevronDown,
   ExternalLink,
   MapPin,
@@ -462,18 +464,157 @@ function RowButtons({
   );
 }
 
-function Fact({ icon, text }: { icon: LucideIcon; text: string }) {
+function Fact({
+  icon,
+  text,
+  truncate = false,
+}: {
+  icon: LucideIcon;
+  text: string;
+  truncate?: boolean;
+}) {
   return (
-    <Stack direction="row" gap="px4" align="center">
+    <Stack direction="row" gap="px4" align="center" className={truncate ? 'min-w-0' : undefined}>
       <Icon icon={icon} size="small" />
-      <Text variant="caption" as="span" tone="secondary">
+      <Text
+        variant="caption"
+        as="span"
+        tone="secondary"
+        className={truncate ? 'rjb-truncate min-w-0' : undefined}
+      >
         {text}
       </Text>
     </Stack>
   );
 }
 
-/** One posting (Adrian 2026-10-28): the title as the link into the posting; company, place and
+// Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
+const placeOf = (r: FeedRow) => {
+  const where = cleanPlace(r.location);
+  return r.remoteUnstated
+    ? `${where ? `${where} · ` : ''}Remote not stated`
+    : where || (r.mode ? modeLabel(r.mode) : 'Location not stated');
+};
+
+/** A posting card's primary action (the reference footer's solid button): Save. */
+function SaveAction({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  return (
+    <Button
+      size="md"
+      variant="primary"
+      aria-label={`Save ${rowName(r)}`}
+      onClick={(e) => actions.save(r, e.currentTarget)}
+    >
+      Save
+    </Button>
+  );
+}
+
+const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
+
+/** The decisions that stay quiet under a card's footer: Skip hides this posting, Not this company
+ *  mutes the company. Tertiary, so the footer's Save is the one loud action. */
+function QuietActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  return (
+    <Stack direction="row" wrap="wrap" gap="tight" align="center">
+      <Button
+        size="md"
+        variant="tertiary"
+        aria-label={`Skip ${rowName(r)}`}
+        onClick={(e) => actions.skip(r, e.currentTarget)}
+      >
+        Skip
+      </Button>
+      {r.company.trim() && (
+        <Button
+          size="md"
+          variant="tertiary"
+          aria-label={`Not this company: ${r.company}`}
+          onClick={(e) => actions.mute(r, e.currentTarget)}
+        >
+          Not this company
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+/** The Deck and preview card (#458, Adrian 2026-11-02): a badge row (the source; New only when
+ *  the posting is new), the title on the ramp's title step, the company as a subline, the meta
+ *  lines with their icons, and a footer with the pay at the left (empty when the source states
+ *  none, never invented) and Save at the right. Skip and Not this company sit under it. */
+function PostingCard({
+  r,
+  now,
+  noTitle = false,
+  actions,
+  children,
+}: {
+  r: FeedRow;
+  now: number;
+  /** The preview names the posting in its own header. */
+  noTitle?: boolean;
+  actions: RowActions;
+  /** Extra content above the footer (the Deck's snippet). */
+  children?: ReactNode;
+}) {
+  const place = placeOf(r);
+  const pay = payLabel(r);
+  const posted = postedAgo(r.postedAt, now);
+  const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
+  // The mode is the place line's own fallback; it earns a slot of its own only when a stated
+  // location doesn't already say it.
+  const modeText = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
+  const mode = modeText.toLowerCase() === place.toLowerCase() ? '' : modeText;
+  return (
+    <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+      <Stack gap="px8">
+        <Stack direction="row" wrap="wrap" gap="px8" align="center">
+          <Badge>{SOURCE_LABEL[r.source]}</Badge>
+          {r.isNew && <Badge tone="info">New</Badge>}
+        </Stack>
+        {noTitle ? null : (
+          <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
+            <InlineLink href={r.url}>{r.title}</InlineLink>
+          </Text>
+        )}
+        {r.company && !noTitle && (
+          <Text variant="ui" as="p">
+            {r.company}
+          </Text>
+        )}
+        <Stack gap="px4">
+          {place && <Fact icon={MapPin} text={place} truncate />}
+          {(mode || postedLabel) && (
+            <Stack direction="row" wrap="wrap" gap="tight" align="center">
+              {mode && <Fact icon={Briefcase} text={mode} />}
+              {postedLabel && <Fact icon={Calendar} text={postedLabel} />}
+            </Stack>
+          )}
+        </Stack>
+        <Text variant="caption" as="p">
+          {r.why}
+        </Text>
+        {children}
+        <Box sx={{ pt: 'xs' }}>
+          <Stack direction="row" gap="tight" align="center" justify="space-between">
+            {pay ? (
+              <Text variant="title" as="span" weight="bold">
+                {pay}
+              </Text>
+            ) : (
+              <span />
+            )}
+            <SaveAction r={r} actions={actions} />
+          </Stack>
+        </Box>
+        <QuietActions r={r} actions={actions} />
+      </Stack>
+    </Box>
+  );
+}
+
+/** Browse's row: the title as the link into the posting; company, place and
  *  pay; one short line of why it matched; then New, freshness and the source, small. */
 function PostingSummary({
   r,
@@ -488,10 +629,7 @@ function PostingSummary({
   /** The preview names the posting in its own header. */
   noTitle?: boolean;
 }) {
-  // Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
-  const place = r.remoteUnstated
-    ? `${cleanPlace(r.location) ? `${cleanPlace(r.location)} · ` : ''}Remote not stated`
-    : cleanPlace(r.location) || (r.mode ? modeLabel(r.mode) : 'Location not stated');
+  const place = placeOf(r);
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const small = [
@@ -582,13 +720,13 @@ function Deck({
         padding="none"
       >
         <DeckBody>
-          <PostingSummary r={r} now={now} />
-          {r.snippet && (
-            <Text variant="body" as="p" tone="secondary">
-              {r.snippet}
-            </Text>
-          )}
-          <RowButtons r={r} actions={actions} big />
+          <PostingCard r={r} now={now} actions={actions}>
+            {r.snippet && (
+              <Text variant="body" as="p" tone="secondary">
+                {r.snippet}
+              </Text>
+            )}
+          </PostingCard>
         </DeckBody>
       </Card>
     </Stack>
@@ -653,18 +791,18 @@ function PostingPreview({
             <Dialog.Description>{r.company || SOURCE_LABEL[r.source]}</Dialog.Description>
           </Dialog.Header>
           <Stack gap="normal">
-            <PostingSummary r={r} now={now} noTitle />
-            {r.text.trim() && (
-              <Text variant="body" as="p" tone="secondary">
-                {excerpt(r.text)}
-              </Text>
-            )}
+            <PostingCard r={r} now={now} noTitle actions={close}>
+              {r.text.trim() && (
+                <Text variant="body" as="p" tone="secondary">
+                  {excerpt(r.text)}
+                </Text>
+              )}
+            </PostingCard>
             <Button variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
               <a href={r.url} target="_blank" rel="noopener noreferrer">
                 Open posting
               </a>
             </Button>
-            <RowButtons r={r} actions={close} big />
           </Stack>
         </Dialog.Content>
       )}

@@ -21,6 +21,10 @@ const fold = (s: string) => s.toLowerCase().replace(/[\s-]/g, '');
 const NOT_PLACE =
   /^(remote|hybrid|onsite|fulltime|parttime|contract|freelance|internship|temporary)$/;
 
+/** A place is short ("United States, Canada"): never a mode, a job type or a sentence. */
+const isPlace = (s: string) =>
+  !!s && !NOT_PLACE.test(fold(s)) && s.split(/\s+/).length <= 8 && !/[.!?]/.test(s);
+
 export function parseDsJobs(xml: string): Posting[] {
   const out: Posting[] = [];
   for (const it of parseRss(xml)) {
@@ -28,7 +32,10 @@ export function parseDsJobs(xml: string): Posting[] {
     const key = it.guid || it.link;
     if (!url || !key) continue;
     const at = it.title.lastIndexOf(' at ');
-    const parts = it.description
+    // Since ~Nov 2026 the description is the fact line, then a summary on the next line(s):
+    // read the facts from the first line only, so the summary never lands in the location.
+    const facts = it.description.split('\n')[0];
+    const parts = facts
       .split('·')
       .map((s) => s.trim())
       .filter(Boolean);
@@ -41,7 +48,7 @@ export function parseDsJobs(xml: string): Posting[] {
       company: at > 0 ? it.title.slice(at + 4).trim() : '',
       url,
       // The last part is the place ("United States, Canada"), unless it is a mode or a job type.
-      location: last && !NOT_PLACE.test(fold(last)) ? last : '',
+      location: isPlace(last) ? last : '',
       postedAt: it.pubDate,
       text: it.description,
     };
