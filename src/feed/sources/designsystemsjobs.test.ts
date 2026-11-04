@@ -44,6 +44,21 @@ describe('parseDsJobs', () => {
     });
   });
 
+  it('never takes the summary for the place (Adrian 2026-11-04: an 8-line location)', () => {
+    const item = (d: string) =>
+      `<rss><channel><item><title>PM at Zillow</title><link>https://designsystems.jobs/x</link><description><![CDATA[${d}]]></description></item></channel></rss>`;
+    const sum = 'This role sits in Design Foundations within Zillow Experience Design.';
+    expect(
+      parseDsJobs(item(`Product · Full time · Remote · United States<p>${sum}</p>`))[0].location,
+    ).toBe('United States');
+    expect(
+      parseDsJobs(item(`Product · Full time · Remote · United States\n${sum}`))[0].location,
+    ).toBe('United States');
+    expect(
+      parseDsJobs(item(`Product · Full time · Remote · United States ${sum}`))[0].location,
+    ).toBe('');
+  });
+
   it('keeps a title with no company whole, and drops items with no web link', () => {
     const xml = `<item><title>Design Systems Lead</title><link>https://designsystems.jobs/x</link></item>
       <item><title>Bad at Co</title><link>javascript:alert(1)</link></item>`;
