@@ -5,6 +5,7 @@
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
+import { cleanPlace } from './cleanPlace';
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   Badge,
@@ -489,8 +490,8 @@ function PostingSummary({
 }) {
   // Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
   const place = r.remoteUnstated
-    ? `${r.location ? `${r.location} · ` : ''}Remote not stated`
-    : r.location || (r.mode ? modeLabel(r.mode) : 'Location not stated');
+    ? `${cleanPlace(r.location) ? `${cleanPlace(r.location)} · ` : ''}Remote not stated`
+    : cleanPlace(r.location) || (r.mode ? modeLabel(r.mode) : 'Location not stated');
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const small = [
