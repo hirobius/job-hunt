@@ -108,3 +108,37 @@ describe('an unknown route (review nit)', () => {
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
   });
 });
+
+// #279: the view-enter motion must not remount the page (a key on pageKey dropped focus on rail
+// hops and reset the Apply pager). The stack stays one DOM node and the motion restarts on it.
+describe('view-enter motion keeps the page mounted (#279)', () => {
+  it('the same stack node survives route changes, and the enter class is restarted on a tab switch', async () => {
+    const { act } = await import('@testing-library/react');
+    renderApp();
+    const stack = document.querySelector('.rjb-view-enter') as HTMLElement;
+    expect(stack).toBeTruthy();
+    const marker = document.createElement('input');
+    stack.appendChild(marker);
+    marker.focus();
+
+    // In-place hop (same tab, other sub): nothing remounts, focus stays.
+    await act(async () => {
+      window.location.hash = '#/queue';
+    });
+    await act(async () => {
+      window.location.hash = '#/queue/apply';
+    });
+    expect(document.querySelector('.rjb-view-enter')).toBe(stack);
+    expect(marker.isConnected).toBe(true);
+
+    // A page-kind change replays the motion by restarting the class on the same node.
+    const removed = vi.spyOn(stack.classList, 'remove');
+    await act(async () => {
+      window.location.hash = '#/today';
+    });
+    expect(removed).toHaveBeenCalledWith('rjb-view-enter');
+    expect(stack.classList.contains('rjb-view-enter')).toBe(true);
+    expect(document.querySelector('.rjb-view-enter')).toBe(stack);
+    expect(marker.isConnected).toBe(true);
+  });
+});

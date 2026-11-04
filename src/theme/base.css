@@ -735,9 +735,9 @@ p {
 .rjb-arrive {
   animation: rjb-arrive var(--hds-motion-spatial-duration) var(--hds-motion-productive-easing);
 }
-/* View enter (v1.5, #279): a page's content rises and fades in as its route mounts (App keys the
- * page stack by pageKey, so a tab switch or a move to a job, Documents or the error page replays
- * it). The arrive's shape at the productive duration, so a whole page settles faster than the
+/* View enter (v1.5, #279): a page's content rises and fades in as its route mounts (App restarts it
+ * on a page-kind change via useViewEnter, with no remount, so a tab switch or a move to a job,
+ * Documents or the error page replays it). The arrive's shape at the productive duration, so a whole page settles faster than the
  * single element the arrive was made for. Direction-independent: no illustration pick involved. */
 @keyframes rjb-view-enter {
   from {
