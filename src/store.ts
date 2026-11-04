@@ -1,4 +1,5 @@
 import { createStore } from './createStore';
+import { cleanPlace } from './cleanPlace';
 import { safeJobUrl } from './httpUrl';
 import { mergeByKey } from './mergeByKey';
 import { type Job, type JobMode, type Status } from './types';
@@ -165,6 +166,7 @@ export function sanitizeJobs(arr: unknown): Job[] {
       discoveredAt: _d,
       savedAt: _s,
       closedAt: _c,
+      location: rawLocation,
       ...rest
     } = it;
     const snoozeUntil = normSnooze(rawSnooze);
@@ -172,6 +174,7 @@ export function sanitizeJobs(arr: unknown): Job[] {
     const decks = sanitizeDecks(rawDecks);
     const docLinks = sanitizeDecks(rawDocLinks); // the same rule for document links (#416)
     const deadline = normSnooze(rawDeadline); // the same YYYY-MM-DD rule
+    const location = cleanPlace(rawLocation); // "N/A" and friends are no location
     out.push(
       normalizeScreening({
         ...rest,
@@ -179,6 +182,7 @@ export function sanitizeJobs(arr: unknown): Job[] {
         ...(decks.length ? { decks } : {}),
         ...(docLinks.length ? { docLinks } : {}),
         ...(deadline ? { deadline } : {}),
+        ...(location ? { location } : {}),
         ...normJobDates(it),
         url,
         status: normStatus(it.status),
@@ -291,7 +295,8 @@ export function addJobDetailed(
   if (fields.note?.trim()) job.note = fields.note.trim();
   const company = fields.company?.trim() || companyFromUrl(u);
   if (company) job.company = company;
-  if (fields.location?.trim()) job.location = fields.location.trim();
+  const location = cleanPlace(fields.location);
+  if (location) job.location = location;
   if (fields.seniority?.trim()) job.seniority = fields.seniority.trim();
   if (fields.mode) job.mode = fields.mode;
   const deadline = normSnooze(fields.deadline);
