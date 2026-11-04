@@ -76,7 +76,12 @@ full-width hairlines. The baseline is the inset grouped list. Ask HDS for one co
    feeds), both with the same row anatomy. Empty group shows a `List.Empty` slot.
 7. **A11y:** `ul`/`li` semantics, row link names = title, trailing count announced with the title.
 
-Downstream: once shipped, `ItemList` / `ItemRow` and the `.rjb-items` rule are deleted, and Apply
+8. **Entity rows (Pipeline jobs, Adrian 2026-11-04):** status is meta, not a leading line: a
+   `status` slot inline in the meta line (or trailing), hidden by the host when it is the list's
+   default (every To apply row is Saved). Separation between entity rows comes from spacing or
+   per-row surfaces, not hairlines; a `divider="none"` option on the plain variant.
+
+Downstream: once shipped, `JobListCard` (Pipeline phone rows), `ItemList` / `ItemRow` and the `.rjb-items` rule are deleted, and Apply
 mode, New companies, Review new, the Application kit, Documents and the Companies dialog move onto it.
 
 ## Startup cost asks (#368, #369; measured 2026-10-30 on HDS 0.32.0)
