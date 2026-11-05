@@ -1,0 +1,3 @@
+fix(api): handle a null payload
+
+Learned: validate input at the API seam

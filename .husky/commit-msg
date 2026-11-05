@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# fix:/revert: commits must carry a "Learned: <line>" trailer ("Learned: none"
+# allowed and counted); feat: and other types untouched. Blocking. ops#612.
+# Ported from hirobius/ops .husky/commit-msg (ops#1043).
+node scripts/check-learned-trailer.mjs "$1" || exit 1

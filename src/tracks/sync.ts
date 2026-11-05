@@ -6,9 +6,17 @@
 // payloads are huge, ~0.9 MB on average measured 2026-11-02); the rest eight at a time, and the
 // two groups run at the same time instead of one after the other (#448: measured on 152 boards,
 // the old schedule spent 86.5 s on the pooled boards and then a further 39.2 s on serial Ashby).
-import { fetchBoard } from '../feed/sources/ats.ts';
+// A Greenhouse board with stored rows is read the delta way: the light list (no descriptions),
+// then downloads only for the jobs whose `updated_at` moved (#448).
+import {
+  boardJobs,
+  fetchBoard,
+  greenhouseJobUrl,
+  greenhouseListUrl,
+  parseGreenhouseJob,
+} from '../feed/sources/ats.ts';
 import { fetchHn } from '../feed/sources/hn.ts';
-import { FetchError, type FetchJson } from '../feed/sources/http.ts';
+import { FetchError, obj, type FetchJson } from '../feed/sources/http.ts';
 import { fetchJobicy } from '../feed/sources/jobicy.ts';
 import { fetchRemotive } from '../feed/sources/remotive.ts';
 import type { Posting } from '../feed/types.ts';
@@ -86,6 +94,7 @@ export function normalize(p: Posting): NormalizedPosting {
     url: p.url,
     descriptionText: p.text,
     postedAt: p.postedAt,
+    sourceUpdatedAt: p.updatedAt,
   };
 }
 
@@ -98,15 +107,83 @@ const fetchJsonWith =
     return r.json();
   };
 
-async function readOne<C extends WatchedCompany>(c: C, f: Fetch): Promise<ReadOutcome<C>> {
+/** A Greenhouse board read the delta way (#448): the light list first (titles, links and each
+ *  job's `updated_at`, ~14× smaller than the `?content=true` list), then a single-job download
+ *  only for jobs that are new or whose stamp moved — every other posting reuses the stored row,
+ *  so the scorer reads exactly what a full read would give it. Stored rows the sync itself
+ *  truncated or stripped never reach `known` (the loader filters them out), and a job with no
+ *  stamp on either side is always refetched: reuse has to be provable, not likely. Throws on
+ *  any failure; the caller falls back to the full read, so a delta hiccup costs time, never
+ *  correctness. */
+async function readGreenhouseDelta(
+  slug: string,
+  f: Fetch,
+  known: ReadonlyMap<string, NormalizedPosting>,
+): Promise<NormalizedPosting[]> {
+  const fj = fetchJsonWith(f);
+  const jobs = boardJobs({ kind: 'greenhouse', slug }, await fj(greenhouseListUrl(slug)));
+  if (!jobs) throw new Error('greenhouse light list had no job list');
+  const out: (NormalizedPosting | null)[] = new Array(jobs.length).fill(null);
+  const toFetch: { i: number; id: string }[] = [];
+  jobs.forEach((j, i) => {
+    const meta = parseGreenhouseJob(j, slug);
+    if (!meta) return; // the full read drops it the same way (no id or no URL)
+    const prev = known.get(meta.id);
+    // Instants, not strings: the board's offset format and the database's differ.
+    const stamp = meta.updatedAt ? Date.parse(meta.updatedAt) : NaN;
+    const prevStamp = prev?.sourceUpdatedAt ? Date.parse(prev.sourceUpdatedAt) : NaN;
+    if (
+      prev &&
+      stamp === prevStamp &&
+      prev.title === meta.title &&
+      prev.url === meta.url &&
+      prev.location === (meta.location || undefined)
+    )
+      out[i] = prev;
+    else toFetch.push({ i, id: String(obj(j).id ?? '') });
+  });
+  // A re-posting wave (or a first read against stale rows) can mark most of a board changed:
+  // past ~25 singles the one full list is cheaper in requests and time, so take the fallback.
+  if (toFetch.length > 25)
+    throw new Error(`greenhouse delta: ${toFetch.length} jobs changed at once`);
+  // Gentler than the board pool: every board's singles hit the same Greenhouse host.
+  for (let k = 0; k < toFetch.length; k += 4)
+    await Promise.all(
+      toFetch.slice(k, k + 4).map(async ({ i, id }) => {
+        const one = parseGreenhouseJob(await fj(greenhouseJobUrl(slug, id)), slug);
+        // The light list says this job exists, so an unparseable single is a failed read,
+        // never a vanished job: throw, and the caller falls back to the full read.
+        if (!one) throw new Error(`greenhouse job ${id} on ${slug} did not parse`);
+        out[i] = normalize(one);
+      }),
+    );
+  return out.filter((p): p is NormalizedPosting => !!p);
+}
+
+async function readOne<C extends WatchedCompany>(
+  c: C,
+  f: Fetch,
+  known?: ReadonlyMap<string, NormalizedPosting>,
+): Promise<ReadOutcome<C>> {
   const board = boardOf(c);
   try {
-    const found = await fetchBoard(
-      { kind: c.ats, slug: c.slug, ...(c.eu && { eu: true }) },
-      fetchJsonWith(f),
-    );
-    const postings = webOnly(found.map(normalize)).map((p) => ({ ...p, company: c.company }));
-    return { company: c, board, ok: true, postings };
+    let postings: NormalizedPosting[] | null = null;
+    if (c.ats === 'greenhouse' && known?.size) {
+      try {
+        postings = await readGreenhouseDelta(c.slug, f, known);
+      } catch {
+        postings = null; // fall back to the full read below
+      }
+    }
+    if (!postings) {
+      const found = await fetchBoard(
+        { kind: c.ats, slug: c.slug, ...(c.eu && { eu: true }) },
+        fetchJsonWith(f),
+      );
+      postings = found.map(normalize);
+    }
+    const stamped = webOnly(postings).map((p) => ({ ...p, company: c.company }));
+    return { company: c, board, ok: true, postings: stamped };
   } catch (e) {
     const status = e instanceof FetchError && e.status ? e.status : undefined;
     return { company: c, board, ok: false, status, error: String(e), postings: [] };
@@ -204,6 +281,9 @@ export async function readAll<C extends WatchedCompany>(
     terms?: Partial<Record<TermFeed, string[]>>;
     /** designsystems.jobs rows already stored, by page URL (the catalog reads only new pages). */
     known?: ReadonlyMap<string, NormalizedPosting>;
+    /** Greenhouse rows already stored, by source id (`greenhouse:<slug>:<job id>`): a board
+     *  with stored rows is read the delta way (light list, downloads only for changed jobs). */
+    knownBoards?: ReadonlyMap<string, NormalizedPosting>;
     /** Read designsystems.jobs' whole catalog, not only its RSS (default: SOURCE_ENABLED). */
     catalog?: boolean;
     /** The sync's own searches to run, and what they get (keys, clock). */
@@ -212,12 +292,26 @@ export async function readAll<C extends WatchedCompany>(
   },
 ): Promise<ReadOutcome<C>[]> {
   const out: ReadOutcome<C>[] = [];
+  // Stored rows grouped by board (`greenhouse:<slug>`), for the delta reads.
+  const knownByBoard = new Map<string, Map<string, NormalizedPosting>>();
+  for (const [id, p] of o.knownBoards ?? []) {
+    const seg = id.split(':');
+    if (seg.length < 3) continue;
+    const b = `${seg[0]}:${seg[1]}`.toLowerCase();
+    let m = knownByBoard.get(b);
+    if (!m) knownByBoard.set(b, (m = new Map()));
+    m.set(id, p);
+  }
   // Pooled and Ashby at the same time (#448): the old schedule ran the pooled boards to
   // completion before starting Ashby, so a run paid both waits back to back.
   const inChunks = async (list: C[], size: number): Promise<ReadOutcome<C>[]> => {
     const part: ReadOutcome<C>[] = [];
     for (let i = 0; i < list.length; i += size)
-      part.push(...(await Promise.all(list.slice(i, i + size).map((c) => readOne(c, o.fetch)))));
+      part.push(
+        ...(await Promise.all(
+          list.slice(i, i + size).map((c) => readOne(c, o.fetch, knownByBoard.get(boardOf(c)))),
+        )),
+      );
     return part;
   };
   const [pooled, ashby] = await Promise.all([

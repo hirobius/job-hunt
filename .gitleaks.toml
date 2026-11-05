@@ -1,0 +1,16 @@
+title = "job-hunt Gitleaks Config"
+
+# Read by scripts/hooks/secret-pii-scan.mjs (the pre-push scan, hirobius/ops#943).
+
+[extend]
+# Use Gitleaks default rules as the baseline
+useDefault = true
+
+[allowlist]
+description = "job-hunt allowlist: only the pre-push scan's own fixtures"
+paths = [
+  # The pre-push scan's fixtures hold a fake credential on purpose. The test
+  # commits the fixture into a throwaway repo under another path, so it still
+  # fires there (src/secretPiiScan.test.ts).
+  '''^scripts\/fixtures\/secret-pii-scan\/''',
+]

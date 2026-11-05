@@ -1,10 +1,10 @@
-# CLAUDE.md — hiraga (formerly Stoke, RoleForge, Apply Board)
+# CLAUDE.md — Roleflame (formerly hiraga, Stoke, RoleForge, Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**hiraga** (lowercase everywhere; renamed 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
+**Roleflame** (renamed 2026-11-02, Adrian, hirobius/ops#1092 / #55; before that **hiraga**, lowercase, 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
 **https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
 `job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
@@ -35,7 +35,7 @@ animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine'
 by `brandHtml.ts` (one `.rjb-boot-f` group per frame, frames 1-7 `visibility="hidden"`), stepped by
 base.css (`rjb-boot-frame`, delays and loop length inline from FLAME_E.fps); reduced motion / no CSS
 shows frame 0. The splash still fades in after a short beat. The old rise-in reveal is gone.
-**Wordmark: the flame, then "hiraga" (Adrian 2026-10-30; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
+**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
 `.rjb-wordmark-l` for the flicker; the og-image keeps a plain run). `wordmark.css` sets them on one baseline, the

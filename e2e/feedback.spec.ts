@@ -177,6 +177,22 @@ test.beforeEach(async ({ page }) => {
   await seed(page);
 });
 
+test('View enter (#279): the page stack carries the enter motion, and a tab switch replays it', async ({
+  page,
+}) => {
+  const enterName = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('.rjb-view-enter');
+      return el ? getComputedStyle(el).animationName : null;
+    });
+  await go(page, '#/today');
+  await expect(page.locator('.rjb-view-enter')).toHaveCount(1);
+  expect(await enterName()).toBe('rjb-view-enter');
+  await page.getByRole('tab', { name: 'Jobs' }).click();
+  await expect(page).toHaveURL(/#\/queue/);
+  expect(await enterName()).toBe('rjb-view-enter');
+});
+
 test('Today: Scan now and the Account menu’s Companies answer within 300 ms', async ({ page }) => {
   await go(page, '#/today');
   await press(page, button(page, /^(Scan now|Stop scan)$/), 'Scan now');
@@ -323,6 +339,15 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
 
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
+
+  test('view enter (#279): the page shows at once, with no enter animation', async ({ page }) => {
+    await go(page, '#/today');
+    const name = await page.evaluate(() => {
+      const el = document.querySelector('.rjb-view-enter');
+      return el ? getComputedStyle(el).animationName : null;
+    });
+    expect(name).toBe('none');
+  });
 
   test('keeps the state and the toast, drops the movement', async ({ page }) => {
     const moving = () =>

@@ -1,0 +1,12 @@
+{
+  "packageJson": { "dependencies": { "react": "^19.3.1" } },
+  "lockfile": {
+    "lockfileVersion": 3,
+    "packages": {
+      "": {},
+      "node_modules/evil": { "resolved": "git+ssh://git@github.com/x/evil.git#abc" },
+      "node_modules/odd": { "resolved": "https://example.com/odd-1.0.0.tgz" }
+    }
+  },
+  "npmrc": ""
+}

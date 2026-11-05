@@ -88,6 +88,10 @@ export interface Posting {
   mode?: JobMode;
   /** ISO timestamp; undefined when the source doesn't say. */
   postedAt?: string;
+  /** The source's own last-changed stamp for this job (Greenhouse's `updated_at`), when it
+   *  gives one. The server sync compares it against the stored row to reuse a description
+   *  instead of downloading it again (#448 delta reads); the browser ignores it. */
+  updatedAt?: string;
   /** Plain-text body (HTML stripped) — what the matcher searches. */
   text: string;
   /** Yearly pay as the source states it; absent when it doesn't. Never parsed from free text. */

@@ -23,6 +23,7 @@ import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
 import { ApplyMode, CompanyPage, JobPage, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
+import { useViewEnter } from './viewEnter';
 import { BrandLogo } from './brand/Flame';
 import { BootHold } from './brand/BootHold';
 import { needsClientAtBoot } from './supabase';
@@ -164,6 +165,9 @@ export default function App() {
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
   // again, goes to its root, and at its root back to the top. Radix selects on mouse down, so
   // whether the tab was already open is read before that, on pointer or key down.
+  const viewRef = useRef<HTMLDivElement>(null);
+  useViewEnter(viewRef, route.tab);
+
   const tappedOpen = useRef<TopTab | null>(null);
   const pressed = (slug: TopTab) => () => {
     tappedOpen.current = !noTab && tabSlug === slug ? slug : null;
@@ -309,7 +313,9 @@ export default function App() {
                   {/* A page whose chunk is gone after a deploy says so here, not over the shell
                       (#331); a move to another page clears it. */}
                   <PageErrorBoundary resetKey={pageKey(route)}>
-                    <Stack gap="px24">
+                    {/* Not keyed: remounting on pageKey drops focus and pager state on in-place
+                        hops. useViewEnter replays the motion on a page-kind change instead. */}
+                    <Stack gap="px24" ref={viewRef} className="rjb-view-enter">
                       <TabsContent value="today" variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
                           <PageHold firstRun={firstRun}>

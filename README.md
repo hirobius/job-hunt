@@ -1,8 +1,8 @@
-# RoleForge
+# Roleflame
 
 A job-hunt tracker with a discovery board. Live at https://roleforge-app.vercel.app
 
-The name is set in one place, `src/brand.ts`. It was called Apply Board before.
+The name is set in one place, `src/brand.ts`. It was called Apply Board, then RoleForge, Stoke and hiraga before (renamed Roleflame 2026-11-02, hirobius/ops#1092).
 
 ## What it does
 
@@ -85,6 +85,11 @@ npm run test:e2e # browser tests. In cloud sessions set PW_CHROMIUM_PATH.
 
 Nothing runs on GitHub Actions. Vercel runs `npm run verify` as its build command, so a red check
 blocks the deploy.
+
+**Commit messages feed the lessons ledger.** `npm install` sets up a husky `commit-msg` hook that
+runs `scripts/check-learned-trailer.mjs` (a copy of the ops script): a `fix:` or `revert:` commit
+needs a `Learned: <one line>` trailer (`Learned: none` is allowed). Other types like `feat:` are not
+checked.
 
 ## Built with
 

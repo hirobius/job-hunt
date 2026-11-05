@@ -97,6 +97,7 @@ describe('parseGreenhouseJob', () => {
       location: 'Remote (US)',
       mode: 'remote',
       postedAt: '2026-10-01T00:00:00-04:00',
+      updatedAt: '2026-10-03T00:00:00-04:00',
     });
     expect(p.text).toBe('Lead our design system & tokens.');
   });

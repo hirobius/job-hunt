@@ -6,10 +6,15 @@
     <title>Illustration directions</title>
     <!--
       v1.5 (#279): three illustration directions for Adrian to pick from, shown in situ in the three
-      places where an illustration earns its space: the first run, the empty Pipeline and the error
-      page. Self-contained: no fetches, inline SVG only. Colours are HDS 0.32 semantic tokens,
-      resolved from @hirobius/design-system/dist/variables.css (light :root, dark [data-theme=dark]),
+      places where an illustration earns its space. Self-contained: no fetches, inline SVG only.
+      Colours are HDS 0.32 semantic tokens, resolved from
+      @hirobius/design-system/dist/variables.css (light :root, dark [data-theme=dark]),
       so nothing here is a new colour. Staging only: nothing is wired into the app.
+      Refreshed 2026-11-02 (Muse) to the current app: there is no onboarding/track-picker any
+      more (no setup screen since 2026-10-29; a first run opens on Today with the scan running),
+      and the Companies tab is gone (#389). The three places are now the Jobs first-use empty
+      state ("Track your first job"), Today's "You're all caught up" and the error page. The
+      accent is HDS graphite — jade was removed 2026-10-15; the theme is pure HDS, no override.
     -->
     <style>
       :root {
@@ -197,8 +202,8 @@
       <div class="picks">
         <h2>The three places</h2>
         <ul>
-          <li>First run: the welcome step of Onboarding (pick a track).</li>
-          <li>Empty Pipeline: no jobs saved yet (the Briefcase EmptyState today).</li>
+          <li>Jobs, first use: "Track your first job" (the teaching EmptyState, #132).</li>
+          <li>Today, caught up: "You’re all caught up" when Review new has nothing left.</li>
           <li>Error page: the ErrorBoundary's "Something broke" screen.</li>
         </ul>
       </div>
@@ -230,17 +235,17 @@
       const PLACES = [
         {
           id: 'first',
-          tag: 'First run',
-          title: 'Where do you want to work?',
-          line: 'Pick a track and we’ll fill Companies with places to start.',
-          action: 'Pick a track',
+          tag: 'Jobs · first use',
+          title: 'Track your first job',
+          line: 'Paste a job link to save it here, then apply and follow up.',
+          action: 'Add job',
         },
         {
           id: 'empty',
-          tag: 'Empty Pipeline',
-          title: 'No jobs yet',
-          line: 'Save a job from Companies or paste a link.',
-          action: 'Add job',
+          tag: 'Today · caught up',
+          title: 'You’re all caught up',
+          line: 'Nothing new to review — the next scan brings fresh postings here.',
+          action: 'Scan now',
         },
         {
           id: 'error',

@@ -5,6 +5,7 @@
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
+import { cleanPlace } from './cleanPlace';
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   Badge,
@@ -417,15 +418,7 @@ function RowList({
           <Box as="li" key={r.fingerprint}>
             <Card as="article" bordered padding="none">
               <Box sx={{ p: 'md' }}>
-                <Stack gap="px8">
-                  <PostingSummary
-                    r={r}
-                    now={now}
-                    onOpen={onOpen}
-                    actions={<SaveAction r={r} actions={actions} big />}
-                  />
-                  <QuietActions r={r} actions={actions} />
-                </Stack>
+                <PostingCard r={r} now={now} onOpen={onOpen} actions={actions} />
               </Box>
             </Card>
           </Box>
@@ -442,99 +435,6 @@ function RowList({
   );
 }
 
-/** A posting card's one primary action (the reference footer's solid button): Save. */
-function SaveAction({
-  r,
-  actions,
-  big = false,
-}: {
-  r: FeedRow;
-  actions: RowActions;
-  big?: boolean;
-}) {
-  const name = `${r.title}${r.company ? ` at ${r.company}` : ''}`;
-  return (
-    <Button
-      size={big ? 'md' : 'sm'}
-      variant="primary"
-      aria-label={`Save ${name}`}
-      onClick={(e) => actions.save(r, e.currentTarget)}
-    >
-      Save
-    </Button>
-  );
-}
-
-/** A posting card's quiet decisions, under its footer: Skip hides this one posting, Not this
- *  company mutes the company. Tertiary and small, so the footer's Save stays the loud action. */
-function QuietActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
-  const name = `${r.title}${r.company ? ` at ${r.company}` : ''}`;
-  return (
-    <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      <Button
-        size="sm"
-        variant="tertiary"
-        aria-label={`Skip ${name}`}
-        onClick={(e) => actions.skip(r, e.currentTarget)}
-      >
-        Skip
-      </Button>
-      {r.company.trim() && (
-        <Button
-          size="sm"
-          variant="tertiary"
-          aria-label={`Not this company: ${r.company}`}
-          onClick={(e) => actions.mute(r, e.currentTarget)}
-        >
-          Not this company
-        </Button>
-      )}
-    </Stack>
-  );
-}
-
-function RowButtons({
-  r,
-  actions,
-  big = false,
-}: {
-  r: FeedRow;
-  actions: RowActions;
-  big?: boolean;
-}) {
-  const name = `${r.title}${r.company ? ` at ${r.company}` : ''}`;
-  return (
-    <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      <Button
-        size={big ? 'md' : 'sm'}
-        variant={big ? 'primary' : 'secondary'}
-        aria-label={`Save ${name}`}
-        onClick={(e) => actions.save(r, e.currentTarget)}
-      >
-        Save
-      </Button>
-      <Button
-        size={big ? 'md' : 'sm'}
-        variant={big ? 'secondary' : 'tertiary'}
-        aria-label={`Skip ${name}`}
-        onClick={(e) => actions.skip(r, e.currentTarget)}
-      >
-        Skip
-      </Button>
-      {r.company.trim() && (
-        <Button
-          size={big ? 'md' : 'sm'}
-          variant="tertiary"
-          aria-label={`Not this company: ${r.company}`}
-          onClick={(e) => actions.mute(r, e.currentTarget)}
-        >
-          Not this company
-        </Button>
-      )}
-    </Stack>
-  );
-}
-
 function Fact({
   icon,
   text,
@@ -542,16 +442,10 @@ function Fact({
 }: {
   icon: LucideIcon;
   text: string;
-  /** One line, cut with an ellipsis (the reference's location line). */
   truncate?: boolean;
 }) {
   return (
-    <Stack
-      direction="row"
-      gap="px4"
-      align="center"
-      className={truncate ? 'min-w-0' : undefined}
-    >
+    <Stack direction="row" gap="px4" align="center" className={truncate ? 'min-w-0' : undefined}>
       <Icon icon={icon} size="small" />
       <Text
         variant="caption"
@@ -565,13 +459,62 @@ function Fact({
   );
 }
 
-/** One posting, in the reference card anatomy (Adrian 2026-11-02, #458): a badge row above the
- *  title (the source, muted; New, accent), the title the loudest text on the card (the ramp's
- *  title step — this surface steps up from the rev-3 compact body, per the reference), the
- *  company on its own line, the facts with icons (the place on one truncating line; the mode
- *  and the posted date side by side), one short line of why it matched, and a footer: the pay,
- *  large, with the card's primary action at the right. */
-function PostingSummary({
+// Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
+const placeOf = (r: FeedRow) => {
+  const where = cleanPlace(r.location);
+  return r.remoteUnstated
+    ? `${where ? `${where} · ` : ''}Remote not stated`
+    : where || (r.mode ? modeLabel(r.mode) : 'Location not stated');
+};
+
+/** A posting card's primary action (the reference footer's solid button): Save. */
+function SaveAction({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  return (
+    <Button
+      size="md"
+      variant="primary"
+      aria-label={`Save ${rowName(r)}`}
+      onClick={(e) => actions.save(r, e.currentTarget)}
+    >
+      Save
+    </Button>
+  );
+}
+
+const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
+
+/** The decisions that stay quiet under a card's footer: Skip hides this posting, Not this company
+ *  mutes the company. Tertiary, so the footer's Save is the one loud action. */
+function QuietActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  return (
+    <Stack direction="row" wrap="wrap" gap="tight" align="center">
+      <Button
+        size="md"
+        variant="tertiary"
+        aria-label={`Skip ${rowName(r)}`}
+        onClick={(e) => actions.skip(r, e.currentTarget)}
+      >
+        Skip
+      </Button>
+      {r.company.trim() && (
+        <Button
+          size="md"
+          variant="tertiary"
+          aria-label={`Not this company: ${r.company}`}
+          onClick={(e) => actions.mute(r, e.currentTarget)}
+        >
+          Not this company
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+/** The Deck and preview card (#458, Adrian 2026-11-02): a badge row (the source; New only when
+ *  the posting is new), the title on the ramp's title step, the company as a subline, the meta
+ *  lines with their icons, and a footer with the pay at the left (empty when the source states
+ *  none, never invented) and Save at the right. Skip and Not this company sit under it. */
+function PostingCard({
   r,
   now,
   onOpen,
@@ -581,25 +524,22 @@ function PostingSummary({
 }: {
   r: FeedRow;
   now: number;
-  /** In a list: the title opens the preview, with Open posting beside it. */
+  /** Browse: the title opens the in-app preview, with Open posting beside it. */
   onOpen?: (r: FeedRow) => void;
   /** The preview names the posting in its own header. */
   noTitle?: boolean;
-  /** The card's primary action, at the footer's right (Browse and the Deck pass Save). */
-  actions?: ReactNode;
-  /** Extra card content above the footer (the Deck's snippet). */
+  actions: RowActions;
+  /** Extra content above the footer (the Deck's snippet). */
   children?: ReactNode;
 }) {
-  // Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
-  const place = r.remoteUnstated
-    ? `${r.location ? `${r.location} · ` : ''}Remote not stated`
-    : r.location || (r.mode ? modeLabel(r.mode) : 'Location not stated');
+  const place = placeOf(r);
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
-  // The mode is the place line's own fallback; it earns a second-line slot only when the place
-  // line doesn't already say it (a stated location with a stated mode).
-  const mode = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
+  // The mode is the place line's own fallback; it earns a slot of its own only when a stated
+  // location doesn't already say it.
+  const modeText = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
+  const mode = modeText.toLowerCase() === place.toLowerCase() ? '' : modeText;
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px8">
@@ -644,20 +584,19 @@ function PostingSummary({
           {r.why}
         </Text>
         {children}
-        {(pay || actions) && (
-          <Box sx={{ pt: 'xs' }}>
-            <Stack direction="row" gap="tight" align="center" justify="space-between">
-              {pay ? (
-                <Text variant="title" as="span" weight="bold">
-                  {pay}
-                </Text>
-              ) : (
-                <span />
-              )}
-              {actions}
-            </Stack>
-          </Box>
-        )}
+        <Box sx={{ pt: 'xs' }}>
+          <Stack direction="row" gap="tight" align="center" justify="space-between">
+            {pay ? (
+              <Text variant="title" as="span" weight="bold">
+                {pay}
+              </Text>
+            ) : (
+              <span />
+            )}
+            <SaveAction r={r} actions={actions} />
+          </Stack>
+        </Box>
+        <QuietActions r={r} actions={actions} />
       </Stack>
     </Box>
   );
@@ -703,18 +642,13 @@ function Deck({
         padding="none"
       >
         <DeckBody>
-          <PostingSummary
-            r={r}
-            now={now}
-            actions={<SaveAction r={r} actions={actions} big />}
-          >
+          <PostingCard r={r} now={now} actions={actions}>
             {r.snippet && (
               <Text variant="body" as="p" tone="secondary">
                 {r.snippet}
               </Text>
             )}
-          </PostingSummary>
-          <QuietActions r={r} actions={actions} />
+          </PostingCard>
         </DeckBody>
       </Card>
     </Stack>
@@ -779,18 +713,18 @@ function PostingPreview({
             <Dialog.Description>{r.company || SOURCE_LABEL[r.source]}</Dialog.Description>
           </Dialog.Header>
           <Stack gap="normal">
-            <PostingSummary r={r} now={now} noTitle />
-            {r.text.trim() && (
-              <Text variant="body" as="p" tone="secondary">
-                {excerpt(r.text)}
-              </Text>
-            )}
+            <PostingCard r={r} now={now} noTitle actions={close}>
+              {r.text.trim() && (
+                <Text variant="body" as="p" tone="secondary">
+                  {excerpt(r.text)}
+                </Text>
+              )}
+            </PostingCard>
             <Button variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
               <a href={r.url} target="_blank" rel="noopener noreferrer">
                 Open posting
               </a>
             </Button>
-            <RowButtons r={r} actions={close} big />
           </Stack>
         </Dialog.Content>
       )}

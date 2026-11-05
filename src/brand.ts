@@ -1,5 +1,4 @@
-// The product name lives here and only here (#55). It is a working name while names are shopped
-// around: change these values to rename the app. The header wordmark, the page <title> and meta
+// The product name lives here and only here (#55). Change these values to rename the app. The header wordmark, the page <title> and meta
 // tags (index.html placeholders, filled by the `brand-html` plugin in vite.config.ts), toasts and
 // export filenames all read from it; `brand.test.ts` fails if the name is hard-coded elsewhere.
 //
@@ -8,12 +7,12 @@
 // events update instead of duplicating.
 export const BRAND = {
   /** Display name. */
-  name: 'hiraga',
+  name: 'Roleflame',
   /** The wordmark: the flame (src/brand/flame.svg) before the name (Adrian 2026-10-30). The name is
-   *  lowercase everywhere, titles included. */
+   *  Roleflame (Adrian 2026-11-02, hirobius/ops#1092; was hiraga, Stoke, RoleForge). */
   wordmark: { flame: 'before' },
   /** Lowercase, URL/file-safe: download filenames. */
-  slug: 'hiraga',
+  slug: 'roleflame',
   /** One line for <meta name="description">. */
   description:
     'A job-application tracker and discovery board: screen postings, track your pipeline, and generate targeted searches.',

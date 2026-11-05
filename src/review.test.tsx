@@ -29,7 +29,7 @@ import { dismissNotice } from './saveNotice';
 import { getAllJobs, replaceAll } from './store';
 import { saveProfile } from './profile';
 import { addSources, getSources, replaceSources } from './sources';
-import { getAllDecided, unmuteCompany } from './feed/decided';
+import { SEEN_KEY, getAllDecided, postingFingerprint, unmuteCompany } from './feed/decided';
 import { resetScan, runScan } from './feed/autoScan';
 import { resetViewMemory } from './viewMemory';
 
@@ -279,6 +279,87 @@ describe('Review new: Deck', () => {
       expect(screen.getByRole('article')).not.toHaveAttribute('aria-label', name!),
     );
     expect(screen.getAllByRole('article')).toHaveLength(1);
+  });
+});
+
+describe('Review new: Deck card anatomy (#458)', () => {
+  const ONE = post('hn:1', 'Design Systems Designer', 'Acme', {
+    location: 'Lisbon',
+    mode: 'remote',
+    salaryMin: 95000,
+    salaryMax: 120000,
+  });
+  const openDeck = async (p: Posting) => {
+    feed.fetchFeed.mockResolvedValue(result([p]));
+    const user = userEvent.setup();
+    renderReview();
+    await list();
+    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    return screen.getByRole('article', { name: 'Design Systems Designer at Acme' });
+  };
+  const before = (a: Node, b: Node) =>
+    Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  it('stacks source pill, title, company, meta lines, then pay and Save in the footer', async () => {
+    const card = await openDeck(ONE);
+    const source = within(card).getByText('Hacker News');
+    const title = within(card).getByRole('heading', { level: 3 });
+    const company = within(card).getByText('Acme');
+    const place = within(card).getByText('Lisbon');
+    const mode = within(card).getByText('Remote');
+    const posted = within(card).getByText('Posted today');
+    const pay = within(card).getByText('$95k to $120k');
+    const save = within(card).getByRole('button', { name: 'Save Design Systems Designer at Acme' });
+    const order = [source, title, company, place, mode, posted, pay, save];
+    order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
+    // The footer holds pay on the left and Save on the right.
+    const footer = save.parentElement!;
+    expect(footer).toContainElement(pay);
+    // The meta lines carry their icons (lucide marks them aria-hidden svgs).
+    expect(
+      card.querySelectorAll('svg.lucide-map-pin, svg.lucide-briefcase, svg.lucide-calendar'),
+    ).toHaveLength(3);
+    // Skip and Not this company stay, with the same names.
+    expect(within(card).getByRole('button', { name: 'Skip Design Systems Designer at Acme' }));
+    expect(within(card).getByRole('button', { name: 'Not this company: Acme' }));
+  });
+
+  it('shows no pay when the source states none, and Save still sits in the footer', async () => {
+    const card = await openDeck(post('hn:1', 'Design Systems Designer', 'Acme'));
+    expect(within(card).queryByText(/\$|EUR|GBP|\bk\b/)).toBeNull();
+    expect(within(card).queryByText(/pay|salary/i)).toBeNull();
+    expect(
+      within(card).getByRole('button', { name: 'Save Design Systems Designer at Acme' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows New only when the posting is new', async () => {
+    const card = await openDeck(ONE);
+    expect(within(card).getByText('New')).toBeInTheDocument();
+    cleanup();
+    localStorage.setItem(SEEN_KEY, JSON.stringify({ [postingFingerprint(ONE)]: '2020-01-01' }));
+    resetViewMemory();
+    resetScan();
+    const seen = await openDeck(ONE);
+    expect(within(seen).queryByText('New')).toBeNull();
+    expect(within(seen).getByText('Hacker News')).toBeInTheDocument();
+  });
+
+  it('the preview uses the same anatomy, with decisions that close it', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([ONE]));
+    renderReview();
+    const ul = await list();
+    await user.click(within(ul).getByRole('button', { name: 'Design Systems Designer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Design Systems Designer' });
+    const source = within(dialog).getByText('Hacker News');
+    const pay = within(dialog).getByText('$95k to $120k');
+    const save = within(dialog).getByRole('button', {
+      name: 'Save Design Systems Designer at Acme',
+    });
+    expect(before(source, pay) && before(pay, save)).toBe(true);
+    await user.click(save);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 });
 
