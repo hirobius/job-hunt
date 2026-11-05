@@ -3,9 +3,11 @@ import { test, expect } from '@playwright/test';
 // Core happy path: paste a job URL → it lands in the queue. The Pipeline is `#/queue`; the empty
 // hash is Companies (Calm list).
 
-// Company logos come from a third-party icon host; tests never reach it (letters show).
+// Nothing leaves localhost: company logos (letters show) and the job boards Today's auto scan
+// reads on arrival. Reading the live boards parsed megabytes on the page's main thread (long
+// tasks up to ~0.8 s), so every click crawled and the sample-pipeline walk ran past 30 s.
 test.beforeEach(async ({ context }) => {
-  await context.route('https://icons.duckduckgo.com/**', (r) => r.abort());
+  await context.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
 });
 
 test('adds a pasted job URL to the queue', async ({ page }) => {
