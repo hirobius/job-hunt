@@ -263,12 +263,15 @@ copy, max 4 s.
   metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
   location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
   margins. **No cards within cards, ever (Adrian 2026-11-01, #449; replaced 2026-10-23's "lists are cards"):**
-  one card level max. A list inside a panel (Review new's Browse list, New companies, the Account menu's Companies
+  one card level max. A list inside a panel (New companies, the Account menu's Companies
   list, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, Documents, the interview log,
   the job page's links) is `PipelinePanel` `ItemList` (`.rjb-items`, a hairline between rows) of `ItemRow` (a plain
   row, never an HDS `Card`); `JobListCard` is an `article` row with Card's Header/Facts/Footer parts, no Card root.
-  **Review new has no card at all** (`Panel flat`): its heading, count and metadata declare the group, and its
-  content lines up with the page gutter. A lone card in the page flow (Review new's Deck posting) is fine;
+  **Review new's panel has no surface of its own** (`Panel flat`): its heading, count and metadata declare the group,
+  and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
+  `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
+  source + New badges, the title on the `title` step, company, MapPin / Briefcase / Calendar facts, the mode only
+  when the place line doesn't say it, pay left and Save right in the footer, Skip / Not this company under it);
   `calmLayout.test.tsx` fails on any Card inside a Card.
   Pinned in `src/calmLayout.test.tsx`.
 - **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
