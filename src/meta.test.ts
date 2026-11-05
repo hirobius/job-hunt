@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { BRAND } from './brand';
 import { applyBrand } from './brandHtml';
 
-const SITE = 'https://roleforge-app.vercel.app/';
+const SITE = 'https://roleflame.vercel.app/';
 const html = applyBrand(readFileSync('index.html', 'utf8'));
 const meta = (attr: 'name' | 'property', key: string) =>
   new RegExp(`<meta\\s+${attr}="${key}"\\s+content="([^"]*)"`).exec(html)?.[1];
