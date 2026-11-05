@@ -25,7 +25,6 @@ import {
   Text,
 } from '@hirobius/design-system';
 import {
-  Banknote,
   Briefcase,
   Calendar,
   ChevronDown,
@@ -35,7 +34,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
-import { metaLines } from './metaLines';
 import { PostingTitle } from './PostingLink';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
@@ -381,6 +379,9 @@ const rowActions: RowActions = {
     }),
 };
 
+/** Browse (Adrian 2026-11-02, #458): one standalone card per posting, in the reference card
+ *  anatomy — the Review panel is flat (no surface of its own), so a card per posting is not a
+ *  card within a card (#449). The Pipeline's job rows keep the hairline-row anatomy. */
 function RowList({
   label,
   rows,
@@ -401,16 +402,28 @@ function RowList({
   const left = rows.length - shown;
   return (
     <>
-      <ItemList label={label}>
+      <Box
+        as="ul"
+        aria-label={label}
+        sx={{
+          listStyle: 'none',
+          m: 0,
+          p: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'sm',
+        }}
+      >
         {rows.slice(0, shown).map((r) => (
-          <ItemRow key={r.fingerprint}>
-            <PostingSummary r={r} now={now} onOpen={onOpen} />
-            <Box sx={{ pt: 'xs' }}>
-              <RowButtons r={r} actions={actions} />
-            </Box>
-          </ItemRow>
+          <Box as="li" key={r.fingerprint}>
+            <Card as="article" padding="none">
+              <Box sx={{ p: 'md' }}>
+                <PostingCard r={r} now={now} onOpen={onOpen} actions={actions} />
+              </Box>
+            </Card>
+          </Box>
         ))}
-      </ItemList>
+      </Box>
       {left > 0 && (
         <PanelBody>
           <Button variant="secondary" onClick={onMore}>
@@ -419,48 +432,6 @@ function RowList({
         </PanelBody>
       )}
     </>
-  );
-}
-
-function RowButtons({
-  r,
-  actions,
-  big = false,
-}: {
-  r: FeedRow;
-  actions: RowActions;
-  big?: boolean;
-}) {
-  const name = `${r.title}${r.company ? ` at ${r.company}` : ''}`;
-  return (
-    <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      <Button
-        size={big ? 'md' : 'sm'}
-        variant={big ? 'primary' : 'secondary'}
-        aria-label={`Save ${name}`}
-        onClick={(e) => actions.save(r, e.currentTarget)}
-      >
-        Save
-      </Button>
-      <Button
-        size={big ? 'md' : 'sm'}
-        variant={big ? 'secondary' : 'tertiary'}
-        aria-label={`Skip ${name}`}
-        onClick={(e) => actions.skip(r, e.currentTarget)}
-      >
-        Skip
-      </Button>
-      {r.company.trim() && (
-        <Button
-          size={big ? 'md' : 'sm'}
-          variant="tertiary"
-          aria-label={`Not this company: ${r.company}`}
-          onClick={(e) => actions.mute(r, e.currentTarget)}
-        >
-          Not this company
-        </Button>
-      )}
-    </Stack>
   );
 }
 
@@ -546,12 +517,15 @@ function QuietActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
 function PostingCard({
   r,
   now,
+  onOpen,
   noTitle = false,
   actions,
   children,
 }: {
   r: FeedRow;
   now: number;
+  /** Browse: the title opens the in-app preview, with Open posting beside it. */
+  onOpen?: (r: FeedRow) => void;
   /** The preview names the posting in its own header. */
   noTitle?: boolean;
   actions: RowActions;
@@ -565,7 +539,10 @@ function PostingCard({
   // The mode is the place line's own fallback; it earns a slot of its own only when a stated
   // location doesn't already say it.
   const modeText = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
-  const mode = modeText.toLowerCase() === place.toLowerCase() ? '' : modeText;
+  const saysMode =
+    !!modeText &&
+    new RegExp(`(^|[^a-z])${modeText.replace(/[^a-z]/gi, '[^a-z]?')}($|[^a-z])`, 'i').test(place);
+  const mode = saysMode ? '' : modeText;
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px8">
@@ -573,7 +550,21 @@ function PostingCard({
           <Badge>{SOURCE_LABEL[r.source]}</Badge>
           {r.isNew && <Badge tone="info">New</Badge>}
         </Stack>
-        {noTitle ? null : (
+        {noTitle ? null : onOpen ? (
+          <PostingTitle url={r.url} title={r.title} company={r.company}>
+            <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
+              <Button
+                variant="tertiary"
+                size="sm"
+                className="rjb-preview-title"
+                aria-haspopup="dialog"
+                onClick={() => onOpen(r)}
+              >
+                {r.title}
+              </Button>
+            </Text>
+          </PostingTitle>
+        ) : (
           <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
             <InlineLink href={r.url}>{r.title}</InlineLink>
           </Text>
@@ -609,73 +600,6 @@ function PostingCard({
           </Stack>
         </Box>
         <QuietActions r={r} actions={actions} />
-      </Stack>
-    </Box>
-  );
-}
-
-/** Browse's row: the title as the link into the posting; company, place and
- *  pay; one short line of why it matched; then New, freshness and the source, small. */
-function PostingSummary({
-  r,
-  now,
-  onOpen,
-  noTitle = false,
-}: {
-  r: FeedRow;
-  now: number;
-  /** In a list: the title opens the preview, with Open posting beside it. */
-  onOpen?: (r: FeedRow) => void;
-  /** The preview names the posting in its own header. */
-  noTitle?: boolean;
-}) {
-  const place = placeOf(r);
-  const pay = payLabel(r);
-  const posted = postedAgo(r.postedAt, now);
-  const small = [
-    posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`),
-    SOURCE_LABEL[r.source],
-  ].filter(Boolean);
-  return (
-    <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-      <Stack gap="px4">
-        {noTitle ? null : onOpen ? (
-          <PostingTitle url={r.url} title={r.title} company={r.company}>
-            <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
-              <Button
-                variant="tertiary"
-                size="sm"
-                className="rjb-preview-title"
-                aria-haspopup="dialog"
-                onClick={() => onOpen(r)}
-              >
-                {r.title}
-              </Button>
-            </Text>
-          </PostingTitle>
-        ) : (
-          <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
-            <InlineLink href={r.url}>{r.title}</InlineLink>
-          </Text>
-        )}
-        <Stack direction="row" wrap="wrap" gap="tight" align="center">
-          {r.company && !noTitle && (
-            <Text variant="ui" as="span">
-              {r.company}
-            </Text>
-          )}
-          {place && <Fact icon={MapPin} text={place} />}
-          {pay && <Fact icon={Banknote} text={pay} />}
-        </Stack>
-        <Text variant="caption" as="p">
-          {r.why}
-        </Text>
-        <Stack direction="row" wrap="wrap" gap="px8" align="center">
-          {r.isNew && <Badge tone="info">New</Badge>}
-          <Text variant="caption" as="span" tone="secondary">
-            {metaLines(small).join(' ')}
-          </Text>
-        </Stack>
       </Stack>
     </Box>
   );
