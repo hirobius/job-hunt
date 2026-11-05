@@ -452,7 +452,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(current).toHaveTextContent('Design Engineer');
     expect(railRow('Welder')).not.toHaveAttribute('aria-current');
     // The rail replaces the Back link.
-    expect(screen.queryByRole('button', { name: /Back to Pipeline/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Back to Apply/ })).toBeNull();
   });
 
   it('every rail row opens its own posting in one tap, beside its row link (Adrian 2026-10-22)', () => {
@@ -483,7 +483,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     viewport(390);
     openJobPage(URL_A);
     expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
-    expect(screen.getByRole('button', { name: /Back to Pipeline/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Back to Apply/ })).toBeInTheDocument();
   });
 
   it('clicking another rail row swaps the job without leaving the page', async () => {

@@ -158,8 +158,8 @@ export default function App() {
         : applying || company || legal || route.jobId
           ? null
           : tabSlug === 'queue'
-            ? 'Pipeline'
-            : 'Today',
+            ? 'Apply'
+            : 'Find',
   );
 
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
@@ -301,10 +301,10 @@ export default function App() {
                     </Stack>
                     <TabsList className="rjb-top-tabs" aria-label="Sections">
                       <TabsTrigger value="today" {...trigger('today')}>
-                        Today
+                        Find
                       </TabsTrigger>
                       <TabsTrigger value="queue" {...trigger('queue')}>
-                        Jobs
+                        Apply
                       </TabsTrigger>
                     </TabsList>
                   </Stack>

@@ -75,16 +75,16 @@ describe('#/today is home again (#383; was retired in #236)', () => {
     seedPack('consulting');
     window.location.hash = '#/today';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
     expect(window.location.hash).toBe('#/today');
-    expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
 
   it('an empty hash lands on Today', async () => {
     seedPack('consulting');
     window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
   });
 
@@ -92,7 +92,7 @@ describe('#/today is home again (#383; was retired in #236)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
   });
 });
 
@@ -314,7 +314,7 @@ describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
   it('a first visit (no tracks, no jobs) opens on Today with the profile made', async () => {
     window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();
   });

@@ -45,16 +45,16 @@ afterEach(() => {
 
 describe('pageTitle', () => {
   it('names the page, then the product', () => {
-    expect(pageTitle('Pipeline')).toBe(`Pipeline · ${BRAND.name}`);
+    expect(pageTitle('Apply')).toBe(`Apply · ${BRAND.name}`);
     expect(pageTitle()).toBe(BRAND.name);
   });
 });
 
 describe('each route sets the document title', () => {
   it.each<[string, () => string, string]>([
-    ['Today (home)', () => '', 'Today'],
-    ['an old Companies link (Today now)', () => '#/discover', 'Today'],
-    ['the Pipeline', () => '#/queue', 'Pipeline'],
+    ['Find (home)', () => '', 'Find'],
+    ['an old Companies link (Find now)', () => '#/discover', 'Find'],
+    ['the Apply tab', () => '#/queue', 'Apply'],
     ['a job page', () => `#/queue/${jobIdOf(URL_A)}`, 'Acme Welder'],
     ['Apply mode', () => `#/apply/${jobIdOf(URL_A)}`, 'Apply: Acme Welder'],
     ['a Company page', () => '#/company/acme', 'Acme'],

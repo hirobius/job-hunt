@@ -270,7 +270,7 @@ for (const theme of THEMES) {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
         await page.goto('/#/today');
-        const tab = page.getByRole('tab', { name: 'Today' });
+        const tab = page.getByRole('tab', { name: 'Find' });
         await expect(tab).toBeVisible();
         await page.keyboard.press('Shift'); // a key press first, so focus shows as focus-visible
         await tab.focus();

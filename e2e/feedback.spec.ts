@@ -188,7 +188,7 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
   await go(page, '#/today');
   await expect(page.locator('.rjb-view-enter')).toHaveCount(1);
   expect(await enterName()).toBe('rjb-view-enter');
-  await page.getByRole('tab', { name: 'Jobs' }).click();
+  await page.getByRole('tab', { name: 'Apply' }).click();
   await expect(page).toHaveURL(/#\/queue/);
   expect(await enterName()).toBe('rjb-view-enter');
 });

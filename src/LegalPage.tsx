@@ -31,7 +31,7 @@ export default function LegalPage() {
               // "← Companies" (rev-3 #s-legal), flush on the page gutter like Documents' and the
               // Company page's Back (`.rjb-back-link`); opened from another page (the Account
               // menu, anywhere), it names that page and goes back there (return paths).
-              <BackLink fallback={TODAY} fallbackLabel="Today" />
+              <BackLink fallback={TODAY} fallbackLabel="Find" />
             }
             title={doc.title}
           />

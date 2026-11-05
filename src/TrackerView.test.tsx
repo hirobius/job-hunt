@@ -138,7 +138,7 @@ describe('Pipeline hierarchy', () => {
   it('opens with a Pipeline page header whose action is Add job', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
-    const heading = screen.getByRole('heading', { level: 1, name: 'Pipeline' });
+    const heading = screen.getByRole('heading', { level: 1, name: 'Apply' });
     const header = heading.closest('header')!;
     expect(within(header).getByRole('button', { name: 'Add job' })).toBeInTheDocument();
   });
@@ -169,14 +169,14 @@ describe('Pipeline hierarchy', () => {
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
     // On its own line straight under the title (rev-3: 4px under it), not beside it and not
     // after the actions row (where PageHeader's description sits).
-    const title = screen.getByRole('heading', { level: 1, name: 'Pipeline' });
+    const title = screen.getByRole('heading', { level: 1, name: 'Apply' });
     expect(title.closest('header')).not.toBeNull();
     expect(title.nextElementSibling?.textContent).toBe('1 active · 1 total');
   });
 
   it('first use says 0 jobs under the title', () => {
     renderTracker();
-    const title = screen.getByRole('heading', { level: 1, name: 'Pipeline' });
+    const title = screen.getByRole('heading', { level: 1, name: 'Apply' });
     expect(title.nextElementSibling?.textContent).toBe('0 jobs');
   });
 });
