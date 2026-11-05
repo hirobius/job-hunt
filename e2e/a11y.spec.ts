@@ -3,6 +3,7 @@
 // Local only (no Actions): `npm run test:e2e`. axe-core comes with vitest-axe, so no new dependency.
 import { test, expect, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
+import { startApplying } from './routes';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
@@ -73,8 +74,7 @@ for (const theme of THEMES) {
         await page.waitForTimeout(500);
         for (const v of await axeViolations(page)) bad.push(`job page ${v}`);
         // Apply mode (#/apply/<jobId>, #219): its id comes from the sample data, so start it.
-        await go(page, '#/queue');
-        await page.getByRole('button', { name: 'Start applying' }).click();
+        await startApplying(page);
         await expect(page).toHaveURL(/#\/apply\//);
         await page.waitForTimeout(500);
         for (const v of await axeViolations(page)) bad.push(`apply mode ${v}`);
@@ -292,8 +292,7 @@ for (const width of WIDTHS) {
       await page.locator('a[href^="#/queue/"]').first().click();
       await page.waitForTimeout(500);
       await check('job page');
-      await go(page, '#/queue');
-      await page.getByRole('button', { name: 'Start applying' }).click();
+      await startApplying(page);
       await expect(page).toHaveURL(/#\/apply\//);
       await page.waitForTimeout(500);
       await check('apply mode');

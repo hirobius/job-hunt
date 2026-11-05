@@ -34,14 +34,17 @@ import AddJobButton from './AddJob';
 import PipelineMenus from './PipelineMenus';
 
 /** The Jobs tab (#/queue). At lg it opens on the work (#471, Adrian 2026-11-05): the job list
- *  beside the first job's Apply view, the first job the list shows, else the first to apply. The
+ *  beside the first job to apply to (starred first, then newest). The
  *  hash stays #/queue; a pick in the list replaces it with that job's. Below lg, and with no jobs,
  *  the Pipeline page. */
 export default function TrackerView() {
   const jobs = useJobs();
   const view = usePipelineView();
   const wide = useAtLeast('lg');
-  const first = wide ? (visibleJobs(jobs, view)[0] ?? toApplyQueue(jobs)[0] ?? jobs[0]) : undefined;
+  // The first job to apply to, if the list shows it; else the list's first; else any.
+  const shown = wide ? visibleJobs(jobs, view) : [];
+  const next = toApplyQueue(jobs).find((j) => shown.includes(j));
+  const first = wide ? (next ?? shown[0] ?? toApplyQueue(jobs)[0] ?? jobs[0]) : undefined;
   if (first) return <JobPage jobId={jobIdOf(first.url)} />;
   return <PipelinePage />;
 }
@@ -57,8 +60,15 @@ function PipelinePage() {
   const focusSearch = () => searchField.current?.focus();
   // Try with sample data and Clear leave with what they changed: focus goes to the heading (#345).
   const heading = useRef<HTMLHeadingElement>(null);
+  // From lg the sample's jobs turn this page into the list beside the first job (#471): its
+  // heading is gone by then, so focus the new page's own h1, once it has rendered.
   const focusPageHeading = () => {
     if (heading.current?.isConnected) focusAsHeading(heading.current);
+    requestAnimationFrame(() => {
+      if (heading.current?.isConnected) return;
+      const h = document.querySelector<HTMLElement>('main h1');
+      if (h) focusAsHeading(h);
+    });
   };
   // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
   const cleared = filter !== 'active' || q.trim() !== '';

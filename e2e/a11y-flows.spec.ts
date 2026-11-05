@@ -287,7 +287,9 @@ for (const width of [390, 1440] as const) {
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
       await page.waitForTimeout(300);
-      await expect.poll(() => focused(page)).toBe('H1 Pipeline');
+      // From lg the Jobs tab turns into the list beside the first job (#471): its title is the h1.
+      if (width > 1000) await expect.poll(() => focused(page)).toMatch(/^H1 /);
+      else await expect.poll(() => focused(page)).toBe('H1 Pipeline');
       await page.getByRole('button', { name: 'Clear sample data' }).focus();
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toHaveCount(0);
@@ -313,6 +315,11 @@ for (const width of [390, 1440] as const) {
             });
         }).observe(document.body, { childList: true, subtree: true, characterData: true });
       });
+      // From lg the Jobs tab is the list beside one job (#471): show a saved one, to apply to.
+      if (width > 1000) {
+        await page.getByRole('button', { name: /^Status:/ }).click();
+        await page.getByRole('menuitemradio', { name: /^Saved/ }).click();
+      }
       const mark = page.getByRole('button', { name: /^Mark applied/ }).first();
       await mark.focus();
       await page.keyboard.press('Enter');

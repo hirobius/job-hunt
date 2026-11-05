@@ -26,7 +26,9 @@ async function showAll(page: Page) {
   await page.waitForTimeout(300);
 }
 const jobsPanel = (page: Page) => page.getByRole('region', { name: 'Jobs' });
-for (const width of [390, 1440] as const) {
+// The Pipeline page runs up to lg (800 stands for a tablet); from lg the Jobs tab is the list
+// beside a job (#471), walked in "return paths at 1440" at the end.
+for (const width of [390, 800] as const) {
   test.describe(`return paths at ${width}`, () => {
     test.use({ viewport: { width, height: 844 } });
     const phone = width < 1024;
@@ -410,3 +412,62 @@ for (const width of [390, 1440] as const) {
     });
   });
 }
+
+// From lg (#471, Adrian 2026-11-05): the Jobs tab is the list beside the job. A pick in the list
+// moves in place, so the browser's Back leaves the tab in one step; the tab reopens on the job.
+test.describe('return paths at 1440', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+  const rail = (page: Page) => page.getByRole('navigation', { name: 'Jobs' });
+  const rows = (page: Page) => rail(page).locator('a[href^="#/queue/"]');
+
+  test.beforeEach(async ({ page }) => {
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await seed(page);
+  });
+
+  test('picks in the list move in place: one Back leaves the Jobs tab', async ({ page }) => {
+    await go(page, '#/today');
+    await go(page, '#/queue');
+    // It opens on the first job to apply to.
+    await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
+    for (const i of [1, 2]) {
+      const title = (await rows(page).nth(i).locator('.rjb-semibold').textContent())!.trim();
+      await rows(page).nth(i).click();
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    }
+    await page.goBack();
+    await expect(page).toHaveURL(/#\/today$/);
+  });
+
+  test('the Jobs tab reopens on the job it was left on; tapped again, its first job to apply', async ({
+    page,
+  }) => {
+    await go(page, '#/today');
+    await page.getByRole('tab', { name: 'Jobs' }).click();
+    const title = (await rows(page).nth(1).locator('.rjb-semibold').textContent())!.trim();
+    await rows(page).nth(1).click();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await page.getByRole('tab', { name: 'Today' }).click();
+    await expect(page).toHaveURL(/#\/today$/);
+    await page.getByRole('tab', { name: 'Jobs' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await page.getByRole('tab', { name: 'Jobs' }).click();
+    await expect(page).toHaveURL(/#\/queue$/);
+    await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
+  });
+
+  test('a job and its Company page each name the other on their Back', async ({ page }) => {
+    await go(page, '#/queue');
+    const row = rows(page).filter({ hasText: 'Larkspur Analytics' }).first();
+    const title = (await row.locator('.rjb-semibold').textContent())!.trim();
+    await row.click();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await page
+      .getByRole('region', { name: 'Details' })
+      .getByRole('link', { name: 'Larkspur Analytics' })
+      .click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Larkspur Analytics' })).toBeVisible();
+    await page.getByRole('link', { name: `Back to ${title}` }).click();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+  });
+});

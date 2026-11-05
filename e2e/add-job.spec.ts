@@ -14,7 +14,8 @@ test('adds a pasted job URL to the queue', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: 'Add a job' });
   await dialog.getByLabel('Job link').fill('https://boards.greenhouse.io/acme/jobs/77');
   await dialog.getByRole('button', { name: 'Add job' }).click();
-  await expect(page.getByRole('link', { name: 'Acme · Greenhouse', exact: true })).toBeVisible();
+  // From lg the Jobs tab opens on the newest job beside the list (#471).
+  await expect(page.getByRole('heading', { level: 1, name: 'Acme · Greenhouse' })).toBeVisible();
 });
 
 // QA: a link that isn't one keeps the dialog open with a field error; the same link twice says it

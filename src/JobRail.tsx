@@ -13,6 +13,9 @@ import AddJobButton from './AddJob';
 import PipelineMenus from './PipelineMenus';
 import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import { useAgendaNow } from './useAgendaNow';
+import { SampleBanner } from './demo/SampleData';
+import { PipelineLiveness } from './LivenessViews';
+import { focusAsHeading } from './focusRescue';
 import { rowView } from './jobRow';
 import { JobBadges } from './JobRowParts';
 import { JobPostingLink } from './PostingLink';
@@ -45,6 +48,14 @@ function RowBody({ job }: { job: Job }) {
       </Stack>
     </Stack>
   );
+}
+
+/** Clear takes the sample's jobs, and this column with them: focus the page that replaces it (#345). */
+function focusNewHeading() {
+  requestAnimationFrame(() => {
+    const h = document.querySelector<HTMLElement>('main h1');
+    if (h) focusAsHeading(h);
+  });
 }
 
 export default function JobRail({ openId }: { openId: string }) {
@@ -92,9 +103,9 @@ export default function JobRail({ openId }: { openId: string }) {
           onChange={(e) => setPipelineView({ q: e.target.value })}
           leadingVisual={<Search size={16} />}
         />
+        <SampleBanner jobs={jobs} onCleared={focusNewHeading} />
         <PipelineMenus size="sm" />
-        <FollowUpSection jobs={jobs} now={now} />
-        <NextDaysSection jobs={jobs} now={now} />
+        <PipelineLiveness jobs={jobs} />
         <Text variant="caption" as="p" tone="secondary" role="status">
           {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
         </Text>
@@ -117,6 +128,9 @@ export default function JobRail({ openId }: { openId: string }) {
             )}
           </Stack>
         </nav>
+        {/* Under the list, so the jobs are the first thing in the column (#471). */}
+        <FollowUpSection jobs={jobs} now={now} />
+        <NextDaysSection jobs={jobs} now={now} />
       </Stack>
     </Box>
   );

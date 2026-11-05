@@ -202,6 +202,8 @@ test('Today: Scan now and the Account menu’s Companies answer within 300 ms', 
 });
 
 test('Pipeline: every row and page action answers within 300 ms', async ({ page }) => {
+  // The Pipeline page runs up to lg; from lg the Jobs tab is the list beside a job (#471).
+  await page.setViewportSize({ width: 800, height: 900 });
   await go(page, '#/queue');
   await press(page, button(page, 'Mark applied: Design Technologist'), 'Mark applied');
   await expect(

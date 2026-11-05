@@ -4,6 +4,9 @@ import { test, expect } from '@playwright/test';
 // then walk the To apply queue in Apply mode until it is empty and everything waits on a follow-up.
 // The feed is answered with synthetic Hacker News posts (no real people); every other host fails.
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
+// Apply mode's walk with its pager is the phone flow; from lg the Jobs tab is the list beside the
+// job's Apply view (#471, jobPage.test.tsx and the 1440 test below).
+test.use({ viewport: { width: 390, height: 844 } });
 
 test('save 3 postings → To apply (3) → apply to each → Follow up (3)', async ({ page }) => {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => {
@@ -125,4 +128,27 @@ test('Apply sheet: templates filled for the job, copyable at 390', async ({ page
     expect(box).toBeGreaterThanOrEqual(40);
   const edit = await page.getByRole('link', { name: 'Edit documents' }).boundingBox();
   expect(edit?.height).toBeGreaterThanOrEqual(40);
+});
+
+// From lg (#471): the Jobs tab opens on the first job's Apply view beside the list; Mark applied
+// moves on to the next job in place.
+test('at 1440 the Jobs tab is the list beside the job, and Mark applied walks it', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+  for (const [n, t] of [
+    [1, 'Acme Designer'],
+    [2, 'Bolt Designer'],
+  ] as const)
+    await page.goto(`/?add=${encodeURIComponent(`https://acme.example/jobs/${n}`)}&t=${t}`);
+  await page.getByRole('tab', { name: 'Jobs' }).click();
+  await page.evaluate(() => (location.hash = '#/queue'));
+  const rail = page.getByRole('navigation', { name: 'Jobs' });
+  await expect(rail.locator('a[href^="#/queue/"]')).toHaveCount(2);
+  const first = (await page.getByRole('heading', { level: 1 }).textContent())!.trim();
+  await expect(page.getByRole('link', { name: /Open application/ })).toBeVisible();
+  await page.getByRole('button', { name: `Mark applied: ${first}` }).click();
+  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText(first);
+  await expect(page).toHaveURL(/#\/queue\/[^/?]+/);
 });

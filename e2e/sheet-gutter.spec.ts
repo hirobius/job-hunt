@@ -6,7 +6,8 @@ async function sample(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  await expect(page.getByRole('region', { name: /^Jobs/ })).toBeVisible();
+  // The Jobs panel, or from lg the list column beside the first job (#471).
+  await expect(page.getByRole('textbox', { name: /^Search (saved )?jobs$/ })).toBeVisible();
 }
 
 async function expectGutter(page: Page) {
@@ -45,9 +46,9 @@ for (const width of [390, 1440]) {
       return r.getBoundingClientRect().left;
     });
     // The search field (the panel's first content) is the bordered input itself.
+    // From lg it is the list column's search beside the job (#471).
     const edge = (await page
-      .getByRole('region', { name: /^Jobs/ })
-      .getByRole('textbox', { name: 'Search saved jobs' })
+      .getByRole('textbox', { name: /^Search (saved )?jobs$/ })
       .boundingBox())!.x;
     expect(Math.abs(textLeft - edge)).toBeLessThanOrEqual(1);
   });

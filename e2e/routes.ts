@@ -57,9 +57,15 @@ export async function openJob(page: Page) {
   await page.waitForTimeout(500);
 }
 
-export async function openApply(page: Page) {
-  await go(page, '#/queue');
+/** Apply mode with no job picked offers Start applying at every width. From lg the Jobs tab is the
+ *  list beside a job (#471) and has no To apply panel, so tests start the walk from there. */
+export async function startApplying(page: Page) {
+  await go(page, '#/apply');
   await page.getByRole('button', { name: 'Start applying' }).click();
+}
+
+export async function openApply(page: Page) {
+  await startApplying(page);
   await expect(page).toHaveURL(/#\/apply\//);
   await page.waitForTimeout(500);
 }

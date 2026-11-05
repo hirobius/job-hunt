@@ -41,9 +41,11 @@ for (const width of [390, 1440]) {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
 
-    // Jobs is the Pipeline, unchanged inside.
+    // Jobs is the Pipeline; from lg, the list beside the first job (#471).
     await page.getByRole('tab', { name: 'Jobs' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeVisible();
+    if (width < 1024)
+      await expect(page.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeVisible();
+    else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
     await page.getByRole('tab', { name: 'Today' }).click();
     await expect(page).toHaveURL(/#\/today$/);
 

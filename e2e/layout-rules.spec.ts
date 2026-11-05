@@ -310,8 +310,9 @@ for (const theme of THEMES) {
         expect(await probe(page)).toEqual([]);
         await seed(page);
         await page.evaluate(() => (location.hash = '#/queue'));
-        await page.getByRole('textbox', { name: 'Search saved jobs' }).fill('zzz nothing');
-        await expect(page.getByText(/No jobs match/)).toBeVisible();
+        // From lg the search is the list column's beside a job (#471): the open job stays, pinned.
+        await page.getByRole('textbox', { name: /^Search (saved )?jobs$/ }).fill('zzz nothing');
+        await expect(page.getByText(/No jobs match|Not in this filter/).first()).toBeVisible();
         expect(await probe(page)).toEqual([]);
       });
     });
