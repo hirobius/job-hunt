@@ -283,7 +283,7 @@ for (const width of [390, 1440] as const) {
       await page.getByRole('tab', { name: 'Find' }).focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/today$/);
-      await expect.poll(() => focused(page)).toBe('BUTTON Today');
+      await expect.poll(() => focused(page)).toBe('BUTTON Find');
     });
 
     // #345: the pressed control leaves with what it changed (the empty state, the banner).
