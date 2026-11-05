@@ -5,8 +5,8 @@ Project memory for future Claude Code sessions in this repo.
 ## What this is
 
 **Roleflame** (renamed 2026-11-02, Adrian, hirobius/ops#1092 / #55; before that **hiraga**, lowercase, 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
-**https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
-`job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
+**https://roleflame.vercel.app** (since 2026-11-05; repo `hirobius/job-hunt`; the old
+`roleforge-app.vercel.app` and `job-hunt-jade.vercel.app` still serve and are accepted sign-in origins until they redirect). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
 
@@ -701,9 +701,9 @@ re-litigate decisions already in `docs/adr/`.
 ## Notes
 
 - Supabase redirect URLs must include any new origin for magic-link sign-in. During the move
-  **both** `https://roleforge-app.vercel.app/` (Site URL) and `https://job-hunt-jade.vercel.app/`
+  `https://roleflame.vercel.app/` (Site URL) and the old `https://roleforge-app.vercel.app/` and `https://job-hunt-jade.vercel.app/`
   must be in Supabase Auth → URL Configuration → Redirect URLs; the client side is
-  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGIN`).
+  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGINS`).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
 - **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/
