@@ -392,6 +392,22 @@ describe('Review new: Deck card anatomy (#458)', () => {
     await user.click(screen.getByRole('radio', { name: 'Deck' }));
     expect(screen.getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
   });
+
+  it('gives the work mode no slot of its own when the place line already says it', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('hn:1', 'Design Systems Designer', 'Acme', {
+          location: 'Lisbon, Portugal (Remote)',
+          mode: 'remote',
+        }),
+      ]),
+    );
+    renderReview();
+    const card = within(await list()).getByRole('article');
+    expect(within(card).getByText('Lisbon, Portugal (Remote)')).toBeInTheDocument();
+    expect(within(card).queryByText('Remote')).toBeNull();
+    expect(card.querySelector('svg.lucide-briefcase')).toBeNull();
+  });
 });
 
 describe('Review new: every design-system posting, no tiers', () => {

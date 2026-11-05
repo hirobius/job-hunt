@@ -539,7 +539,10 @@ function PostingCard({
   // The mode is the place line's own fallback; it earns a slot of its own only when a stated
   // location doesn't already say it.
   const modeText = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
-  const mode = modeText.toLowerCase() === place.toLowerCase() ? '' : modeText;
+  const saysMode =
+    !!modeText &&
+    new RegExp(`(^|[^a-z])${modeText.replace(/[^a-z]/gi, '[^a-z]?')}($|[^a-z])`, 'i').test(place);
+  const mode = saysMode ? '' : modeText;
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px8">
