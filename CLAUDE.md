@@ -676,6 +676,13 @@ copy, max 4 s.
 - Backlog lives in **GitHub Issues** (see Fleet hub below), not local TODO files.
   Upstream HDS gaps + accept criteria: `docs/hds-upstream-asks-0.9.md`.
 
+## Figma agent rules
+
+`docs/figma/FIGMA-RULES.md` is the visual subset of this file, pasted into the Figma agent's prompt
+(and mirrored on a Rules page in the HDS Figma file). When a visual rule here changes (HDS version or
+density, cards, outlines, type, the screens and their names), change that page in the same PR;
+`src/figmaRules.test.ts` fails when the rules it pins leave this file.
+
 ## Skills — the architecture skill set
 
 Vendored from github.com/mattpocock/skills into `.claude/skills/` (the container is ephemeral;
