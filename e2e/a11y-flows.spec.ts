@@ -256,8 +256,13 @@ for (const width of [390, 1440] as const) {
     test('a page change moves focus to the new page heading', async ({ page }) => {
       await seed(page);
       await go(page, '#/queue');
-      const link = page.locator('a[href^="#/queue/"]').first();
-      const title = (await link.textContent())!.trim();
+      // From lg the Jobs tab is the list beside a job (#471): a pick there moves in place, so open
+      // the second row, and Back leaves the tab (return-paths.spec.ts covers it).
+      const wide = width > 1000;
+      const link = page.locator('a[href^="#/queue/"]:not([aria-current])').first();
+      const title = wide
+        ? (await link.locator('.rjb-semibold').textContent())!.trim()
+        : (await link.textContent())!.trim();
       await link.focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/queue\/./);
@@ -266,9 +271,11 @@ for (const width of [390, 1440] as const) {
       const heading = page.getByRole('heading', { level: 1, name: title });
       expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
       // The browser's Back is a page change too: it lands on the title that opened the job (#359).
-      await page.goBack();
-      await expect(page).toHaveURL(/#\/queue$/);
-      await expect.poll(() => focused(page)).toBe(`A ${title}`);
+      if (!wide) {
+        await page.goBack();
+        await expect(page).toHaveURL(/#\/queue$/);
+        await expect.poll(() => focused(page)).toBe(`A ${title}`);
+      }
       // A page never seen before gets its heading.
       await go(page, '#/legal/terms');
       await expect.poll(() => focused(page)).toBe('H1 Terms of use');
