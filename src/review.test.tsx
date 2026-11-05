@@ -361,6 +361,37 @@ describe('Review new: Deck card anatomy (#458)', () => {
     await user.click(save);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
+
+  it('Browse rows are standalone cards in the same anatomy, the title opening the preview', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([ONE]));
+    renderReview();
+    const ul = await list();
+    const card = within(ul).getByRole('article');
+    const source = within(card).getByText('Hacker News');
+    const title = within(card).getByRole('heading', { level: 3 });
+    const company = within(card).getByText('Acme');
+    const place = within(card).getByText('Lisbon');
+    const pay = within(card).getByText('$95k to $120k');
+    const save = within(card).getByRole('button', { name: 'Save Design Systems Designer at Acme' });
+    const skip = within(card).getByRole('button', { name: 'Skip Design Systems Designer at Acme' });
+    const order = [source, title, company, place, pay, save, skip];
+    order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
+    expect(save.parentElement!).toContainElement(pay);
+    expect(within(card).getByRole('button', { name: 'Not this company: Acme' }));
+    await user.click(within(title).getByRole('button', { name: 'Design Systems Designer' }));
+    expect(await screen.findByRole('dialog', { name: 'Design Systems Designer' })).toBeVisible();
+  });
+
+  it('Browse and Deck cards draw no outline (soft surfaces: never bordered)', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([ONE]));
+    renderReview();
+    const ul = await list();
+    expect(within(ul).getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
+    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    expect(screen.getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
+  });
 });
 
 describe('Review new: every design-system posting, no tiers', () => {

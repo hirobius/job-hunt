@@ -416,7 +416,7 @@ function RowList({
       >
         {rows.slice(0, shown).map((r) => (
           <Box as="li" key={r.fingerprint}>
-            <Card as="article" bordered padding="none">
+            <Card as="article" padding="none">
               <Box sx={{ p: 'md' }}>
                 <PostingCard r={r} now={now} onOpen={onOpen} actions={actions} />
               </Box>
@@ -637,7 +637,6 @@ function Deck({
       </Stack>
       <Card
         as="article"
-        bordered
         aria-label={r.company ? `${r.title} at ${r.company}` : r.title}
         padding="none"
       >
