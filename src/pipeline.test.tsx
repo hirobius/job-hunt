@@ -280,8 +280,9 @@ describe('Retired jobs stay readable', () => {
     expect(faded(card)).toBe(false);
   });
 
-  it('a retired card on a desktop says so in words too, without fading its text', async () => {
-    viewport(1440);
+  // From lg the list is the column beside a job (#471); cards show up to there.
+  it('a retired card on a tablet says so in words too, without fading its text', async () => {
+    viewport(800);
     renderApp();
     await showRetired();
     expect(screen.queryByRole('table')).toBeNull();
@@ -340,8 +341,9 @@ describe('Pipeline filter (#129)', () => {
   });
 });
 
-describe('Pipeline on a desktop: cards too (Adrian 2026-10-24)', () => {
-  beforeEach(() => viewport(1440));
+// From lg the list is the column beside a job (#471, jobPage.test.tsx); the card list holds below it.
+describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
+  beforeEach(() => viewport(800));
 
   it('is the card list, not a table: status, follow-up and one action per card', () => {
     renderApp();

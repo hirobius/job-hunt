@@ -1,11 +1,12 @@
-import { Fragment, lazy, Suspense, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Form } from '@hirobius/design-system/patterns';
-import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
+import { useMemo, useRef } from 'react';
+import { useAtLeast } from '@hirobius/design-system';
+import JobPage from './JobPage';
+import { toApplyQueue } from './applyQueue';
+import { jobIdOf } from './store';
+import { Search, Briefcase } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
-  Menu as HdsMenu,
-  Dialog,
   Box,
   Stack,
   Text,
@@ -14,11 +15,7 @@ import {
 import { EmptyState } from './hds-gaps/EmptyState';
 import { MetaCaption } from './MetaCaption';
 import { useJobs } from './store';
-import { saveWithNotice } from './saveNotice';
-import { importFresh } from './staleBuild';
-import { SORTS, type SortKey } from './jobSort';
 import {
-  FILTER_GROUPS,
   FILTER_LABEL,
   filterCounts,
   setPipelineView,
@@ -31,39 +28,29 @@ import ApplyQueueSummary from './ApplyQueueSummary';
 import JobListCard from './JobListCard';
 import { ItemList, Panel, PanelBody } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
-import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
-import './account/sheet.css';
-import { useBackCloses, useBackSheet } from './useBackCloses';
 import { useListFocusKeeper } from './listFocus';
 import { focusAsHeading } from './focusRescue';
+import AddJobButton from './AddJob';
+import PipelineMenus from './PipelineMenus';
 
-// The Find box (#384) loads when Add job turns into it: the board probe stays out of the Pipeline.
-const loadFindBox = importFresh(() => import('./FindBox'));
-const FindBox = lazy(loadFindBox);
-
-// The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
-// chevron right. HDS Button has no stretch or alignment prop.
-// They show only the value ("Active ⌄"): the "Status" / "Sort" prefix lives in the name. Clear
-// sits in the panel header, so the two always split the row; a long value still truncates.
-const SELECT_LIKE = {
-  flex: '1 1 0',
-  minWidth: 0,
-  overflow: 'hidden',
-  justifyContent: 'space-between',
-} as const;
-const SELECT_VALUE = {
-  minWidth: 0,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-} as const;
-
+/** The Jobs tab (#/queue). At lg it opens on the work (#471, Adrian 2026-11-05): the job list
+ *  beside the first job's Apply view, the first job the list shows, else the first to apply. The
+ *  hash stays #/queue; a pick in the list replaces it with that job's. Below lg, and with no jobs,
+ *  the Pipeline page. */
 export default function TrackerView() {
   const jobs = useJobs();
   const view = usePipelineView();
-  const { filter, sort, q } = view;
+  const wide = useAtLeast('lg');
+  const first = wide ? (visibleJobs(jobs, view)[0] ?? toApplyQueue(jobs)[0] ?? jobs[0]) : undefined;
+  if (first) return <JobPage jobId={jobIdOf(first.url)} />;
+  return <PipelinePage />;
+}
+
+function PipelinePage() {
+  const jobs = useJobs();
+  const view = usePipelineView();
+  const { filter, q } = view;
   const setFilter = (filter: Filter) => setPipelineView({ filter });
-  const setSort = (sort: SortKey) => setPipelineView({ sort });
   const setQ = (q: string) => setPipelineView({ q });
   // A control that clears the view unmounts as it does, so focus goes to the search (audit).
   const searchField = useRef<HTMLInputElement>(null);
@@ -75,67 +62,18 @@ export default function TrackerView() {
   };
   // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
   const cleared = filter !== 'active' || q.trim() !== '';
-  const [url, setUrl] = useState('');
-  // Said under the field (QA): an empty or unreadable link keeps the dialog open and says why.
-  const [urlError, setUrlError] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  // The Add job dialog can turn into the Find box (#384): paste a company, board or title too.
-  const [findMode, setFindMode] = useState(false);
-  const urlField = useRef<HTMLInputElement>(null);
-  // Pinned to the top of what the phone keyboard leaves visible, like Reset (sheet.css).
-  const sheetRef = useVisualViewportVars<HTMLDivElement>();
-  // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
-  // remember which button opened it and give focus back there on close (a11y pass).
-  const addOpener = useRef<HTMLElement | null>(null);
-  // The browser's Back closes the sheet and stays on the Pipeline (return paths).
-  useBackCloses(addOpen, () => setAddOpen(false), 'add-job');
   // The Status select: the Active empty's "Show applied" hands focus back to it, so focus
   // stays in the panel when the empty state unmounts (#361).
   const statusTrigger = useRef<HTMLButtonElement>(null);
-  const statusSheet = useBackSheet('pipeline-status');
-  const sortSheet = useBackSheet('pipeline-sort');
 
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const shownUrls = useMemo(() => shown.map((j) => j.url), [shown]);
   // Mark applied, Remove or a status change that takes a card out keeps focus in the list.
   useListFocusKeeper(shownUrls, searchField);
-  const sortDef = SORTS.find((s) => s.key === sort);
-  // The trigger shows the short form; its name says the same words (WCAG label in name).
-  const sortLabel = sortDef?.short ?? sortDef?.label ?? '';
   const counts = useMemo(() => filterCounts(jobs), [jobs]);
 
-  // Add job is never greyed out (rev-3): an empty or unreadable link gets a field error instead,
-  // and the dialog stays open. A link already saved closes it; saveWithNotice says so.
-  const submit = (e?: FormEvent) => {
-    e?.preventDefault();
-    const link = url.trim();
-    if (!link) return setUrlError('Paste a job link');
-    if (saveWithNotice(link) === 'invalid')
-      return setUrlError('Paste the full link to the posting, like https://…');
-    setUrl('');
-    setAddOpen(false);
-  };
-  const onAddOpenChange = (open: boolean) => {
-    setAddOpen(open);
-    if (!open) {
-      setUrlError(null);
-      setFindMode(false);
-    }
-  };
-
   // Start applying is the page's one primary once there are jobs; Add job steps down.
-  const addJobButton = (
-    <UiButton
-      variant={jobs.length > 0 ? 'secondary' : 'primary'}
-      iconLeft={<Plus size={16} />}
-      onClick={(e) => {
-        addOpener.current = e.currentTarget;
-        setAddOpen(true);
-      }}
-    >
-      Add job
-    </UiButton>
-  );
+  const addJobButton = <AddJobButton variant={jobs.length > 0 ? 'secondary' : 'primary'} />;
 
   return (
     // Rev-3 rhythm: 4 from the title to its counts, 12 to the sample note, 24 to the panels.
@@ -209,76 +147,7 @@ export default function TrackerView() {
                     onChange={(e) => setQ(e.target.value)}
                     leadingVisual={<Search size={16} />}
                   />
-                  <Stack direction="row" gap="tight" align="center">
-                    <HdsMenu {...statusSheet}>
-                      <HdsMenu.Trigger asChild>
-                        <UiButton
-                          ref={statusTrigger}
-                          variant="secondary"
-                          iconRight={<ChevronDown size={16} />}
-                          label={`Status: ${FILTER_LABEL[filter]}`}
-                          style={SELECT_LIKE}
-                        >
-                          <span style={SELECT_VALUE}>{FILTER_LABEL[filter]}</span>
-                        </UiButton>
-                      </HdsMenu.Trigger>
-                      <HdsMenu.Content align="start">
-                        <HdsMenu.RadioGroup
-                          value={filter}
-                          onValueChange={(v) => setFilter(v as Filter)}
-                        >
-                          {FILTER_GROUPS.map((g, gi) => (
-                            <Fragment key={gi}>
-                              {gi > 0 && <HdsMenu.Separator />}
-                              {g.label && <HdsMenu.Label>{g.label}</HdsMenu.Label>}
-                              {g.items.map((f) => (
-                                <HdsMenu.RadioItem key={f} value={f}>
-                                  <Box
-                                    as="span"
-                                    sx={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      gap: 'sm',
-                                      width: '100%',
-                                    }}
-                                  >
-                                    <span>{FILTER_LABEL[f]}</span>
-                                    <Text variant="ui" as="span" tone="secondary">
-                                      {counts[f]}
-                                    </Text>
-                                  </Box>
-                                </HdsMenu.RadioItem>
-                              ))}
-                            </Fragment>
-                          ))}
-                        </HdsMenu.RadioGroup>
-                      </HdsMenu.Content>
-                    </HdsMenu>
-                    <HdsMenu {...sortSheet}>
-                      <HdsMenu.Trigger asChild>
-                        <UiButton
-                          variant="secondary"
-                          iconRight={<ChevronDown size={16} />}
-                          label={`Sort: ${sortLabel}`}
-                          style={SELECT_LIKE}
-                        >
-                          <span style={SELECT_VALUE}>{sortLabel}</span>
-                        </UiButton>
-                      </HdsMenu.Trigger>
-                      <HdsMenu.Content align="end">
-                        <HdsMenu.RadioGroup
-                          value={sort}
-                          onValueChange={(v) => setSort(v as SortKey)}
-                        >
-                          {SORTS.map((s) => (
-                            <HdsMenu.RadioItem key={s.key} value={s.key}>
-                              {s.label}
-                            </HdsMenu.RadioItem>
-                          ))}
-                        </HdsMenu.RadioGroup>
-                      </HdsMenu.Content>
-                    </HdsMenu>
-                  </Stack>
+                  <PipelineMenus statusTrigger={statusTrigger} />
                   {/* Liveness sits with the list it checks: one caption-sized row under the
                       toolbar, never above the page title. */}
                   <PipelineLiveness jobs={jobs} />
@@ -376,93 +245,6 @@ export default function TrackerView() {
           />
         )}
       </Stack>
-      {/* Portals out, so it takes no slot in the page's rhythm. */}
-      <Dialog open={addOpen} onOpenChange={onAddOpenChange}>
-        {/* Placed like the other shell dialogs with a field (`.rjb-sheet`: Reset), so the
-            phone keyboard never covers the field or Add job, with the 16px phone gutter (`.rjb-form-sheet`). The rev-3 mock has no close X and no
-            description: Cancel closes, and the field says where the title comes from. */}
-        <Dialog.Content
-          ref={sheetRef}
-          className="rjb-sheet rjb-form-sheet"
-          hideClose
-          aria-describedby={undefined}
-          onOpenAutoFocus={(e) => {
-            // Fetch the Find box now, so turning into it never leaves the dialog empty.
-            void loadFindBox().catch(() => undefined);
-            e.preventDefault();
-            urlField.current?.focus();
-          }}
-          onCloseAutoFocus={(e) => {
-            if (!addOpener.current?.isConnected) return;
-            e.preventDefault();
-            addOpener.current.focus();
-          }}
-        >
-          <Dialog.Header>
-            <Dialog.Title>{findMode ? 'Find' : 'Add a job'}</Dialog.Title>
-          </Dialog.Header>
-          {findMode ? (
-            <Suspense fallback={null}>
-              <FindBox
-                initial={url}
-                autoFocus
-                onDone={() => onAddOpenChange(false)}
-                footer={
-                  <Dialog.Close asChild>
-                    <UiButton variant="secondary">Cancel</UiButton>
-                  </Dialog.Close>
-                }
-              />
-            </Suspense>
-          ) : (
-            <Form noValidate onSubmit={submit}>
-              <Stack gap="normal">
-                <HdsInput
-                  ref={urlField}
-                  label="Job link"
-                  type="url"
-                  inputMode="url"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  enterKeyHint="go"
-                  placeholder="Job link"
-                  value={url}
-                  helperText="The title fills in from the link. You can edit it after."
-                  error={!!urlError}
-                  errorMessage={urlError ?? undefined}
-                  onChange={(e) => {
-                    setUrl(e.target.value);
-                    if (urlError) setUrlError(null);
-                  }}
-                />
-                {/* One Find box (#384) until Today hosts it: the same dialog takes anything. */}
-                <div>
-                  <UiButton variant="tertiary" size="sm" onClick={() => setFindMode(true)}>
-                    Paste a company, board or title instead
-                  </UiButton>
-                </div>
-                {/* Phone: the full-width primary over a full-width Cancel (rev-3 mock). From sm, one
-                  row with Add job right-most. Add job comes first in the DOM either way. */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: { base: 'column', sm: 'row-reverse' },
-                    gap: 'xs',
-                  }}
-                >
-                  <UiButton type="submit" variant="primary">
-                    Add job
-                  </UiButton>
-                  <Dialog.Close asChild>
-                    <UiButton variant="secondary">Cancel</UiButton>
-                  </Dialog.Close>
-                </Box>
-              </Stack>
-            </Form>
-          )}
-        </Dialog.Content>
-      </Dialog>
     </Stack>
   );
 }

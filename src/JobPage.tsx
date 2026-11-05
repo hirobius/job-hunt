@@ -2,10 +2,12 @@
 // (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks).
 import { useEffect } from 'react';
 import { Box, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobius/design-system';
-import { findJobById, useJobs } from './store';
+import { findJobById, jobIdOf, useJobs } from './store';
 import { titleOf } from './jobRow';
 import { usePageTitle } from './pageTitle';
-import { goBackTo, openJob, originOf, useRoute } from './route';
+import { getRoute, goBackTo, navigate, openJob, originOf, useRoute } from './route';
+import { getPipelineView, visibleJobs } from './pipelineView';
+import { ApplicationKit, ApplyTemplates } from './ApplySheet';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
@@ -14,13 +16,41 @@ import JobRail from './JobRail';
 import type { Job } from './types';
 
 /** The header over the one page (#416, Adrian's Q5: no tabs). An old `?section=` link opens it
- *  as is. */
-function JobDetail({ job, showBack }: { job: Job; showBack: boolean }) {
+ *  as is. The job page and Apply mode are one view (#471, Adrian 2026-11-05): the header's Open
+ *  application, Mark applied and Not a fit, then the job's filled templates and the Application
+ *  kit, then Details, Notes and the links. */
+function JobDetail({
+  job,
+  showBack,
+  onAnswered,
+}: {
+  job: Job;
+  showBack: boolean;
+  onAnswered?: () => void;
+}) {
   return (
     <Box>
-      <JobHeader job={job} showBack={showBack} />
-      <JobOverview job={job} />
+      <JobHeader job={job} showBack={showBack} onAnswered={onAnswered} />
+      <Stack gap="px24">
+        <ApplyTemplates job={job} />
+        <ApplicationKit job={job} />
+        <JobOverview job={job} />
+      </Stack>
     </Box>
+  );
+}
+
+/** Beside the list (#471): after Mark applied or Not a fit, open the job after this one in the
+ *  list as it shows now (else the one before it). In place: Back does not walk every job. */
+function openNextAfter(job: Job, jobs: Job[]) {
+  const shown = visibleJobs(jobs, getPipelineView());
+  const at = shown.findIndex((j) => j.url === job.url);
+  const next = at < 0 ? shown[0] : (shown[at + 1] ?? shown[at - 1]);
+  if (!next || next.url === job.url) return;
+  const { from, section } = getRoute();
+  navigate(
+    { tab: 'queue', jobId: jobIdOf(next.url), from: from ?? null, section: section ?? null },
+    true,
   );
 }
 
@@ -40,7 +70,8 @@ function JobPageSkeleton() {
 }
 
 export default function JobPage({ jobId }: { jobId: string }) {
-  const job = findJobById(jobId, useJobs());
+  const jobs = useJobs();
+  const job = findJobById(jobId, jobs);
   usePageTitle(job ? titleOf(job) : 'Job');
   // An unknown id may just not have synced onto this device yet: wait until sync has settled,
   // then fall back to the page that linked here (else the Pipeline) without a new history entry.
@@ -73,7 +104,14 @@ export default function JobPage({ jobId }: { jobId: string }) {
 
   // Keyed by job, so every field's draft resets when the job changes. At lg the rail stands in for
   // Back to the Pipeline, but a job opened from elsewhere (Companies, a Company page) shows its Back.
-  const detail = <JobDetail key={job.url} job={job} showBack={!wide || !!origin} />;
+  const detail = (
+    <JobDetail
+      key={job.url}
+      job={job}
+      showBack={!wide || !!origin}
+      onAnswered={wide ? () => openNextAfter(job, jobs) : undefined}
+    />
+  );
   if (wide)
     return (
       <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">
