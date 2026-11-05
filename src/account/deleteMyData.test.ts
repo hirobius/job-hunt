@@ -23,13 +23,22 @@ function userTables(): string[] {
   return [...out].sort();
 }
 
-const fnFile = files.find((f) => /function public\.delete_my_data\(/.test(sql(f)));
+// The last migration that defines it wins on apply (Daily picks, 20261105, redefines it).
+const fnFile = [...files].reverse().find((f) => /function public\.delete_my_data\(/.test(sql(f)));
 const body = fnFile ? sql(fnFile) : '';
 
 describe('delete_my_data covers every per-user table', () => {
   it('finds the per-user tables (the parse still works)', () => {
     expect(userTables()).toEqual(
-      expect.arrayContaining(['tracker', 'categories', 'tiles', 'postings', 'sync_log']),
+      expect.arrayContaining([
+        'tracker',
+        'categories',
+        'tiles',
+        'postings',
+        'sync_log',
+        'daily_picks',
+        'daily_pick_feeds',
+      ]),
     );
   });
 
@@ -38,7 +47,10 @@ describe('delete_my_data covers every per-user table', () => {
     const perUser = new Set(userTables());
     for (const f of files) {
       const made = [...sql(f).matchAll(/create table (?:if not exists )?public\.(\w+)/gi)];
-      if (made.some((m) => perUser.has(m[1]))) expect(f < fnFile!, f).toBe(true);
+      const at = sql(f).search(/function public\.delete_my_data\(/);
+      // The same file may make a table, as long as it does so above the function.
+      for (const m of made.filter((x) => perUser.has(x[1])))
+        expect(f < fnFile! || (f === fnFile && m.index! < at), `${f}: ${m[1]}`).toBe(true);
     }
   });
 
