@@ -48,7 +48,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
               key="followed"
               title="Followed"
               rows={followed}
-              empty="None followed. Follow a new company on Today."
+              empty="None followed. Follow a new company on Find."
               action={(c) => (
                 <Button
                   size="sm"

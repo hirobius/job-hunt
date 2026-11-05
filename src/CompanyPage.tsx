@@ -214,7 +214,7 @@ function CompanyPageSkeleton() {
 export default function CompanyPage({ slug }: { slug: string }) {
   const company = useCompany(slug);
   usePageTitle(company?.name ?? 'Company');
-  const back = useBack(PIPELINE, 'Pipeline');
+  const back = useBack(PIPELINE, 'Apply');
   const route = useRoute();
   // Read the context directly: this page also renders on its own in tests, outside the provider.
   const settled = useContext(CloudSyncContext)?.settled ?? true;
@@ -247,7 +247,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
           {/* "← Pipeline", the job page's Back, with no leading padding so the arrow sits on the
               page gutter with the title (`.rjb-back-link`; its box stays inside the gutter). Opened
               from a job, it names that job and goes back to it (return paths). */}
-          <BackLink fallback={PIPELINE} fallbackLabel="Pipeline" />
+          <BackLink fallback={PIPELINE} fallbackLabel="Apply" />
           <Text variant="title" as="h1">
             {company.name}
           </Text>

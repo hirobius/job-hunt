@@ -63,7 +63,7 @@ for (const width of [390, 800] as const) {
       await jobsPanel(page).locator('a[href^="#/queue/"]').last().click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       if (phone) {
-        await page.getByRole('button', { name: 'Back to Pipeline' }).click();
+        await page.getByRole('button', { name: 'Back to Apply' }).click();
         await expect(page).toHaveURL(/#\/queue$/);
         await expectScroll(page, before);
       } else {
@@ -172,7 +172,7 @@ for (const width of [390, 800] as const) {
       await page.getByRole('button', { name: 'Add job' }).click();
       await page.getByLabel('Job link').fill('https://example.com/jobs/typed');
       await closesOnBack(page.getByRole('dialog'), queue);
-      await expect(page.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
 
       // Sign in, picked from the Account menu (whose own entry is popped as it closes), typed in.
       await page.getByRole('button', { name: /^Account/ }).click();
@@ -266,9 +266,9 @@ for (const width of [390, 800] as const) {
       await expect(page).toHaveURL(/#\/today$/);
       await page.waitForTimeout(600);
       await expect(page).toHaveURL(/#\/today$/);
-      await page.getByRole('tab', { name: 'Jobs' }).click();
+      await page.getByRole('tab', { name: 'Apply' }).click();
       await expect(page).toHaveURL(/#\/queue$/);
-      await expect(page.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
     });
 
     test('Delete in a document opened from the library goes back to the library, once', async ({
@@ -330,13 +330,13 @@ for (const width of [390, 800] as const) {
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-      await page.getByRole('tab', { name: 'Jobs' }).dblclick();
+      await page.getByRole('tab', { name: 'Apply' }).dblclick();
       await stays(/#\/queue$/);
       if (phone) {
         // At lg the rail stands in for Back on a job opened from the list.
         await jobsPanel(page).locator('a[href^="#/queue/"]').first().click();
         await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-        await page.getByRole('button', { name: 'Back to Pipeline' }).dblclick();
+        await page.getByRole('button', { name: 'Back to Apply' }).dblclick();
         await stays(/#\/queue$/);
       }
 
@@ -373,17 +373,17 @@ for (const width of [390, 800] as const) {
 
     test('each top tab reopens where it was left', async ({ page }) => {
       await go(page, '#/today');
-      await page.getByRole('tab', { name: 'Jobs' }).click();
+      await page.getByRole('tab', { name: 'Apply' }).click();
       const link = jobsPanel(page).locator('a[href^="#/queue/"]').first();
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-      await page.getByRole('tab', { name: 'Today' }).click();
+      await page.getByRole('tab', { name: 'Find' }).click();
       await expect(page).toHaveURL(/#\/today$/);
-      await page.getByRole('tab', { name: 'Jobs' }).click();
+      await page.getByRole('tab', { name: 'Apply' }).click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       // The open tab, tapped again, goes to its root.
-      await page.getByRole('tab', { name: 'Jobs' }).click();
+      await page.getByRole('tab', { name: 'Apply' }).click();
       await expect(page).toHaveURL(/#\/queue$/);
     });
 
@@ -443,15 +443,15 @@ test.describe('return paths at 1440', () => {
     page,
   }) => {
     await go(page, '#/today');
-    await page.getByRole('tab', { name: 'Jobs' }).click();
+    await page.getByRole('tab', { name: 'Apply' }).click();
     const title = (await rows(page).nth(1).locator('.rjb-semibold').textContent())!.trim();
     await rows(page).nth(1).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-    await page.getByRole('tab', { name: 'Today' }).click();
+    await page.getByRole('tab', { name: 'Find' }).click();
     await expect(page).toHaveURL(/#\/today$/);
-    await page.getByRole('tab', { name: 'Jobs' }).click();
+    await page.getByRole('tab', { name: 'Apply' }).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-    await page.getByRole('tab', { name: 'Jobs' }).click();
+    await page.getByRole('tab', { name: 'Apply' }).click();
     await expect(page).toHaveURL(/#\/queue$/);
     await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
   });

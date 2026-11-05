@@ -27,7 +27,7 @@ const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
  *  the Pipeline by default, else the page that opened it, by name ("← Companies", "← Acme
  *  Metals"). Its name says where it goes. Apply mode uses it too. */
 export function BackToPipeline() {
-  return <BackLink as="button" className="rjb-back" fallback={PIPELINE} fallbackLabel="Pipeline" />;
+  return <BackLink as="button" className="rjb-back" fallback={PIPELINE} fallbackLabel="Apply" />;
 }
 
 export default function JobHeader({

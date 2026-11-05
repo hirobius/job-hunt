@@ -423,7 +423,7 @@ describe('shared list state (#130 slice 4)', () => {
     // The title also links from the Follow up list; either opens the same job.
     await userEvent.click(screen.getAllByRole('link', { name: 'Zenith Product Designer' })[0]);
     await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(APPLIED)}`));
-    await userEvent.click(screen.getByRole('button', { name: /Back to Pipeline/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Back to Apply/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('Zenith');
     expect(screen.queryByRole('link', { name: 'Design Engineer' })).toBeNull();

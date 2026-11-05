@@ -62,7 +62,7 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   // A single save's Open opens that job's page; the Jobs tab has all three in To apply.
   await notice.getByRole('button', { name: 'Open' }).click();
   await expect(page).toHaveURL(/#\/queue\/[^/?]+/);
-  await page.getByRole('tab', { name: 'Jobs' }).click();
+  await page.getByRole('tab', { name: 'Apply' }).click();
 
   await expect(page.getByRole('region', { name: 'To apply (3)' })).toBeVisible();
   await page.getByRole('button', { name: 'Start applying' }).click();
@@ -142,7 +142,7 @@ test('at 1440 the Jobs tab is the list beside the job, and Mark applied walks it
     [2, 'Bolt Designer'],
   ] as const)
     await page.goto(`/?add=${encodeURIComponent(`https://acme.example/jobs/${n}`)}&t=${t}`);
-  await page.getByRole('tab', { name: 'Jobs' }).click();
+  await page.getByRole('tab', { name: 'Apply' }).click();
   await page.evaluate(() => (location.hash = '#/queue'));
   const rail = page.getByRole('navigation', { name: 'Jobs' });
   await expect(rail.locator('a[href^="#/queue/"]')).toHaveCount(2);

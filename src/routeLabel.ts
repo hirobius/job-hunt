@@ -24,7 +24,7 @@ const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): string {
   switch (r.tab) {
     case 'queue': {
-      if (!r.jobId) return 'Pipeline';
+      if (!r.jobId) return 'Apply';
       const job = findJobById(r.jobId, ctx.jobs);
       return job ? titleOf(job) : 'Job';
     }
@@ -39,7 +39,7 @@ export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): st
       return (r.sub && companyBySlug(r.sub, ctx.jobs, ctx.docs)?.name) || 'Company';
     // An old link's origin under the retired Companies tab: it lands on Today (route.ts).
     case 'discover':
-      return 'Today';
+      return 'Find';
     case 'copy-deck': {
       if (!r.sub) return 'Documents';
       if (r.sub.startsWith('new/')) {
@@ -53,7 +53,7 @@ export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): st
       return legalTitleFor(r.sub);
     case 'today':
     case '':
-      return 'Today';
+      return 'Find';
     default:
       return 'the last page';
   }

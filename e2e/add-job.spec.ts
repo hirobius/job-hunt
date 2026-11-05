@@ -48,7 +48,7 @@ test('opens on Today with no setup; the sample pipeline lists due follow-ups', a
   await expect(page).toHaveURL(/#\/today$/);
   await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
   await expect(page.getByText('Set up your search')).toHaveCount(0);
-  await page.getByRole('tab', { name: 'Jobs' }).click();
+  await page.getByRole('tab', { name: 'Apply' }).click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page).toHaveURL(/#\/queue$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
@@ -68,7 +68,7 @@ test('#/today opens Today', async ({ page }) => {
   await page.goto('/#/queue');
   await page.goto('/#/today');
   await expect(page).toHaveURL(/#\/today$/);
-  await expect(page.getByRole('tab', { name: 'Today', selected: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Find', selected: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/#\/queue$/);
 });

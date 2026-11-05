@@ -97,7 +97,7 @@ function PipelinePage() {
           <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Stack gap="px4">
               <Text as="h1" variant="title" ref={heading}>
-                Pipeline
+                Apply
               </Text>
               <MetaCaption
                 items={
@@ -245,7 +245,7 @@ function PipelinePage() {
             framed
             icon={Briefcase}
             title="Track your first job"
-            description="Paste a job link to save it here, then apply and follow up. You can also save postings from Review new on Today."
+            description="Paste a job link to save it here, then apply and follow up. You can also save postings from Review new on Find."
             action={
               <Stack direction="row" wrap="wrap" gap="tight" justify="center">
                 {addJobButton}
