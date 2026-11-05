@@ -1,37 +1,15 @@
 {
-  "updatedAt": "2026-10-30T15:00:00Z",
+  "updatedAt": "2026-11-05T07:00:00Z",
   "phase": "live",
-  "headline": "Ship 1029 on claude/ship-1029 (not on main yet): Stoke rename + flame wordmark (#429), simplify 7-11 (#430), DS job sources (#428), no setup screen (a new user gets the design-systems profile and starter companies on its own, Today opens with the scan running), design-systems-only content (dsOnly.test.ts guard), subtler flame reveal, legal wording approved.",
+  "headline": "Roleflame (renamed from hiraga 2026-11-02, #461) is live. Recent: faster scans (#448 slices), flat lists, scroll-memory fix, push-time secret/PII scan, exact pins.",
   "next": [
-    "Merge claude/rf-int-hiraga (PR #435 flame E + #436 rename to hiraga, on main): verify + test:e2e green. Flame animates continuously (4.5 s settle reverted, Adrian) and motion lazy-loaded (entry 249.3/250 kB). Not merged.",
-    "Review PR claude/flake-companies: Account → Companies feedback flake. Root cause: the press did extra render passes before the dialog's first paint (a second pass waiting on an already-loaded chunk, the whole list redrawn when the menu closed as the dialog took focus, 40 first rows) while Review new rebuilt hundreds of closed 'sources unavailable' rows on every scan tick. All cut in the app; 300 ms budget unchanged. Also scoped two toast e2e checks off the screen-reader announcer copy. Not merged.",
-    "Merge claude/rf-int-batch (PRs #437 live fixtures, #439 React 19, #440 startup perf, #441 a11y + toast announcer fix): verify + test:e2e green at f292d95. #438 left out (needs SQL first).",
-    "Review PR claude/focus-345 (#345): focus lands on the Pipeline heading after Try with sample data and Clear. main (f73cd4e) merged in. Not merged.",
-    "Review PR claude/src-free-aggs: sync-postings reads Arbeitnow, Remote OK (terms checked every read) and We Work Remotely keyless; TheirStack/Adzuna/Jooble turn on by themselves when their Supabase secret is set. Run 20261029100200_postings_keyless_aggregators.sql (after 20261029100000) and redeploy sync-postings. Not merged.",
-    "Review PR claude/src-bulk: bulk board set (9,937 confirmed live public boards in src/feed/data/boards.json via npm run boards:discover), server scan rotation in sync-postings (1-minute cron, ~6.8 h per full cycle), Today 'Scanning N sources'. Apply 20261029100100_scan_rotation.sql and redeploy sync-postings (README 'Turn on the rotation'). Not merged.",
-    "Merge claude/ship-1029 to main after reviewing screenshots in docs/review/ship-1029/ (orchestrator). Then delete SAM_GOV_API_KEY from Vercel.",
-    "Apply migrations in order (check `supabase migration list`): 20261024100000_postings.sql, 20261024100200_sync_postings_cron.sql, 20261026100000_rls_policies_as_code.sql, 20261026100100_tracker_data_size_cap.sql, 20261026100200_client_errors_rate_limited_rpc.sql, 20261028100000_delete_my_data.sql, 20261029100000_postings_more_sources.sql.",
-    "Simplify follow-ups: #382 breadth guard (only the forward guard shipped), #385 Add sources sheet + Find box on Today (#408 shipped the box only), Jobs under More (#410 shipped it as a tab).",
-    "Security follow-ups filed by #399: #391-#394. Before deploying sync-postings, the cron Vault secret must equal SYNC_SECRET.",
-    "Review PR claude/job-decks (#287): Decks panel on the job page (deck links with label + Sent on, http(s) only, soft remove + Undo), on the Job so it syncs, rides in Back up and the CSV decks column. Links only, no storage change. verify + verify:ui green. Not merged.",
-    "Review draft PR claude/rf-track-scorer: the Muse track scorer replaces the systems-only rule on the Design Systems track (Live postings, Companies, dreams, reasons on cards, Review bucket), the Pipeline's scored queue + Skip, and the postings sync (migrations + sync-postings edge function + 2x daily cron + designsystems.jobs RSS). Migrations not applied, function not deployed (Adrian). Veto-able: 'design engineer' dropped from titleAdjacent.",
-    "Security re-check 3 of claude/rf-tab-switch (#288): the must-fix is fixed test-first (a session getSession can't read, offline or a failed refresh, skips that send and never stops the tab; a definite sign-out or other user still does). main (f33442f) merged in; verify, verify:ui, e2e run locally. Not merged.",
-    "Review claude/rf-watched-loss (off main): Companies 'Find more' emptied the found GitHub teams before each run, so a run GitHub held back left only the watched boards (Adrian's 160 -> 125). Runs now only add (feed/foundTeams.ts). Nothing synced was deleted. verify, verify:ui, e2e green. Not merged.",
-    "Review claude/rf-clean-start (off claude/rf-ship): clean first run (no starter messages, examples or empty sections until the user asks; one-tap Add starter messages in Documents, Follow up, Apply sheet and kit) + Remote Rocketship link on ATS search's Big job boards (Remote/Any, unverified live). Not merged.",
-    "Review claude/rf-visual-031 (on claude/rf-clean-start): HDS 0.31.0, no outlines on cards/panels (e2e/no-outlines guard), shell at the portfolio width (1180, clamp gutter, 1052 content), Pipeline table from 1280. verify, verify:ui, e2e green; all 34 baselines regenerated. Not merged.",
-    "Review release candidate claude/rf-candidate: main (4927b31) merged in, so it is ahead of production. Release review fixed: quick-add URL goes through the route seam (no ~2 s tab stall), a stale tab after a deploy says 'A new version is ready' with Reload, an expired sign-in link says so, and the feedback E2E collapse flake (10/10 alone). verify, verify:ui and e2e green. Not merged; add roleforge-app.vercel.app to Supabase redirect URLs before shipping.",
-    "Review claude/rf-quickwins (off claude/rf-batch3): /assets immutable cache, sample data adds a Sample track, lazy supabase-js + route views (first load 319.6 \u2192 246.3 kB gz JS signed out), Starred/Documents/Follow-up due wording, kit note sign-in aware, favicon brand, starter template fixes, main landmark, PWA (titles per route, manifest id + screenshots, favicon.ico, theme-color per scheme, font preload), docs. Not merged.",
-    "New production address https://roleforge-app.vercel.app on claude/rf-new-url (off claude/rf-batch3): magic links accept both it and the old job-hunt-jade address; add both to Supabase Auth \u2192 URL Configuration before merging. Not merged.",
-    "Review batch candidate claude/rf-batch3 (on claude/rf-ship-r2): #172 inline-style ratchet (6) + #171 ATS tests, redesign gaps (OS colour mode on first visit, Page not found, legal back link), #215 company source follows the track, #212 visible feedback, Open posting links beside every listed job, #105 vite 8 + plugin-react 6 + jest-dom 7. Last 4 review blockers fixed (Remove + Undo for final copies and Manage track links/sections, Copy the query toast, board-less targets persist, 8 baselines regenerated). Not merged.",
-    "Rev-3 mobile redesign: L (Check a list type-ahead: your companies + YC + Wikidata, chip input, Keep as a target) and M (Documents rows) built on claude/rf-gaps-lm off claude/rf-polish. Next: Adrian's review; Wikidata + YC hiring.json are unverified live (check on a preview); legal wording adds Wikidata (needs approval).",
-    "Review draft PR claude/teams-first: Companies is Discover's default tool (open roles first, Hiring now, inline Save + Undo, dream companies in blob v9; #220 took v7, #214 takes v8).",
-    "Merge #181 (polish) and #187 (discovery follow-ups) after review.",
-    "Persist all user-edited data across devices: outreach targets, saved searches, evidence, work mode (Adrian, 2026-10-15).",
-    "Verify unverified-live sources on a preview: YC mirror, GitHub search, Jobicy, Workable/Recruitee probes, community site: clauses; Remote OK stays off until its legal notice is read.",
-    "After HDS lands: npm audit; React 19 waits (reverted for a keyboard-tab regression) (#105).",
-    "Human / dashboard: #16 Vercel Analytics, #22 .env.example + revoke old key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
-    "Legal (before public launch): #43 Privacy Policy + Terms."
+    "Review + merge PR #459 (Review card rework, #458); independent review running.",
+    "Daily job picks inside Roleflame: picks on Today + a keyed web-search feed in sync-postings (PR in progress).",
+    "Finish #448: scans still too slow.",
+    "#278 sign-in emails via Resend SMTP (Adrian steps in its runbook)."
   ],
-  "blocked": [],
-  "focus": "Live: 9,937 boards + free job feeds scanning every minute; next: hiraga rename + Version E flame, then more sources."
+  "blocked": [
+    "#55 Roleflame name clearance (Adrian)."
+  ],
+  "focus": "Roleflame: faster scans and daily job picks in the app."
 }
