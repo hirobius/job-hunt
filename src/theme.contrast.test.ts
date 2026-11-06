@@ -214,9 +214,10 @@ const pairs: Pair[] = [
     min: 3,
   },
   {
+    // HDS 0.36 dropped the --component-nav-* aliases for the values they named.
     name: 'active nav item text on its fill',
-    fg: 'component-nav-textActive',
-    bg: 'component-nav-bgActive',
+    fg: 'semantic-color-content-primary',
+    bg: 'semantic-accent-subtle',
     min: 4.5,
   },
   ...FEEDBACK.flatMap((tone): Pair[] => [
