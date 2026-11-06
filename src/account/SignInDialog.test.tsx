@@ -56,9 +56,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// The animated logo (src/brand/RoleFlame.tsx), stacked: the flame above the name.
 const brandOf = (dialog: HTMLElement) => {
-  const flame = dialog.querySelector('.rjb-flame');
-  const word = dialog.querySelector('.rjb-logo-word');
+  const logo = dialog.querySelector('.rjb-rf[data-layout="stacked"]');
+  const flame = logo?.querySelector(':scope > svg') ?? null;
+  const word = logo;
   return { flame, word };
 };
 
@@ -69,8 +71,7 @@ describe('SignInDialog', () => {
     const { flame, word } = brandOf(dialog);
     expect(flame).not.toBeNull();
     expect(flame?.closest('[aria-hidden="true"]')).not.toBeNull();
-    expect(flame?.closest('.rjb-wordmark-flame')).not.toBeNull();
-    expect(flame?.querySelector('svg')).not.toBeNull();
+    expect(flame?.querySelector('path')).not.toBeNull();
     expect(word).toHaveTextContent(BRAND.name);
     expect(word?.tagName).not.toMatch(/^H\d$/);
     expect(
