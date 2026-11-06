@@ -50,8 +50,23 @@ sample data, a fixed clock (2026-10-21 17:00 UTC), UTC and en-US, external reque
 Tolerance (`playwright.config.ts`): `maxDiffPixelRatio: 0.001`, `threshold: 0.2`. A 4px spacing
 shift fails (2–5% of pixels differ); three clean runs in a row pass.
 
-Baselines are from the cloud session's Chromium on Linux (`*-chromium-linux.png`). When a change is
-meant to move pixels, update them on purpose and review the PNGs in the diff:
+**Pinned environment (#485).** Baselines are drawn only in one Playwright image, by digest, with the
+Chromium it runs, both in `e2e/visual-env.json` (now `mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a7…`,
+Chromium 156.0.8078.80). `npm run test:visual` (`scripts/visual-docker.mjs`) runs the spec in that image with
+the repo mounted. The spec checks it is in the image: the runner's `RJB_VISUAL_IMAGE` marker,
+`PLAYWRIGHT_BROWSERS_PATH=/ms-playwright` with that folder present, Ubuntu noble in `/etc/os-release`, and the
+pinned Chromium version. All four must hold. Outside the image the spec skips (so `npm run test:e2e` still runs everywhere) and an
+`--update-snapshots` fails, so no other Chromium, font stack or rasterizer can write a baseline. (#476 did:
+glyph widths and wrapping changed on every PNG.) Needs Docker; node_modules must be Linux x64 (a cloud
+session, or `npm ci` inside the image on a Mac). In a cloud session, start the daemon first:
+`dockerd > /var/tmp/dockerd.log 2>&1 &`.
+
+**To bump it:** with each `@playwright/test` bump, take the new image's digest
+(`docker pull mcr.microsoft.com/playwright:vX.Y.Z-noble`, then `docker inspect --format '{{index .RepoDigests 0}}'`),
+put it and its Chromium version in `e2e/visual-env.json` (`src/visualEnv.test.ts` fails when the tag and the
+pin disagree), and re-take every baseline in the same PR.
+
+When a change is meant to move pixels, update them on purpose and review the PNGs in the diff:
 
 ```sh
 npm run test:visual -- --update-snapshots
