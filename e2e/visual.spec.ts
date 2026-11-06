@@ -17,7 +17,7 @@ import visualEnv from './visual-env.json' with { type: 'json' };
 // Four checks, all needed: the runner's marker, the image's own browser folder, its OS (Ubuntu noble)
 // and the Chromium version. Setting the marker by hand on another machine is not enough.
 function inPinnedImage(chromium: string): boolean {
-  let osRelease = '';
+  let osRelease: string;
   try {
     osRelease = readFileSync('/etc/os-release', 'utf8');
   } catch {
