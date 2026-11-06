@@ -5,6 +5,10 @@
 //
 // The tokens are only held here. Whether they may sign this browser in is the account seam's call
 // (account/authLink.ts): a link nobody asked for in this browser needs a confirm first.
+//
+// A Google sign-in (#482, PKCE) comes back with `?code=…` in the query instead: it is taken and
+// stripped here the same way, and is worth a session only with the verifier this browser kept
+// (account/oauthPkce.ts).
 
 export interface AuthTokens {
   access_token: string;
@@ -28,26 +32,56 @@ export const hasTokenParams = (hash: string): boolean => {
   return TOKEN_PARAMS.some((k) => p.has(k));
 };
 
-/** Drop the fragment when it carries tokens (in place: no history entry holds them). */
+/** The OAuth authorization code in a query string (Google, PKCE), or null. */
+export function readAuthCode(search: string): string | null {
+  return new URLSearchParams(search.replace(/^\?/, '')).get('code') || null;
+}
+
+/** The query without its `code` param ('' when nothing is left). */
+function withoutCode(search: string): string {
+  const p = new URLSearchParams(search.replace(/^\?/, ''));
+  p.delete('code');
+  const s = p.toString();
+  return s ? '?' + s : '';
+}
+
+/** Drop the fragment when it carries tokens, and an auth `code` from the query (in place: no
+ *  history entry holds them). */
 export function stripAuthFragment(
   loc: Pick<Location, 'hash' | 'pathname' | 'search'> = window.location,
   hist: Pick<History, 'replaceState' | 'state'> = window.history,
 ): void {
-  if (!hasTokenParams(loc.hash)) return;
+  const tokens = hasTokenParams(loc.hash);
+  const code = readAuthCode(loc.search) !== null;
+  if (!tokens && !code) return;
+  const search = code ? withoutCode(loc.search) : loc.search;
+  const hash = tokens ? '' : loc.hash;
   try {
-    hist.replaceState(hist.state, '', loc.pathname + loc.search);
+    hist.replaceState(hist.state, '', loc.pathname + search + hash);
   } catch {
     /* a sandboxed frame: the tokens are still never used without the checks */
   }
 }
 
 let captured: AuthTokens | null = null;
-/** This tab opened from a sign-in link (read at load, before the fragment is stripped). */
+let capturedCode: string | null = null;
+/** This tab opened from a sign-in link or a Google return (read at load, before the strip). */
 export let openedFromAuthLink = false;
 if (typeof window !== 'undefined') {
   captured = readAuthTokens(window.location.hash);
-  openedFromAuthLink = captured !== null;
+  capturedCode = readAuthCode(window.location.search);
+  openedFromAuthLink = captured !== null || capturedCode !== null;
   stripAuthFragment();
+}
+
+/** The Google return's authorization code this page load arrived with, still unclaimed (peek). */
+export const bootAuthCode = (): string | null => capturedCode;
+
+/** Claim the Google return's code (once: a second call gets null). */
+export function takeBootAuthCode(): string | null {
+  const c = capturedCode;
+  capturedCode = null;
+  return c;
 }
 
 /** The tokens this page load arrived with, still unclaimed (peek). */

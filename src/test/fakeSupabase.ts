@@ -19,6 +19,8 @@ type Result = { data: unknown; error: { message: string } | null };
 export function createFakeSupabase(
   opts: {
     linkEvent?: string;
+    /** signInWithOAuth answers with this error message (#482). */
+    oauthError?: string;
     linkUser?: (email: string) => string;
     tables?: Record<string, Row[]>;
   } = {},
@@ -58,6 +60,7 @@ export function createFakeSupabase(
   // unapplied migration does. `delete_my_data` erases every row of the caller (#393).
   const rpcs = new Set<string>();
   const listeners = new Set<(event: string, s: typeof session) => void>();
+  const oauthCalls: { provider: string; options?: { redirectTo?: string } }[] = [];
 
   const client = {
     from(table: string) {
@@ -195,12 +198,24 @@ export function createFakeSupabase(
       async signInWithOtp() {
         return { error: null };
       },
+      /** "Continue with Google" (#482): the real client navigates away; the fake records the ask. */
+      async signInWithOAuth(o: { provider: string; options?: { redirectTo?: string } }) {
+        oauthCalls.push(o);
+        return opts.oauthError
+          ? { data: { provider: o.provider, url: null }, error: { message: opts.oauthError } }
+          : {
+              data: { provider: o.provider, url: 'https://auth.example.test/authorize' },
+              error: null,
+            };
+      },
     },
   };
 
   return {
     client,
     tables,
+    /** Every signInWithOAuth ask, in order. */
+    oauthCalls,
     /** `code`: the Postgres / PostgREST error code the failure carries. */
     failNext: (table: string, op: Op, code?: string) => failures.push({ table, op, code }),
     /** Give the server a database function (see `rpc`). */
@@ -239,10 +254,19 @@ export function createFakeSupabase(
 /** An access token as a magic link carries it: a JWT whose payload names the account's email. */
 export function fakeAccessToken(
   email: string,
-  { exp = Math.floor(Date.now() / 1000) + 3600 }: { exp?: number | null } = {},
+  {
+    exp = Math.floor(Date.now() / 1000) + 3600,
+    amr,
+  }: {
+    exp?: number | null;
+    /** Supabase's sign-in methods, e.g. 'oauth' (Google, #482). */ amr?: string;
+  } = {},
 ): string {
   const b64 = (o: object) =>
     btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const payload = exp === null ? { sub: `id-${email}`, email } : { sub: `id-${email}`, email, exp };
+  const base = amr
+    ? { sub: `id-${email}`, email, amr: [{ method: amr, timestamp: 1 }] }
+    : { sub: `id-${email}`, email };
+  const payload = exp === null ? base : { ...base, exp };
   return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(payload)}.sig`;
 }

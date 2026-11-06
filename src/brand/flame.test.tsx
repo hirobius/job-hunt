@@ -16,6 +16,9 @@ afterEach(cleanup);
 const SOURCE = 'src/brand/flame.svg';
 // The only file allowed to hold the mark besides its source: written by `npm run icons`.
 const GENERATED = 'public/favicon.svg';
+// Third-party marks a brand's own rules require as given (never the flame, never a UI icon: those
+// are HDS Icons). Google's "G" for Continue with Google (#482, Google's sign-in branding rules).
+const THIRD_PARTY_MARKS = ['src/account/google-g.svg'];
 const paths = (svg: string) => [...svg.matchAll(/\sd="([^"]+)"/g)].map((m) => m[1]);
 
 function walk(dir: string): string[] {
@@ -58,7 +61,15 @@ describe('flame.svg, the one source', () => {
 
 describe('no second logo', () => {
   it('no other svg file exists in the repo (public/favicon.svg is generated from flame.svg)', () => {
-    expect(repoFiles.filter((f) => f.endsWith('.svg'))).toEqual([]);
+    expect(repoFiles.filter((f) => f.endsWith('.svg') && !THIRD_PARTY_MARKS.includes(f))).toEqual(
+      [],
+    );
+    // The allowed marks carry no flame path data.
+    const marks = paths(readFileSync(SOURCE, 'utf8')).map((d) => d.slice(0, 40));
+    for (const f of THIRD_PARTY_MARKS) {
+      const text = readFileSync(f, 'utf8');
+      expect(marks.some((m) => text.includes(m))).toBe(false);
+    }
   });
 
   it('no other file carries flame path data or an inline drawn svg', () => {

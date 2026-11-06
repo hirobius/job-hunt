@@ -555,6 +555,20 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 
+  it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {
+    await act(() => new Promise((r) => setTimeout(r, 0)));
+    window.history.replaceState(
+      null,
+      '',
+      '/?error=access_denied&error_code=access_denied&error_description=The+user+denied#/queue',
+    );
+    resetHistoryRecord();
+    renderApp();
+    expect(await screen.findByText('Google sign-in was cancelled.')).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('#/today');
+  });
+
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {
     // A fresh load of the link: the hashchange from beforeEach has run, and the route module
     // starts its record on the URL the browser opened.
