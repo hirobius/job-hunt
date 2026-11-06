@@ -38,7 +38,7 @@ export default function Today() {
     <Stack gap="px24">
       <Stack gap="px4">
         <Text as="h1" variant="title">
-          Today
+          Find
         </Text>
         <MetaCaption
           items={[

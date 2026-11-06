@@ -24,11 +24,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Layout
 
-- **Screens today:** two top tabs, **Today** (home: Review new postings, Apply, Follow up) and **Jobs**
-  (page head "Pipeline": saved jobs). Plus pages with no tab: a job, Apply mode, Documents, a Company.
-- **Planned (#471, not built yet):** two screens, **Find** (new postings) and **Apply** (saved jobs).
-  From 1024 px each is two columns: a list on the left, the selected item on the right. Below that,
-  one column, list then item.
+- **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings, Apply, Follow up
+  and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
+  list on the left, the selected job on the right. Below that, one column: the list, then a job's own
+  page. A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
+  then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
+- **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
 - Touch targets are at least 40 px on a phone. Text contrast is AA (4.5) in light and dark.

@@ -89,10 +89,10 @@ describe('the shell: Today and Jobs', () => {
   it('an empty hash lands on Today; the only tabs are Today and Jobs', async () => {
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
-    expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Today', 'Jobs']);
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
-    expect(document.title).toMatch(/^Today/);
+    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Find', 'Apply']);
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+    expect(document.title).toMatch(/^Find/);
   });
 
   it.each(['#/discover', '#/discover/live', '#/discover/teams?pillar=x', '#/apprenticeships'])(
@@ -102,7 +102,7 @@ describe('the shell: Today and Jobs', () => {
       const before = window.history.length;
       renderApp();
       await waitFor(() => expect(window.location.hash).toBe('#/today'));
-      expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+      expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
       expect(window.history.length).toBe(before);
     },
   );
@@ -130,9 +130,9 @@ describe('the shell: Today and Jobs', () => {
   it('the Jobs tab opens the Pipeline, unchanged inside', async () => {
     window.location.hash = '#/today';
     renderApp();
-    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
-    expect(screen.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
   });
 });
 

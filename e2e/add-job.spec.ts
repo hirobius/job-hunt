@@ -16,7 +16,8 @@ test('adds a pasted job URL to the queue', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: 'Add a job' });
   await dialog.getByLabel('Job link').fill('https://boards.greenhouse.io/acme/jobs/77');
   await dialog.getByRole('button', { name: 'Add job' }).click();
-  await expect(page.getByRole('link', { name: 'Acme · Greenhouse', exact: true })).toBeVisible();
+  // From lg the Jobs tab opens on the newest job beside the list (#471).
+  await expect(page.getByRole('heading', { level: 1, name: 'Acme · Greenhouse' })).toBeVisible();
 });
 
 // QA: a link that isn't one keeps the dialog open with a field error; the same link twice says it
@@ -49,7 +50,7 @@ test('opens on Today with no setup; the sample pipeline lists due follow-ups', a
   await expect(page).toHaveURL(/#\/today$/);
   await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
   await expect(page.getByText('Set up your search')).toHaveCount(0);
-  await page.getByRole('tab', { name: 'Jobs' }).click();
+  await page.getByRole('tab', { name: 'Apply' }).click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page).toHaveURL(/#\/queue$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
@@ -69,7 +70,7 @@ test('#/today opens Today', async ({ page }) => {
   await page.goto('/#/queue');
   await page.goto('/#/today');
   await expect(page).toHaveURL(/#\/today$/);
-  await expect(page.getByRole('tab', { name: 'Today', selected: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Find', selected: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/#\/queue$/);
 });

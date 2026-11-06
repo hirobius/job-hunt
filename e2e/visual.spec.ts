@@ -7,15 +7,33 @@
 // other environment, so a re-take can never flip the render (#476 did, by glyph widths and wrapping).
 // They capture the reduced-motion render only (reducedMotion: 'reduce' below): the animated logo
 // held on frame 0. Its motion is covered by e2e/brand.spec.ts and src/brand/roleFlameMotion.test.tsx.
+import { existsSync, readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { ROUTES, go, openJob, openApply, seed } from './routes';
 import visualEnv from './visual-env.json' with { type: 'json' };
 
-// Outside the pinned image this spec never draws: a plain `npm run test:e2e` skips it, and an update
+// Outside the pinned image (inPinnedImage below) this spec never draws: a plain `npm run test:e2e` skips it, and an update
 // there fails, so no baseline is ever written by another Chromium or rasterizer.
+// Four checks, all needed: the runner's marker, the image's own browser folder, its OS (Ubuntu noble)
+// and the Chromium version. Setting the marker by hand on another machine is not enough.
+function inPinnedImage(chromium: string): boolean {
+  let osRelease = '';
+  try {
+    osRelease = readFileSync('/etc/os-release', 'utf8');
+  } catch {
+    return false;
+  }
+  return (
+    process.env.RJB_VISUAL_IMAGE === visualEnv.image &&
+    process.env.PLAYWRIGHT_BROWSERS_PATH === '/ms-playwright' &&
+    existsSync('/ms-playwright') &&
+    /^VERSION_CODENAME=noble$/m.test(osRelease) &&
+    chromium === visualEnv.chromium
+  );
+}
+
 test.beforeAll(({ browser }, testInfo) => {
-  if (process.env.RJB_VISUAL_IMAGE === visualEnv.image && browser.version() === visualEnv.chromium)
-    return;
+  if (inPinnedImage(browser.version())) return;
   const updating =
     testInfo.config.updateSnapshots === 'all' || testInfo.config.updateSnapshots === 'changed';
   const where = `Visual baselines are drawn only in ${visualEnv.image} (Chromium ${visualEnv.chromium}, this is ${browser.version()}): run \`npm run test:visual\` (Docker).`;

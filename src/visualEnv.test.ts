@@ -34,9 +34,12 @@ describe('visual baseline environment', () => {
 
   it('refuses to draw anywhere else: skips outside the image, fails an update there', () => {
     expect(spec).toContain("import visualEnv from './visual-env.json'");
-    expect(spec).toMatch(
-      /process\.env\.RJB_VISUAL_IMAGE === visualEnv\.image && browser\.version\(\) === visualEnv\.chromium/,
-    );
+    expect(spec).toContain('process.env.RJB_VISUAL_IMAGE === visualEnv.image');
+    expect(spec).toContain("process.env.PLAYWRIGHT_BROWSERS_PATH === '/ms-playwright'");
+    expect(spec).toContain("existsSync('/ms-playwright')");
+    expect(spec).toContain('/^VERSION_CODENAME=noble$/m.test(osRelease)');
+    expect(spec).toContain('chromium === visualEnv.chromium');
+    expect(spec).toContain('if (inPinnedImage(browser.version())) return;');
     expect(spec).toMatch(/if \(updating\) throw new Error/);
     expect(spec).toContain('testInfo.skip(true, where)');
   });

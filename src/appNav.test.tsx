@@ -41,7 +41,7 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders two tabs (Today · Jobs), each associated with a tabpanel', () => {
+  it('renders two tabs (Find · Apply), each associated with a tabpanel', () => {
     renderApp();
     const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
     expect(tabs).toHaveLength(2);
@@ -68,7 +68,7 @@ describe('App top-level tab wiring', () => {
 
   it('defaults to the Today tab when the hash carries no route (#383)', () => {
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
   });
 });
 
@@ -80,7 +80,7 @@ describe('an unknown route (review nit)', () => {
     // No tab is selected and no tab panel mounts, like Documents.
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
     expect(screen.queryByRole('tabpanel')).toBeNull();
-    screen.getByRole('button', { name: 'Go to Today' }).click();
+    screen.getByRole('button', { name: 'Go to Find' }).click();
     await vi.waitFor(() => expect(window.location.hash).toBe('#/today'));
   });
 
@@ -96,7 +96,7 @@ describe('an unknown route (review nit)', () => {
   ])('a sign-in callback (%s) lands on Today, not Page not found', (hash, kept) => {
     window.location.hash = hash;
     renderApp();
-    expect(screen.getByRole('tab', { name: 'Today', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Find', selected: true })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
     expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/today');
   });
@@ -104,7 +104,7 @@ describe('an unknown route (review nit)', () => {
   it('the old Trades slug (#/apprenticeships) still lands on home', () => {
     window.location.hash = '#/apprenticeships';
     renderApp();
-    expect(screen.getByRole('tab', { name: 'Today', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Find', selected: true })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
   });
 });

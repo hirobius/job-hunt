@@ -53,7 +53,9 @@ shift fails (2–5% of pixels differ); three clean runs in a row pass.
 **Pinned environment (#485).** Baselines are drawn only in one Playwright image, by digest, with the
 Chromium it runs, both in `e2e/visual-env.json` (now `mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a7…`,
 Chromium 156.0.8078.80). `npm run test:visual` (`scripts/visual-docker.mjs`) runs the spec in that image with
-the repo mounted. Outside it the spec skips (so `npm run test:e2e` still runs everywhere) and an
+the repo mounted. The spec checks it is in the image: the runner's `RJB_VISUAL_IMAGE` marker,
+`PLAYWRIGHT_BROWSERS_PATH=/ms-playwright` with that folder present, Ubuntu noble in `/etc/os-release`, and the
+pinned Chromium version. All four must hold. Outside the image the spec skips (so `npm run test:e2e` still runs everywhere) and an
 `--update-snapshots` fails, so no other Chromium, font stack or rasterizer can write a baseline. (#476 did:
 glyph widths and wrapping changed on every PNG.) Needs Docker; node_modules must be Linux x64 (a cloud
 session, or `npm ci` inside the image on a Mac). In a cloud session, start the daemon first:

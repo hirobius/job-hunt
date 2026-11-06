@@ -77,7 +77,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('img', { name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Jobs']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Find', 'Apply']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -100,9 +100,7 @@ describe('app shell (#115 Phase 1)', () => {
     const mains = screen.getAllByRole('main');
     expect(mains).toHaveLength(1);
     expect(within(mains[0]).getByRole('tabpanel')).toBeInTheDocument();
-    expect(
-      within(mains[0]).getByRole('heading', { level: 1, name: 'Pipeline' }),
-    ).toBeInTheDocument();
+    expect(within(mains[0]).getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
@@ -350,10 +348,10 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
 
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
-    ['#/queue', 'Jobs'],
-    ['#/discover', 'Today'],
-    ['#/today', 'Today'],
-    ['', 'Today'],
+    ['#/queue', 'Apply'],
+    ['#/discover', 'Find'],
+    ['#/today', 'Find'],
+    ['', 'Find'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
@@ -366,10 +364,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(screen.queryByRole('tab', { name: 'Templates' })).toBeNull();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
     expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
-      'href',
-      '#/queue',
-    );
+    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/queue');
   });
 
   it.each(['#/copy-deck', '#/legal/privacy'])(
@@ -381,7 +376,7 @@ describe('routes keep working (#115 Phase 1)', () => {
       const user = userEvent.setup();
       screen.getByRole('button', { name: /^Account/ }).focus();
       await user.tab();
-      expect(screen.getByRole('tab', { name: 'Today' })).toHaveFocus();
+      expect(screen.getByRole('tab', { name: 'Find' })).toHaveFocus();
       expect(window.location.hash).toBe(hash);
       // Enter still opens it.
       await user.keyboard('{Enter}');
@@ -429,7 +424,7 @@ describe('routes keep working (#115 Phase 1)', () => {
       'href',
       '#/legal/privacy',
     );
-    expect(screen.getByRole('link', { name: 'Back to Today' })).toHaveAttribute('href', '#/today');
+    expect(screen.getByRole('link', { name: 'Back to Find' })).toHaveAttribute('href', '#/today');
     // Approved wording carries its date and no notice; a revision under review says it is a draft.
     if (LEGAL_DRAFT) {
       expect(screen.getByText(/^Draft of/)).toBeInTheDocument();
@@ -448,7 +443,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 
@@ -560,7 +555,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(window.location.hash).toBe('#/today');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
   });
 
   it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {
@@ -591,7 +586,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     // The menu's entry pops at once: the route knows the hash it is on, so it doesn't wait ~2 s
     // for a hashchange that never comes.
     await waitFor(() => expect(backInFlight()).toBe(false), { timeout: 500 });
-    await userEvent.click(screen.getByRole('tab', { name: 'Today' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Find' }));
     await waitFor(() => expect(window.location.hash).toBe('#/today'), { timeout: 500 });
   });
 });

@@ -153,7 +153,9 @@ describe('Pipeline panels (rev-3)', () => {
     loadSample();
     window.location.hash = '#/queue';
     const { container } = renderApp();
-    await screen.findByRole('region', { name: /^Jobs$/ });
+    // From lg the Jobs tab is the list beside the first job (#471).
+    await screen.findByRole('navigation', { name: 'Jobs' });
+    await screen.findByRole('region', { name: 'Templates' });
     expect(nestedCards(container)).toEqual([]);
   });
 });

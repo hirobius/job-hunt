@@ -270,7 +270,7 @@ for (const theme of THEMES) {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
         await page.goto('/#/today');
-        const tab = page.getByRole('tab', { name: 'Today' });
+        const tab = page.getByRole('tab', { name: 'Find' });
         await expect(tab).toBeVisible();
         await page.keyboard.press('Shift'); // a key press first, so focus shows as focus-visible
         await tab.focus();
@@ -310,8 +310,9 @@ for (const theme of THEMES) {
         expect(await probe(page)).toEqual([]);
         await seed(page);
         await page.evaluate(() => (location.hash = '#/queue'));
-        await page.getByRole('textbox', { name: 'Search saved jobs' }).fill('zzz nothing');
-        await expect(page.getByText(/No jobs match/)).toBeVisible();
+        // From lg the search is the list column's beside a job (#471): the open job stays, pinned.
+        await page.getByRole('textbox', { name: /^Search (saved )?jobs$/ }).fill('zzz nothing');
+        await expect(page.getByText(/No jobs match|Not in this filter/).first()).toBeVisible();
         expect(await probe(page)).toEqual([]);
       });
     });

@@ -27,15 +27,16 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(claude);
   });
 
-  it("names today's screens as CLAUDE.md does, and marks Find / Apply as planned", () => {
-    // Today's top tabs, as CLAUDE.md states them.
-    expect(CLAUDE).toMatch(/two top tabs, \*\*Today\*\*[\s\S]{0,200}?\*\*Jobs\*\*/);
-    expect(CLAUDE).toMatch(/page head "Pipeline"/);
-    expect(RULES).toMatch(/\*\*Today\*\*/);
-    expect(RULES).toMatch(/\*\*Jobs\*\*/);
-    expect(RULES).toMatch(/page head "Pipeline"/);
-    // Find / Apply are named only as planned until CLAUDE.md describes them as built.
-    if (!/Two screens: Find and Apply/.test(CLAUDE)) expect(RULES).toMatch(/Planned \(#471/);
+  it('names the two screens as CLAUDE.md does', () => {
+    // The top tabs, as CLAUDE.md states them (#471, #475).
+    expect(CLAUDE).toMatch(/Two screens: Find and Apply/);
+    expect(CLAUDE).toMatch(/two top tabs, \*\*Find\*\*[\s\S]{0,200}?\*\*Apply\*\*/);
+    expect(RULES).toMatch(/\*\*Two screens: Find and Apply\*\*/);
+    // The old names are gone from the rules (they stay in CLAUDE.md only as history).
+    expect(RULES).not.toMatch(/\*\*Today\*\*|\*\*Jobs\*\*|page head "Pipeline"/);
+    // CLAUDE.md keeps "Today · Jobs" only in the one history note that says it was renamed.
+    const old = CLAUDE.split('\n').filter((l) => /Today · Jobs/.test(l));
+    expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
   });
 
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
