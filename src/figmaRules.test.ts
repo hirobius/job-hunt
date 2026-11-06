@@ -27,8 +27,23 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(claude);
   });
 
-  it('names the two screens', () => {
-    expect(RULES).toMatch(/\*\*Find\*\*/);
-    expect(RULES).toMatch(/\*\*Apply\*\*/);
+  it("names today's screens as CLAUDE.md does, and marks Find / Apply as planned", () => {
+    // Today's top tabs, as CLAUDE.md states them.
+    expect(CLAUDE).toMatch(/two top tabs, \*\*Today\*\*[\s\S]{0,200}?\*\*Jobs\*\*/);
+    expect(CLAUDE).toMatch(/page head "Pipeline"/);
+    expect(RULES).toMatch(/\*\*Today\*\*/);
+    expect(RULES).toMatch(/\*\*Jobs\*\*/);
+    expect(RULES).toMatch(/page head "Pipeline"/);
+    // Find / Apply are named only as planned until CLAUDE.md describes them as built.
+    if (!/Two screens: Find and Apply/.test(CLAUDE)) expect(RULES).toMatch(/Planned \(#471/);
+  });
+
+  it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
+    const css = fs.readFileSync('src/hds-gaps/PageShell.css', 'utf8');
+    expect(css).toContain('--rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);');
+    expect(CLAUDE).toContain('clamp(1.25rem, 5vw, 4rem)');
+    expect(CLAUDE).toMatch(/20 on a phone/);
+    expect(CLAUDE).not.toMatch(/gutter is 16/i);
+    expect(RULES).toMatch(/Page gutter 20 on a phone/);
   });
 });
