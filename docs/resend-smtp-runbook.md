@@ -17,9 +17,12 @@ Adrian's alone (DNS + credentials). Nothing in this repo can turn it on.
   `functions/` and `migrations/`), so Auth settings — SMTP, rate limits, email
   templates — are **dashboard-only**. They cannot be set from code or config
   here, and no repo change can raise the limit.
-- Email templates: none in the repo. The magic-link email uses Supabase's
-  default template, edited dashboard-side at **Authentication → Email
-  Templates → Magic Link**. The SMTP switch does not require template changes.
+- Email templates: the branded magic-link email is in the repo at
+  `supabase/templates/magic_link.html` (subject and paste steps in
+  `supabase/templates/README.md`, pinned by `src/authEmailTemplate.test.ts`).
+  It is pasted by hand at **Authentication → Emails → Templates → Magic
+  link**. No remote images or tracking. The link expiry it states (1 hour)
+  is Supabase's default **Email OTP expiration** (3600 seconds).
 - The in-app rate-limit copy is already fixed (#294):
   `src/account/signInErrors.ts` says "this can take up to an hour" (never
   "wait a minute"), and `signInErrors.test.ts` pins that. The copy stays true
@@ -34,7 +37,7 @@ Supabase project: `nelrcmbkimjjmfmgnixj`.
 | Field                     | Value                                                                                                                                         |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sender email              | `login@mail.hirobius.com`                                                                                                                     |
-| Sender name               | `hiraga` (current brand; #278 originally said Roleforge)                                                                                      |
+| Sender name               | `Roleflame` (`src/brand.ts`; #278 originally said Roleforge)                                                                                  |
 | Host                      | `smtp.resend.com`                                                                                                                             |
 | Port                      | `465`                                                                                                                                         |
 | Username                  | `resend`                                                                                                                                      |
@@ -47,8 +50,8 @@ Supabase project: `nelrcmbkimjjmfmgnixj`.
 | -------------------- | ----- |
 | Emails sent per hour | `60`  |
 
-No code, template, or config change in this repo is required for either
-setting — that is the finding of the #278 audit, not an omission.
+No code or config change in this repo can apply either setting. The repo
+holds the email text only (`supabase/templates/`).
 
 ## Adrian's steps (exact order)
 
@@ -75,12 +78,15 @@ setting — that is the finding of the #278 audit, not an omission.
 6. **Supabase: raise the limit.** **Authentication → Rate Limits** →
    **Emails sent per hour** = `60` → Save.
    Direct: https://supabase.com/dashboard/project/nelrcmbkimjjmfmgnixj/auth/rate-limits
-7. **Test end to end.** On the live app, request a sign-in link for your own
+7. **Supabase: paste the template.** **Authentication → Emails →
+   Templates → Magic link** → Subject `Your Roleflame sign-in link`, body =
+   all of `supabase/templates/magic_link.html` → Save.
+8. **Test end to end.** On the live app, request a sign-in link for your own
    email. Done means: the email arrives **from `login@mail.hirobius.com`**,
    the link signs you in, and the send shows **delivered** at
    https://resend.com/emails.
 
-Until step 7 passes, #278 stays open — the repo side being merged does not
+Until step 8 passes, #278 stays open — the repo side being merged does not
 mean sign-in email has moved.
 
 ## Notes
