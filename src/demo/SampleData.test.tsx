@@ -56,7 +56,7 @@ describe('Try with sample data (Tracker)', () => {
   it('Try with sample data and Clear hand focus to the Pipeline heading', async () => {
     const user = userEvent.setup();
     renderTracker();
-    const heading = () => screen.getByRole('heading', { name: 'Pipeline' });
+    const heading = () => screen.getByRole('heading', { name: 'Apply' });
 
     await user.click(tryButton()!);
     expect(banner()).toBeInTheDocument();

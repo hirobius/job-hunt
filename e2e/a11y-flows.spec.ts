@@ -181,7 +181,7 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/copy-deck$/);
     await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible();
-    expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
+    expect(await tabTo(page, 'Back to Apply')).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
 
@@ -195,16 +195,16 @@ test.describe('keyboard only', () => {
     await expect(page).toHaveURL(/#\/legal\/privacy\?from=%2Fqueue$/);
     // React 19 holds a lazy page's reveal a beat (Suspense throttle): tab once it is on screen.
     await expect(page.getByRole('heading', { name: 'Privacy policy' })).toBeVisible();
-    expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
+    expect(await tabTo(page, 'Back to Apply')).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
   });
 
-  test('job Details → Company page → Back to Pipeline', async ({ page }) => {
+  test('job Details → Company page → Back to Apply', async ({ page }) => {
     await seed(page);
     await go(page, '#/company/larkspur-analytics');
     await expect(page.getByRole('heading', { level: 1, name: /Larkspur/ })).toBeVisible();
-    expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
+    expect(await tabTo(page, 'Back to Apply')).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
   });
@@ -256,8 +256,13 @@ for (const width of [390, 1440] as const) {
     test('a page change moves focus to the new page heading', async ({ page }) => {
       await seed(page);
       await go(page, '#/queue');
-      const link = page.locator('a[href^="#/queue/"]').first();
-      const title = (await link.textContent())!.trim();
+      // From lg the Jobs tab is the list beside a job (#471): a pick there moves in place, so open
+      // the second row, and Back leaves the tab (return-paths.spec.ts covers it).
+      const wide = width > 1000;
+      const link = page.locator('a[href^="#/queue/"]:not([aria-current])').first();
+      const title = wide
+        ? (await link.locator('.rjb-semibold').textContent())!.trim()
+        : (await link.textContent())!.trim();
       await link.focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/queue\/./);
@@ -266,17 +271,19 @@ for (const width of [390, 1440] as const) {
       const heading = page.getByRole('heading', { level: 1, name: title });
       expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
       // The browser's Back is a page change too: it lands on the title that opened the job (#359).
-      await page.goBack();
-      await expect(page).toHaveURL(/#\/queue$/);
-      await expect.poll(() => focused(page)).toBe(`A ${title}`);
+      if (!wide) {
+        await page.goBack();
+        await expect(page).toHaveURL(/#\/queue$/);
+        await expect.poll(() => focused(page)).toBe(`A ${title}`);
+      }
       // A page never seen before gets its heading.
       await go(page, '#/legal/terms');
       await expect.poll(() => focused(page)).toBe('H1 Terms of use');
       // A top tab keeps focus on the tab (it is still there).
-      await page.getByRole('tab', { name: 'Today' }).focus();
+      await page.getByRole('tab', { name: 'Find' }).focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/today$/);
-      await expect.poll(() => focused(page)).toBe('BUTTON Today');
+      await expect.poll(() => focused(page)).toBe('BUTTON Find');
     });
 
     // #345: the pressed control leaves with what it changed (the empty state, the banner).
@@ -287,12 +294,14 @@ for (const width of [390, 1440] as const) {
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
       await page.waitForTimeout(300);
-      await expect.poll(() => focused(page)).toBe('H1 Pipeline');
+      // From lg the Jobs tab turns into the list beside the first job (#471): its title is the h1.
+      if (width > 1000) await expect.poll(() => focused(page)).toMatch(/^H1 /);
+      else await expect.poll(() => focused(page)).toBe('H1 Apply');
       await page.getByRole('button', { name: 'Clear sample data' }).focus();
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toHaveCount(0);
       await page.waitForTimeout(300);
-      await expect.poll(() => focused(page)).toBe('H1 Pipeline');
+      await expect.poll(() => focused(page)).toBe('H1 Apply');
     });
 
     test('a row that leaves the list hands focus on, and the notice is announced', async ({
@@ -313,6 +322,11 @@ for (const width of [390, 1440] as const) {
             });
         }).observe(document.body, { childList: true, subtree: true, characterData: true });
       });
+      // From lg the Jobs tab is the list beside one job (#471): show a saved one, to apply to.
+      if (width > 1000) {
+        await page.getByRole('button', { name: /^Status:/ }).click();
+        await page.getByRole('menuitemradio', { name: /^Saved/ }).click();
+      }
       const mark = page.getByRole('button', { name: /^Mark applied/ }).first();
       await mark.focus();
       await page.keyboard.press('Enter');

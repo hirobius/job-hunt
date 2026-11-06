@@ -26,7 +26,8 @@ test('a job link pasted into Find lands in the Pipeline', async ({ page }) => {
   await expect(dialog.getByText('Saves this job to To apply.')).toBeVisible();
   await dialog.getByRole('button', { name: 'Find' }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('link', { name: 'Acme · Lever', exact: true })).toBeVisible();
+  // From lg the Jobs tab opens on the newest job beside the list (#471).
+  await expect(page.getByRole('heading', { level: 1, name: 'Acme · Lever' })).toBeVisible();
 });
 
 test('a board is followed at once; a title joins the Search profile', async ({ page }) => {

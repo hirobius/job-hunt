@@ -3,6 +3,7 @@ import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
+import CloudSyncProvider from './account/CloudSyncProvider';
 import DocumentsView from './DocumentsView';
 import { setOutreachMessages } from './test/outreach';
 import { STARTER_SNIPPETS } from './copyDeckStore';
@@ -78,12 +79,17 @@ describe('a11y — the Pipeline list with the sample pipeline (#129)', () => {
   });
 
   it.each([
-    ['the desktop table', true],
+    // From lg, the list beside the first job's Apply view (#471).
+    ['the desktop list beside a job', true],
     ['the phone cards', false],
   ])('%s', async (_name, wide) => {
     wideViewport(wide);
     loadSample();
-    const { container } = withTheme(<TrackerView />);
+    const { container } = withTheme(
+      <CloudSyncProvider>
+        <TrackerView />
+      </CloudSyncProvider>,
+    );
     await auditA11y(container);
   });
 });

@@ -16,8 +16,8 @@ for (const width of [390, 1440]) {
     await expect(page).toHaveURL(/#\/today$/);
     await page.goto('/#/discover/live');
     await expect(page).toHaveURL(/#\/today$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
-    await expect(page.getByRole('tab')).toHaveText(['Today', 'Jobs']);
+    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+    await expect(page.getByRole('tab')).toHaveText(['Find', 'Apply']);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeVisible();
     const panels = page.getByRole('main').getByRole('region');
     await expect(panels.nth(0)).toHaveAccessibleName(/^Review new/);
@@ -41,10 +41,12 @@ for (const width of [390, 1440]) {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
 
-    // Jobs is the Pipeline, unchanged inside.
-    await page.getByRole('tab', { name: 'Jobs' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeVisible();
-    await page.getByRole('tab', { name: 'Today' }).click();
+    // Jobs is the Pipeline; from lg, the list beside the first job (#471).
+    await page.getByRole('tab', { name: 'Apply' }).click();
+    if (width < 1024)
+      await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
+    else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Find' }).click();
     await expect(page).toHaveURL(/#\/today$/);
 
     // Apply: Start applying opens Apply mode.

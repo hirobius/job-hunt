@@ -131,7 +131,8 @@ describe('Export links', () => {
     renderApp();
     await user.click(screen.getByRole('button', { name: 'Status: Active' }));
     await user.click(await screen.findByRole('menuitemradio', { name: /^All/ }));
-    await user.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zenith');
+    // At 1440 the list is the column beside the first job (#471): its search is the same view.
+    await user.type(screen.getByRole('textbox', { name: /^Search (saved )?jobs$/ }), 'zenith');
     const dialog = await openOnThisView(user);
     expect(within(dialog).getByRole('radio', { name: 'This view (1)' })).toBeChecked();
     expect(preview().value).toBe(ZENITH);
@@ -207,5 +208,4 @@ describe('Export links', () => {
     expect(within(dialog).getByRole('button', { name: 'Copy' })).toBeDisabled();
     expect(within(dialog).getByRole('button', { name: 'Download .txt' })).toBeDisabled();
   });
-
 });

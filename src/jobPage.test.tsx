@@ -452,7 +452,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(current).toHaveTextContent('Design Engineer');
     expect(railRow('Welder')).not.toHaveAttribute('aria-current');
     // The rail replaces the Back link.
-    expect(screen.queryByRole('button', { name: /Back to Pipeline/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Back to Apply/ })).toBeNull();
   });
 
   it('every rail row opens its own posting in one tap, beside its row link (Adrian 2026-10-22)', () => {
@@ -483,7 +483,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     viewport(390);
     openJobPage(URL_A);
     expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
-    expect(screen.getByRole('button', { name: /Back to Pipeline/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Back to Apply/ })).toBeInTheDocument();
   });
 
   it('clicking another rail row swaps the job without leaving the page', async () => {
@@ -500,7 +500,28 @@ describe('job page two-pane (#130 slice 5)', () => {
     setPipelineView({ q: 'welder' });
     openJobPage(URL_B);
     expect(railRows()).toHaveLength(1);
-    expect(within(rail()).getByText(/Change filters/)).toHaveAttribute('href', '#/queue');
+    // Status and Sort sit in the column itself (#471): no trip back to a list page.
+    expect(screen.getByRole('button', { name: 'Status: Active' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Sort: / })).toBeInTheDocument();
+  });
+
+  it('the Jobs tab at lg opens on the first job beside the list (#471)', () => {
+    viewport(1280);
+    window.location.hash = '#/queue';
+    renderApp();
+    expect(screen.getByRole('heading', { level: 1, name: 'Welder' })).toBeInTheDocument();
+    expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
+    expect(window.location.hash).toBe('#/queue');
+  });
+
+  it('Mark applied beside the list moves on to the next job (#471)', async () => {
+    viewport(1280);
+    openJobPage(URL_B);
+    await userEvent.click(screen.getByRole('button', { name: 'Mark applied: Welder' }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
+    ).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_A)}`);
   });
 
   it('pins the open job at the top with a note when the filter hides it', () => {
@@ -514,7 +535,7 @@ describe('job page two-pane (#130 slice 5)', () => {
   it('searching in the rail narrows it', async () => {
     viewport(1280);
     openJobPage(URL_A);
-    await userEvent.type(within(rail()).getByRole('textbox', { name: 'Search jobs' }), 'Welder');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search jobs' }), 'Welder');
     expect(railRow('Welder')).toBeInTheDocument();
     // The open job stays, pinned, because the search hides it.
     expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();

@@ -77,10 +77,7 @@ describe('the Documents page', () => {
     await renderApp();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
-      'href',
-      '#/queue',
-    );
+    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/queue');
   });
 
   it('the Menu opens Documents', async () => {
@@ -313,7 +310,7 @@ describe('the Company page (#230)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',

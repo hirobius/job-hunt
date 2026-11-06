@@ -29,9 +29,9 @@ const label = (hash: string) => routeLabel(parseHash(hash), { jobs, docs });
 
 describe('routeLabel', () => {
   it.each([
-    ['#/queue', 'Pipeline'],
-    ['#/discover', 'Today'],
-    ['#/discover/live', 'Today'],
+    ['#/queue', 'Apply'],
+    ['#/discover', 'Find'],
+    ['#/discover/live', 'Find'],
     ['#/copy-deck', 'Documents'],
     ['#/copy-deck/d1', 'Intro note'],
     ['#/copy-deck/new/outreach', 'New outreach message'],

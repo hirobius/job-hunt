@@ -28,7 +28,8 @@ async function loadSample(page: Page) {
     );
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  await expect(page.getByRole('region', { name: /^Jobs/ })).toBeVisible();
+  // The Jobs panel, or from lg the list column beside the first job (#471).
+  await expect(page.getByRole('textbox', { name: /^Search (saved )?jobs$/ })).toBeVisible();
 }
 
 /** A title with a long unbroken run (QA 2026-10-22): it has to wrap beside the posting link. */
@@ -228,7 +229,9 @@ async function expectPostingLinks(page: Page, rows: Locator, phone: boolean) {
   }
 }
 
-for (const width of [390, 1440] as const) {
+// The Pipeline list runs up to lg; from lg the Jobs tab is the list column beside a job (#471),
+// checked in "the job rail at 1440" below.
+for (const width of [390, 800] as const) {
   test.describe(`posting links at ${width}`, () => {
     test.use({ viewport: { width, height: 900 } });
     const phone = width < 640;
@@ -318,7 +321,8 @@ for (const width of [390, 1440] as const) {
       expect(await longTitleOffences(page.getByRole('region', { name: /^Jobs/ }))).toEqual([]);
       await openJobTitled(page, LONG.slice(0, 20));
       expect(await longTitleOffences(page.getByRole('main').locator('header'))).toEqual([]);
-      if (!phone)
+      // The list column beside the job only shows from lg (#471).
+      if (width >= 1024)
         expect(await longTitleOffences(page.getByRole('navigation', { name: 'Jobs' }))).toEqual([]);
       await page.evaluate(() => (location.hash = '#/queue'));
       // In the Account menu since #416.
@@ -362,6 +366,7 @@ test.describe('the job rail at 1440', () => {
       // A sibling of the row's link, never inside it.
       expect(await link.locator('a[aria-label^="Open posting"]').count()).toBe(0);
     }
-    expect(await targetOffences(rail)).toEqual([]);
+    // The whole page: the column, the job's header beside it and its panels (#471).
+    expect(await targetOffences(page.locator('#root'))).toEqual([]);
   });
 });

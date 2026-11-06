@@ -125,9 +125,9 @@ describe('stale tab after a deploy', () => {
     expect(within(main).getByRole('button', { name: 'Reload' })).toBeInTheDocument();
     // The shell is still there: the header, the tabs, the Account button.
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
     await waitFor(() => expect(within(screen.getByRole('main')).queryByText(STALE_MSG)).toBeNull());
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
     spy.mockRestore();
   });
 

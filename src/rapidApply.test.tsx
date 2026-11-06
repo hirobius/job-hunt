@@ -286,9 +286,8 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     const filled = 'Hi, the Acme Designer role at Acme. Sam Placeholder';
-    // The panel is named like its Edit documents link (one word for one thing).
-    expect(await screen.findByRole('region', { name: 'Documents' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Templates' })).toBeNull();
+    // Templates, not Documents: the job's own Documents links panel sits on the same view (#471).
+    expect(await screen.findByRole('region', { name: 'Templates' })).toBeInTheDocument();
     const list = await screen.findByRole('list', { name: 'Your templates' });
     const rows = within(list).getAllByRole('listitem');
     expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual(['Thank you', 'Cold intro']);
@@ -348,7 +347,7 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     setOutreachMessages([]);
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    const docs = await screen.findByRole('region', { name: 'Documents' });
+    const docs = await screen.findByRole('region', { name: 'Templates' });
     await user.click(within(docs).getByRole('button', { name: 'Add starter messages' }));
     const list = await screen.findByRole('list', { name: 'Your templates' });
     expect(within(list).getByRole('listitem', { name: 'Outreach note' })).toHaveTextContent(

@@ -148,8 +148,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
-- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Today**
-  (`Today.tsx`, home) and **Jobs** (`TrackerView.tsx`, slug `queue`, page head "Pipeline"), plus
+- **Two screens: Find and Apply (#471 slice 1, #475; Adrian 2026-11-05).** The top tabs are **Find** (slug
+  `today`, `Today.tsx`, home; was "Today") and **Apply** (slug `queue`, `TrackerView.tsx`; page head and Backs
+  say "Apply"; was "Jobs" / "Pipeline"). Slugs are unchanged. The job page and Apply mode share one view
+  (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`), then `ApplySheet.tsx`
+  Templates + Application kit, then Details, Notes, Documents, Decks). At ≥ lg the Apply tab opens on the
+  first job to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry and Mark
+  applied / Not a fit move to the next job. Below lg the Apply tab is the list page (`PipelinePage`). A
+  signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. Still to come
+  (#471): Apply mode's own route goes, Company in the right column, the Find two-column view.
+- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
+  (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `queue`), plus
   tab-less pages (Documents, legal, a job, Apply mode, a Company). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Today.
 - **Design-systems only (Adrian 2026-10-29):** content is design systems and nothing else. The one starter pack
@@ -163,8 +172,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Spokane / welding / sheet metal / apprenticeship / ServiceNow / SAM.gov with a commented allow-list).
 - **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (never a heading: `role="img"` named by
   BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
-  Pipeline, Today, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
-  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
+  Apply, Find, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
+  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,
@@ -244,7 +253,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
 - **Final shell (simplify #383 + amendment 2, Q6; PR from `claude/simplify-shell`):** exactly **two top tabs,
-  Today · Jobs** (Jobs = the Pipeline, slug `queue`, unchanged inside; its page head and Backs still say Pipeline).
+  Today · Jobs** (renamed Find · Apply in #475, see Two screens above; slugs unchanged).
   **No Companies tab:** `route.ts` `redirectOf` sends `#/discover/*` and `#/apprenticeships` to `#/today` (the
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash

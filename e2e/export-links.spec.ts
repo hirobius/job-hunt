@@ -34,7 +34,8 @@ test.beforeEach(async ({ page, context }) => {
 
 test('export links: open, switch scope and format, copy and download', async ({ page }) => {
   await page.goto('/#/queue');
-  await expect(page.getByRole('heading', { name: 'Pipeline' })).toBeVisible();
+  // The Jobs tab: the Pipeline, or from lg the list beside the first job (#471).
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   // The Account menu opens it; This view is the Jobs list: Active holds Acme only.
   await page.getByRole('button', { name: /^Account/ }).click();
