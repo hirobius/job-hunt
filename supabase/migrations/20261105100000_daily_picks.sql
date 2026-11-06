@@ -46,7 +46,10 @@ create policy "read own rows" on public.daily_picks
   for select
   using (auth.uid() = user_id);
 
-revoke insert, update, delete on public.daily_picks from public, anon, authenticated;
+-- Readers get select only (RLS keeps it to their own rows). Revoking all also takes back Supabase's
+-- default TRUNCATE / REFERENCES / TRIGGER grants on new tables.
+revoke all on public.daily_picks from public, anon, authenticated;
+grant select on public.daily_picks to authenticated;
 
 -- ---- feed tokens: one per account, stored as a hash ----
 create table if not exists public.daily_pick_feeds (

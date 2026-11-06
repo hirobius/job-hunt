@@ -37,7 +37,7 @@ describe('daily_picks migration', () => {
     );
     expect(code).not.toMatch(/on public\.daily_picks for (insert|update|delete|all)/);
     expect(code).toMatch(
-      /revoke insert, update, delete on public\.daily_picks from public, anon, authenticated/,
+      /revoke all on public\.daily_picks from public, anon, authenticated;\s*grant select on public\.daily_picks to authenticated;/,
     );
   });
 
