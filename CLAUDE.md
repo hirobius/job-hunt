@@ -157,7 +157,7 @@ copy, max 4 s.
   BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
   Pipeline, Today, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
   focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
-  **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
+  **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,
   Restore…, Export CSV, theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
@@ -691,6 +691,13 @@ copy, max 4 s.
   confirm the Vercel deploy reaches `READY` before claiming it's live.
 - Backlog lives in **GitHub Issues** (see Fleet hub below), not local TODO files.
   Upstream HDS gaps + accept criteria: `docs/hds-upstream-asks-0.9.md`.
+
+## Figma agent rules
+
+`docs/figma/FIGMA-RULES.md` is the visual subset of this file, pasted into the Figma agent's prompt
+(and mirrored on a Rules page in the HDS Figma file). When a visual rule here changes (HDS version or
+density, cards, outlines, type, the screens and their names), change that page in the same PR;
+`src/figmaRules.test.ts` fails when the rules it pins leave this file.
 
 ## Skills — the architecture skill set
 
