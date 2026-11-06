@@ -47,8 +47,9 @@ copy, max 4 s.
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, fontSize 40, centred;
 one small row on a short screen). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
-`BRAND.name` in the HDS display family at 700 (Sora is not loaded), its dynamic styles come from helpers (no
-inline-style literals), and reduced motion holds frame 0. The boot splash, icons, og-image and BootHold still use
+`BRAND.name` in the HDS display family at 700 (Sora 700, loaded by HDS's fonts.css), its dynamic styles come from helpers (no
+inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and stops on frame 0
+after 5 s on screen (`FLAME_MOTION_LIMIT_MS`, WCAG 2.2.2; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
 flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
 
 ## Stack & conventions
