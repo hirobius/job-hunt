@@ -3,6 +3,8 @@
 // as a pixel diff; update the baselines on purpose with
 //   npm run test:visual -- --update-snapshots
 // and review the new PNGs in the diff. Baselines are from the cloud session's Chromium on Linux.
+// They capture the reduced-motion render only (reducedMotion: 'reduce' below): the animated logo
+// held on frame 0. Its motion is covered by e2e/brand.spec.ts and src/brand/roleFlameMotion.test.tsx.
 import { test, expect, type Page } from '@playwright/test';
 import { ROUTES, go, openJob, openApply, seed } from './routes';
 
