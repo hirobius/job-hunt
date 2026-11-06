@@ -99,3 +99,18 @@ export async function loadServerRows(): Promise<StoredPosting[]> {
 export async function loadScoredPostings(): Promise<{ rows: StoredPosting[] }> {
   return { rows: await loadServerRows() };
 }
+
+/** When the server sync last finished a pass for this user (#448: it runs every 15 minutes): the
+ *  newest `run` row in their sync log, or null when there is none (or the table isn't there yet). */
+export async function loadServerUpdatedAt(): Promise<string | null> {
+  const db = await loadSupabase();
+  const { data, error } = await db
+    .from('sync_log')
+    .select('created_at')
+    .eq('kind', 'run')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) return null;
+  const at = (data as { created_at?: string }[] | null)?.[0]?.created_at;
+  return typeof at === 'string' ? at : null;
+}

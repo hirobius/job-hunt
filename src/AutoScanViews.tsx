@@ -19,6 +19,7 @@ import {
   type ScanProgress,
 } from './feed/autoScan';
 import { useScanningCount } from './feed/scanningCount';
+import { useServerUpdated } from './feed/serverUpdated';
 import { useScanInput } from './feed/useAutoScan';
 import { useCloudSync } from './account/accountContext';
 import { useProfile } from './profile';
@@ -59,16 +60,28 @@ export function ScanStatus({
   // (sync-postings, plan.ts compileProfile); anyone else is scanned by this browser alone.
   const serverScans = !!user && profile?.scorer === designSystemsTrack.slug;
   const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), serverScans);
+  // #448: the server sync runs every 15 minutes for a signed-in user; say how fresh it is.
+  const updated = useServerUpdated(!!user);
   const line = running
     ? progressLine(progress)
     : (state.error ??
       lastScannedLine(state, undefined, counts, scanning) ??
-      'Not scanned yet. The first scan runs on its own.');
+      (updated ? null : 'Not scanned yet. The first scan runs on its own.'));
   return (
     <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-      <Text variant="caption" as="p" tone="secondary" role="status">
-        {line}
-      </Text>
+      {/* Its own line (the meta-line rule, #192: at most two items on a " · " line). The server's
+          "Updated N min ago" sits outside the live region: its minutes tick, and a screen reader
+          must not announce it every minute. */}
+      <Stack gap="px4">
+        {updated && (
+          <Text variant="caption" as="p" tone="secondary">
+            {updated}
+          </Text>
+        )}
+        <Text variant="caption" as="p" tone="secondary" role="status">
+          {line}
+        </Text>
+      </Stack>
       {running ? (
         <Button size="sm" variant="tertiary" onClick={cancelScan}>
           Stop scan

@@ -1,5 +1,6 @@
-// The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387): a Supabase edge function run twice a
-// day by pg_cron (supabase/migrations/20261024100200_sync_postings_cron.sql). It reads what each
+// The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387): a Supabase edge function run every
+// 15 minutes by pg_cron (#448: supabase/migrations/20261106100000_sync_postings_every_15_min.sql;
+// the 06:23 run also reads the feeds). It reads what each
 // user follows straight from their synced `tracker` blob (src/tracks/plan.ts: v12 sources and the
 // Search profile, else the v11 fields and their watched tiles), so the blob is the one source of
 // truth. Every board is read once however many users follow it (Ashby one board at a time), the
@@ -27,6 +28,7 @@ import {
   type SyncPlan,
   type WatchedTile,
 } from '../../../src/tracks/plan.ts';
+import { readWithRetry } from '../../../src/tracks/retry.ts';
 import {
   boardOf,
   forWatcher,
@@ -100,6 +102,9 @@ const BOARD_BATCH = 8;
  *  CPU budget with the reads now scheduled concurrently (src/tracks/sync.ts) — and a 152-board
  *  run chains 10 invocations instead of 19, halving the per-slice overheads below. */
 const SLICE = 16;
+/** How long a 15-minute run holds its lease before the next tick may start anyway (#448): under
+ *  the 15-minute gap, so a chain that died never blocks more than one tick. */
+const RUN_LEASE_MS = 14 * 60_000;
 /** Blobs per select (each holds a user's whole job list). */
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
@@ -811,6 +816,27 @@ Deno.serve(async (req) => {
   if (body.rotate === true) return rotate(db);
   const runStart = body.runStart ?? new Date().toISOString();
   const logs: Log[] = [];
+  // One run at a time (#448, every 15 minutes): the first slice (no runStart yet) claims the lease
+  // on the database's clock; a tick that finds the previous run's chain still going skips. The
+  // last slice releases it; a chain that dies lets it expire (RUN_LEASE_MS).
+  if (body.runStart === undefined) {
+    const { data: held, error: leaseError } = await db.rpc('claim_sync_run', {
+      p_run: runStart,
+      p_lease_ms: RUN_LEASE_MS,
+    });
+    // The lease migration not applied yet: run as before rather than never.
+    if (!leaseError && held === false) {
+      await db.from('sync_log').insert({
+        user_id: null,
+        kind: 'run',
+        board: null,
+        status: null,
+        message: JSON.stringify({ skipped: 'previous run still going', at: runStart }),
+      });
+      return json({ skipped: 'previous run still going' });
+    }
+  }
+  const releaseRun = () => db.rpc('release_sync_run', { p_run: runStart });
 
   // Cached like the rotation's (#448): a run's chained slices land inside the TTL, so one run
   // plans once instead of re-reading every blob and tile on each of its ~10 slices.
@@ -844,6 +870,7 @@ Deno.serve(async (req) => {
   const last = rest.length <= SLICE;
   const next = last ? null : boardOf(boards[boards.length - 1]);
   let feedsRead = 0;
+  let retriedReads = 0;
   const summary: Record<string, unknown>[] = [];
   // Stored Greenhouse rows for the delta reads (#448): loaded once per invocation, so a
   // chained run plans once and reads light wherever it can.
@@ -852,11 +879,12 @@ Deno.serve(async (req) => {
   // not stop every board after it until the next cron run.
   try {
     for (let i = 0; i < boards.length; i += BOARD_BATCH) {
-      const reads = await readAll(boards.slice(i, i + BOARD_BATCH), {
-        fetch: timedFetch,
-        rss: false,
-        knownBoards,
-      });
+      // A 429, a 5xx or a timeout is read once more after a short wait (#448: the sync now runs
+      // every 15 minutes, so a busy host gets a second chance here and a fresh one next run).
+      const { reads, retried } = await readWithRetry(boards.slice(i, i + BOARD_BATCH), (batch) =>
+        readAll(batch, { fetch: timedFetch, rss: false, knownBoards }),
+      );
+      retriedReads += retried;
       const perUser = new Map<string, ReadOutcome[]>();
       for (const r of reads) {
         if (!r.ok) failedBoards.add(r.board);
@@ -1047,6 +1075,7 @@ Deno.serve(async (req) => {
     });
   }
   if (logs.length) await db.from('sync_log').insert(logs);
+  if (!next) await releaseRun();
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,
@@ -1062,6 +1091,8 @@ Deno.serve(async (req) => {
         status: null,
         message: `next slice (after '${next}') not started: ${broke}`.slice(0, 2000),
       });
+    // The chain is over either way: the next tick may start a fresh run.
+    if (broke) await releaseRun();
   }
   return json({
     ranAt: runStart,
@@ -1076,6 +1107,7 @@ Deno.serve(async (req) => {
     // The server searches not running and what turns each on (secret names, never values).
     serverFeedsOff: serverFeedsOff(envOf),
     failedBoards: failedBoards.size,
+    retriedReads,
     summary,
   });
 });

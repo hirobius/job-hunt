@@ -1,6 +1,6 @@
 # sync-postings
 
-The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387). Twice a day it reads what each
+The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387). Every 15 minutes (#448) it reads what each
 signed-in user follows **from their synced `tracker` blob** (`src/tracks/plan.ts`):
 
 - **Blob v12** (#384): `sources[]` (every board kind, followed companies, feeds; muted ones are
@@ -149,6 +149,40 @@ select jobname, schedule from cron.job where jobname like 'sync-postings%';
 ```
 
 To stop it later: `select cron.unschedule('sync-postings-morning'); select cron.unschedule('sync-postings-evening');`
+
+### 7. Every 15 minutes (#448)
+
+Open `supabase/migrations/20261106100000_sync_postings_every_15_min.sql`, copy the whole file, paste
+and run it. It removes the 18:23 run and adds `sync-postings-15min` (:08, :38, :53) and
+`sync-postings-15min-23` (:23, every hour but 06, which stays the morning feeds run). Every run reads
+the followed boards in slices of 16 (one invocation each, chained, so none nears the 150 s limit) and
+reads a board once more after 2 s on a 429, a 5xx or a timeout (`src/tracks/retry.ts`; the function's
+answer counts them in `retriedReads`). Safe to run twice. Check:
+
+```sql
+select jobname, schedule from cron.job where jobname like 'sync-postings%' order by jobname;
+```
+
+Expect `sync-postings-15min`, `sync-postings-15min-23`, `sync-postings-morning` (and
+`sync-postings-rotate` if the rotation is on). The app's Today then says "Updated N min ago" under
+Scan now for a signed-in user (the newest `run` row in their `sync_log`). Scan now stays manual.
+
+**One run at a time.** The first slice of a run claims `sync_run_lease` (`claim_sync_run`, on the
+database's clock, 14 minutes); a tick that finds the previous run's chain still going writes a `run`
+row `{"skipped":"previous run still going"}` and stops. The last slice releases the lease; a chain
+that dies lets it expire before the tick after next.
+
+**Requests per host after this change.** Before: 2 passes a day. Now: 96 passes a day (4 an hour),
+each reading every followed board once (plus at most one retry on a 429/5xx/timeout). Per host that is
+96 × the followed boards on it: with the measured 152-board set (97 Greenhouse, 45 Ashby, 10 Lever)
+about 9,300 Greenhouse list reads a day (light lists via the delta reads, #460, plus a single-job read
+only for a new or changed job), 4,320 Ashby and 960 Lever. That is about 6.5, 3 and 0.7 requests a
+minute on average, each run spread over its 16-board slices. The scan rotation (`sync-postings-rotate`)
+is separate and unchanged. If a host answers 429s in `sync_log`, unschedule `sync-postings-15min-23`
+(drops to 3 an hour) before anything else.
+
+To go back to twice a day: `select cron.unschedule('sync-postings-15min');
+select cron.unschedule('sync-postings-15min-23');` and run step 6's file again.
 
 ## Scan rotation (bulk boards, #src-bulk)
 
