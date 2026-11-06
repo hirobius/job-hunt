@@ -39,9 +39,10 @@ That creates one row per user holding your job list, and the policy guarantees
 ## 3. Allow the app's URL for sign-in links
 
 1. Left sidebar → **Authentication** → **URL Configuration**.
-2. Set **Site URL** to: `https://roleforge-app.vercel.app/`
-3. Under **Redirect URLs**, add the same: `https://roleforge-app.vercel.app/`, and the old
-   address `https://job-hunt-jade.vercel.app/` while it still serves the app.
+2. Set **Site URL** to: `https://roleflame.vercel.app/`
+3. Under **Redirect URLs**, add the same: `https://roleflame.vercel.app/`, and the old
+   addresses `https://roleforge-app.vercel.app/` and `https://job-hunt-jade.vercel.app/` while
+   they still serve the app.
    (If you ever open the app from a different address, add that too.)
 4. Save. (Email sign-in is on by default — nothing else to toggle.)
 

@@ -18,13 +18,13 @@ import App from './App';
 vi.mock('./LegalPage', () => ({
   default: function LegalPageGone(): never {
     throw new TypeError(
-      'Failed to fetch dynamically imported module: https://roleforge-app.vercel.app/assets/LegalPage-abc123.js',
+      'Failed to fetch dynamically imported module: https://roleflame.vercel.app/assets/LegalPage-abc123.js',
     );
   },
 }));
 
 const chromeChunk = new TypeError(
-  'Failed to fetch dynamically imported module: https://roleforge-app.vercel.app/assets/JobPage-abc123.js',
+  'Failed to fetch dynamically imported module: https://roleflame.vercel.app/assets/JobPage-abc123.js',
 );
 
 beforeEach(() => {

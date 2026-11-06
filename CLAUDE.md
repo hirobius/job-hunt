@@ -5,8 +5,8 @@ Project memory for future Claude Code sessions in this repo.
 ## What this is
 
 **Roleflame** (renamed 2026-11-02, Adrian, hirobius/ops#1092 / #55; before that **hiraga**, lowercase, 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
-**https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
-`job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
+**https://roleflame.vercel.app** (since 2026-11-05; repo `hirobius/job-hunt`; the old
+`roleforge-app.vercel.app` and `job-hunt-jade.vercel.app` still serve and are accepted sign-in origins until they redirect). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
 
@@ -140,8 +140,17 @@ copy, max 4 s.
   Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
-- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Today**
-  (`Today.tsx`, home) and **Jobs** (`TrackerView.tsx`, slug `queue`, page head "Pipeline"), plus
+- **Two screens: Find and Apply (#471 slice 1, #475; Adrian 2026-11-05).** The top tabs are **Find** (slug
+  `today`, `Today.tsx`, home; was "Today") and **Apply** (slug `queue`, `TrackerView.tsx`; page head and Backs
+  say "Apply"; was "Jobs" / "Pipeline"). Slugs are unchanged. The job page and Apply mode share one view
+  (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`), then `ApplySheet.tsx`
+  Templates + Application kit, then Details, Notes, Documents, Decks). At ≥ lg the Apply tab opens on the
+  first job to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry and Mark
+  applied / Not a fit move to the next job. Below lg the Apply tab is the list page (`PipelinePage`). A
+  signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. Still to come
+  (#471): Apply mode's own route goes, Company in the right column, the Find two-column view.
+- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
+  (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `queue`), plus
   tab-less pages (Documents, legal, a job, Apply mode, a Company). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Today.
 - **Design-systems only (Adrian 2026-10-29):** content is design systems and nothing else. The one starter pack
@@ -236,7 +245,7 @@ copy, max 4 s.
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
 - **Final shell (simplify #383 + amendment 2, Q6; PR from `claude/simplify-shell`):** exactly **two top tabs,
-  Today · Jobs** (Jobs = the Pipeline, slug `queue`, unchanged inside; its page head and Backs still say Pipeline).
+  Today · Jobs** (renamed Find · Apply in #475, see Two screens above; slugs unchanged).
   **No Companies tab:** `route.ts` `redirectOf` sends `#/discover/*` and `#/apprenticeships` to `#/today` (the
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
@@ -615,6 +624,22 @@ copy, max 4 s.
   `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
+- **Continue with Google (#482):** the sign-in screen's first control (`SignInDialog.tsx`, HDS secondary `Button`
+  with `iconLeft={<GoogleMark />}`; `src/account/google-g.svg` is Google's G as given, its own four colours per
+  Google's branding rules, the one allowed third-party svg in `brand/flame.test.tsx` `THIRD_PARTY_MARKS`).
+  `useCloudSync().signInWithGoogle` → `signInWithOAuth({ provider: 'google', redirectTo: magicLinkRedirect, queryParams:
+  { code_challenge, code_challenge_method: 's256' } })`: **PKCE bound to this browser** (`account/oauthPkce.ts`; review
+  of #483: an unbound "started Google" note let a crafted token link sign in after an abandoned start). The verifier
+  stays in `rjb_oauth_request` (10 min, taken once); the return's `?code=` is taken and stripped by `authFragment.ts`
+  and swapped at `/auth/v1/token?grant_type=pkce` with that verifier, then `acceptLink` with the email the token names.
+  A code with no verifier here is never sent. The shared client stays implicit (magic links on another device), and
+  tokens in a hash always take the magic-link guard, Google or not. An existing
+  account with the same verified email gets the Google identity (Supabase automatic linking), so the same user id
+  and sync base: no merge ask. A cancelled/refused return carries `error=` in the QUERY (PKCE; a magic link's is in the
+  hash): App toasts "Google sign-in was cancelled." / "…didn't work" and drops the params through the route seam.
+  `oauthPkce.ts` is a lazy chunk (the entry is at its budget). Dashboard setup (Google
+  Cloud OAuth client, Supabase provider, redirect allow-list) is Adrian's. Pinned in `googleSignIn.test.tsx`,
+  `SignInDialog.test.tsx`, `authLinkError.test.ts`, `shell.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.
@@ -701,9 +726,9 @@ re-litigate decisions already in `docs/adr/`.
 ## Notes
 
 - Supabase redirect URLs must include any new origin for magic-link sign-in. During the move
-  **both** `https://roleforge-app.vercel.app/` (Site URL) and `https://job-hunt-jade.vercel.app/`
+  `https://roleflame.vercel.app/` (Site URL) and the old `https://roleforge-app.vercel.app/` and `https://job-hunt-jade.vercel.app/`
   must be in Supabase Auth → URL Configuration → Redirect URLs; the client side is
-  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGIN`).
+  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGINS`).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
 - **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/

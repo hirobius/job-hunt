@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useContext, useMemo, useRef, useState } from 'react';
 import { useAtLeast } from '@hirobius/design-system';
 import JobPage from './JobPage';
 import { toApplyQueue } from './applyQueue';
@@ -32,16 +32,36 @@ import { useListFocusKeeper } from './listFocus';
 import { focusAsHeading } from './focusRescue';
 import AddJobButton from './AddJob';
 import PipelineMenus from './PipelineMenus';
+import { CloudSyncContext } from './account/accountContext';
+import { needsClientAtBoot } from './supabase';
+import { PipelineSkeleton } from './Skeletons';
 
-/** The Jobs tab (#/queue). At lg it opens on the work (#471, Adrian 2026-11-05): the job list
- *  beside the first job to apply to (starred first, then newest). The
- *  hash stays #/queue; a pick in the list replaces it with that job's. Below lg, and with no jobs,
- *  the Pipeline page. */
+/** The Jobs tab (#/queue). A signed-in device with no jobs on it yet (a first visit, a new address,
+ *  cleared storage) waits for its cloud copy here instead of saying "0 jobs" (#478), at every
+ *  width. Then, at lg, it opens on the work (#471, Adrian 2026-11-05): the job list beside the
+ *  first job to apply to (starred first, then newest). The hash stays #/queue; a pick in the list
+ *  replaces it with that job's. Below lg, and with no jobs, the Pipeline page. */
 export default function TrackerView() {
   const jobs = useJobs();
   const view = usePipelineView();
   const wide = useAtLeast('lg');
-  // The first job to apply to, if the list shows it; else the list's first; else any.
+  const sync = useContext(CloudSyncContext);
+  // Decided once, as the page opens: only a stored session has a cloud copy on its way.
+  const [signedIn] = useState(() => needsClientAtBoot());
+  const waiting = jobs.length === 0 && signedIn && !!sync && !sync.settled && !sync.offline;
+  if (waiting)
+    return (
+      <Stack gap="normal">
+        <Text variant="ui" as="p" role="status" tone="secondary">
+          Loading your jobs…
+        </Text>
+        <PipelineSkeleton />
+      </Stack>
+    );
+  // The first job to apply to, if the list shows it; else the list's first. With a search or
+  // filter that matches nothing, the right column keeps a job (the first to apply to, else any)
+  // and the list column says nothing matches: swapping the layout mid-typing would drop focus
+  // from the list's search field.
   const shown = wide ? visibleJobs(jobs, view) : [];
   const next = toApplyQueue(jobs).find((j) => shown.includes(j));
   const first = wide ? (next ?? shown[0] ?? toApplyQueue(jobs)[0] ?? jobs[0]) : undefined;

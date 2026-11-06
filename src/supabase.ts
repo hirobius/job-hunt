@@ -9,7 +9,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { importFresh } from './staleBuild';
-import { bootAuthTokens } from './authFragment';
+import { bootAuthCode, bootAuthTokens } from './authFragment';
 
 /** True when a Supabase session is persisted in this browser (read synchronously at boot, before
  *  the auth listener fires) — lets the UI wait for a sign-in pull instead of flashing onboarding. */
@@ -27,9 +27,10 @@ export function hasPersistedSession(
   return false;
 }
 
-/** Whether the client is needed right away: a stored session, or a magic link just returned. */
+/** Whether the client is needed right away: a stored session, or a magic link or a Google
+ *  sign-in just returned. */
 export function needsClientAtBoot(): boolean {
-  return bootAuthTokens() !== null || hasPersistedSession();
+  return bootAuthTokens() !== null || bootAuthCode() !== null || hasPersistedSession();
 }
 
 let client: Promise<SupabaseClient> | null = null;
