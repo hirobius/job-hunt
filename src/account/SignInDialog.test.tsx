@@ -12,7 +12,13 @@ import SignInDialog, { RESEND_COOLDOWN_S } from './SignInDialog';
 import { SIGN_IN_ERRORS } from './signInErrors';
 import { BRAND } from '../brand';
 
-function Harness({ sendLink }: { sendLink: CloudSyncApi['sendLink'] }) {
+function Harness({
+  sendLink,
+  signInWithGoogle = async () => null,
+}: {
+  sendLink: CloudSyncApi['sendLink'];
+  signInWithGoogle?: CloudSyncApi['signInWithGoogle'];
+}) {
   const [open, setOpen] = useState(true);
   const api = {
     user: null,
@@ -21,6 +27,7 @@ function Harness({ sendLink }: { sendLink: CloudSyncApi['sendLink'] }) {
     settled: true,
     offline: false,
     sendLink,
+    signInWithGoogle,
     retry: () => {},
     signOut: () => {},
     deleteMyData: () => {},
@@ -34,9 +41,12 @@ function Harness({ sendLink }: { sendLink: CloudSyncApi['sendLink'] }) {
   );
 }
 
-const setup = (sendLink = vi.fn(async () => null as string | null)) => {
-  render(<Harness sendLink={sendLink} />);
-  return { sendLink, dialog: screen.getByRole('dialog') };
+const setup = (
+  sendLink = vi.fn(async () => null as string | null),
+  signInWithGoogle = vi.fn(async () => null as string | null),
+) => {
+  render(<Harness sendLink={sendLink} signInWithGoogle={signInWithGoogle} />);
+  return { sendLink, signInWithGoogle, dialog: screen.getByRole('dialog') };
 };
 const field = () => screen.getByRole('textbox', { name: 'Email' });
 const submit = () => screen.getByRole('button', { name: 'Send link' });
@@ -71,7 +81,7 @@ describe('SignInDialog', () => {
     ).toEqual(['Sign in']);
   });
 
-  it('shows only the flame, the wordmark, Email, Send link and Continue without an account', () => {
+  it('shows only the flame, the wordmark, Continue with Google, Email, Send link and Continue without an account', () => {
     const { dialog } = setup();
     // No paragraphs (Adrian 2026-10-29): the title is for screen readers only.
     expect(dialog.querySelectorAll('p:not(.rjb-logo-word)')).toHaveLength(0);
@@ -82,9 +92,9 @@ describe('SignInDialog', () => {
       within(dialog)
         .getAllByRole('button')
         .map((b) => b.textContent),
-    ).toEqual(['Send link', 'Continue without an account']);
+    ).toEqual(['Continue with Google', 'Send link', 'Continue without an account']);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign inEmailSend linkContinue without an account`,
+      `${BRAND.name}Sign inContinue with GoogleEmailSend linkContinue without an account`,
     );
   });
 
@@ -185,5 +195,46 @@ describe('SignInDialog', () => {
     expect(sendLink).toHaveBeenCalledTimes(2);
     expect(resend()).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent('Sent again.');
+  });
+
+  describe('Continue with Google (#482)', () => {
+    const googleButton = () => screen.getByRole('button', { name: 'Continue with Google' });
+
+    it("sits above the email field, an HDS secondary Button with Google's mark (decorative)", () => {
+      const { dialog } = setup();
+      const button = googleButton();
+      expect(
+        button.compareDocumentPosition(field()) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      const mark = button.querySelector('.rjb-google-mark');
+      expect(mark).not.toBeNull();
+      expect(mark).toHaveAttribute('aria-hidden', 'true');
+      // Google's four colours, unchanged (branding rules).
+      const html = mark!.innerHTML.toUpperCase();
+      for (const c of ['#EA4335', '#4285F4', '#FBBC05', '#34A853']) expect(html).toContain(c);
+      // The magic link is still there.
+      expect(within(dialog).getByRole('button', { name: 'Send link' })).toBeInTheDocument();
+    });
+
+    it('starts the Google sign-in, once, and stays busy while the page leaves', async () => {
+      let finish: (v: string | null) => void = () => {};
+      const signInWithGoogle = vi.fn(() => new Promise<string | null>((r) => (finish = r)));
+      setup(undefined, signInWithGoogle);
+      await userEvent.click(googleButton());
+      await userEvent.click(googleButton());
+      expect(signInWithGoogle).toHaveBeenCalledTimes(1);
+      await act(async () => finish(null));
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('shows an error inline when Google sign-in cannot start, and can try again', async () => {
+      const signInWithGoogle = vi.fn(async () => SIGN_IN_ERRORS.offline as string | null);
+      setup(undefined, signInWithGoogle);
+      await userEvent.click(googleButton());
+      expect(await screen.findByText(SIGN_IN_ERRORS.offline)).toBeInTheDocument();
+      signInWithGoogle.mockResolvedValueOnce(null);
+      await userEvent.click(googleButton());
+      expect(signInWithGoogle).toHaveBeenCalledTimes(2);
+    });
   });
 });

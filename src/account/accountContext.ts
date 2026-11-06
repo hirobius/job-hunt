@@ -18,6 +18,8 @@ export interface CloudSyncApi {
   offline: boolean;
   /** Email a magic sign-in link. Resolves to an error message, or null when sent. */
   sendLink: (email: string) => Promise<string | null>;
+  /** Start "Continue with Google" (the page leaves for Google); an error message, else null. */
+  signInWithGoogle: () => Promise<string | null>;
   retry: () => void;
   signOut: () => void;
   deleteMyData: () => void;

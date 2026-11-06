@@ -72,3 +72,15 @@
 .sign-in-dialog__primary {
   width: 100%;
 }
+
+/* "Continue with Google" (#482): Google's mark at 20px, its own colours (GoogleMark.tsx). */
+.rjb-google-mark {
+  display: inline-flex;
+  flex: none;
+  width: var(--primitive-space-5);
+  height: var(--primitive-space-5);
+}
+.rjb-google-mark svg {
+  width: 100%;
+  height: 100%;
+}

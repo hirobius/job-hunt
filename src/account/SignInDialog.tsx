@@ -4,8 +4,9 @@
 // a "Check your email" state with Resend (30 s cooldown) and Use a different email. Both end in
 // Continue without an account, which only closes it. The screen is sized to the visual viewport
 // (useVisualViewportVars), so on a phone the iOS keyboard never covers the field or the button;
-// on a short one the brand shrinks (SignInDialog.css). Only the presentation lives here: sending
-// and every auth rule stay in the CloudSync seam.
+// on a short one the brand shrinks (SignInDialog.css). "Continue with Google" (#482) sits above
+// the field: Google's mark and label on an HDS secondary Button; the page then leaves for Google.
+// Only the presentation lives here: sending and every auth rule stay in the CloudSync seam.
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Dialog, Input, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
 import { Form } from '@hirobius/design-system/patterns';
@@ -14,6 +15,7 @@ import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import { useBackCloses } from '../useBackCloses';
 import { RoleFlameLogo } from '../brand/RoleFlame';
+import { GoogleMark } from './GoogleMark';
 import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
@@ -28,13 +30,15 @@ function SignInBrand() {
 }
 
 export default function SignInDialog() {
-  const { signInOpen, setSignInOpen, sendLink, accountTrigger } = useCloudSync();
+  const { signInOpen, setSignInOpen, sendLink, signInWithGoogle, accountTrigger } = useCloudSync();
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +88,18 @@ export default function SignInDialog() {
     if (await request(sentTo)) setResent(true);
   };
 
+  // The page leaves for Google; the button stays busy until it does. An error comes back here.
+  const google = async () => {
+    if (leaving) return;
+    setLeaving(true);
+    setGoogleError(null);
+    const err = await signInWithGoogle();
+    if (err) {
+      setGoogleError(err);
+      setLeaving(false);
+    }
+  };
+
   const differentEmail = () => {
     setSentTo(null);
     setSendError(null);
@@ -95,6 +111,8 @@ export default function SignInDialog() {
     if (!open) {
       differentEmail();
       setFieldError(null);
+      setGoogleError(null);
+      setLeaving(false);
     }
   };
   // The browser's Back closes it and stays on the page (return paths).
@@ -149,6 +167,18 @@ export default function SignInDialog() {
               <VisuallyHidden as="div">
                 <Dialog.Title>Sign in</Dialog.Title>
               </VisuallyHidden>
+              <Stack gap="tight">
+                <Button
+                  variant="secondary"
+                  className="sign-in-dialog__primary"
+                  iconLeft={<GoogleMark />}
+                  loading={leaving}
+                  onClick={() => void google()}
+                >
+                  Continue with Google
+                </Button>
+                {googleError && <Alert tone="danger">{googleError}</Alert>}
+              </Stack>
               <Form noValidate onSubmit={(e) => void submit(e)}>
                 <Stack gap="normal">
                   <Input

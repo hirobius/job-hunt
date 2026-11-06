@@ -884,7 +884,7 @@ p {
 }
 
 /* The animated logo (src/brand/RoleFlame.tsx, loaded by LazyRoleFlameLogo): the flame's three layers
-   take the same HDS primitives as .rjb-flame (light and dark), the name is the HDS display family at 700.
+   take the same HDS primitives as .rjb-flame (light and dark), the name is HDS's display type token (Sora 700 from HDS's fonts.css, ADR-063, hds#847; no font of its own).
    Size is set per use from --rjb-rf-size; "stacked" puts the flame above the name (sign-in). */
 .rjb-rf {
   --rjb-rf-1: var(--primitive-color-blue-500);
@@ -893,9 +893,9 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  font-family: var(--hds-font-family-display);
+  font-family: var(--semantic-typography-display-font-family);
   font-size: var(--rjb-rf-size, 19px);
-  font-weight: 700;
+  font-weight: var(--semantic-typography-display-font-weight);
   line-height: 1;
 }
 :root[data-theme='dark'] .rjb-rf {
