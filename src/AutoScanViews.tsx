@@ -69,18 +69,18 @@ export function ScanStatus({
       (updated ? null : 'Not scanned yet. The first scan runs on its own.'));
   return (
     <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-      {/* Its own line (the meta-line rule, #192: at most two items on a " · " line). */}
-      <Stack gap="px4" role="status">
+      {/* Its own line (the meta-line rule, #192: at most two items on a " · " line). The server's
+          "Updated N min ago" sits outside the live region: its minutes tick, and a screen reader
+          must not announce it every minute. */}
+      <Stack gap="px4">
         {updated && (
           <Text variant="caption" as="p" tone="secondary">
             {updated}
           </Text>
         )}
-        {line && (
-          <Text variant="caption" as="p" tone="secondary">
-            {line}
-          </Text>
-        )}
+        <Text variant="caption" as="p" tone="secondary" role="status">
+          {line}
+        </Text>
       </Stack>
       {running ? (
         <Button size="sm" variant="tertiary" onClick={cancelScan}>

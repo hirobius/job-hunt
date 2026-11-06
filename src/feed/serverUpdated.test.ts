@@ -25,3 +25,14 @@ describe('serverUpdatedLine (#448)', () => {
     expect(serverUpdatedLine(ago(-2), now)).toBe('Updated just now');
   });
 });
+
+describe('"Updated N min ago" is not announced every minute (#448 review)', () => {
+  it('sits outside the scan line\'s live region', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/AutoScanViews.tsx', 'utf8');
+    const block = src.slice(src.indexOf('{updated && ('), src.indexOf('{line}'));
+    // The updated line's own Text carries no role, and no live region wraps both lines.
+    expect(block.slice(0, block.indexOf('{updated}'))).not.toMatch(/role="status"|aria-live/);
+    expect(src).not.toMatch(/<Stack[^>]*role="status"/);
+  });
+});

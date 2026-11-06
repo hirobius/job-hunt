@@ -102,6 +102,9 @@ const BOARD_BATCH = 8;
  *  CPU budget with the reads now scheduled concurrently (src/tracks/sync.ts) — and a 152-board
  *  run chains 10 invocations instead of 19, halving the per-slice overheads below. */
 const SLICE = 16;
+/** How long a 15-minute run holds its lease before the next tick may start anyway (#448): under
+ *  the 15-minute gap, so a chain that died never blocks more than one tick. */
+const RUN_LEASE_MS = 14 * 60_000;
 /** Blobs per select (each holds a user's whole job list). */
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
@@ -813,6 +816,27 @@ Deno.serve(async (req) => {
   if (body.rotate === true) return rotate(db);
   const runStart = body.runStart ?? new Date().toISOString();
   const logs: Log[] = [];
+  // One run at a time (#448, every 15 minutes): the first slice (no runStart yet) claims the lease
+  // on the database's clock; a tick that finds the previous run's chain still going skips. The
+  // last slice releases it; a chain that dies lets it expire (RUN_LEASE_MS).
+  if (body.runStart === undefined) {
+    const { data: held, error: leaseError } = await db.rpc('claim_sync_run', {
+      p_run: runStart,
+      p_lease_ms: RUN_LEASE_MS,
+    });
+    // The lease migration not applied yet: run as before rather than never.
+    if (!leaseError && held === false) {
+      await db.from('sync_log').insert({
+        user_id: null,
+        kind: 'run',
+        board: null,
+        status: null,
+        message: JSON.stringify({ skipped: 'previous run still going', at: runStart }),
+      });
+      return json({ skipped: 'previous run still going' });
+    }
+  }
+  const releaseRun = () => db.rpc('release_sync_run', { p_run: runStart });
 
   // Cached like the rotation's (#448): a run's chained slices land inside the TTL, so one run
   // plans once instead of re-reading every blob and tile on each of its ~10 slices.
@@ -1051,6 +1075,7 @@ Deno.serve(async (req) => {
     });
   }
   if (logs.length) await db.from('sync_log').insert(logs);
+  if (!next) await releaseRun();
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,
@@ -1066,6 +1091,8 @@ Deno.serve(async (req) => {
         status: null,
         message: `next slice (after '${next}') not started: ${broke}`.slice(0, 2000),
       });
+    // The chain is over either way: the next tick may start a fresh run.
+    if (broke) await releaseRun();
   }
   return json({
     ranAt: runStart,

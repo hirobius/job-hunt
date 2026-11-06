@@ -60,3 +60,49 @@ select cron.schedule(
   );
   $$
 );
+
+-- ---- one run at a time: a lease on the database's clock ----
+-- A 15-minute run chains its slices; if one is still going when the next tick fires, the new tick
+-- skips (sync-postings logs "previous run still going"). The first slice claims the lease, the
+-- last slice releases it, and a run that dies mid-chain lets it expire after 14 minutes.
+create table if not exists public.sync_run_lease (
+  id          int primary key default 1 check (id = 1),
+  run_start   text,
+  lease_until timestamptz
+);
+insert into public.sync_run_lease (id) values (1) on conflict (id) do nothing;
+alter table public.sync_run_lease enable row level security;
+revoke all on public.sync_run_lease from public, anon, authenticated;
+
+-- True when this run now holds the lease (no other run holds an unexpired one).
+create or replace function public.claim_sync_run(p_run text, p_lease_ms int)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  with took as (
+    update public.sync_run_lease
+       set run_start = p_run,
+           lease_until = now() + make_interval(secs => p_lease_ms / 1000.0)
+     where id = 1
+       and (lease_until is null or lease_until < now() or run_start = p_run)
+    returning 1
+  )
+  select exists (select 1 from took);
+$$;
+
+-- Lets the lease go, only for the run that holds it.
+create or replace function public.release_sync_run(p_run text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.sync_run_lease set lease_until = null where id = 1 and run_start = p_run;
+$$;
+
+revoke all on function public.claim_sync_run(text, int) from public, anon, authenticated;
+revoke all on function public.release_sync_run(text) from public, anon, authenticated;
+grant execute on function public.claim_sync_run(text, int) to service_role;
+grant execute on function public.release_sync_run(text) to service_role;

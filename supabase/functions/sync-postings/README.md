@@ -167,6 +167,20 @@ Expect `sync-postings-15min`, `sync-postings-15min-23`, `sync-postings-morning` 
 `sync-postings-rotate` if the rotation is on). The app's Today then says "Updated N min ago" under
 Scan now for a signed-in user (the newest `run` row in their `sync_log`). Scan now stays manual.
 
+**One run at a time.** The first slice of a run claims `sync_run_lease` (`claim_sync_run`, on the
+database's clock, 14 minutes); a tick that finds the previous run's chain still going writes a `run`
+row `{"skipped":"previous run still going"}` and stops. The last slice releases the lease; a chain
+that dies lets it expire before the tick after next.
+
+**Requests per host after this change.** Before: 2 passes a day. Now: 96 passes a day (4 an hour),
+each reading every followed board once (plus at most one retry on a 429/5xx/timeout). Per host that is
+96 × the followed boards on it: with the measured 152-board set (97 Greenhouse, 45 Ashby, 10 Lever)
+about 9,300 Greenhouse list reads a day (light lists via the delta reads, #460, plus a single-job read
+only for a new or changed job), 4,320 Ashby and 960 Lever. That is about 6.5, 3 and 0.7 requests a
+minute on average, each run spread over its 16-board slices. The scan rotation (`sync-postings-rotate`)
+is separate and unchanged. If a host answers 429s in `sync_log`, unschedule `sync-postings-15min-23`
+(drops to 3 an hour) before anything else.
+
 To go back to twice a day: `select cron.unschedule('sync-postings-15min');
 select cron.unschedule('sync-postings-15min-23');` and run step 6's file again.
 
