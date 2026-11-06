@@ -1,5 +1,6 @@
 // Today, the home page and one of the two top tabs (simplify #383 + amendment 2, Q6;
-// docs/specs/simplify.md). Top to bottom: the auto-scan's status (Scan now, "Last scanned · N new
+// docs/specs/simplify.md). Top to bottom: Daily picks (signed in, when the scheduled run left
+// some; DailyPicks.tsx), the auto-scan's status (Scan now, "Last scanned · N new
 // from M sources"), Review new as the Browse list itself (a row opens the in-app preview, Open
 // posting one tap away), Apply, Follow up (what is due, with dates, and what falls due this week)
 // and the companies the scan found (Follow / Ignore). The read model is today.ts; this lays it out.
@@ -10,6 +11,7 @@ import { MetaCaption } from './MetaCaption';
 import { JobPostingTitle } from './PostingLink';
 import { NewCompanies, ScanStatus } from './AutoScanViews';
 import ReviewView from './ReviewView';
+import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
 import { useCloudSync } from './account/accountContext';
 import { useJobs, jobIdOf } from './store';
@@ -28,7 +30,7 @@ export default function Today() {
   const route = useRoute();
   const jobs = useJobs();
   const profile = useProfile();
-  const { offline } = useCloudSync();
+  const { offline, user } = useCloudSync();
   const now = new Date();
   const m = today(jobs, now, lastApplyJobId());
   const { due, waiting, upcoming } = m.followUp;
@@ -44,6 +46,10 @@ export default function Today() {
           ]}
         />
       </Stack>
+
+      {/* The scheduled run's hand-picked roles (picks.ts), signed in only: fit line, draft note
+          (Copy), Save → Pipeline. Hidden when there are none. */}
+      {user && <DailyPicks key={user.id} />}
 
       {/* The scan's status, then every design-system posting, newest first, as a list (the Deck is
           a toggle inside). Review new hosts the status, so its counts are the Feed's own. */}

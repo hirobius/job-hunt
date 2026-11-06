@@ -123,6 +123,7 @@ export const PRIVACY: LegalDoc = {
         'Evidence text you paste in to rank openings',
         'Your Application kit: the name, contact details, links and answers you choose to fill in',
         'Your tracks, saved companies, searches and settings',
+        'Daily picks: roles, fit notes and draft messages a scheduled assistant adds to your account, only if you set one up with your own feed token. They are deleted after 60 days',
       ],
     },
     {

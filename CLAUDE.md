@@ -332,6 +332,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `modal={false}` so its dialog opens cleanly) and an Interviewing job's header primary: one
   `AddInterviewHost` dialog (App) writes `events`, which feed Next 7 days. Each card shows one date (Posted,
   else Found) plus the closing-date badge (#423). Pinned in `simplifyJobs.test.tsx`.
+- **Daily picks (2026-11-05, `docs/daily-picks.md`):** the scheduled Claude run's hand-picked roles, no longer a
+  separate page. It calls `add_daily_picks(p_token, p_picks)` (security definer, public key + a feed token whose sha256
+  is in `daily_pick_feeds`; ≤ 10 a call, 50 a day, insert only) into `daily_picks` (RLS read own; migration
+  `20261105100000`, also redefines `delete_my_data`). Today shows `DailyPicks.tsx` above Review new, signed in only,
+  hidden when empty: link, company, employee/contract, pay, posted day, fit line, draft note (Disclosure row + Copy),
+  Save (`addJobDetailed` with `notes` = draft note + fit) and Skip (`decided` by fingerprint, Undo). Read model
+  `src/picks.ts`; it imports `fingerprint` from `tracks/score` directly (through `decided.ts` the entry grew 0.8 kB).
+  Pinned in `picks.test.ts`, `dailyPicks.test.tsx`, `dailyPicksMigration.test.ts`.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
