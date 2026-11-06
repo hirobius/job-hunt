@@ -36,11 +36,11 @@ describe('meta tags (#47)', () => {
         `<meta\\s+name="theme-color"\\s+content="([^"]*)"\\s+media="\\(prefers-color-scheme: ${scheme}\\)"`,
       ).exec(html)?.[1];
     expect(theme('light')).toBe('#ffffff');
-    expect(theme('dark')).toBe('#000000');
+    expect(theme('dark')).toBe('#060a13');
     // The HDS page surfaces those match (light, then the dark block).
     const vars = readFileSync('node_modules/@hirobius/design-system/dist/variables.css', 'utf8');
     expect(vars).toContain('--primitive-color-neutral-white: #ffffff;');
-    expect(vars).toContain('--primitive-color-neutral-black: #000000;');
+    expect(vars).toContain('--primitive-color-neutral-black: #060a13;');
     const pages = [...vars.matchAll(/--semantic-color-surface-page: var\(([^)]+)\)/g)].map(
       (m) => m[1],
     );

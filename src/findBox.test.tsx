@@ -145,7 +145,9 @@ describe('Find box from the Pipeline', () => {
     expect(dialog).toHaveTextContent('Adds “Design Technologist” to your titles');
     await user.click(within(dialog).getByRole('button', { name: 'Find' }));
     expect(titles()).toEqual(['Design Systems Engineer', 'Design Technologist']);
-    expect(await screen.findByText('Added “Design Technologist” to your titles')).toBeVisible();
+    // HDS 0.36 fades a toast in (opacity), so wait for it to be shown.
+    const added = await screen.findByText('Added “Design Technologist” to your titles');
+    await waitFor(() => expect(added).toBeVisible());
     expect(screen.queryByRole('dialog')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(titles()).toEqual(['Design Systems Engineer']);
@@ -156,9 +158,8 @@ describe('Find box from the Pipeline', () => {
     renderPipeline();
     const dialog = await openFind(user);
     await find(user, dialog, 'design systems engineer');
-    expect(
-      await screen.findByText('“design systems engineer” is already in your titles'),
-    ).toBeVisible();
+    const listed = await screen.findByText('“design systems engineer” is already in your titles');
+    await waitFor(() => expect(listed).toBeVisible());
     expect(titles()).toEqual(['Design Systems Engineer']);
   });
 
@@ -168,7 +169,8 @@ describe('Find box from the Pipeline', () => {
     renderPipeline();
     const dialog = await openFind(user);
     await find(user, dialog, 'ux designer');
-    expect(await screen.findByText('Turned “ux designer” on in your titles')).toBeVisible();
+    const on = await screen.findByText('Turned “ux designer” on in your titles');
+    await waitFor(() => expect(on).toBeVisible());
     expect(getProfile()?.titlesOff).toEqual([]);
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(getProfile()?.titlesOff).toEqual(['UX Designer']);

@@ -305,7 +305,7 @@
   --semantic-color-content-danger: var(--primitive-color-red-700);
   --semantic-color-border-default: var(--primitive-color-neutral-200);
   --semantic-color-border-interactive: var(--primitive-color-neutral-500);
-  --semantic-color-border-subdued: var(--primitive-color-neutral-200);
+  --semantic-color-border-default: var(--primitive-color-neutral-200);
   --semantic-color-border-subtle: var(--primitive-color-neutral-100);
   --semantic-color-border-strong: var(--primitive-color-neutral-300);
   --semantic-color-border-accent: var(--primitive-color-graphite-700);
@@ -332,14 +332,14 @@
   --semantic-space-subgrid-hairline: var(--primitive-space-px1);
   --semantic-space-subgrid-xs: var(--primitive-space-px2);
   --semantic-space-subgrid-gap: var(--primitive-space-1);
-  --semantic-space-component-gap: var(--primitive-space-2);
+  --semantic-space-scale-xs: var(--primitive-space-2);
   --semantic-space-component-medium: var(--primitive-space-3);
-  --semantic-space-component-padding: var(--semantic-space-surface-padding);
-  --semantic-space-layout-tight: var(--primitive-space-4);
-  --semantic-space-layout-normal: var(--primitive-space-6);
-  --semantic-space-layout-gutter: var(--semantic-space-region-gutter);
-  --semantic-space-layout-inset: var(--primitive-space-8);
-  --semantic-space-layout-spacious: var(--primitive-space-12);
+  --semantic-space-surface-padding: var(--semantic-space-surface-padding);
+  --semantic-space-scale-sm: var(--primitive-space-4);
+  --semantic-space-scale-md: var(--primitive-space-6);
+  --semantic-space-region-gutter: var(--semantic-space-region-gutter);
+  --semantic-space-scale-lg: var(--primitive-space-8);
+  --semantic-space-scale-xl: var(--primitive-space-12);
   --semantic-space-section-stack: var(--primitive-space-20);
   --semantic-space-section-inset: var(--primitive-space-24);
   --semantic-space-section-heroMax: var(--primitive-space-32);
@@ -601,7 +601,7 @@
   --semantic-color-content-danger: var(--primitive-color-red-400);
   --semantic-color-border-default: var(--primitive-color-neutral-700);
   --semantic-color-border-interactive: var(--primitive-color-neutral-500);
-  --semantic-color-border-subdued: var(--primitive-color-neutral-800);
+  --semantic-color-border-default: var(--primitive-color-neutral-800);
   --semantic-color-border-subtle: var(--primitive-color-neutral-850);
   --semantic-color-border-strong: var(--primitive-color-neutral-600);
   --semantic-color-border-accent: var(--primitive-color-graphite-300);
@@ -1209,7 +1209,7 @@ button { font: inherit; color: inherit; }
 .x-toolbar { flex: none; display: flex; align-items: center; gap: var(--primitive-space-1); height: 56px; padding: 0 var(--primitive-space-4); border-bottom: 1px solid var(--semantic-color-border-subtle); }
 
 .x-sheet-scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--semantic-color-surface-scrim) 48%, transparent); display: flex; align-items: flex-end; }
-.x-sheet { width: 100%; background: var(--semantic-color-surface-page); border-radius: var(--primitive-radius-12) var(--primitive-radius-12) 0 0; padding: var(--primitive-space-3) var(--semantic-space-region-gutter) var(--semantic-space-layout-inset); display: flex; flex-direction: column; gap: var(--semantic-docs-space-paragraph); box-shadow: var(--semantic-shadow-overlay); }
+.x-sheet { width: 100%; background: var(--semantic-color-surface-page); border-radius: var(--primitive-radius-12) var(--primitive-radius-12) 0 0; padding: var(--primitive-space-3) var(--semantic-space-region-gutter) var(--semantic-space-scale-lg); display: flex; flex-direction: column; gap: var(--semantic-docs-space-paragraph); box-shadow: var(--semantic-shadow-overlay); }
 .x-grab { width: var(--primitive-space-10); height: var(--primitive-space-1); border-radius: var(--primitive-radius-full); background: var(--semantic-color-border-strong); margin: 0 auto; }
 .x-field { display: flex; flex-direction: column; gap: var(--primitive-space-2); }
 .x-label { font-weight: var(--semantic-typography-ui-font-weight); }
@@ -1225,17 +1225,17 @@ button { font: inherit; color: inherit; }
 
 /* Desktop panes */
 .d-body { flex: 1; display: flex; min-height: 0; }
-.d-rail { width: 264px; flex: none; border-right: 1px solid var(--semantic-color-border-subtle); padding: var(--semantic-space-layout-inset) var(--semantic-space-region-gutter); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
+.d-rail { width: 264px; flex: none; border-right: 1px solid var(--semantic-color-border-subtle); padding: var(--semantic-space-scale-lg) var(--semantic-space-region-gutter); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
 .d-rail-h { font-size: var(--primitive-typography-size-xs); color: var(--semantic-color-content-secondary); font-weight: var(--semantic-typography-ui-font-weight); padding: var(--primitive-space-3) var(--primitive-space-3) var(--primitive-space-1); }
 .d-rail a { display: flex; align-items: center; gap: var(--primitive-space-2); height: 40px; padding: 0 var(--primitive-space-3); border-radius: var(--semantic-radius-action); color: var(--semantic-color-content-primary); text-decoration: none; font-weight: var(--semantic-typography-ui-font-weight); }
 .d-rail a.on { background: var(--semantic-color-surface-selected); }
 .d-rail a .n { margin-left: auto; color: var(--semantic-color-content-secondary); font-size: var(--primitive-typography-size-xs); }
 .d-list { width: 440px; flex: none; border-right: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; }
-.d-detail { flex: 1; min-width: 0; padding: var(--semantic-space-layout-spacious); display: flex; flex-direction: column; gap: var(--semantic-layout-grid-gap); max-width: 760px; }
+.d-detail { flex: 1; min-width: 0; padding: var(--semantic-space-scale-xl); display: flex; flex-direction: column; gap: var(--semantic-layout-grid-gap); max-width: 760px; }
 .d-col { width: 100%; max-width: 760px; margin: 0 auto; padding: var(--primitive-space-8) 0; display: flex; flex-direction: column; gap: var(--primitive-space-4); }
-.d-filters { width: 312px; flex: none; padding: var(--semantic-space-layout-inset); border-right: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; gap: var(--semantic-layout-grid-gap); }
+.d-filters { width: 312px; flex: none; padding: var(--semantic-space-scale-lg); border-right: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; gap: var(--semantic-layout-grid-gap); }
 .d-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--semantic-layout-grid-gap); }
-.d-main { flex: 1; min-width: 0; padding: var(--semantic-space-layout-spacious); display: flex; flex-direction: column; gap: var(--semantic-layout-grid-gap); }
+.d-main { flex: 1; min-width: 0; padding: var(--semantic-space-scale-xl); display: flex; flex-direction: column; gap: var(--semantic-layout-grid-gap); }
 .x-check { display: flex; align-items: center; gap: var(--primitive-space-2); min-height: var(--primitive-space-8); }
 .x-box { width: var(--primitive-space-4); height: var(--primitive-space-4); border: 1px solid var(--semantic-color-border-strong); border-radius: var(--primitive-radius-4); display: inline-flex; align-items: center; justify-content: center; }
 .x-box.on { background: var(--semantic-accent-rest); border-color: var(--semantic-accent-rest); color: var(--semantic-color-content-onAccent); }
@@ -1514,7 +1514,7 @@ button { font: inherit; color: inherit; }
     '<div class="x-field"><span class="x-label">3 · Done?</span><span class="t-cap">Marks it applied and sets a follow-up for 7 days from today.</span></div>' +
     '<button class="x-btn primary block">' + I('check', 'i-sm') + 'Mark applied</button></div></div>';
   var cDesk = deskHead('co', C2, '<button class="x-btn sm primary">' + I('plus', 'i-sm') + 'Add a company</button>') +
-    '<div class="x-stack g4" style="padding:var(--semantic-space-layout-inset) var(--semantic-space-layout-spacious);border-bottom:1px solid var(--semantic-color-border-subtle)"><div class="x-row-flex" style="max-width:960px"><span class="x-select" style="height:48px"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</span><div class="x-input lg x-grow">' + I('search') + '<span class="ph">Search companies or roles</span></div></div><div class="x-chips">' + ['Hiring now', 'Starred', 'All'].map(function (x) { return '<span class="x-chip' + (x === 'Hiring now' ? ' on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>' +
+    '<div class="x-stack g4" style="padding:var(--semantic-space-scale-lg) var(--semantic-space-scale-xl);border-bottom:1px solid var(--semantic-color-border-subtle)"><div class="x-row-flex" style="max-width:960px"><span class="x-select" style="height:48px"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</span><div class="x-input lg x-grow">' + I('search') + '<span class="ph">Search companies or roles</span></div></div><div class="x-chips">' + ['Hiring now', 'Starred', 'All'].map(function (x) { return '<span class="x-chip' + (x === 'Hiring now' ? ' on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>' +
     '<div class="d-body"><aside class="d-filters"><div class="x-row-flex x-between"><h3 class="t-sec">Filters</h3><button class="x-btn sm ghost">Reset</button></div>' +
     '<div class="x-field"><span class="x-label">Where</span><div class="x-input">' + I('pin', 'i-sm') + '<span class="ph" style="color:var(--semantic-color-content-primary)">Spokane, WA</span></div>' + ['Remote', 'Hybrid', 'On-site'].map(function (x) { var on = x !== 'On-site'; return '<span class="x-check"><span class="x-box' + (on ? ' on' : '') + '">' + (on ? I('check', 'i-sm') : '') + '</span>' + x + '</span>'; }).join('') + '</div>' +
     '<div class="x-field"><span class="x-label">Team</span>' + ['Design system team', 'Founding team', 'Any team'].map(function (x, i) { return '<span class="x-check"><span class="x-box' + (i === 0 ? ' on' : '') + '">' + (i === 0 ? I('check', 'i-sm') : '') + '</span>' + x + '</span>'; }).join('') + '</div>' +
