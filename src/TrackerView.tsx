@@ -1,4 +1,13 @@
-import { Fragment, lazy, Suspense, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  Fragment,
+  lazy,
+  Suspense,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import { Form } from '@hirobius/design-system/patterns';
 import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import {
@@ -36,6 +45,9 @@ import './account/sheet.css';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { useListFocusKeeper } from './listFocus';
 import { focusAsHeading } from './focusRescue';
+import { CloudSyncContext } from './account/accountContext';
+import { needsClientAtBoot } from './supabase';
+import { PipelineSkeleton } from './Skeletons';
 
 // The Find box (#384) loads when Add job turns into it: the board probe stays out of the Pipeline.
 const loadFindBox = importFresh(() => import('./FindBox'));
@@ -58,7 +70,27 @@ const SELECT_VALUE = {
   whiteSpace: 'nowrap',
 } as const;
 
+/** The Jobs tab. A signed-in device with no jobs on it yet (a first visit, a new address such as a
+ *  new domain, cleared storage) waits for its cloud copy here instead of saying "0 jobs" (#478). */
 export default function TrackerView() {
+  const jobs = useJobs();
+  const sync = useContext(CloudSyncContext);
+  // Decided once, as the page opens: only a stored session has a cloud copy on its way.
+  const [signedIn] = useState(() => needsClientAtBoot());
+  const waiting = jobs.length === 0 && signedIn && !!sync && !sync.settled && !sync.offline;
+  if (waiting)
+    return (
+      <Stack gap="normal">
+        <Text variant="ui" as="p" role="status" tone="secondary">
+          Loading your jobs…
+        </Text>
+        <PipelineSkeleton />
+      </Stack>
+    );
+  return <PipelinePage />;
+}
+
+function PipelinePage() {
   const jobs = useJobs();
   const view = usePipelineView();
   const { filter, sort, q } = view;

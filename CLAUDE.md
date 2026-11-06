@@ -5,8 +5,8 @@ Project memory for future Claude Code sessions in this repo.
 ## What this is
 
 **Roleflame** (renamed 2026-11-02, Adrian, hirobius/ops#1092 / #55; before that **hiraga**, lowercase, 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
-**https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
-`job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
+**https://roleflame.vercel.app** (since 2026-11-05; repo `hirobius/job-hunt`; the old
+`roleforge-app.vercel.app` and `job-hunt-jade.vercel.app` still serve and are accepted sign-in origins until they redirect). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
 
@@ -43,6 +43,13 @@ flame `1.35cap` tall with its extra height taken back by a negative top margin, 
 and the name's run is plain text's width (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named
 by `aria-label`, its parts aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
 copy, max 4 s.
+**Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (the lab's procedural flame + flickering name, kept as
+code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
+`Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, fontSize 40, centred;
+one small row on a short screen). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
+`BRAND.name` in the HDS display family at 700 (Sora is not loaded), its dynamic styles come from helpers (no
+inline-style literals), and reduced motion holds frame 0. The boot splash, icons, og-image and BootHold still use
+flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
 
 ## Stack & conventions
 
@@ -157,7 +164,7 @@ copy, max 4 s.
   BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
   Pipeline, Today, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
   focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
-  **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
+  **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,
   Restore…, Export CSV, theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
@@ -263,12 +270,15 @@ copy, max 4 s.
   metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
   location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
   margins. **No cards within cards, ever (Adrian 2026-11-01, #449; replaced 2026-10-23's "lists are cards"):**
-  one card level max. A list inside a panel (Review new's Browse list, New companies, the Account menu's Companies
+  one card level max. A list inside a panel (New companies, the Account menu's Companies
   list, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, Documents, the interview log,
   the job page's links) is `PipelinePanel` `ItemList` (`.rjb-items`, a hairline between rows) of `ItemRow` (a plain
   row, never an HDS `Card`); `JobListCard` is an `article` row with Card's Header/Facts/Footer parts, no Card root.
-  **Review new has no card at all** (`Panel flat`): its heading, count and metadata declare the group, and its
-  content lines up with the page gutter. A lone card in the page flow (Review new's Deck posting) is fine;
+  **Review new's panel has no surface of its own** (`Panel flat`): its heading, count and metadata declare the group,
+  and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
+  `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
+  source + New badges, the title on the `title` step, company, MapPin / Briefcase / Calendar facts, the mode only
+  when the place line doesn't say it, pay left and Save right in the footer, Skip / Not this company under it);
   `calmLayout.test.tsx` fails on any Card inside a Card.
   Pinned in `src/calmLayout.test.tsx`.
 - **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
@@ -620,6 +630,22 @@ copy, max 4 s.
   `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
+- **Continue with Google (#482):** the sign-in screen's first control (`SignInDialog.tsx`, HDS secondary `Button`
+  with `iconLeft={<GoogleMark />}`; `src/account/google-g.svg` is Google's G as given, its own four colours per
+  Google's branding rules, the one allowed third-party svg in `brand/flame.test.tsx` `THIRD_PARTY_MARKS`).
+  `useCloudSync().signInWithGoogle` → `signInWithOAuth({ provider: 'google', redirectTo: magicLinkRedirect, queryParams:
+  { code_challenge, code_challenge_method: 's256' } })`: **PKCE bound to this browser** (`account/oauthPkce.ts`; review
+  of #483: an unbound "started Google" note let a crafted token link sign in after an abandoned start). The verifier
+  stays in `rjb_oauth_request` (10 min, taken once); the return's `?code=` is taken and stripped by `authFragment.ts`
+  and swapped at `/auth/v1/token?grant_type=pkce` with that verifier, then `acceptLink` with the email the token names.
+  A code with no verifier here is never sent. The shared client stays implicit (magic links on another device), and
+  tokens in a hash always take the magic-link guard, Google or not. An existing
+  account with the same verified email gets the Google identity (Supabase automatic linking), so the same user id
+  and sync base: no merge ask. A cancelled/refused return carries `error=` in the QUERY (PKCE; a magic link's is in the
+  hash): App toasts "Google sign-in was cancelled." / "…didn't work" and drops the params through the route seam.
+  `oauthPkce.ts` is a lazy chunk (the entry is at its budget). Dashboard setup (Google
+  Cloud OAuth client, Supabase provider, redirect allow-list) is Adrian's. Pinned in `googleSignIn.test.tsx`,
+  `SignInDialog.test.tsx`, `authLinkError.test.ts`, `shell.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.
@@ -681,6 +707,13 @@ copy, max 4 s.
 - Backlog lives in **GitHub Issues** (see Fleet hub below), not local TODO files.
   Upstream HDS gaps + accept criteria: `docs/hds-upstream-asks-0.9.md`.
 
+## Figma agent rules
+
+`docs/figma/FIGMA-RULES.md` is the visual subset of this file, pasted into the Figma agent's prompt
+(and mirrored on a Rules page in the HDS Figma file). When a visual rule here changes (HDS version or
+density, cards, outlines, type, the screens and their names), change that page in the same PR;
+`src/figmaRules.test.ts` fails when the rules it pins leave this file.
+
 ## Skills — the architecture skill set
 
 Vendored from github.com/mattpocock/skills into `.claude/skills/` (the container is ephemeral;
@@ -706,9 +739,9 @@ re-litigate decisions already in `docs/adr/`.
 ## Notes
 
 - Supabase redirect URLs must include any new origin for magic-link sign-in. During the move
-  **both** `https://roleforge-app.vercel.app/` (Site URL) and `https://job-hunt-jade.vercel.app/`
+  `https://roleflame.vercel.app/` (Site URL) and the old `https://roleforge-app.vercel.app/` and `https://job-hunt-jade.vercel.app/`
   must be in Supabase Auth → URL Configuration → Redirect URLs; the client side is
-  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGIN`).
+  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGINS`).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
 - **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/

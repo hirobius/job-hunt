@@ -27,7 +27,7 @@ export const DSJOBS_ORIGIN = 'https://designsystems.jobs';
 export const MAX_PAGES_PER_RUN = 40;
 /** Between page reads. */
 export const PAGE_GAP_MS = 1000;
-export const USER_AGENT = `${BRAND.name} (+https://roleforge-app.vercel.app)`;
+export const USER_AGENT = `${BRAND.name} (+https://roleflame.vercel.app)`;
 type Http = (url: string, init?: RequestInit) => Promise<Response>;
 
 /** The job pages in a sitemap: `/companies/<company>/<job>` (company pages have 2 segments). */

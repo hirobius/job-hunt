@@ -41,8 +41,8 @@ test('desktop: a full screen with one centred column', async ({ page }) => {
   expect(Math.abs(column.x + column.width / 2 - 720)).toBeLessThanOrEqual(2);
   expect(Math.abs(column.y + column.height / 2 - 450)).toBeLessThanOrEqual(2);
   // The brand above the title: the flame (decorative) and the wordmark.
-  await expect(dialog.locator('.rjb-flame svg')).toBeVisible();
-  await expect(dialog.locator('.rjb-logo-word')).toBeVisible();
+  await expect(dialog.locator('.rjb-rf > svg')).toBeVisible();
+  await expect(dialog.locator('.rjb-rf')).toBeVisible();
   await dialog.getByRole('button', { name: 'Continue without an account' }).click();
   await expect(dialog).toBeHidden();
 });
