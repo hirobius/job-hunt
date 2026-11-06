@@ -17,6 +17,9 @@ begin
   if exists (select 1 from cron.job where jobname = 'sync-postings-15min') then
     perform cron.unschedule('sync-postings-15min');
   end if;
+  if exists (select 1 from cron.job where jobname = 'sync-postings-15min-23') then
+    perform cron.unschedule('sync-postings-15min-23');
+  end if;
 end
 $$;
 
