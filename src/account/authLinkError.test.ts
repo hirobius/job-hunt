@@ -24,26 +24,20 @@ describe('a sign-in link that comes back with an error', () => {
 });
 
 describe('a Google sign-in that comes back with an error (#482)', () => {
-  it('says Google when this browser started one: cancelled, or any other refusal', () => {
-    expect(authLinkErrorMessage('#error=access_denied&error_description=denied', '', true)).toBe(
+  it('an error in the query (the PKCE flow) is worded for Google: cancelled, or any other', () => {
+    expect(authLinkErrorMessage('#/queue', '?error=access_denied&error_description=denied')).toBe(
       GOOGLE_CANCELLED_MSG,
     );
-    expect(authLinkErrorMessage('#error=server_error', '', true)).toBe(GOOGLE_FAILED_MSG);
+    expect(authLinkErrorMessage('', '?error=server_error&error_description=x')).toBe(
+      GOOGLE_FAILED_MSG,
+    );
+    expect(authLinkErrorMessage('', '?add=https://x.example')).toBeNull();
   });
 
-  it('reads the error from the query too (an OAuth refusal can land there)', () => {
-    expect(authLinkErrorMessage('#/queue', '?error=access_denied', true)).toBe(
-      GOOGLE_CANCELLED_MSG,
-    );
-    expect(authLinkErrorMessage('', '?error=server_error&error_description=x', false)).toBe(
-      FAILED_LINK_MSG,
-    );
-    expect(authLinkErrorMessage('', '?add=https://x.example', true)).toBeNull();
-  });
-
-  it('a magic link error keeps its own words when no Google sign-in was started', () => {
-    expect(authLinkErrorMessage('#error=access_denied&error_code=otp_expired', '', false)).toBe(
+  it('an error in the hash keeps the magic link words', () => {
+    expect(authLinkErrorMessage('#error=access_denied&error_code=otp_expired', '?x=1')).toBe(
       EXPIRED_LINK_MSG,
     );
+    expect(authLinkErrorMessage('#error=server_error', '')).toBe(FAILED_LINK_MSG);
   });
 });

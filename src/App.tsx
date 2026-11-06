@@ -41,7 +41,6 @@ import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { AUTH_ERROR_PARAMS, authLinkErrorMessage } from './account/authLinkError';
-import { clearOAuthRequest, readOAuthRequest } from './account/authLink';
 import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNotice';
 import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
@@ -205,12 +204,7 @@ export default function App() {
   // normalize the hash to the default landing tab so back/forward and refresh are consistent.
   const { toast } = useToast();
   useEffect(() => {
-    const linkError = authLinkErrorMessage(
-      window.location.hash,
-      window.location.search,
-      readOAuthRequest(),
-    );
-    if (linkError) clearOAuthRequest();
+    const linkError = authLinkErrorMessage(window.location.hash, window.location.search);
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
     const add = qp.get('add'),

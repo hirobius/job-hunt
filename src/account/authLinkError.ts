@@ -1,8 +1,9 @@
 // A sign-in link that is expired, already used or otherwise refused comes back as
 // `#error=…&error_code=…&error_description=…` (Supabase, implicit flow). That is not a route: the
 // shell says what happened in plain words and moves home through the route seam (App.tsx).
-// A Google sign-in that was cancelled or refused (#482) comes back the same way, in the fragment
-// or the query: when this browser started one, the words say Google, not "link".
+// A Google sign-in that was cancelled or refused (#482) comes back with the same params in the
+// QUERY (Supabase's PKCE flow puts errors there; the magic link's implicit flow, in the fragment),
+// so an error in the query is worded for Google.
 
 export const EXPIRED_LINK_MSG = 'That sign-in link has expired. Send a new one from Account.';
 export const FAILED_LINK_MSG = "That sign-in link didn't work. Send a new one from Account.";
@@ -14,15 +15,14 @@ export const AUTH_ERROR_PARAMS = ['error', 'error_code', 'error_description'] as
 
 const params = (s: string) => new URLSearchParams(s.replace(/^[#?]\/?/, ''));
 
-/** The plain message for a sign-in error in the hash (or the query), or null when there is none.
- *  `viaGoogle`: this browser started a Google sign-in (authLink.readOAuthRequest). */
-export function authLinkErrorMessage(hash: string, search = '', viaGoogle = false): string | null {
-  const fromHash = params(hash);
-  const p = fromHash.get('error') ? fromHash : params(search);
-  const error = p.get('error');
-  if (!error) return null;
+/** The plain message for a sign-in error: a magic link's in the hash, a Google sign-in's in the
+ *  query; null when there is none. */
+export function authLinkErrorMessage(hash: string, search = ''): string | null {
+  const q = params(search).get('error');
+  if (q) return q === 'access_denied' ? GOOGLE_CANCELLED_MSG : GOOGLE_FAILED_MSG;
+  const p = params(hash);
+  if (!p.get('error')) return null;
   const detail = `${p.get('error_code') ?? ''} ${p.get('error_description') ?? ''}`;
-  if (viaGoogle) return error === 'access_denied' ? GOOGLE_CANCELLED_MSG : GOOGLE_FAILED_MSG;
   // Supabase sends otp_expired for an expired or already-used link ("invalid or has expired").
   return /expired|invalid/i.test(detail) ? EXPIRED_LINK_MSG : FAILED_LINK_MSG;
 }

@@ -68,17 +68,15 @@ import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 import { magicLinkRedirect } from './authRedirect';
+import { GOOGLE_FAILED_MSG } from './authLinkError';
 import { rememberSignInReturn, returnAfterSignIn } from './signInReturn';
 import { isChunkLoadError } from '../chunkError';
-import { STALE_MSG } from '../staleBuild';
-import { takeBootAuthTokens, type AuthTokens } from '../authFragment';
+import { importFresh, STALE_MSG } from '../staleBuild';
+import { takeBootAuthCode, takeBootAuthTokens, type AuthTokens } from '../authFragment';
 import {
   clearSignInRequest,
   decideAuthLink,
   readSignInRequest,
-  readOAuthRequest,
-  clearOAuthRequest,
-  rememberOAuthRequest,
   rememberSignInRequest,
   sameEmail,
 } from './authLink';
@@ -87,6 +85,8 @@ import { dropSampleTrack } from '../demo/sampleTrack';
 import { dropAutoSetup } from '../autoSetup';
 import { LinkConfirmDialog, MergeConfirmDialog } from './AuthGuards';
 
+// The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
+const loadPkce = importFresh(() => import('./oauthPkce'));
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
 /** The cloud row as this tab last read or wrote it: whether there is one, and its stamp. */
@@ -473,16 +473,23 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     // A magic link's tokens (authFragment.ts took them out of the URL): they sign in on their own
     // only when this browser asked for a link to that email in the last hour; else confirm first.
     const tokens = takeBootAuthTokens();
-    const decision = tokens
-      ? decideAuthLink(tokens, readSignInRequest(), Date.now(), readOAuthRequest())
-      : null;
-    // The Google note is for this one return: a later link never rides on it.
-    if (tokens) clearOAuthRequest();
+    const decision = tokens ? decideAuthLink(tokens, readSignInRequest()) : null;
     if (tokens && decision?.kind === 'auto') void acceptLink(tokens, decision.email);
     else if (tokens && decision?.kind === 'confirm')
       void Promise.resolve().then(() => setLinkAsk({ email: decision.email, tokens }));
     else if (decision?.kind === 'reject')
       toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+    // A Google return (#482): its code signs in only with the verifier this browser kept, then
+    // the same path as a link (the email the exchanged token names, checked by setSession).
+    const code = takeBootAuthCode();
+    if (code)
+      void loadPkce()
+        .then((p) => p.googleSession(code))
+        .catch(() => null)
+        .then((got) => {
+          if (got) return acceptLink(got.tokens, got.email, GOOGLE_FAILED_MSG);
+          toast({ title: "Couldn't sign in", description: GOOGLE_FAILED_MSG, tone: 'danger' });
+        });
     // A link signing in, or a stored session: the client is needed now.
     if (decision?.kind === 'auto' || needsClientAtBoot())
       void loadSupabase().catch(() => setAuthResolved(true));
@@ -513,22 +520,22 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }, []);
 
   // Set the session a link brought, then check it is the account the link named.
-  async function acceptLink(tokens: AuthTokens, email: string) {
+  async function acceptLink(tokens: AuthTokens, email: string, failMsg = BAD_LINK_MSG) {
     clearSignInRequest();
     linkEmail.current = email;
     try {
       const supa = await loadSupabase();
       const r = await supa.auth.setSession(tokens);
       if (r.error || !r.data.user) {
-        toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+        toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
         return;
       }
       if (!sameEmail(r.data.user.email, email)) {
         await supa.auth.signOut({ scope: 'local' });
-        toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+        toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
       }
     } catch {
-      toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+      toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
     } finally {
       linkEmail.current = null;
     }
@@ -721,33 +728,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   };
 
   // "Continue with Google" (#482): the browser leaves for Google and comes back to the app's root
-  // with the session in the fragment (implicit flow, as the magic link), where the boot path above
-  // takes it. Supabase links the Google identity to an existing account with the same verified
+  // with `?code=…` (PKCE), which the boot path above swaps for a session with this browser's
+  // verifier. Supabase links the Google identity to an existing account with the same verified
   // email, so that account's user id (and its sync base) is the one that comes back.
   const signInWithGoogle = async (): Promise<string | null> => {
     rememberSignInReturn();
-    rememberOAuthRequest();
-    let supa;
     try {
-      supa = await loadSupabase();
+      const [supa, pkce] = await Promise.all([loadSupabase(), loadPkce()]);
+      // Only this app's own origins, at the root (#44), as for the magic link.
+      const err = await pkce.startGoogle(supa, magicLinkRedirect(location));
+      return err ? signInErrorMessage(err) : null; // null: the page is on its way to Google
     } catch (e) {
-      clearOAuthRequest();
       return isChunkLoadError(e) ? STALE_MSG : signInErrorMessage({ message: 'Failed to fetch' });
-    }
-    try {
-      const r = await supa.auth.signInWithOAuth({
-        provider: 'google',
-        // Only this app's own origins, at the root (#44), as for the magic link.
-        options: { redirectTo: magicLinkRedirect(location) },
-      });
-      if (r.error) {
-        clearOAuthRequest();
-        return signInErrorMessage(r.error);
-      }
-      return null; // the page is on its way to Google
-    } catch {
-      clearOAuthRequest();
-      return signInErrorMessage({ message: 'Failed to fetch' });
     }
   };
 

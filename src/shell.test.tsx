@@ -29,7 +29,6 @@ import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
 import { backInFlight, resetHistoryRecord } from './route';
 import { LEGAL_DRAFT } from './legal';
-import { readOAuthRequest, rememberOAuthRequest } from './account/authLink';
 
 const fake = () => h.fake!;
 
@@ -558,7 +557,6 @@ describe('routes keep working (#115 Phase 1)', () => {
 
   it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {
     await act(() => new Promise((r) => setTimeout(r, 0)));
-    rememberOAuthRequest();
     window.history.replaceState(
       null,
       '',
@@ -569,7 +567,6 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(await screen.findByText('Google sign-in was cancelled.')).toBeInTheDocument();
     expect(window.location.search).toBe('');
     expect(window.location.hash).toBe('#/today');
-    expect(readOAuthRequest()).toBe(false); // used once
   });
 
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {
