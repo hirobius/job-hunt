@@ -92,3 +92,21 @@ describe('one 15-minute run at a time (#448)', () => {
     expect(ms).toBeLessThan(15 * 60_000);
   });
 });
+
+describe('run lease functions pin an empty search_path (#487 review)', () => {
+  const fix = readFileSync(
+    'supabase/migrations/20261106100100_sync_run_lease_search_path.sql',
+    'utf8',
+  );
+
+  it("redefines both with set search_path = '' and qualified names", () => {
+    for (const f of ['claim_sync_run(p_run text, p_lease_ms int)', 'release_sync_run(p_run text)'])
+      expect(fix).toContain(`create or replace function public.${f}`);
+    expect(fix.match(/set search_path = ''/g)).toHaveLength(2);
+    expect(fix).not.toMatch(/set search_path = public/);
+    expect(fix).toContain('pg_catalog.now()');
+    expect(fix).toMatch(
+      /grant execute on function public\.claim_sync_run\(text, int\) to service_role/,
+    );
+  });
+});
