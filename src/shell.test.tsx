@@ -114,23 +114,31 @@ describe('app shell (#115 Phase 1)', () => {
     ).toBeInTheDocument();
   });
 
-  it('the wordmark is the brand lockup at 19px, never a page-title step', () => {
+  // The animated logo (src/brand/RoleFlame.tsx) loads lazily behind the still wordmark.
+  const animatedLogo = async () => {
+    await waitFor(() => expect(document.querySelector('header .rjb-rf')).not.toBeNull());
+    return screen.getByRole('img', { name: BRAND.name });
+  };
+
+  it('the wordmark is the brand lockup at 19px, never a page-title step', async () => {
     renderApp();
-    const wordmark = screen.getByRole('img', { name: BRAND.name });
-    expect(wordmark.className).toBe('rjb-logo-word');
+    const wordmark = await animatedLogo();
+    expect(wordmark).toHaveClass('rjb-rf');
     expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
+    expect(wordmark.style.getPropertyValue('--rjb-rf-size')).toBe('19px');
     expect((wordmark.parentElement as HTMLElement).style.getPropertyValue('--rjb-logo-size')).toBe(
       '19px',
     );
   });
 
-  it('the flame leads the wordmark, hidden from assistive tech', () => {
+  it('the flame leads the wordmark, hidden from assistive tech', async () => {
     renderApp();
-    const wordmark = screen.getByRole('img', { name: BRAND.name });
-    const mark = wordmark.querySelector('.rjb-wordmark-flame .rjb-flame');
-    expect(wordmark.firstElementChild).toBe(mark?.parentElement);
-    expect(mark?.closest('[aria-hidden="true"]')).not.toBeNull();
-    expect(mark?.querySelector('svg path')).not.toBeNull();
+    const wordmark = await animatedLogo();
+    const mark = wordmark.firstElementChild as Element;
+    expect(mark.tagName.toLowerCase()).toBe('svg');
+    expect(mark.getAttribute('aria-hidden')).toBe('true');
+    expect(mark.querySelector('path')).not.toBeNull();
+    expect(wordmark.lastElementChild).toHaveTextContent(BRAND.name);
   });
 
   it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {

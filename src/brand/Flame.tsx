@@ -5,7 +5,7 @@
 // `flame.test.tsx` fails on a second copy anywhere else. In the app its layers take HDS primitives
 // by class (`.flame-1..3` in base.css, light / dark), and flameMotion.ts sets them moving.
 import { useEffect, useId, useMemo, useRef } from 'react';
-import { Wordmark } from './Wordmark';
+import { LazyRoleFlameLogo } from './LazyRoleFlameLogo';
 import { flameSvg, withUniqueIds } from './flameSvg';
 import { startFlame } from './startFlame';
 
@@ -30,15 +30,15 @@ export function Flame({ className, animate = false }: { className?: string; anim
   );
 }
 
-/** The app bar lockup: the wordmark (an image named for the product, the flame before the name; the
- *  page's own name is its h1, #363), at `fontSize` px. */
+/** The app bar lockup: the animated logo (an image named for the product, the flame before the name;
+ *  the page's own name is its h1, #363), at `fontSize` px, behind the still wordmark until it loads. */
 export function BrandLogo({ fontSize = 19 }: { fontSize?: number }) {
   return (
     <span
       className="rjb-logo"
       ref={(el) => el?.style.setProperty('--rjb-logo-size', `${fontSize}px`)}
     >
-      <Wordmark />
+      <LazyRoleFlameLogo fontSize={fontSize} />
     </span>
   );
 }

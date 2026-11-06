@@ -13,16 +13,16 @@ import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import { useBackCloses } from '../useBackCloses';
-import { Wordmark } from '../brand/Wordmark';
+import { RoleFlameLogo } from '../brand/RoleFlame';
 import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
 
-/** The wordmark (the flame, then the name). Not a heading: the screen's title is Sign in. */
+/** The animated logo, stacked: the flame above the name. Not a heading: the screen's title is Sign in. */
 function SignInBrand() {
   return (
     <div className="rjb-signin-screen__brand">
-      <Wordmark as="p" />
+      <RoleFlameLogo layout="stacked" fontSize={40} />
     </div>
   );
 }
