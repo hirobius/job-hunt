@@ -615,6 +615,18 @@ copy, max 4 s.
   `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
+- **Continue with Google (#482):** the sign-in screen's first control (`SignInDialog.tsx`, HDS secondary `Button`
+  with `iconLeft={<GoogleMark />}`; `src/account/google-g.svg` is Google's G as given, its own four colours per
+  Google's branding rules, the one allowed third-party svg in `brand/flame.test.tsx` `THIRD_PARTY_MARKS`).
+  `useCloudSync().signInWithGoogle` → `signInWithOAuth({ provider: 'google', redirectTo: magicLinkRedirect })`, same
+  implicit flow as the magic link: the return lands on `#access_token=…` and goes through the same guard.
+  `authLink.ts` `rememberOAuthRequest` (`rjb_oauth_request`, 10 min, used once): `decideAuthLink` signs in without the
+  confirm only when this browser started Google AND the token's `amr` says `oauth`; anything else asks. An existing
+  account with the same verified email gets the Google identity (Supabase automatic linking), so the same user id
+  and sync base: no merge ask. A cancelled/refused return (`error=` in the hash or the query) toasts "Google sign-in
+  was cancelled." / "…didn't work" and App drops the error params through the route seam. Dashboard setup (Google
+  Cloud OAuth client, Supabase provider, redirect allow-list) is Adrian's. Pinned in `googleSignIn.test.tsx`,
+  `SignInDialog.test.tsx`, `authLinkError.test.ts`, `shell.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.

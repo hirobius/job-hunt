@@ -40,7 +40,8 @@ import { scanOnOpenEnabled } from './feed/scanOnOpenFlag';
 import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
-import { authLinkErrorMessage } from './account/authLinkError';
+import { AUTH_ERROR_PARAMS, authLinkErrorMessage } from './account/authLinkError';
+import { clearOAuthRequest, readOAuthRequest } from './account/authLink';
 import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNotice';
 import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
@@ -204,7 +205,12 @@ export default function App() {
   // normalize the hash to the default landing tab so back/forward and refresh are consistent.
   const { toast } = useToast();
   useEffect(() => {
-    const linkError = authLinkErrorMessage(window.location.hash);
+    const linkError = authLinkErrorMessage(
+      window.location.hash,
+      window.location.search,
+      readOAuthRequest(),
+    );
+    if (linkError) clearOAuthRequest();
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
     const add = qp.get('add'),
@@ -248,11 +254,15 @@ export default function App() {
       if (!did && (asks.add || asks.applied || asks.status))
         warn(st && !knownStatus ? quickAddBadStatus(st) : QUICK_ADD_INVALID);
     } else if (linkError) {
-      // An expired or refused sign-in link (#error=…): say so, and replace the error with home.
+      // An expired or refused sign-in link, or a cancelled Google sign-in (error=… in the hash or
+      // the query): say so, and replace the error with home (the query's error params go too).
       toast({ title: linkError, tone: 'warning', duration: 10000 });
+      AUTH_ERROR_PARAMS.forEach((k) => qp.delete(k));
+      const s = qp.toString();
       navigate(
         { tab: HOME_ROUTE, sub: null, pillar: null, jobId: null, from: null, section: null },
         true,
+        { search: s ? '?' + s : '' },
       );
     } else if (!getRoute().tab) {
       navigate({ tab: HOME_ROUTE }, true);

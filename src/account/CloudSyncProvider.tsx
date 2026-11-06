@@ -76,6 +76,9 @@ import {
   clearSignInRequest,
   decideAuthLink,
   readSignInRequest,
+  readOAuthRequest,
+  clearOAuthRequest,
+  rememberOAuthRequest,
   rememberSignInRequest,
   sameEmail,
 } from './authLink';
@@ -470,7 +473,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     // A magic link's tokens (authFragment.ts took them out of the URL): they sign in on their own
     // only when this browser asked for a link to that email in the last hour; else confirm first.
     const tokens = takeBootAuthTokens();
-    const decision = tokens ? decideAuthLink(tokens, readSignInRequest()) : null;
+    const decision = tokens
+      ? decideAuthLink(tokens, readSignInRequest(), Date.now(), readOAuthRequest())
+      : null;
+    // The Google note is for this one return: a later link never rides on it.
+    if (tokens) clearOAuthRequest();
     if (tokens && decision?.kind === 'auto') void acceptLink(tokens, decision.email);
     else if (tokens && decision?.kind === 'confirm')
       void Promise.resolve().then(() => setLinkAsk({ email: decision.email, tokens }));
@@ -713,6 +720,37 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return r.error ? signInErrorMessage(r.error) : null;
   };
 
+  // "Continue with Google" (#482): the browser leaves for Google and comes back to the app's root
+  // with the session in the fragment (implicit flow, as the magic link), where the boot path above
+  // takes it. Supabase links the Google identity to an existing account with the same verified
+  // email, so that account's user id (and its sync base) is the one that comes back.
+  const signInWithGoogle = async (): Promise<string | null> => {
+    rememberSignInReturn();
+    rememberOAuthRequest();
+    let supa;
+    try {
+      supa = await loadSupabase();
+    } catch (e) {
+      clearOAuthRequest();
+      return isChunkLoadError(e) ? STALE_MSG : signInErrorMessage({ message: 'Failed to fetch' });
+    }
+    try {
+      const r = await supa.auth.signInWithOAuth({
+        provider: 'google',
+        // Only this app's own origins, at the root (#44), as for the magic link.
+        options: { redirectTo: magicLinkRedirect(location) },
+      });
+      if (r.error) {
+        clearOAuthRequest();
+        return signInErrorMessage(r.error);
+      }
+      return null; // the page is on its way to Google
+    } catch {
+      clearOAuthRequest();
+      return signInErrorMessage({ message: 'Failed to fetch' });
+    }
+  };
+
   // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry
   // flip the status through "Refreshing…" but don't re-toast until a sync has succeeded again.
   // The account menu keeps the status line and a Retry while the outage lasts.
@@ -787,6 +825,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       status: msg,
       offline,
       sendLink,
+      signInWithGoogle,
       retry: () =>
         tabFrozen() ? location.reload() : user && void adopt(seedPending.current, user),
       signOut: () => void signOut(),

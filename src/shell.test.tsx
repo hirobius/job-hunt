@@ -29,6 +29,7 @@ import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
 import { backInFlight, resetHistoryRecord } from './route';
 import { LEGAL_DRAFT } from './legal';
+import { readOAuthRequest, rememberOAuthRequest } from './account/authLink';
 
 const fake = () => h.fake!;
 
@@ -553,6 +554,22 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+  });
+
+  it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {
+    await act(() => new Promise((r) => setTimeout(r, 0)));
+    rememberOAuthRequest();
+    window.history.replaceState(
+      null,
+      '',
+      '/?error=access_denied&error_code=access_denied&error_description=The+user+denied#/queue',
+    );
+    resetHistoryRecord();
+    renderApp();
+    expect(await screen.findByText('Google sign-in was cancelled.')).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('#/today');
+    expect(readOAuthRequest()).toBe(false); // used once
   });
 
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {
