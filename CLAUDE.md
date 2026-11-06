@@ -47,8 +47,9 @@ copy, max 4 s.
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, fontSize 40, centred;
 one small row on a short screen). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
-`BRAND.name` in the HDS display family at 700 (Sora is not loaded), its dynamic styles come from helpers (no
-inline-style literals), and reduced motion holds frame 0. The boot splash, icons, og-image and BootHold still use
+`BRAND.name` in the HDS display family at 700 (Sora 700, loaded by HDS's fonts.css), its dynamic styles come from helpers (no
+inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and stops on frame 0
+after 5 s on screen (`FLAME_MOTION_LIMIT_MS`, WCAG 2.2.2; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
 flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
 
 ## Stack & conventions
@@ -171,8 +172,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Spokane / welding / sheet metal / apprenticeship / ServiceNow / SAM.gov with a commented allow-list).
 - **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (never a heading: `role="img"` named by
   BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
-  Pipeline, Today, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
-  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
+  Apply, Find, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
+  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,
@@ -340,6 +341,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `modal={false}` so its dialog opens cleanly) and an Interviewing job's header primary: one
   `AddInterviewHost` dialog (App) writes `events`, which feed Next 7 days. Each card shows one date (Posted,
   else Found) plus the closing-date badge (#423). Pinned in `simplifyJobs.test.tsx`.
+- **Daily picks (2026-11-05, `docs/daily-picks.md`):** the scheduled Claude run's hand-picked roles, no longer a
+  separate page. It calls `add_daily_picks(p_token, p_picks)` (security definer, public key + a feed token whose sha256
+  is in `daily_pick_feeds`; ≤ 10 a call, 50 a day, insert only) into `daily_picks` (RLS read own; migration
+  `20261105100000`, also redefines `delete_my_data`). Today shows `DailyPicks.tsx` above Review new, signed in only,
+  hidden when empty: link, company, employee/contract, pay, posted day, fit line, draft note (Disclosure row + Copy),
+  Save (`addJobDetailed` with `notes` = draft note + fit) and Skip (`decided` by fingerprint, Undo). Read model
+  `src/picks.ts`; it imports `fingerprint` from `tracks/score` directly (through `decided.ts` the entry grew 0.8 kB).
+  Pinned in `picks.test.ts`, `dailyPicks.test.tsx`, `dailyPicksMigration.test.ts`.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).

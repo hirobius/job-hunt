@@ -4,8 +4,9 @@
 //
 // In the app (App bar, sign-in) it loads lazily (LazyRoleFlameLogo.tsx) behind the still wordmark, so it
 // stays out of the entry chunk. Colours are HDS tokens (base.css `.rjb-rf`, light and dark), the font is
-// HDS's display type token (Sora 700, loaded by HDS's fonts.css), the name is brand.ts. Stops under prefers-reduced-motion.
-import { CSSProperties, useEffect, useId, useMemo, useState } from 'react';
+// HDS's display type token (Sora 700, loaded by HDS's fonts.css), the name is brand.ts. Stops under prefers-reduced-motion,
+// pauses while the tab is hidden and stops after 5 s on screen (WCAG 2.2.2).
+import { CSSProperties, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { BRAND } from '../brand';
 
 /* ------------------------------------------------------------------ settings */
@@ -530,6 +531,24 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
+/** True while the tab is on screen (document.hidden false). */
+function usePageVisible() {
+  const [visible, setVisible] = useState(() => typeof document === 'undefined' || !document.hidden);
+  useEffect(() => {
+    const update = () => setVisible(!document.hidden);
+    update();
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+  return visible;
+}
+
+/**
+ * WCAG 2.2.2 (Pause, Stop, Hide): motion that starts on its own stops within 5 s. Only time on
+ * screen counts: a hidden tab pauses the clock and the flame.
+ */
+export const FLAME_MOTION_LIMIT_MS = 5000;
+
 export type FlameMode = 'endless' | 'loop';
 
 /** Current flame frame plus a tick counter, advancing at settings.fps. Pass a stable `settings` object. */
@@ -539,23 +558,35 @@ function useFlame(
   settings: FlameSettings = FLAME_SETTINGS,
 ) {
   const reduced = usePrefersReducedMotion();
-  const on = animated && !reduced;
+  const visible = usePageVisible();
+  const [done, setDone] = useState(false);
+  const on = animated && !reduced && !done;
   const loop = useMemo(() => buildLoop(settings), [settings]);
+  // One generator per mode/settings, kept across a pause so a hidden tab resumes where it was.
+  const next = useMemo(
+    () => (mode === 'endless' ? createEndless(settings) : null),
+    [mode, settings],
+  );
+  const ticks = useRef(0);
   const [state, setState] = useState<{ frame: Frame; tick: number }>(() => ({
     frame: loop[0],
     tick: 0,
   }));
   useEffect(() => {
-    if (!on) return;
-    const next = mode === 'endless' ? createEndless(settings) : null;
-    let i = 0;
+    if (!on || !visible) return;
+    const limit = Math.round((FLAME_MOTION_LIMIT_MS * settings.fps) / 1000);
     const id = window.setInterval(() => {
-      i++;
+      const i = ++ticks.current;
+      if (i >= limit) {
+        window.clearInterval(id);
+        setDone(true);
+        return;
+      }
       setState({ frame: next ? next() : loop[i % loop.length], tick: i });
     }, 1000 / settings.fps);
     return () => window.clearInterval(id);
-  }, [on, mode, loop, settings]);
-  // Stopped (reduced motion, or not animated): the first frame, held.
+  }, [on, visible, next, loop, settings]);
+  // Stopped (reduced motion, not animated, or after the 5 s limit): the first frame, held.
   return on ? { ...state, running: true } : { frame: loop[0], tick: 0, running: false };
 }
 

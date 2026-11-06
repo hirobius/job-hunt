@@ -77,12 +77,15 @@ test('the logo names the product and flickers: header and sign-in', async ({ pag
   await expect(header).toHaveAttribute('role', 'img');
   await expect(header.locator('.rjb-rf-l').first()).toHaveAttribute('style', /skewX/);
   await expect
-    .poll(() =>
-      header
-        .locator('.rjb-rf-l')
-        .evaluateAll((ls) =>
-          ls.some((l) => !/skewX\(0(\.0+)?deg\)/.test((l as HTMLElement).style.cssText)),
-        ),
+    .poll(
+      () =>
+        header
+          .locator('.rjb-rf-l')
+          .evaluateAll((ls) =>
+            ls.some((l) => !/skewX\(0(\.0+)?deg\)/.test((l as HTMLElement).style.cssText)),
+          ),
+      // Well under the 5 s motion limit (FLAME_MOTION_LIMIT_MS): after it, the letters are at rest.
+      { timeout: 2000 },
     )
     .toBe(true);
 

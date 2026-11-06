@@ -267,6 +267,8 @@ export function addJobDetailed(
     label?: string;
     salary?: string;
     note?: string;
+    /** The job's Notes (the one Notes field), e.g. a Daily pick's draft note. */
+    notes?: string;
     company?: string;
     location?: string;
     seniority?: string;
@@ -293,6 +295,7 @@ export function addJobDetailed(
   job.savedAt = new Date().toISOString();
   if (fields.salary?.trim()) job.salary = fields.salary.trim();
   if (fields.note?.trim()) job.note = fields.note.trim();
+  if (fields.notes?.trim()) job.notes = fields.notes.trim();
   const company = fields.company?.trim() || companyFromUrl(u);
   if (company) job.company = company;
   const location = cleanPlace(fields.location);

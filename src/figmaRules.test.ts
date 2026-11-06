@@ -34,6 +34,9 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/\*\*Two screens: Find and Apply\*\*/);
     // The old names are gone from the rules (they stay in CLAUDE.md only as history).
     expect(RULES).not.toMatch(/\*\*Today\*\*|\*\*Jobs\*\*|page head "Pipeline"/);
+    // CLAUDE.md keeps "Today · Jobs" only in the one history note that says it was renamed.
+    const old = CLAUDE.split('\n').filter((l) => /Today · Jobs/.test(l));
+    expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
   });
 
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
