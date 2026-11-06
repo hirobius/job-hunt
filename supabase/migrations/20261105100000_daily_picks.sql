@@ -16,7 +16,9 @@
 --   insert into public.daily_pick_feeds (token_hash, user_id)
 --   select encode(sha256(convert_to('<TOKEN>', 'UTF8')), 'hex'), id
 --     from auth.users where email = '<your sign-in email>';
--- Rotate: delete the row and insert a new one. Safe to run twice.
+-- Rotate: delete your own row (where user_id is your id, found by email) and insert a new one.
+-- There is no bad-token throttle: a token is 256 random bits, so guessing one is not practical.
+-- Safe to run twice.
 
 -- ---- the picks ----
 create table if not exists public.daily_picks (
@@ -61,10 +63,32 @@ create table if not exists public.daily_pick_feeds (
 alter table public.daily_pick_feeds enable row level security;
 revoke all on public.daily_pick_feeds from public, anon, authenticated;
 
+-- ---- a date cast that never aborts the batch ----
+-- '2026-02-31' or 'soon' gives null instead of an error, so one bad pick never stops the rest.
+create or replace function public.daily_picks_try_date(p text)
+returns date
+language plpgsql
+immutable
+set search_path = ''
+as $$
+begin
+  if p is null or p !~ '^\d{4}-\d{2}-\d{2}$' then
+    return null;
+  end if;
+  return p::date;
+exception when others then
+  return null;
+end;
+$$;
+
+revoke all on function public.daily_picks_try_date(text) from public, anon, authenticated;
+
 -- ---- the one way in ----
 -- p_picks: [{ company, title, employment ('employee' | 'contract'), pay, posted_on (YYYY-MM-DD),
 -- url, why, note, picked_on (YYYY-MM-DD, default today) }]. A pick with no title or no http(s)
 -- link is skipped; a link already picked for the account is skipped. Returns how many were added.
+-- Dates: a bad one is dropped (posted_on) or read as today (picked_on), never an error. picked_on
+-- outside the last 7 days is today; posted_on after today is today.
 create or replace function public.add_daily_picks(p_token text, p_picks jsonb)
 returns integer
 language plpgsql
@@ -88,8 +112,11 @@ begin
      or jsonb_array_length(p_picks) = 0 or jsonb_array_length(p_picks) > 10 then
     raise exception 'send 1 to 10 picks' using errcode = '22023';
   end if;
+  -- One call per account at a time, so two calls can't both pass the cap.
+  perform pg_advisory_xact_lock(hashtext(uid::text));
   if (select count(*) from public.daily_picks d
-       where d.user_id = uid and d.created_at > now() - interval '1 day') >= 50 then
+       where d.user_id = uid and d.created_at > now() - interval '1 day')
+     + jsonb_array_length(p_picks) > 50 then
     raise exception 'daily limit reached' using errcode = '54000';
   end if;
 
@@ -97,15 +124,17 @@ begin
     insert into public.daily_picks
       (user_id, picked_on, company, title, employment, pay, posted_on, url, why, note)
     select uid,
-           case when p->>'picked_on' ~ '^\d{4}-\d{2}-\d{2}$'
-                then (p->>'picked_on')::date else current_date end,
+           case when public.daily_picks_try_date(p->>'picked_on')
+                     between current_date - 7 and current_date
+                then public.daily_picks_try_date(p->>'picked_on') else current_date end,
            left(btrim(coalesce(p->>'company', '')), 200),
            left(btrim(p->>'title'), 300),
            case when p->>'employment' in ('employee', 'contract')
                 then p->>'employment' else 'unknown' end,
            left(btrim(coalesce(p->>'pay', '')), 120),
-           case when p->>'posted_on' ~ '^\d{4}-\d{2}-\d{2}$'
-                then (p->>'posted_on')::date end,
+           -- not least(): it skips nulls, so a missing posted_on would read as today.
+           case when public.daily_picks_try_date(p->>'posted_on') > current_date
+                then current_date else public.daily_picks_try_date(p->>'posted_on') end,
            btrim(p->>'url'),
            left(btrim(coalesce(p->>'why', '')), 500),
            left(btrim(coalesce(p->>'note', '')), 2000)
@@ -125,12 +154,12 @@ $$;
 revoke all on function public.add_daily_picks(text, jsonb) from public;
 grant execute on function public.add_daily_picks(text, jsonb) to anon, authenticated;
 
--- Keep 60 days of picks.
+-- Keep 60 days of picks, by the server's own created_at (a run can't set it).
 create extension if not exists pg_cron;
 select cron.schedule(
   'daily-picks-retention',
   '17 4 * * *',
-  $$delete from public.daily_picks where picked_on < current_date - 60$$
+  $$delete from public.daily_picks where created_at < now() - interval '60 days'$$
 );
 
 -- ---- Delete my data covers both new tables (#393; src/account/deleteMyData.test.ts) ----

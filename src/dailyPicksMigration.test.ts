@@ -65,9 +65,38 @@ describe('daily_picks migration', () => {
     );
   });
 
-  it('caps a day of writes and keeps 60 days', () => {
-    expect(code).toMatch(/interval '1 day'\) >= 50/);
+  it('caps a day at 50, counting the batch, one call per account at a time', () => {
+    expect(code).toContain('perform pg_advisory_xact_lock(hashtext(uid::text))');
+    expect(code).toMatch(
+      /pg_advisory_xact_lock.*interval '1 day'\) \+ jsonb_array_length\(p_picks\) > 50 then raise exception 'daily limit reached'/,
+    );
+    expect(code).not.toMatch(/>= 50/);
+  });
+
+  it('keeps 60 days by the server-set created_at, and clamps the dates a run sends', () => {
     expect(code).toMatch(/cron\.schedule\( 'daily-picks-retention'/);
-    expect(code).toContain('current_date - 60');
+    expect(code).toContain(
+      "delete from public.daily_picks where created_at < now() - interval '60 days'",
+    );
+    expect(code).not.toContain('picked_on < current_date');
+    // picked_on: only the last 7 days, else today; posted_on: never after today (and missing stays missing).
+    expect(code).toMatch(
+      /case when public\.daily_picks_try_date\(p->>'picked_on'\) between current_date - 7 and current_date then public\.daily_picks_try_date\(p->>'picked_on'\) else current_date end/,
+    );
+    expect(code).toMatch(
+      /case when public\.daily_picks_try_date\(p->>'posted_on'\) > current_date then current_date else public\.daily_picks_try_date\(p->>'posted_on'\) end/,
+    );
+    expect(code).not.toMatch(/least\(/);
+  });
+
+  it('reads a bad date as missing instead of aborting the batch', () => {
+    // '2026-02-31' passes a shape check but fails the cast; the helper catches it.
+    expect(code).toMatch(
+      /function public\.daily_picks_try_date\(p text\) returns date .*return p::date; exception when others then return null; end;/,
+    );
+    expect(code).not.toMatch(/\(p->>'(picked_on|posted_on)'\)::date/);
+    expect(code).toMatch(
+      /revoke all on function public\.daily_picks_try_date\(text\) from public, anon, authenticated/,
+    );
   });
 });

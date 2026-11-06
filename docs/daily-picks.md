@@ -12,8 +12,8 @@ hides it (synced, with Undo).
 `public.add_daily_picks(p_token, p_picks)`, a security-definer function the run calls with the
 app's public key and a feed token. Only the token's sha256 is stored (`daily_pick_feeds`). A token
 adds picks for one account: at most 10 per call, 50 per day; it can't read, change or delete
-anything. The app reads its own rows (RLS). Picks older than 60 days are swept by pg_cron. Delete
-my data clears both tables. Migration: `supabase/migrations/20261105100000_daily_picks.sql`.
+anything. The app reads its own rows (RLS). Picks older than 60 days (by the server's `created_at`)
+are swept by pg_cron. Delete my data clears both tables. Migration: `supabase/migrations/20261105100000_daily_picks.sql`.
 
 Why not `postings`: the sync closes rows whose board isn't followed (picks would close at once),
 writes are service-role only (the run would need the service key), and it has no fit, note, pay or
@@ -38,7 +38,15 @@ would race the app's three-way merge.
    `SUPABASE_ANON_KEY` from `src/config.ts` (public by design; kept out of this file only so the
    pre-push secret scan stays quiet).
 
-Rotate: `delete from public.daily_pick_feeds;` then step 3 with a new token.
+Rotate: delete only your own row, then do step 3 with a new token:
+
+```sql
+delete from public.daily_pick_feeds
+ where user_id = (select id from auth.users where email = '<your sign-in email>');
+```
+
+There is no throttle on bad tokens: a token is 256 random bits (`openssl rand -hex 32`), so
+guessing one is not practical.
 
 ## The scheduled run's prompt
 
