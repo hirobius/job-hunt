@@ -1,5 +1,6 @@
-// The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387): a Supabase edge function run twice a
-// day by pg_cron (supabase/migrations/20261024100200_sync_postings_cron.sql). It reads what each
+// The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387): a Supabase edge function run every
+// 15 minutes by pg_cron (#448: supabase/migrations/20261106100000_sync_postings_every_15_min.sql;
+// the 06:23 run also reads the feeds). It reads what each
 // user follows straight from their synced `tracker` blob (src/tracks/plan.ts: v12 sources and the
 // Search profile, else the v11 fields and their watched tiles), so the blob is the one source of
 // truth. Every board is read once however many users follow it (Ashby one board at a time), the
@@ -27,6 +28,7 @@ import {
   type SyncPlan,
   type WatchedTile,
 } from '../../../src/tracks/plan.ts';
+import { readWithRetry } from '../../../src/tracks/retry.ts';
 import {
   boardOf,
   forWatcher,
@@ -844,6 +846,7 @@ Deno.serve(async (req) => {
   const last = rest.length <= SLICE;
   const next = last ? null : boardOf(boards[boards.length - 1]);
   let feedsRead = 0;
+  let retriedReads = 0;
   const summary: Record<string, unknown>[] = [];
   // Stored Greenhouse rows for the delta reads (#448): loaded once per invocation, so a
   // chained run plans once and reads light wherever it can.
@@ -852,11 +855,12 @@ Deno.serve(async (req) => {
   // not stop every board after it until the next cron run.
   try {
     for (let i = 0; i < boards.length; i += BOARD_BATCH) {
-      const reads = await readAll(boards.slice(i, i + BOARD_BATCH), {
-        fetch: timedFetch,
-        rss: false,
-        knownBoards,
-      });
+      // A 429, a 5xx or a timeout is read once more after a short wait (#448: the sync now runs
+      // every 15 minutes, so a busy host gets a second chance here and a fresh one next run).
+      const { reads, retried } = await readWithRetry(boards.slice(i, i + BOARD_BATCH), (batch) =>
+        readAll(batch, { fetch: timedFetch, rss: false, knownBoards }),
+      );
+      retriedReads += retried;
       const perUser = new Map<string, ReadOutcome[]>();
       for (const r of reads) {
         if (!r.ok) failedBoards.add(r.board);
@@ -1076,6 +1080,7 @@ Deno.serve(async (req) => {
     // The server searches not running and what turns each on (secret names, never values).
     serverFeedsOff: serverFeedsOff(envOf),
     failedBoards: failedBoards.size,
+    retriedReads,
     summary,
   });
 });
