@@ -11,7 +11,14 @@ import './wordmark.css';
 
 // Never a heading (#363): the page's own name is its h1, so the wordmark is an image named for the
 // product.
-export function Wordmark({ as: Tag = 'span' }: { as?: 'p' | 'span' }) {
+/** `still` keeps it unmoving: the placeholder shown while the animated logo's chunk loads. */
+export function Wordmark({
+  as: Tag = 'span',
+  still = false,
+}: {
+  as?: 'p' | 'span';
+  still?: boolean;
+}) {
   const suffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const html = useMemo(
     () => wordmarkMarkup(withUniqueIds(flameSvg, suffix), { letters: true }),
@@ -21,9 +28,9 @@ export function Wordmark({ as: Tag = 'span' }: { as?: 'p' | 'span' }) {
   useEffect(() => {
     const el = ref.current;
     const svg = el?.querySelector('.rjb-flame svg');
-    if (!el || !svg) return;
+    if (still || !el || !svg) return;
     return startFlame(svg, [...el.querySelectorAll<HTMLElement>('.rjb-wordmark-l')]);
-  }, [html]);
+  }, [html, still]);
   return (
     <Tag
       ref={ref as never}
