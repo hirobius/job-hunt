@@ -43,6 +43,13 @@ flame `1.35cap` tall with its extra height taken back by a negative top margin, 
 and the name's run is plain text's width (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named
 by `aria-label`, its parts aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
 copy, max 4 s.
+**Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (the lab's procedural flame + flickering name, kept as
+code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
+`Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, fontSize 40, centred;
+one small row on a short screen). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
+`BRAND.name` in the HDS display family at 700 (Sora is not loaded), its dynamic styles come from helpers (no
+inline-style literals), and reduced motion holds frame 0. The boot splash, icons, og-image and BootHold still use
+flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
 
 ## Stack & conventions
 
