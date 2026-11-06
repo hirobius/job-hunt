@@ -615,6 +615,22 @@ copy, max 4 s.
   `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
+- **Continue with Google (#482):** the sign-in screen's first control (`SignInDialog.tsx`, HDS secondary `Button`
+  with `iconLeft={<GoogleMark />}`; `src/account/google-g.svg` is Google's G as given, its own four colours per
+  Google's branding rules, the one allowed third-party svg in `brand/flame.test.tsx` `THIRD_PARTY_MARKS`).
+  `useCloudSync().signInWithGoogle` → `signInWithOAuth({ provider: 'google', redirectTo: magicLinkRedirect, queryParams:
+  { code_challenge, code_challenge_method: 's256' } })`: **PKCE bound to this browser** (`account/oauthPkce.ts`; review
+  of #483: an unbound "started Google" note let a crafted token link sign in after an abandoned start). The verifier
+  stays in `rjb_oauth_request` (10 min, taken once); the return's `?code=` is taken and stripped by `authFragment.ts`
+  and swapped at `/auth/v1/token?grant_type=pkce` with that verifier, then `acceptLink` with the email the token names.
+  A code with no verifier here is never sent. The shared client stays implicit (magic links on another device), and
+  tokens in a hash always take the magic-link guard, Google or not. An existing
+  account with the same verified email gets the Google identity (Supabase automatic linking), so the same user id
+  and sync base: no merge ask. A cancelled/refused return carries `error=` in the QUERY (PKCE; a magic link's is in the
+  hash): App toasts "Google sign-in was cancelled." / "…didn't work" and drops the params through the route seam.
+  `oauthPkce.ts` is a lazy chunk (the entry is at its budget). Dashboard setup (Google
+  Cloud OAuth client, Supabase provider, redirect allow-list) is Adrian's. Pinned in `googleSignIn.test.tsx`,
+  `SignInDialog.test.tsx`, `authLinkError.test.ts`, `shell.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.
