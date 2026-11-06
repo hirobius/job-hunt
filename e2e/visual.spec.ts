@@ -39,6 +39,9 @@ for (const theme of ['light', 'dark'] as const) {
       viewport: { width: 390, height: 844 },
       colorScheme: theme,
       timezoneId: 'UTC',
+      // The animated logo (RoleFlame.tsx) runs on a JS clock that `animations: 'disabled'` can't stop;
+      // reduced motion holds it on frame 0, so the header is the same on every run.
+      reducedMotion: 'reduce',
       locale: 'en-US',
     });
 
@@ -61,6 +64,9 @@ for (const theme of ['light', 'dark'] as const) {
       viewport: { width: 1440, height: 900 },
       colorScheme: theme,
       timezoneId: 'UTC',
+      // The animated logo (RoleFlame.tsx) runs on a JS clock that `animations: 'disabled'` can't stop;
+      // reduced motion holds it on frame 0, so the header is the same on every run.
+      reducedMotion: 'reduce',
       locale: 'en-US',
     });
 
