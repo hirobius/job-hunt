@@ -2,7 +2,7 @@
 // navigable state so refresh and back/forward restore it:
 //
 //   #/<tab>[/<sub>][?pillar=<id>]      #/apply/<jobId>
-//   #/find · #/apply · #/apply/k3x9a1 · #/company/acme (#471: two tabs, Find and Apply)
+//   #/find · #/apply · #/apply/k3x9a1 · #/apply/company/acme (#471: two tabs, Find and Apply)
 //
 // A tiny external store over `hashchange` (mirrors src/store.ts), read via useSyncExternalStore.
 // `tab`/`sub` are opaque slugs the app maps to its own views; `pillar` is the active career
@@ -31,6 +31,8 @@ export interface Route {
 
 /** The Apply tab (#471): its second segment is a job id, `#/apply/<jobId>`. */
 export const APPLY_TAB = 'apply';
+/** The Apply tab's second segment for a Company: `#/apply/company/<slug>` (#471 slice 2). */
+const COMPANY_SEG = 'company';
 /** The Find tab (#471, was Today). */
 export const FIND_TAB = 'find';
 const JOB_TAB = APPLY_TAB;
@@ -47,7 +49,9 @@ export function parseHash(hash: string): Route {
   // Every segment after the tab is the sub (`#/copy-deck/new/outreach`); ids and slugs are escaped,
   // so they never hold a slash of their own.
   const second = seg.slice(1).join('/') || null;
-  const isJob = tab === JOB_TAB && second !== null;
+  // `#/apply/company/<slug>` is a Company in the Apply tab (#471 slice 2): its sub, not a job.
+  const isCompany = tab === JOB_TAB && seg[1] === COMPANY_SEG;
+  const isJob = tab === JOB_TAB && second !== null && !isCompany;
   const from = qp.get('from');
   // The old job tab's section rides along to its redirect.
   const section = isJob || (tab === OLD_QUEUE && second !== null) ? qp.get('section') : null;
@@ -69,13 +73,25 @@ export const HOME_TAB = FIND_TAB;
 const TO_FIND = new Set(['today', 'discover', 'apprenticeships']);
 /** The Apply tab's old slug (#471): the Pipeline list and every job page under it. */
 const OLD_QUEUE = 'queue';
+/** A Company's old page, `#/company/<slug>` (#230), now `#/apply/company/<slug>`. */
+const OLD_COMPANY = 'company';
 
 /** Where an old route goes instead, or null for a live one. Pure. The redirect lives here only:
  *  the snapshot reads an old hash as its new route, the URL is rewritten in place (no history step
  *  of its own) and `navigate` never writes one. `#/today` → `#/find`, `#/queue` → `#/apply`,
- *  `#/queue/<id>` → `#/apply/<id>` (its origin kept), the Companies tab → `#/find`. */
+ *  `#/queue/<id>` → `#/apply/<id>` (its origin kept), `#/company/<slug>` →
+ *  `#/apply/company/<slug>`, the Companies tab → `#/find`. */
 export function redirectOf(r: Route): Route | null {
   if (TO_FIND.has(r.tab)) return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
+  // A Company's page moved into the Apply tab (#471 slice 2).
+  if (r.tab === OLD_COMPANY && r.sub)
+    return {
+      tab: APPLY_TAB,
+      sub: `${COMPANY_SEG}/${r.sub}`,
+      pillar: r.pillar,
+      jobId: null,
+      ...(r.from ? { from: r.from } : {}),
+    };
   if (r.tab === OLD_QUEUE)
     return {
       tab: APPLY_TAB,
@@ -97,7 +113,7 @@ export function isAuthCallback(route: Route): boolean {
 
 /** Serialize a Route back into a `#/...` hash string. Pure — exported for tests. */
 export function buildHash(r: Route): string {
-  const second = r.tab === JOB_TAB ? r.jobId : r.sub;
+  const second = r.tab === JOB_TAB ? (r.jobId ?? r.sub) : r.sub;
   const path = [r.tab, second].filter(Boolean).join('/');
   const qp = new URLSearchParams();
   if (r.pillar) qp.set('pillar', r.pillar);
@@ -470,20 +486,32 @@ export function jobHash(jobId: string, section?: string): string {
 export function openJob(jobId: string | null, replace = false): void {
   const cur = getSnapshot();
   const within = replace && cur.tab === JOB_TAB && !!cur.jobId && !!jobId;
-  navigate({ tab: JOB_TAB, jobId, ...(within ? { from: cur.from ?? null } : {}) }, replace);
+  navigate(
+    { tab: JOB_TAB, sub: null, jobId, ...(within ? { from: cur.from ?? null } : {}) },
+    replace,
+  );
 }
 
-/** The tab whose second segment is a Company slug: #/company/<slug> (#230). */
-export const COMPANY_TAB = 'company';
+/** The Company slug (still escaped) a route opens in the Apply tab, or null. */
+export function companySlugOf(r: Route): string | null {
+  return r.tab === JOB_TAB && !r.jobId && r.sub?.startsWith(`${COMPANY_SEG}/`)
+    ? r.sub.slice(COMPANY_SEG.length + 1)
+    : null;
+}
 
 /** The hash of a Company's page, for links (its slug is URL-safe, but escaped all the same). */
 export function companyHash(slug: string): string {
-  return buildHash({ tab: COMPANY_TAB, sub: encodeURIComponent(slug), pillar: null, jobId: null });
+  return buildHash({
+    tab: JOB_TAB,
+    sub: `${COMPANY_SEG}/${encodeURIComponent(slug)}`,
+    pillar: null,
+    jobId: null,
+  });
 }
 
-/** Open a Company's page (#/company/<slug>). */
+/** Open a Company's page (#/apply/company/<slug>), in the Apply tab's right column at lg. */
 export function openCompany(slug: string): void {
-  navigate({ tab: COMPANY_TAB, sub: encodeURIComponent(slug), jobId: null });
+  navigate({ tab: JOB_TAB, sub: `${COMPANY_SEG}/${encodeURIComponent(slug)}`, jobId: null });
 }
 
 // ---- Return paths (Adrian 2026-10-22) ------------------------------------------------------------
@@ -506,15 +534,14 @@ const full = (r: Partial<Route> & { tab: string }): Route => ({
 /** Which page a route shows, ignoring its origin, section and pillar: two routes with the same
  *  key are the same page (history entries are matched on it). */
 export function pageKey(r: Route): string {
-  return `${r.tab}/${(r.tab === JOB_TAB ? r.jobId : r.sub) ?? ''}`;
+  return `${r.tab}/${(r.tab === JOB_TAB ? (r.jobId ?? r.sub) : r.sub) ?? ''}`;
 }
 
 /** Where a page's Back goes when nothing recorded an origin: a job, a Company and Documents go to
  *  the Apply list, an open document to the library, the legal pages to Find. Null for the
  *  top-level lists, which have no Back. */
 export function defaultBack(r: Route): string | null {
-  if (r.tab === JOB_TAB) return r.jobId ? PIPELINE_HASH : null;
-  if (r.tab === COMPANY_TAB) return PIPELINE_HASH;
+  if (r.tab === JOB_TAB) return r.jobId || r.sub ? PIPELINE_HASH : null;
   if (r.tab === DOCUMENTS_TAB) return r.sub ? `#/${DOCUMENTS_TAB}` : PIPELINE_HASH;
   if (r.tab === LEGAL_TAB) return `#/${HOME_TAB}`;
   return null;

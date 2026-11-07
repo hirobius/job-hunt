@@ -105,12 +105,12 @@ for (const width of [390, 800] as const) {
 
     test('a job and its Company page each name the other on their Back', async ({ page }) => {
       // A job opened from the Company page goes back to the Company, at every width.
-      await go(page, '#/company/larkspur-analytics');
+      await go(page, '#/apply/company/larkspur-analytics');
       const row = page.getByRole('list', { name: /^Jobs at / }).locator('a[href^="#/apply/"]');
       const title = (await row.first().textContent())!.trim();
       await row.first().click();
       await page.getByRole('button', { name: 'Back to Larkspur Analytics' }).click();
-      await expect(page).toHaveURL(/#\/company\/larkspur-analytics$/);
+      await expect(page).toHaveURL(/#\/apply\/company\/larkspur-analytics$/);
 
       // The Company page opened from the job (scrolled down to its Details) goes back to it, there.
       await go(page, '#/apply');
@@ -225,15 +225,15 @@ for (const width of [390, 800] as const) {
       };
       // Opened from its Company page, with the Pipeline behind it.
       await go(page, '#/apply');
-      await go(page, '#/company/larkspur-analytics');
+      await go(page, '#/apply/company/larkspur-analytics');
       const row = page.getByRole('list', { name: /^Jobs at / }).locator('a[href^="#/apply/"]');
       const title = (await row.first().textContent())!.trim();
       await row.first().click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       await removeOpenJob(title);
-      await expect(page).toHaveURL(/#\/company\/larkspur-analytics$/);
+      await expect(page).toHaveURL(/#\/apply\/company\/larkspur-analytics$/);
       await page.waitForTimeout(600);
-      await expect(page).toHaveURL(/#\/company\/larkspur-analytics$/);
+      await expect(page).toHaveURL(/#\/apply\/company\/larkspur-analytics$/);
 
       // Opened from far down the Pipeline, with Today behind it: back at the row.
       await go(page, '#/find');
@@ -366,8 +366,9 @@ for (const width of [390, 800] as const) {
       const setAside = () =>
         page.evaluate(
           () =>
-            (JSON.parse(localStorage.getItem('rjb_shortlist') || '[]') as { archived?: boolean }[])
-              .filter((j) => j.archived).length,
+            (
+              JSON.parse(localStorage.getItem('rjb_shortlist') || '[]') as { archived?: boolean }[]
+            ).filter((j) => j.archived).length,
         );
       const aside = await setAside();
       const steps = await page.evaluate(() => history.length);

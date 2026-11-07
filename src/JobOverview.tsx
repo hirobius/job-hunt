@@ -3,7 +3,7 @@
 // data stays on the Job (storage, sync, Back up, CSV). Details reads as a facts list; Edit turns the same panel into its fields (title,
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
-// in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
+// in the header's menu. The company links to its Company page (#230, `#/apply/company/<slug>`).
 import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Pencil } from 'lucide-react';
 import {

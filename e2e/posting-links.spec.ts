@@ -298,7 +298,7 @@ for (const width of [390, 800] as const) {
       await openJobTitled(page, 'Board role 1');
       expect(await targetOffences(page.locator('#root'))).toEqual([]);
       // A company page's jobs.
-      await page.evaluate(() => (location.hash = '#/company/acme'));
+      await page.evaluate(() => (location.hash = '#/apply/company/acme'));
       await expect(page.getByRole('region', { name: 'Jobs' })).toBeVisible();
       expect(await targetOffences(page.locator('#root'))).toEqual([]);
       // Recently removed.

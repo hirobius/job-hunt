@@ -202,9 +202,10 @@ test.describe('keyboard only', () => {
 
   test('job Details → Company page → Back to Apply', async ({ page }) => {
     await seed(page);
-    await go(page, '#/company/larkspur-analytics');
+    await go(page, '#/apply/company/larkspur-analytics');
     await expect(page.getByRole('heading', { level: 1, name: /Larkspur/ })).toBeVisible();
-    expect(await tabTo(page, 'Back to Apply')).toBe(true);
+    // At lg the Apply list comes first, beside the Company (#471 slice 2), so the walk is longer.
+    expect(await tabTo(page, 'Back to Apply', 80)).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/apply$/);
   });
