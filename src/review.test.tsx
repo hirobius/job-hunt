@@ -504,6 +504,24 @@ describe('Review new: every design-system posting, no tiers', () => {
     expect(getAllDecided().decided).toHaveLength(1);
   });
 
+  it("at lg, Skip on the selected posting's own list card selects the next posting (#471)", async () => {
+    const user = userEvent.setup();
+    renderFind();
+    const ul = await list();
+    await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer, Web' }));
+    await detailOf('Design Systems Engineer, Web');
+    const card = within(ul)
+      .getAllByRole('article')
+      .find((a) => within(a).queryByText('Design Systems Engineer, Web'))!;
+    await user.click(within(card).getByRole('button', { name: /^Skip / }));
+    const next = await screen.findByRole('heading', { level: 1 });
+    await waitFor(() => expect(next).not.toHaveTextContent('Design Systems Engineer, Web'));
+    expect(screen.queryByText('Pick a posting')).toBeNull();
+    expect(window.location.hash).toMatch(/^#\/find\/./);
+    await waitFor(() => expect(titles(ul)).toHaveLength(2));
+    expect(getAllDecided().decided).toHaveLength(1);
+  });
+
   it('a double tap on Save in the list saves one posting', async () => {
     const user = userEvent.setup();
     renderReview();

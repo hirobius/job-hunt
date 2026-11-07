@@ -61,7 +61,7 @@ import {
   type FeedRow,
   type FeedSort,
 } from './feed/feed';
-import { decide, muteCompany, undecide } from './feed/decided';
+import { companyKey, decide, muteCompany, undecide } from './feed/decided';
 import { followPosting } from './feed/follow';
 import { jobFieldsFor } from './feed/toJob';
 import { postedAgo } from './feed/format';
@@ -128,20 +128,41 @@ export default function ReviewView({
     setCard(0);
   };
 
-  // A decision on the selected posting moves on to the next one in the list as it shows (in place,
-  // before the row leaves), else back to no selection.
-  const next = (r: FeedRow) => {
-    const at = listed.findIndex((x) => x.fingerprint === r.fingerprint);
-    const to = at < 0 ? undefined : (listed[at + 1] ?? listed[at - 1]);
-    selectPosting(to && to.fingerprint !== r.fingerprint ? to.fingerprint : null, true);
+  // A decision that takes the selected posting away (its own, from the detail or its list card, or
+  // Not this company on another card of its company) moves on to the next one in the list as it
+  // shows (in place, before the row leaves), else back to no selection.
+  const moveOff = (gone: (x: FeedRow) => boolean) => {
+    const at = listed.findIndex((x) => x.fingerprint === selectedFp);
+    if (at < 0 || !gone(listed[at])) return;
+    const to =
+      listed.slice(at + 1).find((x) => !gone(x)) ??
+      [...listed.slice(0, at)].reverse().find((x) => !gone(x));
+    selectPosting(to?.fingerprint ?? null, true);
   };
+  const goneWith = (r: FeedRow, mute: boolean) => (x: FeedRow) =>
+    x.fingerprint === r.fingerprint ||
+    (mute && !!companyKey(r.company) && companyKey(x.company) === companyKey(r.company));
+  const next = (r: FeedRow, mute = false) => moveOff(goneWith(r, mute));
   // A double tap's second tap lands on the card or posting that took the decided one's place: the
   // same 700 ms guard as Apply's answers (answerGuard.ts).
-  const actions = guarded(rowActions);
+  // A list card's decision (#471 slice 3 follow-up): at lg the selected posting's own card is in the
+  // list, so a decision there must not leave the gone posting in the route ("Pick a posting").
+  const onCard =
+    (run: (row: FeedRow, from: Element | null) => void, mute = false) =>
+    (row: FeedRow, from: Element | null) => {
+      if (tooSoon()) return;
+      if (selectedFp) next(row, mute);
+      run(row, from);
+    };
+  const actions: RowActions = {
+    save: onCard(rowActions.save),
+    skip: onCard(rowActions.skip),
+    mute: onCard(rowActions.mute, true),
+  };
   const onSelected = (run: (row: FeedRow, from: Element | null) => void) => (row: FeedRow) => {
     if (tooSoon()) return;
     const from = pageHeadingNow();
-    if (row.fingerprint === selectedFp) next(row);
+    if (row.fingerprint === selectedFp) next(row, run === rowActions.mute);
     run(row, null);
     // Focus goes to the next posting's title, or to Find's heading after the last one.
     focusNewHeading(from);
@@ -424,13 +445,6 @@ interface RowActions {
   skip: (r: FeedRow, from: Element | null) => void;
   mute: (r: FeedRow, from: Element | null) => void;
 }
-
-/** Each action, ignored within the double-tap guard of the one before. */
-const guarded = (a: RowActions): RowActions => ({
-  save: (r, from) => !tooSoon() && a.save(r, from),
-  skip: (r, from) => !tooSoon() && a.skip(r, from),
-  mute: (r, from) => !tooSoon() && a.mute(r, from),
-});
 
 const rowActions: RowActions = {
   // The row collapses first, then the job is saved (a saved posting leaves the list).
