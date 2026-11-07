@@ -7,32 +7,32 @@ The name is set in one place, `src/brand.ts`. It was called Apply Board, then Ro
 ## What it does
 
 It collects design-system openings from every source it can read, in one list to apply from.
-Paste a job link and it lands in your Pipeline. Mark it applied, and a follow-up countdown starts.
-Two tabs: **Today** (home) holds the new postings, what to apply to and what to follow up;
-**Jobs** is the Pipeline. Documents keeps your messages, letters and résumés.
+Paste a job link and it lands on the Apply tab. Mark it applied, and a follow-up countdown starts.
+Two tabs (ADR 0010): **Find** (home) holds the new postings; **Apply** holds every saved job and
+the one you are applying to. On desktop each tab is a list beside a detail. Documents keeps your
+messages, letters and résumés.
 
 Everything works signed out, in the browser. An optional email sign-in syncs it across devices.
 
-- **Today** (`#/today`, home): the scan's status (Scan now), Review new (every design-system
-  posting from your Sources, newest first, as a Browse list or a Deck; Save, Skip or Not this
-  company), Apply, Follow up and the New companies the scan found (Follow or Ignore). Details are
-  below.
-- **Onboarding**: the Search profile form. Design-system titles come filled in, remote only is on
-  by default and leave-out words are optional; finishing follows the starter design-system
-  companies and opens Today.
-- **Pipeline** (`#/queue`): To apply with Start applying, Follow up (due first) and Next 7 days,
-  then every saved job with search, Status and Sort (a table on desktop, cards on a phone). Status
-  runs Saved, Applied, Interviewing, Offer, Rejected. There are seven sorts.
-- **Job page** (`#/queue/<id>`): Overview (details, to-dos, notes, documents), Screening and
-  Interviews, with an interview log you can add to a calendar.
-- **Apply mode** (`#/apply/<id>`): one job from To apply at a time. Open application, then Mark
-  applied (follow-up in 7 days) or Not a fit. Your Documents come filled for the job, and the
-  Application kit holds profile fields, letters and custom answers as copy rows.
-- **Company page** (`#/company/<slug>`): one company's jobs, documents and notes, linked from a
-  job's Details.
-- **Documents** (`#/copy-deck`, in the Account menu): résumés, cover letters, notes and outreach
-  messages. Every save is a Version; one Version per kind can be marked Sent to a job. `[Variable]`
-  chips fill from a picked job.
+- **Find** (`#/find`, home): the scan's status (Scan now), Daily picks, Review new (every
+  design-system posting from your Sources, newest first, as a Browse list or a Deck; Save, Skip or
+  Not this company) and the New companies the scan found (Follow or Ignore). A picked posting
+  (`#/find/<fingerprint>`) shows beside the list on desktop, or as its own view on a phone.
+- **First run**: no setup screen. The default design-systems Search profile (remote only) and the
+  starter design-system companies are added, and Find opens on Review new.
+- **Apply** (`#/apply`): Follow up (due first), Next 7 days, then every saved job with search,
+  Status and Sort. Status runs Saved, Applied, Interviewing, Offer, Rejected. There are seven sorts.
+  On desktop the tab opens on the first job to apply to, beside the list.
+- **Apply view** (`#/apply/<id>`): one job. Open application, then Mark applied (follow-up in 7
+  days) or Not a fit, which open the next job. Your Documents come filled for the job, the
+  Application kit holds profile fields, letters and custom answers as copy rows, then Details,
+  Notes, document links and decks.
+- **Company** (`#/apply/company/<slug>`): one company's jobs, documents and notes, linked from a
+  job's Details, beside the Apply list on desktop.
+- **Documents** (a dialog from the Account menu, `?documents=` on any page): résumés, cover
+  letters, notes and outreach messages, the list beside the editor on desktop. Every save is a
+  Version; one Version per kind can be marked Sent to a job. `[Variable]` chips fill from a picked
+  job. **Privacy and terms** is a dialog too (`?legal=privacy|terms`).
 - **Screening**: fit verdict, work mode, blockers and your angle. Paste a job description
   and keyword rules suggest values. Nothing leaves the browser.
 - **Your data** (Account menu): Back up and Restore as JSON, and a CSV export of every job field.
@@ -112,5 +112,6 @@ Architecture decision records, oldest first:
 - [`docs/adr/0007`](docs/adr/0007-track-hds-latest-with-the-upgrade-tool.md): track HDS with its upgrade tool.
 - [`docs/adr/0008`](docs/adr/0008-sync-user-edited-stores-in-blob-v5.md): user-edited stores sync in blob v5.
 - [`docs/adr/0009`](docs/adr/0009-one-search-profile-and-sources-replace-tracks.md): one Search profile and one Sources list replace tracks and their screens.
+- [`docs/adr/0010`](docs/adr/0010-two-screens-find-and-apply.md): two screens, Find and Apply; Documents and Privacy and terms are dialogs in the URL.
 
 Domain words are in [`CONTEXT.md`](CONTEXT.md). The backlog is GitHub Issues.

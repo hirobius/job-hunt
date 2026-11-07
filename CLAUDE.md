@@ -148,7 +148,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
-- **Two screens: Find and Apply (#471; Adrian 2026-11-05).** The top tabs are **Find** (slug `find`,
+- **Two screens: Find and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
+  top tabs and no other full page; each is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
+  selection is the route; Documents and Privacy and terms are dialogs in the page's URL. **This section is the current
+  shell: where an older section below (Job routes, Final shell, Rapid apply, Pipeline panels, Return paths) says
+  Pipeline, `#/queue`, Today, Apply mode or a Documents / Legal page, read it as history.** The top tabs are **Find** (slug `find`,
   `Today.tsx`, home; was "Today", `#/today`) and **Apply** (slug `apply`, `TrackerView.tsx`; was "Jobs" /
   "Pipeline", `#/queue`). **Routes (slice 1):** `#/apply/<jobId>` is a job's Apply view (`route.ts`
   `APPLY_TAB`, `jobId`); `redirectOf` (in place, no history step) sends `#/today` → `#/find`, `#/queue` →
@@ -168,7 +172,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
   tab pages (a job, a posting, a Company) and two dialogs over them (Documents, Privacy and terms; #471 slice 4). `types.ts` holds the Job model.
-  The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Today.
+  The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Find.
 - **Design-systems only (Adrian 2026-10-29):** content is design systems and nothing else. The one starter pack
   is Design Systems (`curation/starterPacks.ts` `STARTER_PACKS`; `radar/directory.ts` `DIRECTORY_BY_PACK` /
   `TARGETS_BY_PACK` keyed `designsystems` only; `jobsData.GROUPS` = `ds-brief`, `ds-watch`); the sample jobs are
@@ -196,7 +200,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
-- **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
+- **Job routes (#127; history, see Two screens: now `#/apply/<jobId>`, the Apply view):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
   **Job page (#130; rev-3 mobile slice 2):** `JobPage.tsx` = `JobHeader` ("← Pipeline", one
@@ -410,7 +414,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (all at 4.5 since the 0.32.0 audit; tracked
   upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
-- **Rapid apply (2026-10-17):** every save (Review new, the Find box, quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
+- **Rapid apply (2026-10-17; Apply mode, To apply and Start applying are gone since #471, see Two screens):** every save (Review new, the Find box, quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
   Open + Undo (`NoticeHost` in the shell: an HDS Toast with `actions`, one at a time).
   The Pipeline opens on `ApplyQueueSummary`: **To apply (N)** + the one primary **Start applying**, and
   **Follow up (M)** with dates (`applyQueue.ts`: Saved & not set aside, pinned first then newest).
