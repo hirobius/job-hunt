@@ -139,19 +139,45 @@ async function remotiveWithinBudget(
  *  the rest rather than every body for an hour (#178 review). */
 export const CACHE_BUDGET_CHARS = 16_000_000;
 
+/** At most this many network reads at once through one fetcher (2026-11-07: on a phone, Review new
+ *  and the scan together had far more in flight, and the main thread drowned in parsing). */
+export const MAX_FETCHES_IN_FLIGHT = 6;
+
 export function createFetchJson({
   fetchImpl = (u: string, init?: RequestInit) => fetch(u, init),
   now = Date.now,
   ttlMs = CACHE_TTL_MS,
   timeoutMs = FETCH_TIMEOUT_MS,
   budgetChars = CACHE_BUDGET_CHARS,
+  maxInFlight = MAX_FETCHES_IN_FLIGHT,
 }: {
   fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>;
   now?: () => number;
   ttlMs?: number;
   timeoutMs?: number;
   budgetChars?: number;
-} = {}): FetchJson & { cachedChars: () => number } {
+  maxInFlight?: number;
+} = {}): FetchJson & {
+  cachedChars: () => number;
+  inFlight: () => number;
+  clear: () => void;
+} {
+  // A plain semaphore: a read waits for a slot, so at most `maxInFlight` are on the network.
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  // Null when a slot is free now (taken at once, so the request starts in this same tick).
+  const slot = (): Promise<void> | null => {
+    if (active < maxInFlight) {
+      active++;
+      return null;
+    }
+    return new Promise<void>((go) => waiting.push(go));
+  };
+  const release = () => {
+    const next = waiting.shift();
+    if (next) next();
+    else active--;
+  };
   // A Map keeps insertion order, so re-inserting on a hit makes its first key the least recently used.
   const cache = new Map<string, { at: number; body: unknown; size: number }>();
   let total = 0;
@@ -181,17 +207,24 @@ export function createFetchJson({
   const read = async (url: string): Promise<unknown> => {
     drop(url);
     let res: Response;
+    let text: string;
+    const wait = slot();
+    if (wait) await wait;
     try {
-      const signal = AbortSignal.timeout(timeoutMs);
-      res = await fetchImpl(url, { headers: { Accept: 'application/json' }, signal });
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'TimeoutError') {
-        throw new FetchError(0, url, true);
+      try {
+        const signal = AbortSignal.timeout(timeoutMs);
+        res = await fetchImpl(url, { headers: { Accept: 'application/json' }, signal });
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'TimeoutError') {
+          throw new FetchError(0, url, true);
+        }
+        throw new FetchError(0, url);
       }
-      throw new FetchError(0, url);
+      if (!res.ok) throw new FetchError(res.status, url);
+      text = await res.text();
+    } finally {
+      release();
     }
-    if (!res.ok) throw new FetchError(res.status, url);
-    const text = await res.text();
     const body: unknown = JSON.parse(text);
     if (text.length <= budgetChars) {
       drop(url); // a parallel read of the same url may have landed meanwhile
@@ -204,7 +237,15 @@ export function createFetchJson({
     }
     return body;
   };
-  return Object.assign(fetchJson, { cachedChars: () => total });
+  return Object.assign(fetchJson, {
+    cachedChars: () => total,
+    inFlight: () => active,
+    // Drop every cached body (a scan's end frees the parsed JSON it read; 2026-11-07).
+    clear: () => {
+      cache.clear();
+      total = 0;
+    },
+  });
 }
 
 /** The app's shared fetcher — one cache for the whole session. */

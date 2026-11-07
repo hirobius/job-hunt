@@ -33,9 +33,16 @@ import { confirmBoard } from './identity';
 import { remoteVerdict } from './mode';
 import { passesInclude, type IncludeRule } from './mustInclude';
 import { termRegex } from './term';
-import { createLimiter, probeCompanies, type Limiter } from './probe';
+import { createLimiter, probeCompanies, PROBE_KINDS, type Limiter } from './probe';
+import { loadBoardSetKeys } from './scanningCount';
 import { browserReader, type PostingReader } from './reader';
-import { boardsFromUrls, canonicalBoardUrl, parseBoardUrl, type Board } from './sources/ats';
+import {
+  boardsFromUrls,
+  canonicalBoardUrl,
+  parseBoardUrl,
+  type Board,
+  type BoardKind,
+} from './sources/ats';
 import type { FetchJson } from './sources/http';
 import type { Posting } from './types';
 import { followBoard } from '../sources';
@@ -351,6 +358,22 @@ export interface ScanDeps {
   pause: () => Promise<void>;
   /** Which lead sources run (all by default). */
   sources?: Partial<Record<LeadSource, boolean>>;
+  /** The board set's keys (`kind:slug`), to probe a lead only on the kind it already has. */
+  knownBoards?: () => Promise<ReadonlySet<string>>;
+  /** Called when a run ends: the shared fetcher frees the parsed JSON it cached. */
+  release?: () => void;
+}
+
+/** The kinds asked for a lead the board set doesn't know (2026-11-07: not every kind). */
+export const GUESS_KINDS: readonly BoardKind[] = ['greenhouse', 'lever', 'ashby'];
+
+/** A slug's kinds: the ones the board set knows for it, else the three most common. */
+export function kindsForSlug(known: ReadonlySet<string> | null): (slug: string) => BoardKind[] {
+  return (slug) => {
+    const s = slug.toLowerCase();
+    const hit = known ? PROBE_KINDS.filter((k) => known.has(`${k}:${s}`)) : [];
+    return hit.length ? hit : [...GUESS_KINDS];
+  };
 }
 
 export const defaultScanDeps = (): ScanDeps => ({
@@ -358,6 +381,8 @@ export const defaultScanDeps = (): ScanDeps => ({
   reader: browserReader(),
   now: Date.now,
   pause: yieldToBrowser,
+  knownBoards: loadBoardSetKeys,
+  release: liveFetchJson.clear,
 });
 
 const boardKey = (b: Board) => `${b.kind}:${b.slug.toLowerCase()}`;
@@ -516,11 +541,13 @@ export async function runScan(
         return w ? [[n.trim().toLowerCase(), w] as const] : [];
       }),
     );
+    const known = d.knownBoards ? await d.knownBoards().catch(() => null) : null;
     for await (const r of probeCompanies(toProbe, {
       fetchJson: d.fetchJson,
       signal,
       limiter,
       websites,
+      kindsFor: kindsForSlug(known),
     })) {
       const lead = byName.get(r.input);
       done++;
@@ -672,6 +699,7 @@ export function scanNow(
   })
     .catch(() => getScanState())
     .finally(() => {
+      deps.release?.();
       current = null;
       running = false;
       progress = undefined;
