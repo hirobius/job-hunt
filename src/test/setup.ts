@@ -9,6 +9,7 @@ import { resetTabMemory } from '../tabMemory';
 import { resetViewMemory } from '../viewMemory';
 import { resetHistoryRecord } from '../route';
 import { resetTabAccount } from '../tabAccount';
+import { resetAnswerGuard } from '../answerGuard';
 import '@testing-library/jest-dom/vitest';
 
 // findBy*/waitFor give up after 1 s by default; a busy Vercel builder (verify runs in the deploy)
@@ -47,6 +48,8 @@ beforeEach(resetViewMemory);
 beforeEach(resetHistoryRecord);
 // Every test is a fresh tab: no account, not frozen, shared storage writable (#288).
 beforeEach(resetTabAccount);
+// Mark applied / Not a fit ignore a second answer within 700 ms (a double tap): start each test fresh.
+beforeEach(resetAnswerGuard);
 
 // HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
 // has no pointer capture.

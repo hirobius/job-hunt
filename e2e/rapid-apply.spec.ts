@@ -86,6 +86,8 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
     const shown = page.url();
     await page.getByRole('button', { name: /^Mark applied/ }).click();
     if (n < 3) await expect.poll(() => page.url()).not.toBe(shown);
+    // Past the double-tap guard (JobHeader DOUBLE_TAP_MS), so the next tap is a new answer.
+    await page.waitForTimeout(800);
   }
 
   await expect(page).toHaveURL(/#\/apply$/);

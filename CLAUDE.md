@@ -155,7 +155,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `#/apply`, `#/queue/<id>` → `#/apply/<id>` (origin and section kept); an old `?from=` reads as its new route
   (`originOf`, `routeLabel`). **There is no Apply mode, To apply panel or Start applying on Apply:** the tab is
   the walk. One job view (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`;
-  a 700 ms double-tap guard on Not a fit), then `ApplySheet.tsx` Templates + Application kit, then Details,
+  a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then `ApplySheet.tsx` Templates + Application kit, then Details,
   Notes, Documents, Decks). Mark applied / Not a fit open the next job in the list as it shows (in place, before
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. Below lg the tab is
