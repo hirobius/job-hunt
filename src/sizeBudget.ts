@@ -10,8 +10,11 @@ export const BUDGET = {
    *  250 → 255 kB for HDS 0.36 core (Adrian 2026-11-06): 249.7 kB on 0.32.0, 253.7 kB on 0.36.0,
    *  all of the +4.0 kB in the vendor chunk (HDS + its motion/radix deps). A 30-minute pass found
    *  nothing safe to move out: HDS's index re-exports every component, so each one is reachable
-   *  from the entry, and the app's own boot code is already split (backup, restore, dialogs). */
-  initialJsGzip: 255_000,
+   *  from the entry, and the app's own boot code is already split (backup, restore, dialogs).
+   *  255 → 263 kB for HDS 0.37 (needs Adrian's yes, 2026-11-07): 261.6 kB on 0.37.0. All of the
+   *  +7.9 kB is Motion 12 → 14, which HDS 0.37 requires (hds#751); the app's framer-motion pin
+   *  had to go with it. */
+  initialJsGzip: 263_000,
   /** All CSS index.html links (render-blocking). */
   initialCssGzip: 27_000,
   /** Any single lazy chunk. supabase-js is the largest (~56 kB) and loads only to sign in. */

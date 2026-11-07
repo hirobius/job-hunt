@@ -33,7 +33,7 @@
     "learned:check": "node scripts/check-learned-trailer.mjs"
   },
   "dependencies": {
-    "@hirobius/design-system": "0.36.0",
+    "@hirobius/design-system": "0.37.0",
     "@supabase/supabase-js": "2.118.0",
     "@vercel/analytics": "2.0.1",
     "react": "19.3.1",
@@ -64,11 +64,6 @@
     "vite": "8.3.5",
     "vitest": "5.0.5",
     "vitest-axe": "0.1.0"
-  },
-  "overrides": {
-    "framer-motion": "12.23.24",
-    "motion-dom": "12.23.23",
-    "motion-utils": "12.23.6"
   },
   "engines": {
     "node": ">=22.12"
