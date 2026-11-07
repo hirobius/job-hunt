@@ -368,7 +368,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   with `NEW_PROFILE` (the design-systems titles, remote only, the broad ATS terms, include "design system", scorer
   `design-systems`) and follows the starter design-system companies (`seedSources()`) as Sources. Today opens on
   Review new (a skeleton holds its place until the profile lands) and `AutoScanOnOpen` mounts once a profile exists,
-  so the scan runs with no click. Signed in, `PageHold` shows the flame until the cloud copy lands, so nobody's own
+  so a signed-in person's scan runs with no click (signed out, nothing scans on open: Scan now does, 2026-11-07). Signed in, `PageHold` shows the flame until the cloud copy lands, so nobody's own
   profile is overwritten. The Account menu's **Search profile** (`SearchProfileDialog.tsx`, lazy; fields in
   `ProfileFields.tsx`) is the only place to edit it. Sample data is the Jobs page's empty-state offer, jobs only (no
   Sample track; an older one is still dropped on sign-in). One empty pattern (`EmptyState`) in Documents and the
@@ -480,7 +480,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
   Migrations `20261029100000` and `20261029100200` widen the `postings.source` check.
 - **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
-  buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles, **never while the sign-in screen is open**: it waits, and a run in flight stops when the screen opens, 2026-11-07, `feed/autoScanOnOpen.test.tsx`; on only when `main.tsx` calls
+  buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles, **signed in only and never while the sign-in screen is open**: it waits, and a run in flight stops
+  when the screen opens or the person signs out; signed out, the line says "Not scanned yet. Scan now to look.";
+  2026-11-07, `feed/autoScanOnOpen.test.tsx`. **Load caps (same day, `feed/scanLoad.test.ts`):** the shared fetcher
+  (`createFetchJson`) keeps at most `MAX_FETCHES_IN_FLIGHT` = 6 reads on the network, a run's end calls
+  `liveFetchJson.clear()` (the parsed-JSON cache goes), and the probe asks a lead only the kind the board set
+  (`board-keys.json`) knows for its slug, else `GUESS_KINDS` (Greenhouse, Lever, Ashby) (`kindsForSlug`); on only when `main.tsx` calls
   `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →
   GitHub DS orgs → Adele → `SEED_LEADS`, empty until the seed list lands) → the probe (≤ 40 new leads a run, the
   rest queued; its limiter and cache) → the **identity check** (`feed/identity.ts`, #417: one ATS only, and the
@@ -494,7 +499,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `AutoScanViews.tsx`: `ScanStatus` ("Last scanned hh:mm · N new from M sources", Scan now / Stop scan) and
   `NewCompanies` (Follow → the board joins the Sources, Ignore → `muteCompany`, each with Undo), both on Today. With
   no Search profile yet the scan searches the design-system titles (`searchDefaults.ts`). Pinned in `feed/autoScan.test.ts`, `feed/identity.test.ts`, `autoScanViews.test.tsx`,
-  `review.test.tsx`; E2E `e2e/auto-scan.spec.ts` (a fresh profile gets postings with zero clicks).
+  `review.test.tsx`; E2E `e2e/auto-scan.spec.ts` (signed out: no scan on open, Scan now finds the postings).
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
   list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
   No runtime host. The auto-scan takes its names as leads (`adeleNames`); its old "Add companies with public design

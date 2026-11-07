@@ -141,7 +141,7 @@ describe('the auto-scan', () => {
     window.location.hash = '#/find';
     renderApp();
     expect(
-      screen.getByText('Not scanned yet. The first scan runs on its own.'),
+      screen.getByText('Not scanned yet. Scan now to look.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
   });
