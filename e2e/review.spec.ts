@@ -114,6 +114,8 @@ for (const width of [390, 1440]) {
       list.getByRole('link', { name: 'Design Systems Designer', exact: true }),
     ).toBeVisible();
 
+    // Past the double-tap guard (answerGuard.ts), so the next decision is a new one.
+    await page.waitForTimeout(800);
     await list.getByRole('button', { name: 'Save Design Systems Lead at Lumen' }).click();
     const notice = page.getByRole('region', { name: /^Notifications/ }).getByRole('listitem');
     await expect(notice.getByText('Saved to Pipeline · To apply')).toBeVisible();

@@ -41,6 +41,8 @@ import { PostingTitle } from './PostingLink';
 import { useBackSheet } from './useBackCloses';
 import { findHash, postingOf, selectPosting, useRoute, type Route } from './route';
 import { inPlaceClick } from './back';
+import { tooSoon } from './answerGuard';
+import { focusNewHeading, pageHeadingNow } from './focusRescue';
 import BackLink from './BackLink';
 import { usePageTitle } from './pageTitle';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
@@ -132,15 +134,21 @@ export default function ReviewView({
     const to = at < 0 ? undefined : (listed[at + 1] ?? listed[at - 1]);
     selectPosting(to && to.fingerprint !== r.fingerprint ? to.fingerprint : null, true);
   };
-  const actions = rowActions;
+  // A double tap's second tap lands on the card or posting that took the decided one's place: the
+  // same 700 ms guard as Apply's answers (answerGuard.ts).
+  const actions = guarded(rowActions);
   const onSelected = (run: (row: FeedRow, from: Element | null) => void) => (row: FeedRow) => {
+    if (tooSoon()) return;
+    const from = pageHeadingNow();
     if (row.fingerprint === selectedFp) next(row);
     run(row, null);
+    // Focus goes to the next posting's title, or to Find's heading after the last one.
+    focusNewHeading(from);
   };
   const detailActions: RowActions = {
-    save: onSelected(actions.save),
-    skip: onSelected(actions.skip),
-    mute: onSelected(actions.mute),
+    save: onSelected(rowActions.save),
+    skip: onSelected(rowActions.skip),
+    mute: onSelected(rowActions.mute),
   };
   // At lg a pick replaces the history entry; below lg the list opens the posting (Back returns).
   const open = (r: FeedRow) => selectPosting(r.fingerprint, wide || !!selectedFp);
@@ -415,6 +423,13 @@ interface RowActions {
   skip: (r: FeedRow, from: Element | null) => void;
   mute: (r: FeedRow, from: Element | null) => void;
 }
+
+/** Each action, ignored within the double-tap guard of the one before. */
+const guarded = (a: RowActions): RowActions => ({
+  save: (r, from) => !tooSoon() && a.save(r, from),
+  skip: (r, from) => !tooSoon() && a.skip(r, from),
+  mute: (r, from) => !tooSoon() && a.mute(r, from),
+});
 
 const rowActions: RowActions = {
   // The row collapses first, then the job is saved (a saved posting leaves the list).
