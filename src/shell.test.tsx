@@ -398,7 +398,11 @@ describe('routes keep working (#115 Phase 1)', () => {
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
     await waitFor(() => expect(window.location.hash).toBe('#/find?legal=privacy'));
-    const dialog = await screen.findByRole('dialog', { name: 'Privacy and terms' });
+    const dialog =
+      // Past its loading frame (DialogHold): the dialog with its tabs.
+      (await screen.findByRole('tablist', { name: 'Privacy and terms' })).closest(
+        '[role="dialog"]',
+      ) as HTMLElement;
     expect(
       within(dialog).getByRole('tab', { name: 'Privacy policy', selected: true }),
     ).toBeInTheDocument();
@@ -407,7 +411,11 @@ describe('routes keep working (#115 Phase 1)', () => {
   it('#/legal/terms opens the dialog on Terms; the tabs swap in place; Close returns (#43, #471)', async () => {
     window.location.hash = '#/legal/terms';
     renderApp();
-    const dialog = await screen.findByRole('dialog', { name: 'Privacy and terms' });
+    const dialog =
+      // Past its loading frame (DialogHold): the dialog with its tabs.
+      (await screen.findByRole('tablist', { name: 'Privacy and terms' })).closest(
+        '[role="dialog"]',
+      ) as HTMLElement;
     expect(
       within(dialog).getByRole('tab', { name: 'Terms of use', selected: true }),
     ).toBeInTheDocument();

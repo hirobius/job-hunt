@@ -120,8 +120,10 @@ describe('stale tab after a deploy', () => {
         </ColorModeProvider>
       </ErrorBoundary>,
     );
-    const main = screen.getByRole('main');
-    expect(await within(main).findByText(STALE_MSG)).toBeInTheDocument();
+    // The Legal dialog's loading frame hides the page until the chunk fails (#471 slice 4).
+    expect(await screen.findByText(STALE_MSG)).toBeInTheDocument();
+    const main = await screen.findByRole('main');
+    expect(within(main).getByText(STALE_MSG)).toBeInTheDocument();
     expect(within(main).getByRole('button', { name: 'Reload' })).toBeInTheDocument();
     // The shell is still there: the header, the tabs, the Account button.
     expect(screen.getByRole('banner')).toBeInTheDocument();
