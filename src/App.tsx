@@ -52,6 +52,7 @@ import { importFresh } from './staleBuild';
 import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
 import { PageErrorBoundary } from './ErrorBoundary';
+import DialogHold from './DialogHold';
 
 // Code-split every route view: Documents and the rest here, the Apply list, the job view and
 // the Company page through routeViews.ts (they render without a Suspense step once
@@ -153,10 +154,10 @@ export default function App() {
     notFound
       ? 'Page not found'
       : documents || legal || company || route.jobId || postingOf(route)
-          ? null
-          : tabSlug === APPLY_TAB
-            ? 'Apply'
-            : 'Find',
+        ? null
+        : tabSlug === APPLY_TAB
+          ? 'Apply'
+          : 'Find',
   );
 
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
@@ -342,12 +343,12 @@ export default function App() {
                         </Suspense>
                       </TabsContent>
                       {documents && (
-                        <Suspense fallback={null}>
+                        <Suspense fallback={<DialogHold title="Documents" size="xl" />}>
                           <DocumentsView />
                         </Suspense>
                       )}
                       {legal && (
-                        <Suspense fallback={null}>
+                        <Suspense fallback={<DialogHold title="Privacy and terms" size="lg" />}>
                           <LegalPage />
                         </Suspense>
                       )}

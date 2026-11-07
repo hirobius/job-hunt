@@ -231,7 +231,11 @@ describe('pages opened from the Account menu', () => {
     await heading('Apply');
     await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Privacy and terms' }));
-    const legal = await screen.findByRole('dialog', { name: 'Privacy and terms' });
+    const legal =
+      // Past its loading frame (DialogHold): the dialog with its tabs.
+      (await screen.findByRole('tablist', { name: 'Privacy and terms' })).closest(
+        '[role="dialog"]',
+      ) as HTMLElement;
     const length = window.history.length;
     await userEvent.click(within(legal).getByRole('tab', { name: 'Terms of use' }));
     await at('#/apply?legal=terms');
