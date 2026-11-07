@@ -556,6 +556,41 @@ describe('job page two-pane (#130 slice 5)', () => {
   });
 });
 
+describe('Company in the right column (#471 slice 2)', () => {
+  beforeEach(() => {
+    addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
+    updateJob(URL_A, { company: 'Acme' });
+  });
+
+  it("at lg a job's Company fact opens the Company beside the list, in the Apply tab", async () => {
+    viewport(1280);
+    openJobPage(URL_A);
+    const fact = screen.getByRole('link', { name: 'Acme' });
+    expect(fact.getAttribute('href')).toMatch(/^#\/apply\/company\/acme\?from=/);
+    await userEvent.click(fact);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Acme' })).toBeInTheDocument();
+    expect(window.location.hash).toMatch(/^#\/apply\/company\/acme/);
+    // The list column stays, no row marked open; the Apply tab stays selected.
+    expect(rail()).toBeInTheDocument();
+    expect(within(rail()).queryByRole('link', { current: 'page' })).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Apply', selected: true })).toBeInTheDocument();
+    // Its Back names the job it came from, and a row in the list opens a job beside it.
+    expect(screen.getByRole('link', { name: 'Back to Design Engineer' })).toBeInTheDocument();
+    await userEvent.click(railRow('Welder'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Welder' })).toBeInTheDocument();
+  });
+
+  it('below lg the Company stands alone with its Back; an old #/company link still opens it', async () => {
+    window.location.hash = '#/company/acme';
+    renderApp();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Acme' })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.hash).toBe('#/apply/company/acme'));
+    expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
+    expect(screen.getByRole('link', { name: /Back to Apply|Apply/ })).toBeInTheDocument();
+  });
+});
+
 describe('job page polish and guards (#130 slice 6)', () => {
   const audit = async (el: Element) => {
     const r = await axe(el, {

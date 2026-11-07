@@ -1,10 +1,22 @@
-// A Company's page (#230, epic #225): `#/company/<slug>`. A Company is derived from the company
+// A Company's page (#230, epic #225; #471 slice 2): `#/apply/company/<slug>`, in the Apply tab's
+// right column at lg. A Company is derived from the company
 // names on Jobs (src/companies.ts), so this page lists what it holds: its Jobs, the Documents on
 // them or naming it, and its own Notes, which can be added and edited here (each save a Version).
 // Rev-3 mock: "← Pipeline" on the page's left edge, then Jobs, Documents and Notes as Pipeline
 // panels (count badges on the first two); a job row reads like a Pipeline card.
 import { useContext, useState, type ReactNode } from 'react';
-import { Box, Button, InlineLink, Skeleton, Stack, Text, Textarea } from '@hirobius/design-system';
+import {
+  Box,
+  Button,
+  InlineLink,
+  Sidebar,
+  Skeleton,
+  Stack,
+  Text,
+  Textarea,
+  useAtLeast,
+} from '@hirobius/design-system';
+import JobRail from './JobRail';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { Building2 } from 'lucide-react';
 import { addCompanyNote, useCompany } from './companies';
@@ -216,6 +228,8 @@ export default function CompanyPage({ slug }: { slug: string }) {
   usePageTitle(company?.name ?? 'Company');
   const back = useBack(PIPELINE, 'Apply');
   const route = useRoute();
+  // HDS Sidebar only wraps with CSS: choose in JS (like JobPage).
+  const wide = useAtLeast('lg');
   // Read the context directly: this page also renders on its own in tests, outside the provider.
   const settled = useContext(CloudSyncContext)?.settled ?? true;
   if (!company && !settled) return <CompanyPageSkeleton />;
@@ -240,7 +254,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
   const docs = company.documents.length;
   // The one note is all that keeps this page: removing it goes back (like Remove on a job page).
   const onlyNote = !company.jobs.length && !docs && company.notes.length === 1;
-  return (
+  const page = (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
         <Stack gap="tight">
@@ -349,4 +363,14 @@ export default function CompanyPage({ slug }: { slug: string }) {
       </Stack>
     </Box>
   );
+  // At lg the Apply list sits beside it, as beside a job (#471 slice 2: Company in the right
+  // column). Below lg it stands alone with its Back.
+  if (wide)
+    return (
+      <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">
+        <JobRail openId="" />
+        {page}
+      </Sidebar>
+    );
+  return page;
 }

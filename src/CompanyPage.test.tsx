@@ -1,5 +1,5 @@
 // The Company page (#230), rendered standalone: its Jobs, Documents and Notes, and Notes that can
-// be added and edited (each save a Version). The shell route (#/company/<slug>) wires it in later.
+// be added and edited (each save a Version). The shell route (#/apply/company/<slug>) wires it in later.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -87,11 +87,14 @@ describe('Company page (#230)', () => {
 
   it("each Documents row opens where it is edited: a job's document, its job page, whose Back names the company (#304, #328)", () => {
     seedAcme();
-    window.location.hash = '#/company/acme';
+    window.location.hash = '#/apply/company/acme';
     render(<CompanyPage slug="acme" />);
     const docs = screen.getByRole('region', { name: 'Documents' });
     const link = within(docs).getByRole('link', { name: 'Acme cover' });
-    expect(link).toHaveAttribute('href', `${jobHash(jobIdOf(URL_A))}?from=%2Fcompany%2Facme`);
+    expect(link).toHaveAttribute(
+      'href',
+      `${jobHash(jobIdOf(URL_A))}?from=%2Fapply%2Fcompany%2Facme`,
+    );
   });
 
   it('an empty Documents panel says so in one line', () => {
@@ -171,7 +174,7 @@ describe('Company page (#230)', () => {
 
   it("removing a notes-only company's last note goes back; Undo reopens the page (#305)", async () => {
     const id = addCompanyNote('Bolt', 'Only');
-    window.location.hash = '#/company/bolt';
+    window.location.hash = '#/apply/company/bolt';
     render(
       <ToastProvider>
         <NoticeHost />
@@ -183,7 +186,7 @@ describe('Company page (#230)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
     expect(getAllDocuments().some((d) => d.id === id)).toBe(true);
-    await waitFor(() => expect(window.location.hash).toBe('#/company/bolt'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply/company/bolt'));
   });
 
   it('an uploaded final copy is listed but not linked to the text editor', () => {

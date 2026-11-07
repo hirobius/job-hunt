@@ -4,7 +4,6 @@
 import {
   APPLY_TAB,
   buildHash,
-  COMPANY_TAB,
   FIND_TAB,
   getRoute,
   navigate,
@@ -19,7 +18,7 @@ export type TopTab = typeof FIND_TAB | typeof APPLY_TAB;
 /** The top tab a route sits under, or null for a page with no tab (Documents, legal). */
 export function tabOf(r: Route): TopTab | null {
   if (r.tab === FIND_TAB) return FIND_TAB;
-  if (r.tab === APPLY_TAB || r.tab === COMPANY_TAB) return APPLY_TAB;
+  if (r.tab === APPLY_TAB) return APPLY_TAB;
   return null;
 }
 

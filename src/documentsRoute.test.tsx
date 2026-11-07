@@ -304,8 +304,8 @@ describe('the Company page (#230)', () => {
     updateJob(JOB, { company: 'Acme Metals' });
   });
 
-  it('#/company/<slug> shows the company under the Pipeline tab', async () => {
-    window.location.hash = '#/company/acme-metals';
+  it('#/apply/company/<slug> shows the company under the Pipeline tab', async () => {
+    window.location.hash = '#/apply/company/acme-metals';
     await renderApp();
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
@@ -314,7 +314,7 @@ describe('the Company page (#230)', () => {
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',
-      `#/apply/${jobIdOf(JOB)}?from=%2Fcompany%2Facme-metals`,
+      `#/apply/${jobIdOf(JOB)}?from=%2Fapply%2Fcompany%2Facme-metals`,
     );
   });
 
@@ -322,7 +322,10 @@ describe('the Company page (#230)', () => {
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;
     await renderApp();
     const link = await screen.findByRole('link', { name: 'Acme Metals' });
-    expect(link).toHaveAttribute('href', `#/company/acme-metals?from=%2Fapply%2F${jobIdOf(JOB)}`);
+    expect(link).toHaveAttribute(
+      'href',
+      `#/apply/company/acme-metals?from=%2Fapply%2F${jobIdOf(JOB)}`,
+    );
     await userEvent.click(link);
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
