@@ -349,9 +349,13 @@ export interface ProbeOptions {
   /** The websites are weak (a design system's site, a GitHub organisation's blog): they can confirm
    *  a board but never rule one out (boardIdentity.ts `identify`). */
   weakWebsites?: boolean;
+  /** The board kinds to ask for a slug (every kind by default). The auto-scan asks only the kind
+   *  the board set already knows for it, else the three most common (2026-11-07). */
+  kindsFor?: (slug: string) => readonly BoardKind[];
 }
 
-const boardsFor = (slug: string): Board[] => PROBE_KINDS.map((kind) => ({ kind, slug }));
+const boardsFor = (slug: string, kinds: readonly BoardKind[] = PROBE_KINDS): Board[] =>
+  kinds.map((kind) => ({ kind, slug }));
 
 /** Probe each company and yield its result as soon as it is known (not in input order). Stops
  *  asking when `signal` aborts or the consumer stops iterating. */
@@ -393,7 +397,11 @@ export async function* probeCompanies(
     const target = parseCompanyLine(input);
     if (!target) return null;
     const given = target.boards.length > 0;
-    const groups = given ? [target.boards] : target.candidates.map((slug) => boardsFor(slug));
+    const groups = given
+      ? [target.boards]
+      : target.candidates
+          .map((slug) => boardsFor(slug, opts.kindsFor?.(slug)))
+          .filter((g) => g.length > 0);
     const company = {
       name: target.name,
       website: opts.websites?.get(input.trim().toLowerCase()),

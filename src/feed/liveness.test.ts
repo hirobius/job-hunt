@@ -297,7 +297,9 @@ describe('every board kind (#419)', () => {
           {
             id: '123',
             attributes: { title: 'Product Designer' },
-            links: { 'careersite-job-url': 'https://acme.teamtailor.com/jobs/123-product-designer' },
+            links: {
+              'careersite-job-url': 'https://acme.teamtailor.com/jobs/123-product-designer',
+            },
           },
         ],
       },

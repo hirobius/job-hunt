@@ -1,5 +1,6 @@
-// The auto-scan never runs behind the sign-in screen (2026-11-07): on a phone its board reads made
-// the screen crawl. It waits while the screen is open, and a run in flight stops when it opens.
+// The auto-scan runs on open for a signed-in person only, and never behind the sign-in screen
+// (2026-11-07): on a phone its board reads made the screen crawl. It waits while the screen is
+// open, and a run in flight stops when it opens. Signed out, the server's sync is the scan.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { CloudSyncContext, type CloudSyncApi } from '../account/accountContext';
@@ -14,7 +15,7 @@ vi.mock('./autoScan', async (orig) => ({
 const { AutoScanOnOpen } = await import('./useAutoScan');
 
 const api = (over: Partial<CloudSyncApi>): CloudSyncApi => ({
-  user: null,
+  user: { id: 'u1', email: 'sam@example.com' } as CloudSyncApi['user'],
   authResolved: true,
   status: '',
   settled: true,
@@ -60,6 +61,20 @@ describe('AutoScanOnOpen and the sign-in screen', () => {
     scan.start.mockReturnValueOnce(stop);
     const view = render(host({}));
     view.rerender(host({ signInOpen: true }));
+    expect(stop).toHaveBeenCalled();
+    expect(scan.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('signed out, nothing scans on open', () => {
+    render(host({ user: null }));
+    expect(scan.start).not.toHaveBeenCalled();
+  });
+
+  it('a sign-out stops a run in flight', () => {
+    const stop = vi.fn();
+    scan.start.mockReturnValueOnce(stop);
+    const view = render(host({}));
+    view.rerender(host({ user: null }));
     expect(stop).toHaveBeenCalled();
     expect(scan.cancel).toHaveBeenCalledTimes(1);
   });
