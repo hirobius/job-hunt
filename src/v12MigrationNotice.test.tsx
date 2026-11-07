@@ -68,7 +68,14 @@ describe('v12 move (simplify 4/9)', () => {
       titles: ['Design Systems Engineer'],
     });
     expect(getSources().map(sourceKey)).toContain('greenhouse:acme');
-    await userEvent.click(screen.getByRole('button', { name: 'Download links' }));
+    // Radix's toast region keeps `pointer-events: none` until its toast count effect has run; under
+    // load the toast can show first (#505). jsdom has no Tailwind CSS for the toast's own
+    // pointer-events-auto, so the click waits for the region.
+    const download = screen.getByRole('button', { name: 'Download links' });
+    await waitFor(() =>
+      expect(download.closest('[role="region"]')).not.toHaveStyle({ pointerEvents: 'none' }),
+    );
+    await userEvent.click(download);
     expect(downloads).toHaveLength(1);
     expect(downloads[0].name).toMatch(/-links-\d{4}-\d{2}-\d{2}\.txt$/);
     expect(downloads[0].text).toContain('DS Slack\nhttps://ds-slack.example.org/');
