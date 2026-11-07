@@ -70,10 +70,7 @@ export { inferMode } from './mode';
 
 /** ~`max` chars of `text` centred on the first term hit (head of the text when there's none). */
 export function snippetAround(text: string, term: string, max = 200): string {
-  // No term: the opening lines only, so a long description is never flattened whole.
-  const flat = (term.trim() ? text : text.slice(0, max * 4)).replace(/\s+/g, ' ').trim();
-  if (!term.trim() && flat.length > max)
-    return `${flat.slice(0, max).trim()}${flat.length < text.length || flat.length > max ? '…' : ''}`;
+  const flat = text.replace(/\s+/g, ' ').trim();
   if (flat.length <= max) return flat;
   const m = termRegex(term)?.exec(flat);
   let start = 0;

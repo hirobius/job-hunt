@@ -10,6 +10,10 @@ import { setLightBoards } from './lightBoards';
 import { greenhouseRef, loadPostingText, resetPostingTexts, usePostingText } from './postingText';
 import type { StoredPosting } from '../tracks/postings';
 import type { PostingReader } from './reader';
+import type { Posting } from './types';
+import { rankAll } from './match';
+import { passesInclude } from './mustInclude';
+import { designSystemRule } from './profile';
 
 const row = (n: number, company = 'Acme'): StoredPosting => ({
   id: n,
@@ -72,31 +76,121 @@ describe('signed in: the server rows first', () => {
   });
 });
 
-describe('a phone reads Greenhouse boards without descriptions', () => {
-  const read = async () => {
-    const asked: string[] = [];
-    const fetchJson = vi.fn(async (url: string) => {
+describe('a phone reads Greenhouse boards without descriptions, and ranks as a full read', () => {
+  const include = designSystemRule({ terms: [], atsOff: [] });
+  const JOBS = [
+    {
+      id: 1,
+      title: 'Senior Design Systems Engineer',
+      content: 'Contract role. Build our design system.',
+    },
+    { id: 2, title: 'Backend Engineer', content: 'Go and Postgres.' },
+    {
+      id: 3,
+      title: 'Design Systems Lead',
+      content: 'Be our founding designer and build the design system from scratch.',
+    },
+  ].map((j) => ({
+    ...j,
+    absolute_url: `https://boards.greenhouse.io/acme/jobs/${j.id}`,
+    location: { name: 'Remote' },
+    first_published: '2026-11-01T00:00:00Z',
+  }));
+  const network = (asked: string[]) =>
+    vi.fn(async (url: string) => {
       asked.push(url);
-      return url.includes('greenhouse') ? { jobs: [] } : { hits: [], jobs: [] };
+      const one = /\/jobs\/(\d+)$/.exec(url);
+      if (one) return JOBS.find((j) => String(j.id) === one[1]);
+      if (url.endsWith('/jobs?content=true')) return { jobs: JOBS };
+      if (url.endsWith('/jobs')) return { jobs: JOBS.map(({ content: _c, ...j }) => j) };
+      return { hits: [], jobs: [] };
     });
-    await fetchFeed(
-      { terms: ['Design Systems Engineer'], boardUrls: ['https://boards.greenhouse.io/acme'] },
-      fetchJson,
+  const read = async (light: boolean) => {
+    setLightBoards(light);
+    const asked: string[] = [];
+    const out = await fetchFeed(
+      {
+        terms: ['Design Systems Engineer'],
+        boardUrls: ['https://boards.greenhouse.io/acme'],
+        include,
+      },
+      network(asked),
       { kv: { get: () => null, set: () => {} } },
     );
-    return asked.filter((u) => u.includes('greenhouse'));
+    return { out, asked: asked.filter((u) => u.includes('greenhouse')) };
   };
 
-  it('light: the plain list', async () => {
-    setLightBoards(true);
-    expect(await read()).toEqual(['https://boards-api.greenhouse.io/v1/boards/acme/jobs']);
+  it('light: the plain list, then the description of each posting the check lets in', async () => {
+    const { asked } = await read(true);
+    expect(asked.sort()).toEqual([
+      'https://boards-api.greenhouse.io/v1/boards/acme/jobs',
+      'https://boards-api.greenhouse.io/v1/boards/acme/jobs/1',
+      'https://boards-api.greenhouse.io/v1/boards/acme/jobs/3',
+    ]);
   });
 
   it('desk: the list with content, as before', async () => {
-    setLightBoards(false);
-    expect(await read()).toEqual([
+    const { asked } = await read(false);
+    expect(asked).toEqual(['https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true']);
+  });
+
+  it('every posting that can be listed ranks as it does on a full read: score, signals, snippet', async () => {
+    const pick = (ps: Posting[]) =>
+      rankAll(ps, { where: '', mode: 'any', now: Date.parse('2026-11-07T00:00:00Z') })
+        .filter((p) => passesInclude(include, p.title, ''))
+        .map((p) => ({
+          id: p.id,
+          score: p.score,
+          signals: p.signals.map((x) => x.id),
+          snippet: p.snippet,
+        }));
+    const full = pick((await read(false)).out.postings);
+    const light = pick((await read(true)).out.postings);
+    expect(full.length).toBe(2);
+    expect(full.some((p) => p.signals.length > 0)).toBe(true);
+    expect(light).toEqual(full);
+  });
+
+  it('a check that reads descriptions keeps the full read', async () => {
+    setLightBoards(true);
+    const asked: string[] = [];
+    await fetchFeed(
+      {
+        terms: ['x'],
+        boardUrls: ['https://boards.greenhouse.io/acme'],
+        include: ['design system'],
+      },
+      network(asked),
+      { kv: { get: () => null, set: () => {} } },
+    );
+    expect(asked.filter((u) => u.includes('greenhouse'))).toEqual([
       'https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true',
     ]);
+  });
+});
+
+describe('server rows carry their stored text, and only the request’s', () => {
+  it('a row’s stored description is the posting’s text', () => {
+    expect(
+      resultFromRows([{ ...row(1), descriptionText: 'Own the system.' }]).postings[0].text,
+    ).toBe('Own the system.');
+  });
+
+  it('keeps the request’s boards, and feeds only when it searches a title; says its progress', async () => {
+    const rows = [
+      { ...row(1), board: 'greenhouse:acme' },
+      { ...row(2, 'Beta'), sourceId: 'greenhouse:beta:2', board: 'greenhouse:beta' },
+      { ...row(3, 'HN'), source: 'hn', sourceId: 'hn:3', board: 'hn' },
+    ];
+    const onProgress = vi.fn();
+    const reader = serverFirstReader({ read: vi.fn() }, async () => rows);
+    const all = await reader.read(req, onProgress);
+    expect(all.postings.map((p) => p.id)).toEqual(['greenhouse:acme:1', 'hn:3']);
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({ boardsDone: 1, boardsTotal: 1, postings: all.postings }),
+    );
+    const boardsOnly = await reader.read({ terms: [], boardUrls: req.boardUrls });
+    expect(boardsOnly.postings.map((p) => p.id)).toEqual(['greenhouse:acme:1']);
   });
 });
 

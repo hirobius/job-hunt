@@ -146,18 +146,20 @@ export function useFeed(given?: PostingReader): FeedState {
           ? { progress, seen: seenBefore }
           : { seen: noteSeen(fingerprintsOf(result), at) }),
       });
-    reader
-      .read(ask, (p) => {
-        if (!alive || timer) return;
-        timer = setTimeout(() => {
-          timer = undefined;
-          if (alive)
-            done(fold({ postings: p.postings, sources: p.sources }), startedAt, {
-              done: p.boardsDone,
-              total: p.boardsTotal,
-            });
-        }, REPAINT_MS);
-      })
+    // Signed in, a company or title added since the last read is read in the browser: the server
+    // has not read it yet (its sync runs every 15 minutes), and its jobs show at once.
+    const by = onlyAdded && signedIn ? browserFirst : reader;
+    by.read(ask, (p) => {
+      if (!alive || timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (alive)
+          done(fold({ postings: p.postings, sources: p.sources }), startedAt, {
+            done: p.boardsDone,
+            total: p.boardsTotal,
+          });
+      }, REPAINT_MS);
+    })
       .then((result) => {
         clearTimeout(timer);
         timer = undefined;
@@ -181,7 +183,7 @@ export function useFeed(given?: PostingReader): FeedState {
     };
     // req derives from key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, attempt, hasQuery, reader]);
+  }, [key, attempt, hasQuery, reader, signedIn]);
 
   // The rows of the last read stay up while a changed request is read (never a blank list).
   const current = read?.result || read?.key === key ? read : null;
@@ -220,6 +222,7 @@ export function useFeed(given?: PostingReader): FeedState {
 }
 
 const liveReader = browserReader();
+const browserFirst = scanReader(liveReader);
 
 /** A read of only what was added, folded into the one before it: its postings after the old
  *  ones (a posting read twice kept once), its sources' statuses added. */

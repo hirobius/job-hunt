@@ -58,7 +58,11 @@ export interface FeedView {
 export function feedRequest(profile: SearchProfile, sources: Source[]): FeedRequest {
   // Boards sorted, so a board moving between lists (a dream's board becoming a watched tile on
   // Save) is the same request and nothing is read again.
-  return { terms: profile.titles, boardUrls: [...new Set(boardUrlsOf(sources))].sort() };
+  return {
+    terms: profile.titles,
+    boardUrls: [...new Set(boardUrlsOf(sources))].sort(),
+    include: profile.include,
+  };
 }
 
 /** Targeting from the profile: the same rules Live postings' Calibrate applies. */

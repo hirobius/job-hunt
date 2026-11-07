@@ -14,6 +14,8 @@ import { fetchRemotive } from './sources/remotive';
 import { SOURCE_LABEL, type Posting } from './types';
 import { SOURCE_ENABLED } from './sourceEnabled';
 import { lightBoards } from './lightBoards';
+import { fillTexts } from './lightText';
+import { includeFields, passesInclude, type IncludeRule } from './mustInclude';
 
 export { SOURCE_ENABLED };
 /** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */
@@ -388,6 +390,10 @@ export async function fetchFeed(
     onProgress?: (p: FeedProgress) => void;
     /** Read only these sources (by `SourceStatus.key`) — "Retry" on a failed source. */
     only?: string[];
+    /** The profile's inclusion check. With one that reads titles only, a phone reads Greenhouse
+     *  boards as plain lists and then reads the description of each posting it lets in (lightText.ts),
+     *  so what can be listed ranks as a full read does. */
+    include?: IncludeRule;
   },
   fetchJson: FetchJson = liveFetchJson,
   {
@@ -457,6 +463,15 @@ export async function fetchFeed(
   };
 
   const boards = boardsFromUrls(req.boardUrls, Infinity);
+  // A phone reads a Greenhouse board's plain list (lightBoards.ts) when the inclusion check reads
+  // titles only, then the description of each posting that passes it.
+  const include = req.include;
+  const light = !!include && lightBoards() && !includeFields(include).text ? include : null;
+  const readBoard = async (b: Board): Promise<Posting[]> => {
+    if (!light || b.kind !== 'greenhouse') return fetchBoard(b, fetchJson);
+    const list = await fetchBoard(b, fetchJson, { light: true });
+    return fillTexts(list, fetchJson, (p) => passesInclude(light, p.title, ''));
+  };
   const all: SourceTask[] = [
     ...terms.flatMap(termTasks),
     // A whole-feed board (designsystems.jobs, WWR) is read once per search, like a watched board,
@@ -472,7 +487,7 @@ export async function fetchFeed(
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
       board: b,
-      run: () => fetchBoard(b, fetchJson, { light: lightBoards() }),
+      run: () => readBoard(b),
     })),
   ];
   const tasks = req.only ? all.filter((t) => req.only!.includes(t.key)) : all;
@@ -511,15 +526,21 @@ export async function fetchFeed(
         req.onProgress?.(snapshot());
       }, wait);
   };
-  const settled = await settleAll(
-    tasks.map((t) => () => withTimeout(t.run(), sourceTimeoutMs)),
-    (i) => !!tasks[i].board,
-    (i, r) => {
-      results[i] = r;
-      progress();
-    },
-    (i) => tasks[i].board?.kind ?? '',
-  );
+  let settled: PromiseSettledResult<Posting[]>[];
+  try {
+    settled = await settleAll(
+      tasks.map((t) => () => withTimeout(t.run(), sourceTimeoutMs)),
+      (i) => !!tasks[i].board,
+      (i, r) => {
+        results[i] = r;
+        progress();
+      },
+      (i) => tasks[i].board?.kind ?? '',
+    );
+  } finally {
+    // Never left running past the read, whatever ends it.
+    clearTimeout(snapTimer);
+  }
   // A trailing snapshot still due goes out now, so the last progress is the whole read.
   if (snapTimer !== undefined) {
     clearTimeout(snapTimer);

@@ -462,11 +462,15 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
-  `serverFirstReader`, in `useFeed`):** reads the server's rows and skips the browser's sweep of every followed board;
-  no rows yet (a new account before its first sync) or a failed read falls back to the browser read. **Phones**
-  (`feed/lightBoards.ts`, below lg): Greenhouse boards are read as the plain list, no descriptions (`fetchBoard`
-  `light`, `greenhouseListUrl`), so leave-out words there match the title only; a posting's text is fetched when it
-  is opened (`feed/postingText.ts` `usePostingText`, Greenhouse's single-job endpoint). Pinned in `feed/feedLoad.test.ts`.
+  `serverFirstReader`, in `useFeed`):** reads the server's rows (with their stored `description_text`, ≤ 20,000
+  characters, and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
+  only the request's rows (its boards; feeds when it searches a title), with one progress call. No rows yet (a new
+  account before its first sync) or a failed read falls back to the browser read, and a company or title added
+  since the last read is read in the browser (the server has not read it yet). **Phones** (`feed/lightBoards.ts`,
+  below lg, only with a titles-only inclusion check): Greenhouse boards are read as the plain list
+  (`greenhouseListUrl`), then each posting the check lets in gets its description from the single-job endpoint
+  (`feed/lightText.ts` `fillTexts`, ≤ 25 per board), so everything that can be listed ranks exactly as on a full
+  read; an opened posting with no text fetches it (`feed/postingText.ts` `usePostingText`). Pinned in `feed/feedLoad.test.ts`.
   `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
   `feed/postingReader.test.ts`.
 - **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/tracks/feeds/` holds sources only
