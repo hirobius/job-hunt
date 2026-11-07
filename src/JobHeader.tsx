@@ -14,6 +14,8 @@ import { goBack, openJob, type Route } from './route';
 import { jobIdOf } from './store';
 import { markAppliedWithUndo, setAsideWithUndo } from './applyActions';
 import BackLink from './BackLink';
+import { focusAsHeading } from './focusRescue';
+import { tooSoon } from './answerGuard';
 import { checkFor, useLiveness } from './livenessStore';
 import { JobBadges, RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
 import { JobPostingTitle } from './PostingLink';
@@ -21,13 +23,27 @@ import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
 
-const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
-
-/** "← Pipeline": a quiet link-like button back to where the page was opened from (return paths):
- *  the Pipeline by default, else the page that opened it, by name ("← Companies", "← Acme
- *  Metals"). Its name says where it goes. Apply mode uses it too. */
+const PIPELINE: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
+/** "← Apply": a quiet link-like button back to where the page was opened from (return paths):
+ *  the Apply list by default, else the page that opened it, by name ("← Find", "← Acme
+ *  Metals"). Its name says where it goes. */
 export function BackToPipeline() {
   return <BackLink as="button" className="rjb-back" fallback={PIPELINE} fallbackLabel="Apply" />;
+}
+
+/** The page's heading now (the job's title). */
+const headingNow = () => document.querySelector<HTMLElement>('main h1');
+
+/** After Mark applied or Not a fit the job's view is replaced (the next job, or the list after the
+ *  last one): focus goes to the new page's heading, never left on <body>. Waits for it (a Back to
+ *  the list lands on its pop), a few frames at most. */
+function focusNextHeading(from: HTMLElement | null, frames = 60) {
+  const h = headingNow();
+  if (h && h !== from && h.isConnected) {
+    focusAsHeading(h);
+    return;
+  }
+  if (frames > 0) requestAnimationFrame(() => focusNextHeading(from, frames - 1));
 }
 
 export default function JobHeader({
@@ -69,16 +85,24 @@ export default function JobHeader({
     addInterview
   );
   const title = titleOf(job);
+  // The view moves on first, while the job still has its place in the list, then the answer
+  // lands (its notice is raised on the page it stays on).
   const markApplied = () => {
-    markAppliedWithUndo(job);
+    if (tooSoon()) return;
+    const from = headingNow();
     onAnswered?.();
+    markAppliedWithUndo(job);
+    focusNextHeading(from);
   };
   const notAFit = () => {
+    if (tooSoon()) return;
+    const from = headingNow();
     const id = jobIdOf(job.url);
-    // Undo puts it back in To apply and shows it again.
-    setAsideWithUndo(job, () => openJob(id, true));
     if (onAnswered) onAnswered();
     else goBack(PIPELINE);
+    // Undo puts it back in To apply and shows it again.
+    setAsideWithUndo(job, () => openJob(id, true));
+    focusNextHeading(from);
   };
   // A job closed on the board was opened to clear it out: retiring it goes back to where it was
   // opened from (the Pipeline's closed list), like Remove does for any job.

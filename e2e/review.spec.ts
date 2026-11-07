@@ -52,9 +52,9 @@ async function feed(page: Page) {
 
 async function setUp(page: Page) {
   await feed(page);
-  await page.goto('/#/today');
+  await page.goto('/#/find');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
-  await expect(page).toHaveURL(/#\/today$/);
+  await expect(page).toHaveURL(/#\/find$/);
   await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
   // Signed out, nothing scans on open (2026-11-07): Scan now does.
   await page.getByRole('button', { name: 'Scan now' }).click();
@@ -92,7 +92,7 @@ for (const width of [390, 1440]) {
     await page.screenshot({ path: `test-results/review-preview-${width}.png` });
     await page.goBack();
     await expect(preview).toBeHidden();
-    await expect(page).toHaveURL(/#\/today$/);
+    await expect(page).toHaveURL(/#\/find$/);
 
     // Skip hides only that posting: Orbit's other one stays.
     await list.getByRole('button', { name: 'Skip Design Systems Engineer at Orbit' }).click();
@@ -117,7 +117,7 @@ for (const width of [390, 1440]) {
     await expect(page.getByText('You’re all caught up')).toBeVisible();
 
     // Back on the Pipeline, the save is in To apply.
-    await page.goto('/#/queue');
+    await page.goto('/#/apply');
     await expect(page.getByText('Design Systems Lead').first()).toBeVisible();
   });
 }

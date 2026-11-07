@@ -26,7 +26,7 @@ async function loadSample(page: Page) {
     .route(/^https?:\/\/(?!localhost)/, (r) =>
       r.fulfill({ status: 200, contentType: 'text/html', body: '<title>Posting</title>' }),
     );
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // The Jobs panel, or from lg the list column beside the first job (#471).
   await expect(page.getByRole('textbox', { name: /^Search (saved )?jobs$/ })).toBeVisible();
@@ -200,7 +200,7 @@ function longTitleOffences(root: Locator) {
 async function openJobTitled(page: Page, text: string) {
   const hash = await page
     .getByRole('region', { name: /^Jobs/ })
-    .locator('a[href^="#/queue/"]', { hasText: text })
+    .locator('a[href^="#/apply/"]', { hasText: text })
     .first()
     .getAttribute('href');
   await page.evaluate((h) => (location.hash = h!), hash);
@@ -214,7 +214,7 @@ async function expectPostingLinks(page: Page, rows: Locator, phone: boolean) {
   expect(count).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {
     const row = rows.nth(i);
-    const title = (await row.locator('a[href^="#/queue/"]').first().textContent())!.trim();
+    const title = (await row.locator('a[href^="#/apply/"]').first().textContent())!.trim();
     const job = jobs.find((j) => j.label === title);
     expect(job, `a saved job titled "${title}"`).toBeTruthy();
     const posting = postingFor(row, title);
@@ -262,7 +262,7 @@ for (const width of [390, 800] as const) {
       const jobs = await savedJobs(page);
       const pages = await page
         .getByRole('region', { name: /^Jobs/ })
-        .locator('a[href^="#/queue/"]')
+        .locator('a[href^="#/apply/"]')
         .evaluateAll((as) => as.map((a) => [a.getAttribute('href')!, a.textContent!.trim()]));
       expect(pages.length).toBeGreaterThan(0);
       let header: Locator | null = null;
@@ -285,7 +285,7 @@ for (const width of [390, 800] as const) {
       const [tab] = await Promise.all([page.context().waitForEvent('page'), posting.click()]);
       await tab.waitForLoadState();
       expect(tab.url()).toBe(href);
-      expect(page.url()).toContain('#/queue/');
+      expect(page.url()).toContain('#/apply/');
     });
 
     test('every posting link takes the tap across its whole target and covers no other control', async ({
@@ -302,7 +302,7 @@ for (const width of [390, 800] as const) {
       await expect(page.getByRole('region', { name: 'Jobs' })).toBeVisible();
       expect(await targetOffences(page.locator('#root'))).toEqual([]);
       // Recently removed.
-      await page.evaluate(() => (location.hash = '#/queue'));
+      await page.evaluate(() => (location.hash = '#/apply'));
       // In the Account menu since #416.
       await page.getByRole('button', { name: /^Account/ }).click();
       await page.getByRole('menuitem', { name: 'Recently removed (3)' }).click();
@@ -324,7 +324,7 @@ for (const width of [390, 800] as const) {
       // The list column beside the job only shows from lg (#471).
       if (width >= 1024)
         expect(await longTitleOffences(page.getByRole('navigation', { name: 'Jobs' }))).toEqual([]);
-      await page.evaluate(() => (location.hash = '#/queue'));
+      await page.evaluate(() => (location.hash = '#/apply'));
       // In the Account menu since #416.
       await page.getByRole('button', { name: /^Account/ }).click();
       await page.getByRole('menuitem', { name: 'Recently removed (3)' }).click();
@@ -348,12 +348,12 @@ test.describe('the job rail at 1440', () => {
   }) => {
     await loadSample(page);
     const jobs = await savedJobs(page);
-    await page.locator('a[href^="#/queue/"]').first().click();
+    await page.locator('a[href^="#/apply/"]').first().click();
     const rail = page.getByRole('navigation', { name: 'Jobs' });
     const rows = rail.getByRole('listitem');
     await expect(rows.nth(1)).toBeVisible();
     for (const row of await rows.all()) {
-      const link = row.locator('a[href^="#/queue/"]');
+      const link = row.locator('a[href^="#/apply/"]');
       await expect(link).toHaveCount(1);
       const posting = row.getByRole('link', { name: /^Open posting for / });
       await expect(posting).toBeVisible();

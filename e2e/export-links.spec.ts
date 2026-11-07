@@ -33,7 +33,7 @@ test.beforeEach(async ({ page, context }) => {
 });
 
 test('export links: open, switch scope and format, copy and download', async ({ page }) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   // The Jobs tab: the Pipeline, or from lg the list beside the first job (#471).
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
@@ -73,7 +73,7 @@ test('export links: open, switch scope and format, copy and download', async ({ 
 });
 
 test('export links opens from the Account menu on all saved jobs', async ({ page }) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Export links' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export links' });
@@ -82,7 +82,7 @@ test('export links opens from the Account menu on all saved jobs', async ({ page
 
 test('export links on a phone has 40px targets', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Export links' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export links' });

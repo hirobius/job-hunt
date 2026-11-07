@@ -1,26 +1,24 @@
 // The shell's route views, each in its own chunk (lazyView.tsx): a first visit to Today
-// doesn't download the Pipeline, the job page, Apply mode or the Company page.
+// doesn't download the Apply list, the job view or the Company page.
 import { lazyView } from './lazyView';
-import { COMPANY_TAB, type Route } from './route';
+import { APPLY_TAB, COMPANY_TAB, FIND_TAB, type Route } from './route';
 import { importFresh } from './staleBuild';
 
 export const TrackerView = lazyView(importFresh(() => import('./TrackerView')));
 export const JobPage = lazyView(importFresh(() => import('./JobPage')));
-export const ApplyMode = lazyView(importFresh(() => import('./ApplyMode')));
 export const CompanyPage = lazyView(importFresh(() => import('./CompanyPage')));
 export const Today = lazyView(importFresh(() => import('./Today')));
 
 /** Fetch every view now (the test setup does, so tests render without a Suspense step). */
 export const preloadViews = () =>
-  Promise.all([TrackerView, JobPage, ApplyMode, CompanyPage, Today].map((v) => v.preload()));
+  Promise.all([TrackerView, JobPage, CompanyPage, Today].map((v) => v.preload()));
 
-/** The view a route opens on, when it is one of these: the Pipeline or a job under `queue`,
- *  Today, Apply mode (`apply`, App's APPLY_ROUTE) or a Company page. */
+/** The view a route opens on, when it is one of these: the Apply list or a job under `apply`,
+ *  Find, or a Company page. */
 export function viewFor(route: Route): { preload(): Promise<void> } | null {
-  if (route.tab === 'today') return Today;
-  if (route.tab === 'apply') return ApplyMode;
+  if (route.tab === FIND_TAB) return Today;
   if (route.tab === COMPANY_TAB) return CompanyPage;
-  if (route.tab === 'queue') return route.jobId ? JobPage : TrackerView;
+  if (route.tab === APPLY_TAB) return route.jobId ? JobPage : TrackerView;
   return null;
 }
 

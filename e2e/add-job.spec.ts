@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Core happy path: paste a job URL → it lands in the queue. The Pipeline is `#/queue`; the empty
+// Core happy path: paste a job URL → it lands in the queue. The Pipeline is `#/apply`; the empty
 // hash is Companies (Calm list).
 
 // Nothing leaves localhost: company logos (letters show) and the job boards Today's auto scan
@@ -11,7 +11,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 test('adds a pasted job URL to the queue', async ({ page }) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Add job' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add a job' });
   await dialog.getByLabel('Job link').fill('https://boards.greenhouse.io/acme/jobs/77');
@@ -23,7 +23,7 @@ test('adds a pasted job URL to the queue', async ({ page }) => {
 // QA: a link that isn't one keeps the dialog open with a field error; the same link twice says it
 // is already in the Pipeline instead of closing in silence.
 test('Add job explains a bad link and an already saved one', async ({ page }) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Add job' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add a job' });
   await dialog.getByLabel('Job link').fill('not a url');
@@ -40,19 +40,19 @@ test('Add job explains a bad link and an already saved one', async ({ page }) =>
   const notices = page.getByRole('region', { name: /^Notifications/ });
   await expect(notices.getByText('Already in your Pipeline')).toBeVisible();
   await notices.getByRole('button', { name: 'Open' }).click();
-  await expect(page).toHaveURL(/#\/queue\/./);
+  await expect(page).toHaveURL(/#\/apply\/./);
 });
 
 // A first visit opens on Today with no setup screen; the Jobs empty state offers the sample
 // pipeline, with its follow-ups.
 test('opens on Today with no setup; the sample pipeline lists due follow-ups', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/#\/today$/);
+  await expect(page).toHaveURL(/#\/find$/);
   await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
   await expect(page.getByText('Set up your search')).toHaveCount(0);
   await page.getByRole('tab', { name: 'Apply' }).click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  await expect(page).toHaveURL(/#\/queue$/);
+  await expect(page).toHaveURL(/#\/apply$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
   await expect(followUps).toBeVisible();
   await followUps.getByRole('button', { name: 'Follow up: Design Systems Designer' }).click();
@@ -65,12 +65,12 @@ test('opens on Today with no setup; the sample pipeline lists due follow-ups', a
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();
 });
 
-// #/today is home again (#383): it opens Today, and Back goes to the page before.
-test('#/today opens Today', async ({ page }) => {
-  await page.goto('/#/queue');
-  await page.goto('/#/today');
-  await expect(page).toHaveURL(/#\/today$/);
+// #/find is home again (#383): it opens Today, and Back goes to the page before.
+test('#/find opens Today', async ({ page }) => {
+  await page.goto('/#/apply');
+  await page.goto('/#/find');
+  await expect(page).toHaveURL(/#\/find$/);
   await expect(page.getByRole('tab', { name: 'Find', selected: true })).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/#\/queue$/);
+  await expect(page).toHaveURL(/#\/apply$/);
 });

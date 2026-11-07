@@ -42,7 +42,7 @@ describe('PipelineLiveness', () => {
       <PipelineLiveness jobs={[job(A, 'Open role'), job(B, 'Gone role')]} />,
     );
     const link = await screen.findByRole('link', { name: 'Gone role' });
-    expect(link).toHaveAttribute('href', `#/queue/${jobIdOf(B)}`);
+    expect(link).toHaveAttribute('href', `#/apply/${jobIdOf(B)}`);
     expect(screen.getByText(/1 closed on the board/i)).toBeInTheDocument();
     expect(screen.getByText(/Checked live/i)).toBeInTheDocument();
     const results = await axe(container, {
@@ -64,7 +64,7 @@ describe('PipelineLiveness', () => {
     render(<PipelineLiveness jobs={[job(A, 'Open role'), job(B, '')]} />);
     // The derived title (the board's company first), as on every other row.
     const link = await screen.findByRole('link', { name: /^Ramp/ });
-    expect(link).toHaveAttribute('href', `#/queue/${jobIdOf(B)}`);
+    expect(link).toHaveAttribute('href', `#/apply/${jobIdOf(B)}`);
   });
 
   it('the button re-checks on demand', async () => {

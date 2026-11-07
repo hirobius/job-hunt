@@ -278,9 +278,9 @@ describe('the pieces', () => {
     };
     stripAuthFragment({ hash: linkFor(ME), pathname: '/', search: '?x=1' }, hist);
     stripAuthFragment({ hash: '#refresh_token=r', pathname: '/', search: '' }, hist);
-    stripAuthFragment({ hash: '#/queue', pathname: '/', search: '' }, hist);
+    stripAuthFragment({ hash: '#/apply', pathname: '/', search: '' }, hist);
     expect(calls).toEqual(['/?x=1', '/']);
-    expect(readAuthTokens('#/queue')).toBeNull();
+    expect(readAuthTokens('#/apply')).toBeNull();
   });
 
   it('a crash report never carries a token', () => {

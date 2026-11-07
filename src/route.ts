@@ -1,8 +1,8 @@
 // Lightweight hash-based routing — no react-router. The URL hash mirrors the app's
 // navigable state so refresh and back/forward restore it:
 //
-//   #/<tab>[/<sub>][?pillar=<id>]      #/queue/<jobId>
-//   #/queue · #/queue/k3x9a1 · #/discover/titles · #/discover/ats?pillar=abc123
+//   #/<tab>[/<sub>][?pillar=<id>]      #/apply/<jobId>
+//   #/find · #/apply · #/apply/k3x9a1 · #/company/acme (#471: two tabs, Find and Apply)
 //
 // A tiny external store over `hashchange` (mirrors src/store.ts), read via useSyncExternalStore.
 // `tab`/`sub` are opaque slugs the app maps to its own views; `pillar` is the active career
@@ -11,16 +11,16 @@
 import { useSyncExternalStore } from 'react';
 
 export interface Route {
-  /** Top-level tab slug (e.g. 'queue', 'discover'); '' when the hash carries no route. */
+  /** Top-level tab slug (e.g. 'find', 'apply'); '' when the hash carries no route. */
   tab: string;
   /** Nested sub-tab slug (Discover's inner tabs), or null. */
   sub: string | null;
   /** Active career-pillar id, or null. */
   pillar: string | null;
-  /** The job a `#/queue/<jobId>` route opens (store.jobIdOf), or null. Its own field — the second
-   *  segment means a job under `queue` and a sub-tab everywhere else (#127). */
+  /** The job a `#/apply/<jobId>` route opens (store.jobIdOf), or null. Its own field — the second
+   *  segment means a job under `apply` and a sub-tab everywhere else (#127, #471). */
   jobId: string | null;
-  /** The page this one was opened from, as a hash path (`/queue/k3x9a1?section=screening`), when a
+  /** The page this one was opened from, as a hash path (`/apply/k3x9a1`), when a
    *  key action jumped here (return paths, Adrian 2026-10-22). The page's Back names it and goes
    *  there; left out, Back goes to the page's default. In the URL, so back/forward and reload keep
    *  it. Built by `withOrigin`, read by `originOf`. */
@@ -29,8 +29,11 @@ export interface Route {
   section?: string | null;
 }
 
-/** The tab whose second segment is a job id: #/queue/<jobId>. */
-const JOB_TAB = 'queue';
+/** The Apply tab (#471): its second segment is a job id, `#/apply/<jobId>`. */
+export const APPLY_TAB = 'apply';
+/** The Find tab (#471, was Today). */
+export const FIND_TAB = 'find';
+const JOB_TAB = APPLY_TAB;
 
 /** Parse a raw `location.hash` string into a Route. Pure — exported for tests. */
 export function parseHash(hash: string): Route {
@@ -46,7 +49,8 @@ export function parseHash(hash: string): Route {
   const second = seg.slice(1).join('/') || null;
   const isJob = tab === JOB_TAB && second !== null;
   const from = qp.get('from');
-  const section = isJob ? qp.get('section') : null;
+  // The old job tab's section rides along to its redirect.
+  const section = isJob || (tab === OLD_QUEUE && second !== null) ? qp.get('section') : null;
   return {
     tab,
     sub: isJob ? null : second,
@@ -59,17 +63,29 @@ export function parseHash(hash: string): Route {
 }
 
 /** Home: an empty hash and every retired route land here. */
-export const HOME_TAB = 'today';
-/** Routes the final shell retired (simplify Q6): the Companies tab (`discover`, every tool, section
- *  and secondary view under it) and the old Trades slug. */
-const RETIRED_TABS = new Set(['discover', 'apprenticeships']);
+export const HOME_TAB = FIND_TAB;
+/** Routes that land on Find (simplify Q6, #471): the old Today slug, the Companies tab
+ *  (`discover`, every tool, section and secondary view under it) and the old Trades slug. */
+const TO_FIND = new Set(['today', 'discover', 'apprenticeships']);
+/** The Apply tab's old slug (#471): the Pipeline list and every job page under it. */
+const OLD_QUEUE = 'queue';
 
-/** Where a retired route goes instead (Today), or null for a live one. Pure. The redirect lives
- *  here only: the snapshot reads a retired hash as Today, the URL is rewritten in place (no
- *  history step of its own) and `navigate` never writes one. */
+/** Where an old route goes instead, or null for a live one. Pure. The redirect lives here only:
+ *  the snapshot reads an old hash as its new route, the URL is rewritten in place (no history step
+ *  of its own) and `navigate` never writes one. `#/today` → `#/find`, `#/queue` → `#/apply`,
+ *  `#/queue/<id>` → `#/apply/<id>` (its origin kept), the Companies tab → `#/find`. */
 export function redirectOf(r: Route): Route | null {
-  if (!RETIRED_TABS.has(r.tab)) return null;
-  return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
+  if (TO_FIND.has(r.tab)) return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
+  if (r.tab === OLD_QUEUE)
+    return {
+      tab: APPLY_TAB,
+      sub: null,
+      pillar: r.pillar,
+      jobId: r.sub,
+      ...(r.from ? { from: r.from } : {}),
+      ...(r.sub && r.section ? { section: r.section } : {}),
+    };
+  return null;
 }
 
 /** Supabase's email link signs in through the hash (`#access_token=…`, implicit flow), and an
@@ -197,7 +213,7 @@ function popLanded() {
   }
 }
 
-/** A retired hash in the address bar becomes Today's, in place (replaceState: no hashchange). */
+/** An old hash in the address bar becomes its new one, in place (replaceState: no hashchange). */
 function rewriteRetired() {
   const to = redirectOf(parseHash(window.location.hash));
   if (!to) return;
@@ -318,9 +334,10 @@ export function navigate(
   }
   const cur = getSnapshot();
   const asked: Route = { ...cur, ...patch };
-  const next: Route = redirectOf(asked) ?? asked;
-  // A job id belongs to the tab it was opened in: switching tabs without naming a job drops it.
-  if (patch.tab !== undefined && patch.tab !== cur.tab && !('jobId' in patch)) next.jobId = null;
+  // A job id belongs to the tab it was opened in: switching tabs without naming a job drops it
+  // (before the redirect, which may make one from an old route's sub: #/queue/<id>).
+  if (patch.tab !== undefined && patch.tab !== cur.tab && !('jobId' in patch)) asked.jobId = null;
+  const next: Route = { ...(redirectOf(asked) ?? asked) };
   const moved = pageKey(next) !== pageKey(cur);
   if (moved && !('from' in patch)) next.from = null;
   if (moved && !('section' in patch)) next.section = null;
@@ -441,26 +458,19 @@ export function getRoute(): Route {
   return getSnapshot();
 }
 
-/** The hash of a saved job's page (#/queue/<jobId>), for links; `section` opens one of its tabs. */
+/** The hash of a saved job's Apply view (#/apply/<jobId>), for links. */
 export function jobHash(jobId: string, section?: string): string {
   return buildHash({ tab: JOB_TAB, sub: null, pillar: null, jobId, section });
 }
 
-/** Open a saved job's page, or (null) go back to the Pipeline list. */
+/** Open a saved job's Apply view, or (null) go back to the Apply list. `replace` moves in place
+ *  (a pick in the list, the pager, the next job after Mark applied / Not a fit), keeping where the
+ *  view was opened from, so one Back leaves it. There is no Apply mode of its own any more (#471:
+ *  the tab is the mode). */
 export function openJob(jobId: string | null, replace = false): void {
-  navigate({ tab: JOB_TAB, jobId }, replace);
-}
-
-/** Open Apply mode on a saved job (#/apply/<jobId>, rapid apply). `replace` moves within Apply
- *  mode in place (the pager, the next job after Not a fit), keeping where Apply mode was opened
- *  from, so one Back leaves it. */
-export function openApply(jobId: string, replace = false): void {
   const cur = getSnapshot();
-  const within = replace && cur.tab === 'apply';
-  navigate(
-    { tab: 'apply', sub: jobId, jobId: null, ...(within ? { from: cur.from ?? null } : {}) },
-    replace,
-  );
+  const within = replace && cur.tab === JOB_TAB && !!cur.jobId && !!jobId;
+  navigate({ tab: JOB_TAB, jobId, ...(within ? { from: cur.from ?? null } : {}) }, replace);
 }
 
 /** The tab whose second segment is a Company slug: #/company/<slug> (#230). */
@@ -483,7 +493,7 @@ export function openCompany(slug: string): void {
 
 const DOCUMENTS_TAB = 'copy-deck';
 const LEGAL_TAB = 'legal';
-const PIPELINE_HASH = '#/queue';
+const PIPELINE_HASH = `#/${APPLY_TAB}`;
 
 /** The full route for a partial one (missing fields null). */
 const full = (r: Partial<Route> & { tab: string }): Route => ({
@@ -499,20 +509,23 @@ export function pageKey(r: Route): string {
   return `${r.tab}/${(r.tab === JOB_TAB ? r.jobId : r.sub) ?? ''}`;
 }
 
-/** Where a page's Back goes when nothing recorded an origin: the job page, Apply mode, a Company
- *  and Documents go to the Pipeline list, an open document to the library, the legal pages to
- *  Today. Null for the top-level lists, which have no Back. */
+/** Where a page's Back goes when nothing recorded an origin: a job, a Company and Documents go to
+ *  the Apply list, an open document to the library, the legal pages to Find. Null for the
+ *  top-level lists, which have no Back. */
 export function defaultBack(r: Route): string | null {
   if (r.tab === JOB_TAB) return r.jobId ? PIPELINE_HASH : null;
-  if (r.tab === 'apply' || r.tab === COMPANY_TAB) return PIPELINE_HASH;
+  if (r.tab === COMPANY_TAB) return PIPELINE_HASH;
   if (r.tab === DOCUMENTS_TAB) return r.sub ? `#/${DOCUMENTS_TAB}` : PIPELINE_HASH;
   if (r.tab === LEGAL_TAB) return `#/${HOME_TAB}`;
   return null;
 }
 
-/** The route a page was opened from, or null when none was recorded. */
+/** The route a page was opened from, or null when none was recorded. An origin saved before a
+ *  route moved (`/queue/<id>`, `/today`) reads as its new route. */
 export function originOf(r: Route): Route | null {
-  return r.from ? parseHash('#' + r.from) : null;
+  if (!r.from) return null;
+  const o = parseHash('#' + r.from);
+  return redirectOf(o) ?? o;
 }
 
 /** A route as an origin: its own origin kept one level deep (so two Backs work and the URL stays

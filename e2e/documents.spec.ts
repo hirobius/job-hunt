@@ -1,4 +1,4 @@
-import { startApplying } from './routes';
+import { openApply } from './routes';
 import { test, expect } from '@playwright/test';
 
 // The Documents library end to end (#227, #230): it opens from the Menu, an edited Outreach message
@@ -20,7 +20,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
     if (!localStorage.getItem('rjb_shortlist'))
       localStorage.setItem('rjb_shortlist', JSON.stringify([j]));
   }, JOB);
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   // The Jobs tab: the Pipeline, or from lg the list beside the first job (#471).
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
@@ -47,8 +47,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   // The Apply sheet fills the edited message for the job.
   await page.getByRole('button', { name: 'All documents' }).click();
   await page.getByRole('link', { name: 'Back to Apply' }).click();
-  await startApplying(page);
-  await expect(page).toHaveURL(/#\/apply\//);
+  await openApply(page);
   const list = page.getByRole('list', { name: 'Your templates' });
   // The row previews the start of the edited text (no chevron: Copy is its one action).
   await expect(list.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
@@ -66,14 +65,14 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   );
 
   // The job page links its company to the Company page, which links back to the job.
-  await page.evaluate(() => (location.hash = '#/queue'));
-  await page.locator('a[href^="#/queue/"]').first().click();
+  await page.evaluate(() => (location.hash = '#/apply'));
+  await page.locator('a[href^="#/apply/"]').first().click();
   await page.getByRole('link', { name: 'Acme Metals', exact: true }).click();
-  await expect(page).toHaveURL(/#\/company\/acme-metals\?from=%2Fqueue%2F/);
+  await expect(page).toHaveURL(/#\/company\/acme-metals\?from=%2Fapply%2F/);
   await expect(page.getByRole('heading', { level: 1, name: 'Acme Metals' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Apply', selected: true })).toBeVisible();
   await page.getByRole('link', { name: 'Fabricator', exact: true }).click();
-  await expect(page).toHaveURL(/#\/queue\//);
+  await expect(page).toHaveURL(/#\/apply\//);
 });
 
 // Restore starter messages answers at 390 (#327, #212): the rows can land below the fold, so the

@@ -14,7 +14,7 @@ let view: { current: ReturnType<typeof useNotice> };
 const getNotice = () => view.current;
 
 beforeEach(async () => {
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
   await hashSettled();
   addJob(A, 'Acme Designer');
   addJob(B, 'Bolt Designer');
@@ -86,7 +86,7 @@ describe('saving a job that is already saved', () => {
     expect(n?.actions.map((a) => a.label)).toEqual(['Open']);
     act(() => n!.actions[0].run());
     await hashSettled();
-    expect(window.location.hash).toBe(`#/queue/${jobIdOf(A)}`);
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
   });
 
   it('a new link still says Saved to Pipeline', () => {

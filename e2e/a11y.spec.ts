@@ -3,7 +3,6 @@
 // Local only (no Actions): `npm run test:e2e`. axe-core comes with vitest-axe, so no new dependency.
 import { test, expect, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
-import { startApplying } from './routes';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
@@ -11,8 +10,8 @@ const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [1440, 390] as const;
 // Hash routes reached once a track and the sample pipeline exist. The job page is added below.
 const ROUTES = [
-  '#/today',
-  '#/queue',
+  '#/find',
+  '#/apply',
   '#/copy-deck',
   '#/copy-deck/tpl-outreach',
   '#/legal/privacy',
@@ -24,14 +23,14 @@ const ROUTES = [
 ];
 
 async function seed(page: Page) {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await go(page, '#/copy-deck');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/today');
+  await go(page, '#/find');
   await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
@@ -68,16 +67,11 @@ for (const theme of THEMES) {
           await go(page, hash);
           for (const v of await axeViolations(page)) bad.push(`${hash} ${v}`);
         }
-        await go(page, '#/queue');
-        const job = page.locator('a[href^="#/queue/"]').first();
+        await go(page, '#/apply');
+        const job = page.locator('a[href^="#/apply/"]').first();
         await job.click();
         await page.waitForTimeout(500);
         for (const v of await axeViolations(page)) bad.push(`job page ${v}`);
-        // Apply mode (#/apply/<jobId>, #219): its id comes from the sample data, so start it.
-        await startApplying(page);
-        await expect(page).toHaveURL(/#\/apply\//);
-        await page.waitForTimeout(500);
-        for (const v of await axeViolations(page)) bad.push(`apply mode ${v}`);
         expect(bad).toEqual([]);
       });
     });
@@ -288,14 +282,10 @@ for (const width of WIDTHS) {
         await go(page, hash);
         await check(hash);
       }
-      await go(page, '#/queue');
-      await page.locator('a[href^="#/queue/"]').first().click();
+      await go(page, '#/apply');
+      await page.locator('a[href^="#/apply/"]').first().click();
       await page.waitForTimeout(500);
       await check('job page');
-      await startApplying(page);
-      await expect(page).toHaveURL(/#\/apply\//);
-      await page.waitForTimeout(500);
-      await check('apply mode');
       expect([...new Set(bad)]).toEqual([]);
     });
   });

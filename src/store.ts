@@ -144,7 +144,7 @@ function fnv1a(str: string, seed: number): number {
   return h;
 }
 
-/** A job's stable, URL-safe id for its route (#/queue/<id>, #127). Job has no id field, and its URL
+/** A job's stable, URL-safe id for its route (#/apply/<id>, #127, #471). Job has no id field, and its URL
  *  can't go raw into the hash (`/ ? & =`), so the id is a 2×32-bit hash of the same dedup key the
  *  store uses — URLs the store treats as one job get one id. Never stored; always derived. */
 export function jobIdOf(url: string): string {

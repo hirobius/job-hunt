@@ -36,7 +36,7 @@ function focusAfterEmpty(restored: string | null) {
   const run = () => {
     const main = document.querySelector('main');
     // The Jobs list's row first: the same job can also sit in To apply or Follow up above it.
-    const href = restored && `a[href="#/queue/${jobIdOf(restored)}"]`;
+    const href = restored && `a[href="#/apply/${jobIdOf(restored)}"]`;
     const link =
       href &&
       (main?.querySelector<HTMLElement>(`section[aria-label="Jobs"] ${href}`) ??

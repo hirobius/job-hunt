@@ -57,7 +57,7 @@ function jobMeta(job: Job): string {
 function CompanyJobRow({ job }: { job: Job }) {
   const meta = jobMeta(job);
   // The job page remembers this Company page, so its Back returns here (return paths).
-  const href = linkTo({ tab: 'queue', jobId: jobIdOf(job.url) }, useRoute());
+  const href = linkTo({ tab: 'apply', jobId: jobIdOf(job.url) }, useRoute());
   return (
     <PanelRow>
       <Stack direction="row" gap="xs" align="center" justify="space-between">
@@ -194,7 +194,7 @@ function NewNote({ company, action }: { company: string; action: string }) {
   );
 }
 
-const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
+const PIPELINE: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
 
 /** An unknown slug before sync settles: its jobs may still be on their way (like the job page). */
 function CompanyPageSkeleton() {
@@ -299,7 +299,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
                         <InlineLink
                           href={linkTo(
                             !d.base && d.jobUrl && company.jobs.some((j) => j.url === d.jobUrl)
-                              ? { tab: 'queue', jobId: jobIdOf(d.jobUrl) }
+                              ? { tab: 'apply', jobId: jobIdOf(d.jobUrl) }
                               : { tab: 'copy-deck', sub: encodeURIComponent(d.id) },
                             route,
                           )}

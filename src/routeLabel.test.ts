@@ -1,5 +1,5 @@
-// Return paths: a Back names the page it goes to ("← Senior UX Designer", "← Apply mode (2 of
-// 3)", "← Today"), read from the route it returns to.
+// Return paths: a Back names the page it goes to ("← Senior UX Designer", "← Apply", "← Find"),
+// read from the route it returns to.
 import { describe, expect, it } from 'vitest';
 import { parseHash } from './route';
 import { routeLabel } from './routeLabel';
@@ -29,7 +29,7 @@ const label = (hash: string) => routeLabel(parseHash(hash), { jobs, docs });
 
 describe('routeLabel', () => {
   it.each([
-    ['#/queue', 'Apply'],
+    ['#/apply', 'Apply'],
     ['#/discover', 'Find'],
     ['#/discover/live', 'Find'],
     ['#/copy-deck', 'Documents'],
@@ -40,15 +40,16 @@ describe('routeLabel', () => {
     ['#/company/acme-metals', 'Acme Metals'],
   ])('%s reads as %s', (hash, want) => expect(label(hash)).toBe(want));
 
-  it("names a job by its title, and Apply mode by the job's place in the queue", () => {
-    expect(label(`#/queue/${jobIdOf(job(2).url)}?section=screening`)).toBe('Designer 2');
-    // To apply: 4 (newest first), 2, 1; the applied job 3 is not in it.
-    expect(label(`#/apply/${jobIdOf(job(2).url)}`)).toBe('Apply mode (2 of 3)');
+  it('names a job by its title, under its new route and its old one (#471)', () => {
+    expect(label(`#/apply/${jobIdOf(job(2).url)}?section=screening`)).toBe('Designer 2');
+    expect(label(`#/apply/${jobIdOf(job(2).url)}`)).toBe('Designer 2');
+    expect(label(`#/queue/${jobIdOf(job(2).url)}`)).toBe('Designer 2');
+    expect(label('#/queue')).toBe('Apply');
+    expect(label('#/today')).toBe('Find');
   });
 
   it('falls back to a plain name for a page it cannot find', () => {
-    expect(label('#/queue/nope')).toBe('Job');
-    expect(label('#/apply/nope')).toBe('Apply mode');
+    expect(label('#/apply/nope')).toBe('Job');
     expect(label('#/company/nobody')).toBe('Company');
     expect(label('#/copy-deck/nope')).toBe('Document');
   });

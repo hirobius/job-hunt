@@ -36,10 +36,10 @@ import { CloudSyncContext } from './account/accountContext';
 import { needsClientAtBoot } from './supabase';
 import { PipelineSkeleton } from './Skeletons';
 
-/** The Jobs tab (#/queue). A signed-in device with no jobs on it yet (a first visit, a new address,
+/** The Jobs tab (#/apply). A signed-in device with no jobs on it yet (a first visit, a new address,
  *  cleared storage) waits for its cloud copy here instead of saying "0 jobs" (#478), at every
  *  width. Then, at lg, it opens on the work (#471, Adrian 2026-11-05): the job list beside the
- *  first job to apply to (starred first, then newest). The hash stays #/queue; a pick in the list
+ *  first job to apply to (starred first, then newest). The hash stays #/apply; a pick in the list
  *  replaces it with that job's. Below lg, and with no jobs, the Pipeline page. */
 export default function TrackerView() {
   const jobs = useJobs();

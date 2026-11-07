@@ -51,7 +51,7 @@ export function scrubText(text: string, max: number): string {
     .slice(0, max);
 }
 
-/** Only the top-level tab of the hash route (`#/queue/<jobId>` → `queue`). */
+/** Only the top-level tab of the hash route (`#/apply/<jobId>` → `apply`). */
 export function routeOf(hash: string): string {
   const tab = hash.replace(/^#\/?/, '').split(/[/?]/)[0];
   return /^[a-z-]{1,30}$/.test(tab) ? tab : '';
