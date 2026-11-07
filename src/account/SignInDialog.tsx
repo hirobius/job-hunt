@@ -4,8 +4,8 @@
 // a "Check your email" state with Resend (30 s cooldown) and Use a different email. Both end in
 // Continue without an account, which only closes it. The screen is sized to the visual viewport
 // (useVisualViewportVars), so on a phone the iOS keyboard never covers the field or the button;
-// on a short one the brand shrinks (SignInDialog.css). "Continue with Google" (#482) sits above
-// the field: Google's mark and label on an HDS secondary Button; the page then leaves for Google.
+// on a short one the brand shrinks (SignInDialog.css). "Continue with Google" (#482), when its
+// flag is on (googleSignInFlag.ts, off until the provider is set up), sits above the field: Google's mark and label on an HDS secondary Button; the page then leaves for Google.
 // Only the presentation lives here: sending and every auth rule stay in the CloudSync seam.
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Dialog, Input, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
@@ -16,6 +16,7 @@ import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import { useBackCloses } from '../useBackCloses';
 import { RoleFlameLogo } from '../brand/RoleFlame';
 import { GoogleMark } from './GoogleMark';
+import { googleSignInEnabled } from './googleSignInFlag';
 import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
@@ -167,18 +168,21 @@ export default function SignInDialog() {
               <VisuallyHidden as="div">
                 <Dialog.Title>Sign in</Dialog.Title>
               </VisuallyHidden>
-              <Stack gap="tight">
-                <Button
-                  variant="secondary"
-                  className="sign-in-dialog__primary"
-                  iconLeft={<GoogleMark />}
-                  loading={leaving}
-                  onClick={() => void google()}
-                >
-                  Continue with Google
-                </Button>
-                {googleError && <Alert tone="danger">{googleError}</Alert>}
-              </Stack>
+              {/* Off until the Google provider is on in Supabase (googleSignInFlag.ts). */}
+              {googleSignInEnabled() && (
+                <Stack gap="tight">
+                  <Button
+                    variant="secondary"
+                    className="sign-in-dialog__primary"
+                    iconLeft={<GoogleMark />}
+                    loading={leaving}
+                    onClick={() => void google()}
+                  >
+                    Continue with Google
+                  </Button>
+                  {googleError && <Alert tone="danger">{googleError}</Alert>}
+                </Stack>
+              )}
               <Form noValidate onSubmit={(e) => void submit(e)}>
                 <Stack gap="normal">
                   <Input
