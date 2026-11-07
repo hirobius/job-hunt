@@ -37,7 +37,7 @@ describe('routeLabel', () => {
     ['#/copy-deck/new/outreach', 'New outreach message'],
     ['#/legal/privacy', 'Privacy policy'],
     ['#/legal/terms', 'Terms of use'],
-    ['#/company/acme-metals', 'Acme Metals'],
+    ['#/apply/company/acme-metals', 'Acme Metals'],
   ])('%s reads as %s', (hash, want) => expect(label(hash)).toBe(want));
 
   it('names a job by its title, under its new route and its old one (#471)', () => {
@@ -50,7 +50,7 @@ describe('routeLabel', () => {
 
   it('falls back to a plain name for a page it cannot find', () => {
     expect(label('#/apply/nope')).toBe('Job');
-    expect(label('#/company/nobody')).toBe('Company');
+    expect(label('#/apply/company/nobody')).toBe('Company');
     expect(label('#/copy-deck/nope')).toBe('Document');
   });
 });

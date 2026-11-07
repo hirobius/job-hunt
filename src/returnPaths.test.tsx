@@ -100,27 +100,31 @@ describe('a job page goes back to where it was opened from', () => {
   });
 
   it('opened from a Company page, Back returns to the Company', async () => {
-    window.location.hash = '#/company/acme-metals';
+    window.location.hash = '#/apply/company/acme-metals';
     renderApp();
     await heading('Acme Metals');
     await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'Back to Acme Metals' }));
-    await at('#/company/acme-metals');
+    await at('#/apply/company/acme-metals');
   });
 
   it('Remove goes back to the origin; Undo reopens the job page', async () => {
-    window.location.hash = '#/company/acme-metals';
+    window.location.hash = '#/apply/company/acme-metals';
     renderApp();
     await heading('Acme Metals');
     await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
-    await at('#/company/acme-metals');
+    await at('#/apply/company/acme-metals');
     await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
     expect(await heading('Fabricator')).toBeInTheDocument();
-    expect(getRoute()).toMatchObject({ tab: 'apply', jobId: idA, from: '/company/acme-metals' });
+    expect(getRoute()).toMatchObject({
+      tab: 'apply',
+      jobId: idA,
+      from: '/apply/company/acme-metals',
+    });
   });
 
   it('retiring a job closed on the board goes back to the list it was opened from', async () => {
@@ -425,13 +429,13 @@ describe('one navigation per Remove, Delete or double click', () => {
   };
 
   it('Remove on a job opened from its Company page lands on the Company', async () => {
-    await startAt('#/apply', '#/company/acme-metals');
+    await startAt('#/apply', '#/apply/company/acme-metals');
     await heading('Acme Metals');
     await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
     await heading('Fabricator');
     const pops = countPops();
     await remove('Fabricator');
-    await staysAt('#/company/acme-metals');
+    await staysAt('#/apply/company/acme-metals');
     pops.stop();
     expect(pops.count()).toBe(1);
   });
@@ -516,13 +520,13 @@ describe('one navigation per Remove, Delete or double click', () => {
 
 describe('sign-in from a link returns to where it was asked for', () => {
   it('remembers the page, once, and goes there in place', async () => {
-    window.location.hash = '#/company/acme-metals';
-    await at('#/company/acme-metals');
+    window.location.hash = '#/apply/company/acme-metals';
+    await at('#/apply/company/acme-metals');
     rememberSignInReturn();
     window.location.hash = '#/discover';
     await at('#/discover');
     returnAfterSignIn(true);
-    expect(window.location.hash).toBe('#/company/acme-metals');
+    expect(window.location.hash).toBe('#/apply/company/acme-metals');
     expect(takeSignInReturn()).toBeNull();
   });
 

@@ -163,7 +163,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   "← Apply" and the "‹ 2 of N ›" pager over the list as it shows (`ApplyPager.tsx`, label "Jobs in the list";
   none for a job the list hides). Find's Apply panel still says Start applying until slice 3 moves it. A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. Still to come
-  (#471): Company in the right column, the Find two-column view, Documents and Legal as dialogs.
+  (#471): the Find two-column view, Documents and Legal as dialogs. **Company (slice 2):** `#/apply/company/<slug>`
+  in the right column at lg (see Company page).
 - **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
   tab-less pages (Documents, legal, a job, Apply mode, a Company). `types.ts` holds the Job model.
@@ -356,9 +357,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Save (`addJobDetailed` with `notes` = draft note + fit) and Skip (`decided` by fingerprint, Undo). Read model
   `src/picks.ts`; it imports `fingerprint` from `tracks/score` directly (through `decided.ts` the entry grew 0.8 kB).
   Pinned in `picks.test.ts`, `dailyPicks.test.tsx`, `dailyPicksMigration.test.ts`.
-- **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
-  `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
-  Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
+- **Company page (#230; #471 slice 2):** `#/apply/company/<slug>` (`route.companyHash` / `openCompany`,
+  `companySlugOf`; the old `#/company/<slug>` redirects there in place) renders `CompanyPage` in the Apply tab:
+  the company's Jobs, Documents and Notes, with Back (to the job it was opened from, else Apply). At ≥ lg the
+  Apply list (`JobRail`, no row marked) sits beside it, as beside a job. The job page's Details Company fact links to it (only when the job has a company).
   An unknown slug shows a skeleton until `useCloudSync().settled`, then "No company here" (#303).
   Each Documents row links to its editor via `linkTo` (Back says "← <Company>"; an uploaded final copy is
   text only, #304). Notes are "Note 2 of 3" when several, each with a soft Remove + Undo; a notes-only

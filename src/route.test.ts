@@ -213,7 +213,8 @@ describe('route — withOrigin records where a jump came from', () => {
     });
     // From the Company page on to another job: the job's own origin is dropped (one level kept).
     const next = withOrigin({ tab: 'apply', jobId: 'B' }, onCompany);
-    expect(originOf(next)).toMatchObject({ tab: 'company', sub: 'acme', from: '/apply/A' });
+    // An origin on the old Company route reads as its new one (#471 slice 2).
+    expect(originOf(next)).toMatchObject({ tab: 'apply', sub: 'company/acme', from: '/apply/A' });
     expect(originOf(originOf(next)!)?.from).toBeUndefined();
   });
 
@@ -368,7 +369,8 @@ describe('route — old routes redirect in place (simplify Q6, #471: two tabs, F
     ['#/find', null],
     ['#/apply', null],
     ['#/apply/k3x9a1', null],
-    ['#/company/acme', null],
+    ['#/company/acme', { tab: 'apply', sub: 'company/acme', pillar: null, jobId: null }],
+    ['#/apply/company/acme', null],
     ['', null],
   ])('%s → %o', (hash, to) => {
     expect(redirectOf(parseHash(hash))).toEqual(to);

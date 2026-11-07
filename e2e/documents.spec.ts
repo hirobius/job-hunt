@@ -68,7 +68,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.evaluate(() => (location.hash = '#/apply'));
   await page.locator('a[href^="#/apply/"]').first().click();
   await page.getByRole('link', { name: 'Acme Metals', exact: true }).click();
-  await expect(page).toHaveURL(/#\/company\/acme-metals\?from=%2Fapply%2F/);
+  await expect(page).toHaveURL(/#\/apply\/company\/acme-metals\?from=%2Fapply%2F/);
   await expect(page.getByRole('heading', { level: 1, name: 'Acme Metals' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Apply', selected: true })).toBeVisible();
   await page.getByRole('link', { name: 'Fabricator', exact: true }).click();

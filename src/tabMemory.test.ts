@@ -25,8 +25,8 @@ describe('tab memory', () => {
   it('counts Apply mode and a Company page as the Pipeline', async () => {
     await visit('#/apply/xyz');
     expect(lastRouteOf('apply')).toBe('#/apply/xyz');
-    await visit('#/company/acme');
-    expect(lastRouteOf('apply')).toBe('#/company/acme');
+    await visit('#/apply/company/acme');
+    expect(lastRouteOf('apply')).toBe('#/apply/company/acme');
   });
 
   it('falls back to the tab root before anything was visited', () => {
@@ -63,9 +63,9 @@ describe('tab memory', () => {
   });
 
   it('openTab goes back to where the tab was left', async () => {
-    await visit('#/company/acme');
+    await visit('#/apply/company/acme');
     await visit('#/find');
     openTab('apply');
-    await waitFor(() => expect(window.location.hash).toBe('#/company/acme'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply/company/acme'));
   });
 });

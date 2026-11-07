@@ -8,8 +8,8 @@ import {
   pageKey,
   parseHash,
   APPLY_TAB,
-  COMPANY_TAB,
   FIND_TAB,
+  companySlugOf,
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
 import {
@@ -135,18 +135,19 @@ function SystemsOnlyMigration() {
 
 export default function App() {
   const route = useRoute();
-  // A Company's page (#/company/<slug>, #230) is an Apply page: the Apply tab stays selected.
-  const company = route.tab === COMPANY_TAB;
+  // A Company's page (#/apply/company/<slug>, #230, #471) is in the Apply tab.
+  const companySlug = companySlugOf(route);
+  const company = companySlug !== null;
   const documents = route.tab === DOCUMENTS_ROUTE;
   // The Privacy policy and Terms (#43): pages with no tab, like Documents.
   const legal = route.tab === LEGAL_ROUTE;
   // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
   // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
   const slugs: string[] = [...TAB_SLUGS];
-  const known: string[] = [...slugs, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
+  const known: string[] = [...slugs, DOCUMENTS_ROUTE, LEGAL_ROUTE];
   const notFound = route.tab !== '' && !isAuthCallback(route) && !known.includes(route.tab);
   const noTab = documents || legal || notFound;
-  const slugIndex = slugs.indexOf(company ? APPLY_TAB : route.tab);
+  const slugIndex = slugs.indexOf(route.tab);
   const tabSlug = slugIndex >= 0 ? slugs[slugIndex] : slugs[defaultTabIndex];
   // The section pages' titles; a job, a Company and the legal pages set their own.
   usePageTitle(
@@ -329,7 +330,7 @@ export default function App() {
                       <TabsContent value={APPLY_TAB} variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
                           {company ? (
-                            <CompanyPage slug={route.sub ?? ''} />
+                            <CompanyPage slug={companySlug} />
                           ) : route.jobId ? (
                             <>
                               <Suspense fallback={null}>

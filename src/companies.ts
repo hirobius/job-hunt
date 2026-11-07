@@ -21,7 +21,7 @@ import { dedupKey, getAllJobs, useJobs } from './store';
 import type { Job } from './types';
 
 export interface Company {
-  /** URL-safe id: the normalized name with hyphens (`#/company/<slug>`). */
+  /** URL-safe id: the normalized name with hyphens (`#/apply/company/<slug>`). */
   slug: string;
   /** Display name: the first spelling seen (on a Job, else on a Document). */
   name: string;
@@ -114,7 +114,7 @@ const decode = (s: string) => {
   }
 };
 
-/** The Company a `#/company/<slug>` route names, or undefined. */
+/** The Company a `#/apply/company/<slug>` route names, or undefined. */
 export function companyBySlug(slug: string, jobs: Job[], docs: Document[]): Company | undefined {
   const want = companySlug(decode(slug).replace(/-/g, ' '));
   if (!want) return undefined;
