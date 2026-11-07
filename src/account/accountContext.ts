@@ -55,6 +55,8 @@ export function useCloudSync(): CloudSyncApi {
 export function refocusAccount(trigger: HTMLElement | null | undefined) {
   return () => {
     setTimeout(() => {
+      // The page may be gone by then (a test's teardown, a closing tab).
+      if (typeof document === 'undefined') return;
       const el = document.activeElement;
       if ((!el || el === document.body) && trigger?.isConnected) trigger.focus();
     }, 0);
