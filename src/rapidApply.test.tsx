@@ -27,6 +27,7 @@ import { setOutreachMessages } from './test/outreach';
 import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
+import { resetAnswerGuard } from './answerGuard';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 
 const A = 'https://acme.example/jobs/1';
@@ -152,6 +153,7 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
     // Acme is starred, so it stays in the Active list, and Cask is second.
     expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
+    resetAnswerGuard(); // a person reads the next job before answering it
     await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
     expect(findJobByUrl(C)?.archived).toBe(true);
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
@@ -195,6 +197,52 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(await screen.findByRole('heading', { name: 'Bolt Designer' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Apply/ })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Jobs in the list' })).toBeNull();
+  });
+
+  it('a double tap on Mark applied applies to one job, not the next one too', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Mark applied/ }));
+    // The next job renders under the finger; the second tap of the double tap lands on it.
+    await screen.findByRole('heading', { name: 'Cask Designer' });
+    await user.click(screen.getByRole('button', { name: /^Mark applied/ }));
+    expect(findJobByUrl(A)?.status).toBe('Applied');
+    expect(findJobByUrl(C)?.status).toBe('Saved');
+    expect(screen.getByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
+  });
+
+  it('after Mark applied, focus moves to the next job’s heading', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Mark applied/ }));
+    const next = await screen.findByRole('heading', { level: 1, name: 'Cask Designer' });
+    await waitFor(() => expect(next).toHaveFocus());
+  });
+
+  it('after Not a fit, focus moves to the next job’s heading', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(C)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
+    const next = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
+    await waitFor(() => expect(next).toHaveFocus());
+  });
+
+  it('after the last job, focus moves to the list’s heading', async () => {
+    const user = userEvent.setup();
+    removeJob(B);
+    removeJob(C);
+    updateJob(A, { priority: false });
+    window.location.hash = '#/apply';
+    renderApp();
+    await user.click(await screen.findByRole('link', { name: 'Acme Designer' }));
+    await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await user.click(screen.getByRole('button', { name: /^Mark applied/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    const list = await screen.findByRole('heading', { level: 1, name: 'Apply' });
+    await waitFor(() => expect(list).toHaveFocus());
   });
 
   it('a double tap on Not a fit sets aside one job, not the next one too', async () => {
