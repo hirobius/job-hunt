@@ -1,18 +1,19 @@
 import { test, expect } from '@playwright/test';
 import { seed } from './routes';
 
-// The final shell (simplify #383 + Q6): two tabs, Today and Jobs. Today, in order: the scan's
-// status with Scan now, Review new (the Browse list), Apply and Follow up; New companies follow
-// once a scan finds some (auto-scan.spec.ts). At 390 (phone first) and 1440.
+// The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
+// status with Scan now and Review new (the Browse list); New companies follow once a scan finds some
+// (auto-scan.spec.ts). At lg the selected posting is the right column, "Pick a posting" until one is
+// picked. Follow up and Apply live on the Apply tab (#471 slice 3). At 390 (phone first) and 1440.
 for (const width of [390, 1440]) {
-  test(`Today at ${width}: scan status, Review new, Apply, Follow up, each one tap in`, async ({
-    page,
-  }) => {
+  test(`Find at ${width}: scan status and Review new; Follow up is on Apply`, async ({ page }) => {
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await seed(page);
-    // A fresh load with no route lands on Today; an old Companies link does too.
+    // A fresh load with no route lands on Find; an old Today or Companies link does too.
     await page.goto('/');
+    await expect(page).toHaveURL(/#\/find$/);
+    await page.goto('/#/today');
     await expect(page).toHaveURL(/#\/find$/);
     await page.goto('/#/discover/live');
     await expect(page).toHaveURL(/#\/find$/);
@@ -21,39 +22,30 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeVisible();
     const panels = page.getByRole('main').getByRole('region');
     await expect(panels.nth(0)).toHaveAccessibleName(/^Review new/);
-    await expect(panels.nth(1)).toHaveAccessibleName(/^Apply \(\d+\)$/);
-    await expect(panels.nth(2)).toHaveAccessibleName(/^Follow up \(\d+ due\)$/);
+    await expect(page.getByRole('region', { name: /^Follow up/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Start applying/ })).toHaveCount(0);
+    if (width >= 1024) await expect(page.getByText('Pick a posting')).toBeVisible();
+    else await expect(page.getByText('Pick a posting')).toHaveCount(0);
     // No sideways scroll on a phone.
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
 
-    // Follow up: the sample has due ones, each with its date and the one button.
+    // Apply: the list (below lg) or the list beside the first job (lg), with Follow up in it.
+    await page.getByRole('tab', { name: 'Apply' }).click();
+    if (width < 1024)
+      await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
+    else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
     const follow = page.getByRole('region', { name: /^Follow up/ });
-    const due = follow.getByRole('list', { name: 'Due follow-ups' });
-    await expect(due.getByText(/ · Due /).first()).toBeVisible();
-    await due
+    await follow
       .getByRole('button', { name: /^Follow up/ })
       .first()
       .click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
-
-    // Jobs is the Pipeline; from lg, the list beside the first job (#471).
-    await page.getByRole('tab', { name: 'Apply' }).click();
-    if (width < 1024)
-      await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
-    else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
     await page.getByRole('tab', { name: 'Find' }).click();
     await expect(page).toHaveURL(/#\/find$/);
-
-    // Apply: Start applying opens the first job's Apply view (the panel moves to Apply in #471 slice 3).
-    await page
-      .getByRole('region', { name: /^Apply/ })
-      .getByRole('button')
-      .click();
-    await expect(page).toHaveURL(/#\/apply\//);
   });
 }

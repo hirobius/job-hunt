@@ -83,20 +83,30 @@ for (const width of [390, 1440]) {
     }
     await page.emulateMedia({ colorScheme: 'light' });
 
-    // A title opens the in-app preview, with Open posting one tap away.
-    await list.getByRole('button', { name: 'Design Systems Designer', exact: true }).click();
-    const preview = page.getByRole('dialog', { name: 'Design Systems Designer' });
-    await expect(preview.getByRole('link', { name: /Open posting/ })).toBeVisible();
-    await page.screenshot({ path: `test-results/review-preview-${width}.png` });
-    await page.goBack();
-    await expect(preview).toBeHidden();
-    await expect(page).toHaveURL(/#\/find$/);
+    // A title selects the posting (#471 slice 3), with Open posting one tap away: beside the list
+    // at lg (in place), its own view below lg (Back returns to the list).
+    await list.getByRole('link', { name: 'Design Systems Designer', exact: true }).click();
+    await expect(page).toHaveURL(/#\/find\/.+/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Design Systems Designer' }),
+    ).toBeVisible();
+    // The posting's own Open posting (each list card has an icon link of its own beside its title).
+    await expect(page.getByRole('link', { name: 'Open posting', exact: true })).toBeVisible();
+    await page.screenshot({ path: `test-results/review-selected-${width}.png` });
+    if (width < 1024) {
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/find$/);
+    } else {
+      await expect(list).toBeVisible();
+      await page.evaluate(() => (location.hash = '#/find'));
+    }
+    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
 
     // Skip hides only that posting: Orbit's other one stays.
     await list.getByRole('button', { name: 'Skip Design Systems Engineer at Orbit' }).click();
     await expect(list.getByRole('listitem')).toHaveCount(2);
     await expect(
-      list.getByRole('button', { name: 'Design Systems Designer', exact: true }),
+      list.getByRole('link', { name: 'Design Systems Designer', exact: true }),
     ).toBeVisible();
 
     await list.getByRole('button', { name: 'Save Design Systems Lead at Lumen' }).click();

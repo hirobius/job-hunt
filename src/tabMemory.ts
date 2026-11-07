@@ -23,14 +23,11 @@ export function tabOf(r: Route): TopTab | null {
 }
 
 const last: Partial<Record<TopTab, string>> = {};
-/** The job the Apply tab last showed, so Find's Resume applying can pick up there. */
-let lastApply: string | null = null;
 
 function note() {
   const r = getRoute();
   const t = tabOf(r);
   if (t) last[t] = buildHash(r);
-  if (r.tab === APPLY_TAB && r.jobId) lastApply = r.jobId;
 }
 
 if (typeof window !== 'undefined') {
@@ -54,12 +51,8 @@ export function openTab(tab: TopTab): void {
   navigate({ ...r, from: r.from ?? null, section: r.section ?? null }, false, { restore: true });
 }
 
-/** The job id the Apply tab last showed, or null. */
-export const lastApplyJobId = (): string | null => lastApply;
-
 /** Forget every tab's place (tests start fresh). */
 export function resetTabMemory(): void {
   delete last.find;
   delete last.apply;
-  lastApply = null;
 }

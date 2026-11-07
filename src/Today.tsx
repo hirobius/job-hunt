@@ -1,161 +1,73 @@
-// Today, the home page and one of the two top tabs (simplify #383 + amendment 2, Q6;
-// docs/specs/simplify.md). Top to bottom: Daily picks (signed in, when the scheduled run left
-// some; DailyPicks.tsx), the auto-scan's status (Scan now, "Last scanned · N new
-// from M sources"), Review new as the Browse list itself (a row opens the in-app preview, Open
-// posting one tap away), Apply, Follow up (what is due, with dates, and what falls due this week)
-// and the companies the scan found (Follow / Ignore). The read model is today.ts; this lays it out.
-import { Button, InlineLink, Skeleton, Stack, Text } from '@hirobius/design-system';
-import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
-import { FollowUpButton } from './FollowUp';
+// Find (was Today), the home page and one of the two top tabs (#471 slice 3, Adrian 2026-11-05).
+// Two columns at lg: the list column (Daily picks when signed in, the auto-scan's status, Review new
+// as the Browse list, then the companies the scan found: Follow / Ignore) and the selected posting
+// (`#/find/<fingerprint>`; "Pick a posting" until one is picked). Below lg the list is the tab and a
+// picked posting is its own view with Back and a pager. Follow up and Apply moved to the Apply tab,
+// so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
+import { Skeleton, Stack, Text } from '@hirobius/design-system';
+import { Panel, PanelBody } from './PipelinePanel';
 import { MetaCaption } from './MetaCaption';
-import { JobPostingTitle } from './PostingLink';
 import { NewCompanies, ScanStatus } from './AutoScanViews';
 import ReviewView from './ReviewView';
 import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
 import { useCloudSync } from './account/accountContext';
-import { useJobs, jobIdOf } from './store';
-import { jobHash, navigate, useRoute, withOrigin } from './route';
-import { metaLines } from './metaLines';
-import { lastApplyJobId } from './tabMemory';
-import { followUpDate } from './jobEvents';
-import { dayLabel } from './dayLabel';
-import { titleOf } from './jobRow';
-import { applyLine, today, upcomingLine } from './today';
-import type { Job } from './types';
-
-const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
 
 export default function Today() {
-  const route = useRoute();
-  const jobs = useJobs();
   const profile = useProfile();
   const { offline, user } = useCloudSync();
   const now = new Date();
-  const m = today(jobs, now, lastApplyJobId());
-  const { due, waiting, upcoming } = m.followUp;
-  return (
-    <Stack gap="px24">
-      <Stack gap="px4">
-        <Text as="h1" variant="title">
-          Find
-        </Text>
-        <MetaCaption
-          items={[
-            now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          ]}
-        />
-      </Stack>
-
-      {/* The scheduled run's hand-picked roles (picks.ts), signed in only: fit line, draft note
-          (Copy), Save → Pipeline. Hidden when there are none. */}
-      {user && <DailyPicks key={user.id} />}
-
-      {/* The scan's status, then every design-system posting, newest first, as a list (the Deck is
-          a toggle inside). Review new hosts the status, so its counts are the Feed's own. */}
-      {profile ? (
-        <ReviewView label="Review new" scanStatus />
-      ) : (
-        // The design-systems profile is made on its own once sync settles (searchDefaults.ts
-        // `ensureProfile`); until then Review new holds its place, or says why it can't.
-        <Stack gap="normal">
-          <ScanStatus />
-          <Panel label="Review new" title="Review new" flat>
-            <PanelBody>
-              {offline ? (
-                <Text variant="caption" as="p" tone="secondary">
-                  Couldn&apos;t reach your account. Your search loads once you&apos;re back online.
-                </Text>
-              ) : (
-                <Stack gap="tight">
-                  <Skeleton variant="text" width="70%" />
-                  <Skeleton variant="text" width="40%" />
-                </Stack>
-              )}
-            </PanelBody>
-          </Panel>
-        </Stack>
-      )}
-
-      <Panel
-        label={`Apply (${m.apply.count})`}
-        title="Apply"
-        count={m.apply.count}
-        countLabel={jobs$(m.apply.count)}
-      >
-        <PanelBody>
-          <Stack gap="normal" align="start">
-            <Text variant="caption" as="p" tone="secondary">
-              {applyLine(m.apply.count)}
-            </Text>
-            <Button
-              variant="primary"
-              disabled={!m.apply.start}
-              // The job's Back comes back here (return paths).
-              onClick={() =>
-                m.apply.start &&
-                navigate(withOrigin({ tab: 'apply', jobId: jobIdOf(m.apply.start.url) }, route))
-              }
-            >
-              {m.apply.resumeAt > 0
-                ? `Resume applying (${m.apply.resumeAt + 1} of ${m.apply.count})`
-                : 'Start applying'}
-            </Button>
-          </Stack>
-        </PanelBody>
-      </Panel>
-
-      <Panel
-        label={`Follow up (${due.length} due)`}
-        title="Follow up"
-        count={due.length}
-        countLabel={`${jobs$(due.length)} due`}
-        description={due.length || waiting ? upcomingLine(upcoming) : undefined}
-      >
-        {due.length > 0 ? (
-          // The most overdue first; Mark as sent in the dialog moves the next one up.
-          <ItemList label="Due follow-ups">
-            {due.map((j) => (
-              <DueRow key={j.url} job={j} now={now} />
-            ))}
-          </ItemList>
-        ) : (
-          <PanelBody>
-            <Text variant="caption" as="p" tone="secondary">
-              {waiting ? 'Nothing due today' : 'Nothing waiting on a reply'}
-            </Text>
-          </PanelBody>
-        )}
-      </Panel>
-
-      <NewCompanies />
+  const header = (
+    <Stack gap="px4">
+      <Text as="h1" variant="title">
+        Find
+      </Text>
+      <MetaCaption
+        items={[
+          now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        ]}
+      />
     </Stack>
   );
-}
-
-/** A due follow-up, like the Pipeline's: the title opens the job's page, its posting one tap away
- *  beside it; then the company and the day it fell due; then its one action. */
-function DueRow({ job, now }: { job: Job; now: Date }) {
-  const date = followUpDate(job, now);
+  // The scheduled run's hand-picked roles (picks.ts), signed in only: fit line, draft note (Copy),
+  // Save → Apply. Hidden when there are none.
+  const picks = user ? <DailyPicks key={user.id} /> : null;
+  if (profile)
+    return (
+      // The scan's status, then every design-system posting, newest first, as a list (the Deck is a
+      // toggle inside). Review new hosts the status, so its counts are the Feed's own.
+      <ReviewView
+        label="Review new"
+        scanStatus
+        header={header}
+        before={picks}
+        after={<NewCompanies />}
+      />
+    );
+  // The design-systems profile is made on its own once sync settles (searchDefaults.ts
+  // `ensureProfile`); until then Review new holds its place, or says why it can't.
   return (
-    <ItemRow>
-      <Stack direction="row" gap="px8" align="center" justify="space-between">
-        <Stack gap="px4" align="start">
-          <JobPostingTitle job={job}>
-            <Text variant="body" as="span" weight="bold" className="rjb-card-title">
-              <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                {titleOf(job)}
-              </InlineLink>
-            </Text>
-          </JobPostingTitle>
-          {metaLines([job.company, date && `Due ${dayLabel(date, now)}`]).map((line) => (
-            <Text key={line} variant="caption" as="span" tone="secondary">
-              {line}
-            </Text>
-          ))}
-        </Stack>
-        <FollowUpButton job={job} size="sm" />
+    <Stack gap="px24">
+      {header}
+      {picks}
+      <Stack gap="normal">
+        <ScanStatus />
+        <Panel label="Review new" title="Review new" flat>
+          <PanelBody>
+            {offline ? (
+              <Text variant="caption" as="p" tone="secondary">
+                Couldn&apos;t reach your account. Your search loads once you&apos;re back online.
+              </Text>
+            ) : (
+              <Stack gap="tight">
+                <Skeleton variant="text" width="70%" />
+                <Skeleton variant="text" width="40%" />
+              </Stack>
+            )}
+          </PanelBody>
+        </Panel>
       </Stack>
-    </ItemRow>
+      <NewCompanies />
+    </Stack>
   );
 }

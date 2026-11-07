@@ -161,9 +161,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. Below lg the tab is
   the list page (`PipelinePage`: Follow up and Next 7 days, then the Jobs panel), and a job stands alone with
   "← Apply" and the "‹ 2 of N ›" pager over the list as it shows (`ApplyPager.tsx`, label "Jobs in the list";
-  none for a job the list hides). Find's Apply panel still says Start applying until slice 3 moves it. A
-  signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. Still to come
-  (#471): the Find two-column view, Documents and Legal as dialogs. **Company (slice 2):** `#/apply/company/<slug>`
+  none for a job the list hides). A
+  signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
+  `#/find/<fingerprint>` selects a posting; see Final shell. Still to come (#471): Documents and Legal as dialogs. **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
 - **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
@@ -270,14 +270,21 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review new**
   = `ReviewView` itself (`label="Review new" scanStatus`: it hosts the status; one panel holding sources that didn't
   answer as one quiet "N sources unavailable · details" disclosure, Browse | Deck, Sort as a menu, two filter chips
-  (New today, Remote) and the Browse list; a row's title opens the in-app preview, Open posting beside it), **Apply**
-  (`toApplyQueue`, Start / Resume applying → Apply mode, `?from=/today`), **Follow up** (`today.ts`: the due rows with
-  "Due <day>" and their own Follow up button, "Upcoming: N this week" = due in the next 7 days, else "Nothing due
-  today" / "Nothing waiting on a reply") and **New companies** (`NewCompanies`, Follow / Ignore). Followed and Ignored
+  (New today, Remote) and the Browse list; a row's title selects the posting, Open posting beside it) and **New
+  companies** (`NewCompanies`, Follow / Ignore). **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
+  Find out: at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, status, Review new, New companies) beside
+  `PostingDetail` (the old preview dialog's body: title as the page's h1, company, the card with its excerpt, Save /
+  Skip / Not this company, Open posting; "Pick a posting" until one is picked); below lg the list is the tab and a
+  selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
+  route, `#/find/<fingerprint>` (`route.postingOf` / `findHash` / `selectPosting`, URI-escaped): shareable, survives
+  a reload, nothing selected when the tab opens. A pick replaces the history entry at lg and pushes below lg (Back
+  returns to the list); a decision on the selected posting selects the next one in the list (in place). The
+  selected card is `aria-current` (`.rjb-selected`). **Apply and Follow up left Find** (each item shows on one tab
+  only): Follow up is on the Apply list; `today.ts` and Resume applying are gone. Followed and Ignored
   companies are the Account menu's **Companies** item (`CompaniesDialog.tsx`, lazy; `companiesList.ts` reads the
   Feed's Sources: followed = boards + companies, A to Z, once by name; ignored = the muted Sources; one list at a
   time, Ignore = `muteCompany`, Follow again = `unmuteCompany`, plus `followCompany` for one with no Source). Merges #426
-  (Jobs keep list, one-page job page, no fit badge); "Find more like this" left the job menu with the ATS search. Pinned in `today.test.ts`, `todayHome.test.tsx`,
+  (Jobs keep list, one-page job page, no fit badge); "Find more like this" left the job menu with the ATS search. Pinned in `todayHome.test.tsx`, `review.test.tsx`,
   `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
 - **Calm list shell (PR #208) and "Today is gone" (#236)** are history: the final shell above brought Today
   back as home and removed Companies.
