@@ -259,7 +259,7 @@ for (const width of [390, 800] as const) {
       const next = jobsPanel(page).locator('a[href^="#/apply/"]').first();
       const id = (await next.getAttribute('href'))!.replace('#/apply/', '');
       const nextTitle = (await next.textContent())!.trim();
-      await go(page, '#/copy-deck');
+      await go(page, '#/find?documents=');
       await go(page, '#/find');
       await go(page, `#/apply/${id}?from=%2Ffind`);
       await expect(page.getByRole('heading', { level: 1, name: nextTitle })).toBeVisible();
@@ -277,7 +277,7 @@ for (const width of [390, 800] as const) {
     }) => {
       await openApply(page);
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const library = await page.evaluate(() => location.hash);
       const outreach = page.getByRole('region', { name: 'Outreach messages' });
       await outreach.locator('button[aria-expanded]').first().click();
@@ -300,13 +300,14 @@ for (const width of [390, 800] as const) {
       // The dev server runs effects twice on mount (StrictMode): each fallback still goes back once.
       const hash = () => page.evaluate(() => location.hash);
       const cases: [string, string, string][] = [
-        ['#/apply', '#/copy-deck/does-not-exist?from=%2Fapply', '#/apply'],
+        // A document is a dialog over the page (#471 slice 4): an unknown one shows the library.
+        ['#/apply', '#/apply?documents=does-not-exist', '#/apply?documents='],
         ['#/find', '#/apply/nojob123?from=%2Ffind', '#/find'],
         ['#/apply', '#/apply/nojob123', '#/apply'],
       ];
       for (const [origin, unknown, lands] of cases) {
         // Another page behind the origin, so a second pop would have somewhere to go.
-        await go(page, '#/copy-deck');
+        await go(page, '#/find?documents=');
         await go(page, origin);
         await go(page, unknown);
         await expect.poll(hash).toBe(lands);
@@ -408,12 +409,15 @@ for (const width of [390, 800] as const) {
       const field = page.getByRole('textbox', { name: label, exact: true });
       await field.fill('Half typ');
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page.getByRole('link', { name: /^Back to / }).click();
-      await expect(page).toHaveURL(/#\/apply\//);
+      await page
+        .getByRole('dialog', { name: 'Documents' })
+        .getByRole('button', { name: 'Close' })
+        .click();
+      await expect(page).toHaveURL(/#\/apply\/[^?]+$/);
       await expect(field).toHaveValue('Half typ');
       // And the browser's Back.
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page).toHaveURL(/#\/copy-deck/);
+      await expect(page).toHaveURL(/documents=/);
       await page.goBack();
       await expect(page).toHaveURL(/#\/apply\//);
       await expect(field).toHaveValue('Half typ');

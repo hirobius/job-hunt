@@ -10,6 +10,7 @@
 // the snippet id, so a run that races another device never duplicates one either.
 import { useMemo } from 'react';
 import { getSnippets, replaceSnippets, type Snippet } from './copyDeckStore';
+import { documentsHash } from './route';
 import {
   getAllDocuments,
   isFinalCopy,
@@ -57,7 +58,7 @@ export function useOutreachTemplates(): OutreachTemplate[] {
 }
 
 /** The library link for a template or document. */
-export const documentHref = (id: string) => `#/copy-deck/${encodeURIComponent(id)}`;
+export const documentHref = (id: string) => documentsHash(id);
 
 /** A document the library's editor can open: a Base one with text (a final copy takes none). */
 const editable = (d: Document) => !!d.base && !isFinalCopy(d);

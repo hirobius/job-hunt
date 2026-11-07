@@ -1,5 +1,5 @@
 // The Documents library on its route (#227): `#/copy-deck` is the library (no tab selected, a
-// Documents heading and a way back to the Pipeline), `#/copy-deck/<id>` opens one document, an old
+// Documents dialog over the page, #471 slice 4), `#/copy-deck/<id>` opens one document, an old
 // `#/copy-deck/<snippetId>` link opens the message that snippet became, and an unknown id returns to
 // the library. Snippets move into the library once at startup; a deleted message stays deleted and
 // the starter set can be restored. Editing a message there changes what the fill paths use.
@@ -73,11 +73,17 @@ afterEach(() => {
 });
 
 describe('the Documents page', () => {
-  it('is a page with no tab selected: a Documents heading and a way back', async () => {
+  it('an old #/copy-deck link opens the Documents dialog over Find; Close leaves Find as it was', async () => {
     await renderApp();
-    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
-    expect(screen.getByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/apply');
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    const dialog = await screen.findByRole('dialog', { name: 'Documents' });
+    expect(screen.getByRole('tab', { name: 'Find', hidden: true })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await userEvent.click(within(dialog).getByRole('button', { name: /Close/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('the Menu opens Documents', async () => {
@@ -87,8 +93,9 @@ describe('the Documents page', () => {
     const menu = await screen.findByRole('menu');
     expect(within(menu).queryByRole('menuitem', { name: 'Templates' })).toBeNull();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
-    expect(window.location.hash).toBe('#/copy-deck');
-    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
+    // Over the page it was opened from.
+    await waitFor(() => expect(window.location.hash).toBe('#/apply?documents='));
+    expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
   });
 
   it('moves the snippets into the library as Outreach messages at startup', async () => {
@@ -108,23 +115,23 @@ describe('the Documents page', () => {
     );
     // The row expands first (rev-3 M); Open goes to the editor.
     await userEvent.click(screen.getByRole('button', { name: 'Open Thank-you after interview' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/snippet-tpl-thanks'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents=snippet-tpl-thanks'));
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Thank-you after interview');
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
   });
 
   it('an old template link opens the message its snippet became', async () => {
     window.location.hash = '#/copy-deck/tpl-cover';
     await renderApp();
     expect(await screen.findByRole('textbox', { name: 'Title' })).toHaveValue('Cover letter');
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/snippet-tpl-cover'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents=snippet-tpl-cover'));
   });
 
   it('an unknown id falls back to the library', async () => {
     window.location.hash = '#/copy-deck/nope';
     await renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
     expect(screen.getByRole('region', { name: 'Outreach messages' })).toBeInTheDocument();
   });
 
@@ -134,7 +141,7 @@ describe('the Documents page', () => {
     await screen.findByRole('textbox', { name: 'Title' });
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
     expect(ids()).not.toContain('snippet-tpl-cover');
     // A reload runs the startup move again: the snippet was moved once, so nothing comes back.
     r.unmount();
@@ -175,7 +182,7 @@ describe('unsaved edits in the editor', () => {
     const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
     expect(within(ask).getByRole('button', { name: 'Keep editing' })).toHaveFocus();
     await userEvent.click(within(ask).getByRole('button', { name: 'Keep editing' }));
-    expect(window.location.hash).toBe(OPEN);
+    expect(window.location.hash).toBe('#/find?documents=snippet-tpl-outreach');
     expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent(
       'Unsaved line.',
     );
@@ -188,7 +195,7 @@ describe('unsaved edits in the editor', () => {
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
     const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
     await userEvent.click(within(ask).getByRole('button', { name: 'Discard' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
     r.unmount();
     window.location.hash = OPEN;
     await renderApp();
@@ -202,7 +209,7 @@ describe('unsaved edits in the editor', () => {
     await renderApp();
     await screen.findByRole('textbox', { name: 'Message text' });
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
@@ -225,7 +232,7 @@ describe('unsaved edits in the editor', () => {
     const r = await renderApp();
     await typeInMessage(' Unsaved line.');
     // Back: the hash moves on and the editor goes, with no chance to ask.
-    window.location.hash = '#/copy-deck';
+    window.location.hash = '#/find?documents=';
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Message text' })).toBeNull());
     r.unmount();
     window.location.hash = OPEN;
@@ -233,8 +240,8 @@ describe('unsaved edits in the editor', () => {
     expect(await screen.findByRole('textbox', { name: 'Message text' })).toHaveTextContent(
       'Unsaved line.',
     );
-    const notices = await screen.findByRole('region', { name: /^Notifications/ });
-    expect(await within(notices).findByText('Restored unsaved changes')).toBeInTheDocument();
+    // The toast sits behind the modal dialog (toastAnnouncer says it to a screen reader).
+    expect(await screen.findByText('Restored unsaved changes')).toBeInTheDocument();
     // Saving makes it the latest Version, and the kept draft goes.
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
@@ -290,10 +297,10 @@ describe('editing a message changes what the fill paths use', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     await user.click(within(list).getByRole('button', { name: 'Copy Follow-up after applying' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('P.S. Acme Metals rocks.'));
-    // Documents remembers Apply mode (return paths): its Back and a Save come back here.
+    // Documents opens as a dialog over this job (#471 slice 4): closing it comes back here.
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
-      `#/copy-deck?from=%2Fapply%2F${jobIdOf(JOB)}`,
+      `#/apply/${jobIdOf(JOB)}?documents=`,
     );
   });
 });
@@ -361,7 +368,7 @@ describe('a link to a document that is not a Base one', () => {
     const id = createDocument({ kind: 'note', title: 'Orphan', text: 'x', jobUrl: JOB });
     window.location.hash = `#/copy-deck/${id}`;
     await renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
     expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
   });
 });

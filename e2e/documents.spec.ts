@@ -58,10 +58,10 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await row.getByRole('textbox', { name: 'Contact' }).fill('Dana');
   await row.getByRole('button', { name: 'Fill', exact: true }).click();
   await expect(list.getByText(/Hi Dana,/).first()).toBeVisible();
-  // Documents remembers Apply mode, so its Back and a Save come back here (return paths).
+  // Documents opens as a dialog over this job (#471 slice 4), so closing it or a Save comes back here.
   await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
     'href',
-    /^#\/copy-deck\?from=%2Fapply%2F/,
+    /^#\/apply\/[^?]+\?documents=$/,
   );
 
   // The job page links its company to the Company page, which links back to the job.
@@ -80,7 +80,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
 test('Restore starter messages toasts and shows the first restored row (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto('/#/copy-deck');
+  await page.goto('/#/find?documents=');
   await page.getByRole('button', { name: 'Start from scratch' }).click();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
   await outreach.getByRole('button', { name: 'Restore starter messages' }).click();

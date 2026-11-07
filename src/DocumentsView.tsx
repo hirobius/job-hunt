@@ -1,120 +1,133 @@
-// The Documents page (#227, epic #225): `#/copy-deck` is the library, `#/copy-deck/<id>` opens one
-// document. It replaces Templates: the snippets moved into it as Outreach messages, so an old
-// `#/copy-deck/<snippetId>` link opens the message that snippet became (the hash is rewritten to its
-// id), and an unknown id goes back to the library once sync has settled (the document may not have
-// arrived on this device yet). It has no tab (#240): the page names itself and opens from the Menu
-// and the Apply sheet. `#/copy-deck/new/<kind>` is a New editor. Return paths: the page remembers
-// where it was opened from (`from`), so its Back names that page ("← Apply mode (2 of 3)", else
-// "← Pipeline"), the editor's Back goes to the library or straight to the job it came from, and a
-// Save in an editor opened from a job page or Apply mode goes back there.
+// The Documents dialog (#227; #471 slice 4: a dialog, not a page). It opens over the page it was
+// asked from (`?documents=` in that page's hash: '' the library, a document's id, `new/<kind>` a
+// New editor), so a link opens it and a reload keeps it, and the browser's Back closes it (or steps
+// back inside it). At lg the library is the left column and the open document's editor the right
+// ("Pick a document" until one is open); below lg one view at a time, the editor's Back returning to
+// the library. Old `#/copy-deck[/<id>]` links redirect here (route.ts). An old
+// `?documents=<snippetId>` opens the message that snippet became (rewritten in place), a job's own
+// document opens its job, and an unknown id goes back to the library once sync has settled. Opened
+// over a job, a Save closes it (back on the job, return paths).
 import { useContext, useEffect } from 'react';
-import { Box } from '@hirobius/design-system';
-import { PageHeader } from '@hirobius/design-system/patterns';
+import { Box, Dialog, Stack, Text, useAtLeast } from '@hirobius/design-system';
+import { FileText } from 'lucide-react';
+import { EmptyState } from './hds-gaps/EmptyState';
 import DocumentsLibrary from './DocumentsLibrary';
 import { DOCUMENT_KINDS, useDocuments, type DocumentKind } from './documents';
 import { documentJobUrl, resolveDocumentId } from './outreachTemplates';
 import { useSnippets } from './copyDeckStore';
 import { findJobById, jobIdOf } from './store';
-import { goBackTo, navigate, originOf, useRoute, withOrigin, type Route } from './route';
+import {
+  closeDialog,
+  dialogStepBack,
+  navigate,
+  openDocuments,
+  useRoute,
+  type Route,
+} from './route';
 import { useRouteLabel } from './routeLabel';
-import BackLink from './BackLink';
-import type { Back } from './back';
 import { CloudSyncContext } from './account/accountContext';
+import { usePageTitle } from './pageTitle';
 
-const PIPELINE: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
-const LIBRARY: Route = { tab: 'copy-deck', sub: null, pillar: null, jobId: null };
 const NEW = 'new/';
-
-const isLibrary = (r: Route) => r.tab === 'copy-deck' && !r.sub;
-
-/** Where a Save goes straight back to: the job's Apply view the editor was opened from,
- *  directly or through the library (return paths). Documents opened from anywhere else stay put. */
-function returnTarget(route: Route): Route | null {
-  let o = originOf(route);
-  if (o && isLibrary(o)) o = originOf(o);
-  return o && o.tab === 'apply' && o.jobId ? o : null;
-}
-
-// The editor's Back: "All documents" when it goes to the library, else the page it was opened from
-// by name ("← Senior UX Designer", "← Apply").
-const libraryWords = (b: Back) => (isLibrary(b.origin) ? 'All documents' : b.label);
-const libraryName = (b: Back) => (isLibrary(b.origin) ? null : `Back to ${b.label}`);
 
 export default function DocumentsView() {
   const docs = useDocuments();
   const route = useRoute();
+  const wide = useAtLeast('lg');
   // Read the context directly: this view also renders on its own in tests, outside the provider.
   const settled = useContext(CloudSyncContext)?.settled ?? true;
   // Snippets not moved yet (the move runs once sync settles): an old link may name one of them.
   const moving = useSnippets().some((s) => !s.migrated);
-  const sub = route.sub ? decodeURIComponent(route.sub) : null;
+  const sub = route.documents || null;
   const newKind = sub?.startsWith(NEW)
     ? (DOCUMENT_KINDS.find((k) => k.kind === sub.slice(NEW.length))?.kind ?? null)
     : null;
   const named = sub && !sub.startsWith(NEW) ? resolveDocumentId(sub, docs) : null;
-  const origin = originOf(route);
   // A job's own document or final copy (#328): its saved job's page holds it.
   const jobUrl = sub && !named ? documentJobUrl(sub, docs) : null;
   const jobId = jobUrl && findJobById(jobIdOf(jobUrl)) ? jobIdOf(jobUrl) : null;
+  usePageTitle('Documents');
 
   useEffect(() => {
     if (!sub || newKind) return;
-    if (named && named !== sub) navigate({ sub: named, from: route.from ?? null }, true);
+    if (named && named !== sub) openDocuments(named, true);
     else if (!named && (sub.startsWith(NEW) || (settled && !moving))) {
-      // Its job page, keeping where the link came from (return paths).
-      if (jobId) return navigate({ tab: 'apply', jobId, from: route.from ?? null }, true);
-      // Unknown or deleted: back to the page that linked here, else the library.
-      const back = originOf(route);
-      if (back) goBackTo(back);
-      else navigate({ sub: null }, true);
+      // Its job, with the dialog closed (the job holds the document).
+      if (jobId) navigate({ tab: 'apply', sub: null, jobId, documents: null }, true);
+      // Unknown or deleted: the library.
+      else openDocuments('', true);
     }
-    // The route is read as it is when the document or sync changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only when the document or sync changes.
   }, [sub, newKind, named, settled, moving, jobId]);
 
-  const target = returnTarget(route);
-  const targetLabel = useRouteLabel(target ?? LIBRARY);
-  // Back to the library: a pop when it is just behind, the same library (and its own origin).
-  const toLibrary = () => goBackTo(origin && isLibrary(origin) ? origin : LIBRARY);
+  // Opened over a job: a Save closes the dialog, back on the job (return paths).
+  const page: Route = { ...route, documents: null, legal: null };
+  const overJob = route.tab === 'apply' && !!route.jobId;
+  const pageLabel = useRouteLabel(page);
+  const returnTo = overJob ? { label: pageLabel, go: closeDialog } : undefined;
+  const toLibrary = () => dialogStepBack({ ...route, documents: '' });
+  const open = (id: string | null) => (id ? openDocuments(id, wide) : toLibrary());
+  const onNew = (kind: DocumentKind) => openDocuments(NEW + kind, wide);
+  // The New editor's entry becomes the new document's.
+  const onCreated = (id: string) => openDocuments(id, true);
+  const editing = !!(named || newKind);
 
-  // The 760 content measure, like the job page: documents are prose.
+  const list = (
+    <DocumentsLibrary
+      headingAs="h2"
+      header={<span />}
+      listOnly={wide}
+      openId={wide ? null : named}
+      newKind={wide ? null : (newKind as DocumentKind | null)}
+      onOpen={open}
+      onNew={onNew}
+      onCreated={onCreated}
+      returnTo={returnTo}
+    />
+  );
+  const editor = editing ? (
+    <DocumentsLibrary
+      headingAs="h2"
+      openId={named}
+      newKind={newKind as DocumentKind | null}
+      onOpen={open}
+      onNew={onNew}
+      onCreated={onCreated}
+      returnTo={returnTo}
+    />
+  ) : (
+    <EmptyState
+      framed
+      icon={FileText}
+      title="Pick a document"
+      description="Open one from the list to edit it, or start a new one."
+    />
+  );
   return (
-    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <DocumentsLibrary
-        header={
-          <PageHeader
-            level={1}
-            breadcrumb={
-              // "← Pipeline", or the page Documents was opened from by name (return paths).
-              <BackLink className="rjb-back" fallback={PIPELINE} fallbackLabel="Apply" />
-            }
-            title="Documents"
-          />
-        }
-        openId={named}
-        newKind={newKind as DocumentKind | null}
-        onOpen={(id) =>
-          id
-            ? navigate(withOrigin({ tab: 'copy-deck', sub: encodeURIComponent(id) }, route))
-            : toLibrary()
-        }
-        onNew={(kind) => navigate(withOrigin({ tab: 'copy-deck', sub: NEW + kind }, route))}
-        // The New editor's entry becomes the new document's, keeping where it was opened from.
-        onCreated={(id) =>
-          navigate({ sub: encodeURIComponent(id), from: route.from ?? null }, true)
-        }
-        editorBack={
-          <BackLink
-            as="button"
-            className="rjb-back"
-            fallback={LIBRARY}
-            fallbackLabel="All documents"
-            text={libraryWords}
-            ariaLabel={libraryName}
-          />
-        }
-        returnTo={target ? { label: targetLabel, go: () => goBackTo(target) } : undefined}
-      />
-    </Box>
+    <Dialog
+      open={route.documents !== null && route.documents !== undefined}
+      onOpenChange={(o) => !o && closeDialog()}
+    >
+      <Dialog.Content size="xl" className="rjb-dialog rjb-docs-dialog">
+        <Dialog.Header>
+          <Dialog.Title>Documents</Dialog.Title>
+          <Dialog.Description>
+            <Text variant="caption" as="span" tone="secondary">
+              Résumés, cover letters, outreach messages and notes.
+            </Text>
+          </Dialog.Description>
+        </Dialog.Header>
+        <Box className="rjb-dialog-body">
+          {wide ? (
+            <Box className="rjb-docs-columns">
+              <Box>{list}</Box>
+              <Box>{editor}</Box>
+            </Box>
+          ) : (
+            <Stack gap="normal">{list}</Stack>
+          )}
+        </Box>
+      </Dialog.Content>
+    </Dialog>
   );
 }

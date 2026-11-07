@@ -28,7 +28,7 @@ import { BRAND } from './brand';
 import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
 import { backInFlight, resetHistoryRecord } from './route';
-import { LEGAL_DRAFT } from './legal';
+import { CONTACT_EMAIL, LEGAL_DRAFT } from './legal';
 
 const fake = () => h.fake!;
 
@@ -104,11 +104,17 @@ describe('app shell (#115 Phase 1)', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('the page with no tab (Documents) is inside main too', async () => {
+  it('Documents is a dialog over the page, never a page of its own (#471 slice 4)', async () => {
     window.location.hash = '#/copy-deck';
     renderApp();
+    expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
+    // The page under it keeps its own h1 in main.
     expect(
-      await within(screen.getByRole('main')).findByRole('heading', { level: 1, name: 'Documents' }),
+      within(screen.getByRole('main', { hidden: true })).getByRole('heading', {
+        level: 1,
+        name: 'Find',
+        hidden: true,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -269,7 +275,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
   });
 
   it('signed out with jobs, the avatar is plain "Account" on every route; no banner', async () => {
-    for (const hash of ['#/apply', '#/copy-deck']) {
+    for (const hash of ['#/apply', '#/find']) {
       window.location.hash = hash;
       const { unmount } = renderApp();
       const account = await screen.findByRole('button', { name: 'Account' });
@@ -358,73 +364,58 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(tab);
   });
 
-  it('#/copy-deck is a page with no tab selected: a Documents heading and a way back (#240, #227)', async () => {
+  it('#/copy-deck opens the Documents dialog over Find, its tab selected (#240, #227, #471)', async () => {
     window.location.hash = '#/copy-deck';
     renderApp();
-    expect(screen.queryByRole('tab', { name: 'Templates' })).toBeNull();
-    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
-    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/apply');
+    expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Templates', hidden: true })).toBeNull();
+    expect(screen.getByRole('tab', { selected: true, hidden: true })).toHaveAccessibleName('Find');
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
   });
-
-  it.each(['#/copy-deck', '#/legal/privacy'])(
-    'on %s, tabbing past the Menu onto a tab does not leave the page (a11y pass)',
-    async (hash) => {
-      window.location.hash = hash;
-      renderApp();
-      await screen.findByRole('heading', { level: 1 });
-      const user = userEvent.setup();
-      screen.getByRole('button', { name: /^Account/ }).focus();
-      await user.tab();
-      expect(screen.getByRole('tab', { name: 'Find' })).toHaveFocus();
-      expect(window.location.hash).toBe(hash);
-      // Enter still opens it.
-      await user.keyboard('{Enter}');
-      await waitFor(() => expect(window.location.hash).toBe('#/find'));
-    },
-  );
 
   it('#/copy-deck/<id> still opens that template, now an Outreach message (#240, #227)', async () => {
     addStarterMessages(); // a clean first run has none (Adrian 2026-10-22)
     window.location.hash = '#/copy-deck/tpl-cover';
     renderApp();
     expect(await screen.findByRole('textbox', { name: 'Title' })).toHaveValue('Cover letter');
-    const sections = screen.getByRole('tablist', { name: 'Sections' });
-    expect(within(sections).queryByRole('tab', { selected: true })).toBeNull();
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents=snippet-tpl-cover'));
   });
 
-  it('the Menu opens Documents (#240, #227)', async () => {
+  it('the Menu opens Documents over the page it was opened from (#240, #227, #471)', async () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
-    // It remembers the page it was opened from (Today here), for its Back (return paths).
-    expect(window.location.hash).toBe('#/copy-deck?from=%2Ffind');
-    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
+    // The browser's Back closes it and stays on Find.
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(window.location.hash).toBe('#/find');
   });
 
-  it('the Menu opens Privacy and terms: a page with no tab selected (#43)', async () => {
+  it('the Menu opens Privacy and terms: one dialog with two tabs (#43, #471)', async () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
-    // Today is the legal pages' own way back, so no origin is written.
-    expect(window.location.hash).toBe('#/legal/privacy');
+    await waitFor(() => expect(window.location.hash).toBe('#/find?legal=privacy'));
+    const dialog = await screen.findByRole('dialog', { name: 'Privacy and terms' });
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Privacy policy' }),
+      within(dialog).getByRole('tab', { name: 'Privacy policy', selected: true }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
   });
 
-  it('#/legal/terms shows the Terms, links to the policy and back to the app (#43)', async () => {
+  it('#/legal/terms opens the dialog on Terms; the tabs swap in place; Close returns (#43, #471)', async () => {
     window.location.hash = '#/legal/terms';
     renderApp();
+    const dialog = await screen.findByRole('dialog', { name: 'Privacy and terms' });
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Terms of use' }),
+      within(dialog).getByRole('tab', { name: 'Terms of use', selected: true }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
-      'href',
-      '#/legal/privacy',
-    );
-    expect(screen.getByRole('link', { name: 'Back to Find' })).toHaveAttribute('href', '#/find');
+    await waitFor(() => expect(window.location.hash).toBe('#/find?legal=terms'));
+    const length = window.history.length;
+    await userEvent.click(within(dialog).getByRole('tab', { name: 'Privacy policy' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find?legal=privacy'));
+    expect(window.history.length).toBe(length);
     // Approved wording carries its date and no notice; a revision under review says it is a draft.
     if (LEGAL_DRAFT) {
       expect(screen.getByText(/^Draft of/)).toBeInTheDocument();
@@ -433,10 +424,12 @@ describe('routes keep working (#115 Phase 1)', () => {
       expect(screen.getByText(/^Last updated/)).toBeInTheDocument();
       expect(screen.queryByText(/This is a draft under review/)).toBeNull();
     }
-    expect(screen.getByRole('link', { name: 'hello@hirobius.com' })).toHaveAttribute(
+    expect(within(dialog).getAllByRole('link', { name: CONTACT_EMAIL })[0]).toHaveAttribute(
       'href',
-      'mailto:hello@hirobius.com',
+      `mailto:${CONTACT_EMAIL}`,
     );
+    await userEvent.click(within(dialog).getByRole('button', { name: /Close/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
   });
 
   it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {

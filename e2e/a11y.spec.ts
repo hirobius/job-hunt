@@ -12,10 +12,10 @@ const WIDTHS = [1440, 390] as const;
 const ROUTES = [
   '#/find',
   '#/apply',
-  '#/copy-deck',
-  '#/copy-deck/tpl-outreach',
-  '#/legal/privacy',
-  '#/legal/terms',
+  '#/find?documents=',
+  '#/find?documents=tpl-outreach',
+  '#/find?legal=privacy',
+  '#/find?legal=terms',
   // A Company's page (#230), named by a sample job's company.
   '#/apply/company/larkspur-analytics',
   // An unknown route's Page not found.
@@ -26,7 +26,7 @@ async function seed(page: Page) {
   await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
-  await go(page, '#/copy-deck');
+  await go(page, '#/find?documents=');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.

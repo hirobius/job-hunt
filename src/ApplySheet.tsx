@@ -16,7 +16,7 @@ import {
 } from '@hirobius/design-system';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import BlankText from './BlankText';
-import { linkTo, useRoute } from './route';
+import { documentsHash, useRoute } from './route';
 import { useRemembered } from './viewMemory';
 import {
   KIT_FIELDS,
@@ -220,10 +220,9 @@ export function ApplyTemplates({ job }: { job: Job }) {
     () => filledTemplates(snippets, job, kit.fields.name),
     [snippets, job, kit.fields.name],
   );
-  // Documents remembers this job in Apply mode (return paths): its Back reads "← Apply mode (2 of
-  // 3)", and saving a message comes straight back here with the row refilled. With no message yet,
-  // the link opens a new one.
-  const editHref = linkTo({ tab: 'copy-deck', sub: rows.length ? null : 'new/outreach' }, route);
+  // Documents opens as a dialog over this job (#471 slice 4): closing it, or saving a message,
+  // comes straight back here with the row refilled. With no message yet, the link opens a new one.
+  const editHref = documentsHash(rows.length ? '' : 'new/outreach', route);
   const edit = (label: string) => (
     <Box>
       {/* HDS Button asChild drops iconLeft, so the pencil is the link's own child. */}

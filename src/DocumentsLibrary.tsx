@@ -126,7 +126,13 @@ export default function DocumentsLibrary({
   onCreated,
   editorBack,
   returnTo,
+  headingAs = 'h1',
+  listOnly = false,
 }: {
+  /** The heading level of the library's head and the editor's title (h2 in the Documents dialog). */
+  headingAs?: 'h1' | 'h2';
+  /** Always the list, never the editor (the dialog's left column at lg; `onOpen` opens beside). */
+  listOnly?: boolean;
   /** The open document's id, when a route holds it. */
   openId?: string | null;
   onOpen?: (id: string | null) => void;
@@ -178,7 +184,7 @@ export default function DocumentsLibrary({
     highlightNew(added[0].id);
   };
 
-  if (open && 'kind' in open)
+  if (!listOnly && open && 'kind' in open)
     return (
       <DocumentEditor
         key={`new-${open.kind}`}
@@ -187,10 +193,11 @@ export default function DocumentsLibrary({
         onCreated={created}
         back={editorBack}
         returnTo={returnTo}
+        titleAs={headingAs}
       />
     );
-  const current = open && docs.find((d) => d.id === open.id);
-  if (current)
+  const current = open && 'id' in open && docs.find((d) => d.id === open.id);
+  if (!listOnly && current)
     return (
       <DocumentEditor
         key={current.id}
@@ -200,11 +207,12 @@ export default function DocumentsLibrary({
         onCreated={created}
         back={editorBack}
         returnTo={returnTo}
+        titleAs={headingAs}
       />
     );
 
   const head = header ?? (
-    <Text variant="title" as="h1">
+    <Text variant="title" as={headingAs}>
       Documents
     </Text>
   );

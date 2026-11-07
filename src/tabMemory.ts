@@ -27,7 +27,8 @@ const last: Partial<Record<TopTab, string>> = {};
 function note() {
   const r = getRoute();
   const t = tabOf(r);
-  if (t) last[t] = buildHash(r);
+  // A dialog over the page (Documents, Legal) is not where the tab was left: it reopens without.
+  if (t) last[t] = buildHash({ ...r, documents: null, legal: null });
 }
 
 if (typeof window !== 'undefined') {

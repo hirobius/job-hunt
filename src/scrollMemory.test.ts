@@ -77,14 +77,14 @@ describe('scroll memory', () => {
   });
 
   it('holds the position while the page is still settling (rows loading above it)', async () => {
-    window.location.hash = '#/copy-deck';
+    window.location.hash = '#/other';
     await new Promise((r) => setTimeout(r, 10));
     height = 3000;
     await scrollBy(681);
-    window.location.hash = '#/copy-deck/live';
+    window.location.hash = '#/other/live';
     await new Promise((r) => setTimeout(r, 10));
-    requestScrollRestore('#/copy-deck');
-    window.location.hash = '#/copy-deck';
+    requestScrollRestore('#/other');
+    window.location.hash = '#/other';
     await waitFor(() => expect(y).toBe(681));
     // Rows above finish loading: the browser keeps what was on screen in place, moving the scroll.
     y = 913;
@@ -113,14 +113,14 @@ describe('scroll memory', () => {
   });
 
   it('holds the position while the browser moves it without the user (rows reordering)', async () => {
-    window.location.hash = '#/copy-deck/teams';
+    window.location.hash = '#/other/teams';
     await new Promise((r) => setTimeout(r, 10));
     height = 3000;
     await scrollBy(647);
-    window.location.hash = '#/copy-deck/live';
+    window.location.hash = '#/other/live';
     await new Promise((r) => setTimeout(r, 10));
-    requestScrollRestore('#/copy-deck/teams');
-    window.location.hash = '#/copy-deck/teams';
+    requestScrollRestore('#/other/teams');
+    window.location.hash = '#/other/teams';
     await waitFor(() => expect(y).toBe(647));
     // Rows reorder for a second without changing the page height; scroll anchoring follows one
     // and moves the page each time.
@@ -132,11 +132,11 @@ describe('scroll memory', () => {
   });
 
   it('a page never scrolled comes back at its top', async () => {
-    window.location.hash = '#/legal/privacy';
+    window.location.hash = '#/other2/privacy';
     await new Promise((r) => setTimeout(r, 10));
     y = 300;
-    requestScrollRestore('#/legal/terms');
-    window.location.hash = '#/legal/terms';
+    requestScrollRestore('#/other2/terms');
+    window.location.hash = '#/other2/terms';
     await waitFor(() => expect(y).toBe(0));
   });
 });

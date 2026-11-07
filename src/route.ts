@@ -27,6 +27,11 @@ export interface Route {
   from?: string | null;
   /** A job page's open section (`screening`, `interviews`; Overview is the default and left out). */
   section?: string | null;
+  /** The Documents dialog over the page (#471 slice 4): '' the library, else a document's id or
+   *  `new/<kind>`. In the URL (`?documents=`), so a link to it opens it and a reload keeps it. */
+  documents?: string | null;
+  /** The Legal dialog over the page (#471 slice 4): `privacy` or `terms` (`?legal=`). */
+  legal?: string | null;
 }
 
 /** The Apply tab (#471): its second segment is a job id, `#/apply/<jobId>`. */
@@ -53,6 +58,8 @@ export function parseHash(hash: string): Route {
   const isCompany = tab === JOB_TAB && seg[1] === COMPANY_SEG;
   const isJob = tab === JOB_TAB && second !== null && !isCompany;
   const from = qp.get('from');
+  const documents = qp.get('documents');
+  const legal = qp.get('legal');
   // The old job tab's section rides along to its redirect.
   const section = isJob || (tab === OLD_QUEUE && second !== null) ? qp.get('section') : null;
   return {
@@ -63,6 +70,8 @@ export function parseHash(hash: string): Route {
     // Only when present, so a plain route reads as it always has.
     ...(from ? { from } : {}),
     ...(section ? { section } : {}),
+    ...(documents !== null ? { documents } : {}),
+    ...(legal ? { legal } : {}),
   };
 }
 
@@ -75,13 +84,35 @@ const TO_FIND = new Set(['today', 'discover', 'apprenticeships']);
 const OLD_QUEUE = 'queue';
 /** A Company's old page, `#/company/<slug>` (#230), now `#/apply/company/<slug>`. */
 const OLD_COMPANY = 'company';
+/** The old Documents page (`#/copy-deck[/<id>]`) and legal pages (`#/legal/<doc>`): dialogs now. */
+const OLD_DOCUMENTS = 'copy-deck';
+const OLD_LEGAL = 'legal';
+
+const decode = (s: string) => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
+/** The page a dialog opened from an old link sits over: the page the link came from, else Find. */
+function pageUnder(r: Route): Route {
+  const o = r.from ? parseHash('#' + r.from) : null;
+  const base = o ? (redirectOf(o) ?? o) : { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
+  const { documents: _d, legal: _l, ...page } = base;
+  return page;
+}
 
 /** Where an old route goes instead, or null for a live one. Pure. The redirect lives here only:
  *  the snapshot reads an old hash as its new route, the URL is rewritten in place (no history step
  *  of its own) and `navigate` never writes one. `#/today` → `#/find`, `#/queue` → `#/apply`,
  *  `#/queue/<id>` → `#/apply/<id>` (its origin kept), `#/company/<slug>` →
- *  `#/apply/company/<slug>`, the Companies tab → `#/find`. */
+ *  `#/apply/company/<slug>`, the Companies tab → `#/find`, `#/copy-deck/<id>` and `#/legal/<doc>` →
+ *  the page they were opened from (else Find) with the Documents or Legal dialog over it. */
 export function redirectOf(r: Route): Route | null {
+  if (r.tab === OLD_DOCUMENTS) return { ...pageUnder(r), documents: r.sub ? decode(r.sub) : '' };
+  if (r.tab === OLD_LEGAL) return { ...pageUnder(r), legal: r.sub || 'privacy' };
   if (TO_FIND.has(r.tab)) return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
   // A Company's page moved into the Apply tab (#471 slice 2).
   if (r.tab === OLD_COMPANY && r.sub)
@@ -119,6 +150,8 @@ export function buildHash(r: Route): string {
   if (r.pillar) qp.set('pillar', r.pillar);
   if (r.section && r.tab === JOB_TAB && r.jobId) qp.set('section', r.section);
   if (r.from) qp.set('from', r.from);
+  if (r.documents !== null && r.documents !== undefined) qp.set('documents', r.documents);
+  if (r.legal) qp.set('legal', r.legal);
   const q = qp.toString();
   return '#/' + path + (q ? '?' + q : '');
 }
@@ -357,6 +390,9 @@ export function navigate(
   const moved = pageKey(next) !== pageKey(cur);
   if (moved && !('from' in patch)) next.from = null;
   if (moved && !('section' in patch)) next.section = null;
+  // A dialog belongs to the page under it: another page closes it unless the patch names one.
+  if (moved && !('documents' in patch)) next.documents = null;
+  if (moved && !('legal' in patch)) next.legal = null;
   const h = buildHash(next);
   const search = opts.search ?? window.location.search;
   if (h === window.location.hash && search === window.location.search) return;
@@ -555,8 +591,6 @@ export function openCompany(slug: string): void {
 // opened by a jump carries its origin in the route (`from`), so its Back names that page and goes
 // there, and finishing the key action returns there; browser back/forward and reload keep it.
 
-const DOCUMENTS_TAB = 'copy-deck';
-const LEGAL_TAB = 'legal';
 const PIPELINE_HASH = `#/${APPLY_TAB}`;
 
 /** The full route for a partial one (missing fields null). */
@@ -573,15 +607,89 @@ export function pageKey(r: Route): string {
   return `${r.tab}/${(r.tab === JOB_TAB ? (r.jobId ?? r.sub) : r.sub) ?? ''}`;
 }
 
-/** Where a page's Back goes when nothing recorded an origin: a job, a Company and Documents go to
- *  the Apply list, an open document to the library, the legal pages to Find. Null for the
- *  top-level lists, which have no Back. */
+/** Where a page's Back goes when nothing recorded an origin: a job and a Company go to the Apply
+ *  list, a selected posting to Find. Null for the top-level lists, which have no Back. */
 export function defaultBack(r: Route): string | null {
   if (r.tab === JOB_TAB) return r.jobId || r.sub ? PIPELINE_HASH : null;
   if (r.tab === FIND_TAB) return r.sub ? `#/${FIND_TAB}` : null;
-  if (r.tab === DOCUMENTS_TAB) return r.sub ? `#/${DOCUMENTS_TAB}` : PIPELINE_HASH;
-  if (r.tab === LEGAL_TAB) return `#/${HOME_TAB}`;
   return null;
+}
+
+// ---- Dialogs over a page (#471 slice 4) -----------------------------------------------------------
+// Documents and Legal are dialogs, not pages: their state is in the page's query (`?documents=`,
+// `?legal=`), so a link opens one over whatever page it names and a reload keeps it. Opening one
+// pushes an entry, so the browser's Back closes it; a step inside it (the library to a document)
+// pushes too, so Back goes back a step; closing it pops to the page as it was.
+
+/** The hash of `page` with the Documents dialog open on `sub` ('' the library). */
+export function documentsHash(sub: string, page: Route = getSnapshot()): string {
+  return buildHash({ ...page, documents: sub, legal: null });
+}
+
+/** Open the Documents dialog over the page, or move inside it (`replace`: in place). */
+export function openDocuments(sub = '', replace = false): void {
+  navigate({ documents: sub, legal: null }, replace);
+}
+
+/** Open the Legal dialog over the page on `privacy` or `terms`, or swap between them in place. */
+export function openLegal(doc: string, replace = false): void {
+  navigate({ legal: doc, documents: null }, replace);
+}
+
+/** A step back inside a dialog (a document to the library): a pop when that step is just behind,
+ *  else in place, so Back never walks into a step it already left. */
+export function dialogStepBack(to: Route): void {
+  if (pendingBack > 0) {
+    afterPops.push(() => dialogStepBack(to));
+    return;
+  }
+  const h = buildHash(to);
+  const trail = entry?.trail ?? [];
+  // Open sheets' entries (a menu item asked for this) repeat this hash: look past them.
+  for (let i = trail.length - 1; i >= 0; i--) {
+    if (trail[i] === window.location.hash) continue;
+    if (trail[i] === h) {
+      const delta = i - trail.length;
+      startPop(() => window.history.go(delta));
+      return;
+    }
+    break;
+  }
+  const open = sheetsOf(entry).length;
+  if (open) {
+    startPop(() => window.history.go(-open));
+    afterPops.push(() => {
+      if (h !== window.location.hash) replaceRoute(h);
+    });
+    return;
+  }
+  if (h !== window.location.hash) replaceRoute(h);
+}
+
+const hasDialog = (r: Route) =>
+  (r.documents !== null && r.documents !== undefined) || !!r.legal;
+
+/** Close the open dialog: back to the entry of this page without it when that is just behind (so
+ *  Back never reopens it), else the same page without it, in place. */
+export function closeDialog(): void {
+  if (pendingBack > 0) {
+    afterPops.push(closeDialog);
+    return;
+  }
+  const cur = getSnapshot();
+  if (!hasDialog(cur)) return;
+  const key = pageKey(cur);
+  const trail = entry?.trail ?? [];
+  for (let i = trail.length - 1; i >= 0; i--) {
+    const t = parseHash(trail[i]);
+    if (pageKey(t) !== key) break;
+    if (!hasDialog(t)) {
+      const delta = i - trail.length;
+      startPop(() => window.history.go(delta));
+      return;
+    }
+  }
+  navigate({ documents: null, legal: null }, true);
 }
 
 /** The route a page was opened from, or null when none was recorded. An origin saved before a

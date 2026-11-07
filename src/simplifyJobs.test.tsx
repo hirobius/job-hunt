@@ -293,7 +293,7 @@ describe('Recently removed from another page', () => {
         removedAt: new Date().toISOString(),
       },
     ]);
-    window.location.hash = '#/copy-deck';
+    window.location.hash = '#/find';
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Recently removed (1)' }));

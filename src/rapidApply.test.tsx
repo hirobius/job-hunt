@@ -298,7 +298,7 @@ describe("Apply sheet: templates in a job's Apply view (#239)", () => {
     // Documents remembers the job, so its Back and a Save come back here (return paths).
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
-      `#/copy-deck?from=%2Fapply%2F${jobIdOf(A)}`,
+      `#/apply/${jobIdOf(A)}?documents=`,
     );
     expect(
       screen.getByRole('link', { name: 'Edit documents' }).querySelector('svg'),
@@ -336,7 +336,7 @@ describe("Apply sheet: templates in a job's Apply view (#239)", () => {
     // A new message, remembering the job: saving it comes back here (return paths).
     expect(screen.getByRole('link', { name: 'Write a message' })).toHaveAttribute(
       'href',
-      `#/copy-deck/new/outreach?from=%2Fapply%2F${jobIdOf(A)}`,
+      `#/apply/${jobIdOf(A)}?documents=new%2Foutreach`,
     );
   });
 

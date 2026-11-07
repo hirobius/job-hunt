@@ -925,3 +925,12 @@ p {
   display: inline-block;
   transform-origin: 50% 100%;
 }
+
+/* The Documents dialog at lg (#471 slice 4): the library on the left, the open document's editor on
+ * the right, each scrolling on its own inside the dialog's body. */
+.rjb-docs-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--semantic-space-fixed-md);
+  align-items: start;
+}
