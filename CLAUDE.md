@@ -644,7 +644,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
-- **Continue with Google (#482):** the sign-in screen's first control (`SignInDialog.tsx`, HDS secondary `Button`
+- **Continue with Google (#482):** **hidden until the Supabase Google provider is on** (`account/googleSignInFlag.ts`
+  `GOOGLE_SIGN_IN_ON = false`, 2026-11-07: with the provider off the button led to Supabase's "Unsupported provider" 400;
+  the test setup resets it, its suites turn it on). When on, the sign-in screen's first control (`SignInDialog.tsx`, HDS secondary `Button`
   with `iconLeft={<GoogleMark />}`; `src/account/google-g.svg` is Google's G as given, its own four colours per
   Google's branding rules, the one allowed third-party svg in `brand/flame.test.tsx` `THIRD_PARTY_MARKS`).
   `useCloudSync().signInWithGoogle` → `signInWithOAuth({ provider: 'google', redirectTo: magicLinkRedirect, queryParams:
