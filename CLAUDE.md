@@ -163,7 +163,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   "← Apply" and the "‹ 2 of N ›" pager over the list as it shows (`ApplyPager.tsx`, label "Jobs in the list";
   none for a job the list hides). A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
-  `#/find/<fingerprint>` selects a posting; see Final shell. Still to come (#471): Documents and Legal as dialogs. **Company (slice 2):** `#/apply/company/<slug>`
+  `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). Still to come (#471): Documents and Legal as dialogs. **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
 - **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
