@@ -18,6 +18,7 @@ import {
 import { CONTACT_EMAIL, LEGAL_DRAFT, LEGAL_UPDATED, legalDocFor, PRIVACY, TERMS } from './legal';
 import { closeDialog, openLegal, useRoute } from './route';
 import { usePageTitle } from './pageTitle';
+import { useDialogFocus } from './dialogFocus';
 
 type LegalDoc = typeof PRIVACY;
 
@@ -25,9 +26,10 @@ export default function LegalPage() {
   const route = useRoute();
   const doc = legalDocFor(route.legal ?? null);
   usePageTitle(doc.title);
+  const onCloseAutoFocus = useDialogFocus(!!route.legal);
   return (
     <Dialog open={!!route.legal} onOpenChange={(o) => !o && closeDialog()}>
-      <Dialog.Content size="lg" className="rjb-dialog">
+      <Dialog.Content size="lg" className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <Dialog.Header>
           <Dialog.Title>Privacy and terms</Dialog.Title>
           <Dialog.Description>
@@ -45,7 +47,9 @@ export default function LegalPage() {
                 <TabsTrigger value={TERMS.slug}>{TERMS.title}</TabsTrigger>
               </TabsList>
               {LEGAL_DRAFT && (
-                <Alert tone="info">This is a draft under review and may change before launch.</Alert>
+                <Alert tone="info">
+                  This is a draft under review and may change before launch.
+                </Alert>
               )}
               {[PRIVACY, TERMS].map((d) => (
                 <TabsContent key={d.slug} value={d.slug} variant="bare">

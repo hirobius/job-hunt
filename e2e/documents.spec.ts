@@ -28,7 +28,8 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   // state adds the starters in one tap, as Outreach messages.
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Documents' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
+  const docs = page.getByRole('dialog', { name: 'Documents' });
+  await expect(docs).toBeVisible();
   await expect(page.getByText('No documents yet')).toBeVisible();
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
@@ -45,8 +46,9 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await expect(page.getByRole('button', { name: 'Version history (2)' })).toBeVisible();
 
   // The Apply sheet fills the edited message for the job.
-  await page.getByRole('button', { name: 'All documents' }).click();
-  await page.getByRole('link', { name: 'Back to Apply' }).click();
+  // Documents is a dialog over Apply (#471 slice 4): Close goes back to it.
+  await docs.getByRole('button', { name: 'Close' }).click();
+  await expect(docs).toBeHidden();
   await openApply(page);
   const list = page.getByRole('list', { name: 'Your templates' });
   // The row previews the start of the edited text (no chevron: Copy is its one action).

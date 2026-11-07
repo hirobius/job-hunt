@@ -7,10 +7,12 @@
 // `?documents=<snippetId>` opens the message that snippet became (rewritten in place), a job's own
 // document opens its job, and an unknown id goes back to the library once sync has settled. Opened
 // over a job, a Save closes it (back on the job, return paths).
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, type FocusEvent } from 'react';
 import { Box, Dialog, Stack, Text, useAtLeast } from '@hirobius/design-system';
 import { FileText } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
+import { DialogNotice } from './NoticeHost';
+import { useDialogFocus } from './dialogFocus';
 import DocumentsLibrary from './DocumentsLibrary';
 import { DOCUMENT_KINDS, useDocuments, type DocumentKind } from './documents';
 import { documentJobUrl, resolveDocumentId } from './outreachTemplates';
@@ -90,6 +92,8 @@ export default function DocumentsView() {
       headingAs="h2"
       openId={named}
       newKind={newKind as DocumentKind | null}
+      // The list is beside it: no All documents.
+      editorBack={false}
       onOpen={open}
       onNew={onNew}
       onCreated={onCreated}
@@ -103,12 +107,15 @@ export default function DocumentsView() {
       description="Open one from the list to edit it, or start a new one."
     />
   );
+  const isOpen = route.documents !== null && route.documents !== undefined;
+  const onCloseAutoFocus = useDialogFocus(isOpen);
   return (
-    <Dialog
-      open={route.documents !== null && route.documents !== undefined}
-      onOpenChange={(o) => !o && closeDialog()}
-    >
-      <Dialog.Content size="xl" className="rjb-dialog rjb-docs-dialog">
+    <Dialog open={isOpen} onOpenChange={(o) => !o && closeDialog()}>
+      <Dialog.Content
+        size="xl"
+        className="rjb-dialog rjb-docs-dialog"
+        onCloseAutoFocus={onCloseAutoFocus}
+      >
         <Dialog.Header>
           <Dialog.Title>Documents</Dialog.Title>
           <Dialog.Description>
@@ -117,7 +124,14 @@ export default function DocumentsView() {
             </Text>
           </Dialog.Description>
         </Dialog.Header>
-        <Box className="rjb-dialog-body">
+        <Box
+          className={wide ? 'rjb-dialog-body rjb-docs-body' : 'rjb-dialog-body'}
+          // The focus trap's wrap (Tab past the last control) focuses without scrolling: bring the
+          // focused control into view, so it is never off screen.
+          onFocus={(e: FocusEvent<HTMLElement>) =>
+            (e.target as HTMLElement).scrollIntoView?.({ block: 'nearest' })
+          }
+        >
           {wide ? (
             <Box className="rjb-docs-columns">
               <Box>{list}</Box>
@@ -127,6 +141,10 @@ export default function DocumentsView() {
             <Stack gap="normal">{list}</Stack>
           )}
         </Box>
+        {/* A Delete's Undo shows here: the toast behind a modal can't be reached. */}
+        <Dialog.Footer>
+          <DialogNotice />
+        </Dialog.Footer>
       </Dialog.Content>
     </Dialog>
   );

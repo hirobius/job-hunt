@@ -128,7 +128,7 @@ for (const width of [390, 800] as const) {
       await expectScroll(page, before);
     });
 
-    test("a job's pager moves in place, Back leaves in one step; Documents names the job", async ({
+    test("a job's pager moves in place, Back leaves in one step; Documents opens over the job", async ({
       page,
     }) => {
       await go(page, '#/apply');
@@ -147,10 +147,12 @@ for (const width of [390, 800] as const) {
       await jobsPanel(page).locator('a[href^="#/apply/"]').nth(1).click();
       await expect(pager.getByText(`2 of ${of}`)).toBeVisible();
 
-      // Edit documents: Documents names the job, and Back returns to it.
+      // Edit documents: Documents opens over the job (#471 slice 4), and the browser's Back closes it.
       const job = (await page.getByRole('heading', { level: 1 }).first().textContent())!.trim();
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page.getByRole('link', { name: `Back to ${job}` }).click();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
+      await page.goBack();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toHaveCount(0);
       await expect(page).toHaveURL(/#\/apply\//);
       await expect(pager.getByText(`2 of ${of}`)).toBeVisible();
       await expect(page.getByRole('heading', { level: 1, name: job })).toBeVisible();
@@ -351,7 +353,7 @@ for (const width of [390, 800] as const) {
       await expect(page).toHaveURL(/#\/apply\//);
       const apply = await hash();
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const count = () =>
         page.evaluate(() => JSON.parse(localStorage.getItem('rjb_documents') || '[]').length);
       const docs = await count();
