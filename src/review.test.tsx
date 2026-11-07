@@ -24,6 +24,8 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
 }));
 
 import ReviewView, { REVIEW_PAGE } from './ReviewView';
+import { viewport } from './test/viewport';
+import { resetAnswerGuard } from './answerGuard';
 import NoticeHost from './NoticeHost';
 import { dismissNotice } from './saveNotice';
 import { getAllJobs, replaceAll } from './store';
@@ -68,7 +70,12 @@ beforeEach(() => {
   saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
   feed.fetchFeed.mockReset().mockResolvedValue(result(BASIC));
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  // viewport() installs a matchMedia stub; drop it so the next test is narrow again.
+  delete (window as { matchMedia?: unknown }).matchMedia;
+  window.location.hash = '';
+});
 
 const renderReview = () =>
   render(
@@ -77,6 +84,22 @@ const renderReview = () =>
       <NoticeHost />
     </ToastProvider>,
   );
+/** Find's two columns (#471 slice 3): the list and the selected posting, at lg. */
+const renderFind = () => {
+  viewport(1280);
+  window.location.hash = '#/find';
+  return render(
+    <ToastProvider>
+      <main>
+        <ReviewView header={<h1>Find</h1>} />
+      </main>
+      <NoticeHost />
+    </ToastProvider>,
+  );
+};
+/** The selected posting's column, by its title (the page's h1). */
+const detailOf = async (title: string) =>
+  (await screen.findByRole('heading', { level: 1, name: title })).closest('section') as HTMLElement;
 const list = () => screen.findByRole('list', { name: 'New postings' });
 const titles = (ul: HTMLElement) =>
   within(ul)
@@ -345,25 +368,25 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(within(seen).getByText('Hacker News')).toBeInTheDocument();
   });
 
-  it('the preview uses the same anatomy, with decisions that close it', async () => {
+  it('the selected posting uses the same anatomy; a decision on the last one clears it', async () => {
     const user = userEvent.setup();
     feed.fetchFeed.mockResolvedValue(result([ONE]));
-    renderReview();
+    renderFind();
     const ul = await list();
-    await user.click(within(ul).getByRole('button', { name: 'Design Systems Designer' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Design Systems Designer' });
-    const source = within(dialog).getByText('Hacker News');
-    const pay = within(dialog).getByText('$95k to $120k');
-    const save = within(dialog).getByRole('button', {
+    await user.click(within(ul).getByRole('link', { name: 'Design Systems Designer' }));
+    const detail = await detailOf('Design Systems Designer');
+    const source = within(detail).getByText('Hacker News');
+    const pay = within(detail).getByText('$95k to $120k');
+    const save = within(detail).getByRole('button', {
       name: 'Save Design Systems Designer at Acme',
     });
     expect(before(source, pay) && before(pay, save)).toBe(true);
     await user.click(save);
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(await screen.findByText('Pick a posting')).toBeInTheDocument();
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
   });
 
-  it('Browse rows are standalone cards in the same anatomy, the title opening the preview', async () => {
-    const user = userEvent.setup();
+  it('Browse rows are standalone cards in the same anatomy, the title selecting the posting', async () => {
     feed.fetchFeed.mockResolvedValue(result([ONE]));
     renderReview();
     const ul = await list();
@@ -379,8 +402,10 @@ describe('Review new: Deck card anatomy (#458)', () => {
     order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
     expect(save.parentElement!).toContainElement(pay);
     expect(within(card).getByRole('button', { name: 'Not this company: Acme' }));
-    await user.click(within(title).getByRole('button', { name: 'Design Systems Designer' }));
-    expect(await screen.findByRole('dialog', { name: 'Design Systems Designer' })).toBeVisible();
+    expect(within(title).getByRole('link', { name: 'Design Systems Designer' })).toHaveAttribute(
+      'href',
+      '#/find/acme%3A%3Adesign%20systems%20designer',
+    );
   });
 
   it('Browse and Deck cards draw no outline (soft surfaces: never bordered)', async () => {
@@ -441,22 +466,70 @@ describe('Review new: every design-system posting, no tiers', () => {
     expect(within(ul).getByText('Location not stated')).toBeInTheDocument();
   });
 
-  it('a title opens the preview: details, Open posting, and Save / Skip / Not this company', async () => {
+  it('a title selects the posting: details, Open posting, and Save / Skip / Not this company', async () => {
     const user = userEvent.setup();
-    renderReview();
+    renderFind();
     const ul = await list();
-    await user.click(within(ul).getByRole('button', { name: 'Design Systems Engineer, Web' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Design Systems Engineer, Web' });
-    expect(within(dialog).getByText('Own the design system.')).toBeInTheDocument();
-    expect(within(dialog).getByRole('link', { name: /Open posting/ })).toHaveAttribute(
+    await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer, Web' }));
+    const detail = await detailOf('Design Systems Engineer, Web');
+    expect(within(detail).getByText('Own the design system.')).toBeInTheDocument();
+    expect(within(detail).getByRole('link', { name: /Open posting/ })).toHaveAttribute(
       'href',
       'https://news.ycombinator.com/item?id=hn2',
     );
     await user.click(
-      within(dialog).getByRole('button', { name: 'Skip Design Systems Engineer, Web at Acme' }),
+      within(detail).getByRole('button', { name: 'Skip Design Systems Engineer, Web at Acme' }),
     );
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(titles(ul)).toHaveLength(2));
+    // The next posting in the list is selected in its place.
+    expect(screen.getByRole('heading', { level: 1 })).not.toHaveTextContent(
+      'Design Systems Engineer, Web',
+    );
+  });
+
+  it('a double tap on Skip in the selected posting skips one posting, not the next too', async () => {
+    const user = userEvent.setup();
+    renderFind();
+    const ul = await list();
+    await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer, Web' }));
+    const detail = await detailOf('Design Systems Engineer, Web');
+    await user.click(within(detail).getByRole('button', { name: /^Skip / }));
+    // The next posting renders under the finger; the second tap lands on its Skip.
+    const next = await screen.findByRole('heading', { level: 1 });
+    await waitFor(() => expect(next).not.toHaveTextContent('Design Systems Engineer, Web'));
+    await user.click(
+      within(next.closest('section') as HTMLElement).getByRole('button', { name: /^Skip / }),
+    );
+    await waitFor(() => expect(titles(ul)).toHaveLength(2));
+    expect(getAllDecided().decided).toHaveLength(1);
+  });
+
+  it('a double tap on Save in the list saves one posting', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    const ul = await list();
+    const saves = within(ul).getAllByRole('button', { name: /^Save / });
+    await user.click(saves[0]);
+    await user.click(within(ul).getAllByRole('button', { name: /^Save / })[0]);
+    await waitFor(() => expect(getAllJobs()).toHaveLength(1));
+  });
+
+  it('after a decision, focus goes to the next posting’s title; after the last, to Find', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([BASIC[0], BASIC[1]]));
+    renderFind();
+    const ul = await list();
+    await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer, Web' }));
+    const detail = await detailOf('Design Systems Engineer, Web');
+    await user.click(within(detail).getByRole('button', { name: /^Skip / }));
+    const next = await screen.findByRole('heading', { level: 1, name: 'Design Systems Designer' });
+    await waitFor(() => expect(next).toHaveFocus());
+    resetAnswerGuard(); // a person reads the next posting before deciding
+    await user.click(
+      within(next.closest('section') as HTMLElement).getByRole('button', { name: /^Skip / }),
+    );
+    const find = await screen.findByRole('heading', { level: 1, name: 'Find' });
+    await waitFor(() => expect(find).toHaveFocus());
   });
 
   it('a company watched since the last read shows its jobs at once, reading only its board', async () => {

@@ -10,6 +10,7 @@ import {
   APPLY_TAB,
   FIND_TAB,
   companySlugOf,
+  postingOf,
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
 import {
@@ -155,7 +156,7 @@ export default function App() {
       ? 'Page not found'
       : documents
         ? 'Documents'
-        : company || legal || route.jobId
+        : company || legal || route.jobId || postingOf(route)
           ? null
           : tabSlug === APPLY_TAB
             ? 'Apply'

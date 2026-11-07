@@ -1,8 +1,9 @@
-// The final shell (simplify 2/9 #383 + amendment 2, Q6): two top tabs, Today and Jobs. Today, top
-// to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"), Review new as
-// the Browse list (a row opens the in-app preview), Apply, Follow up (due today with dates, plus
-// what is coming this week) and New companies (Follow / Ignore). Tested at the route seam through
-// App and driven by role + name.
+// The final shell (simplify 2/9 #383 + amendment 2, Q6; #471): two top tabs, Find and Apply. Find,
+// top to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"),
+// Review new as the Browse list (a title selects the posting: #/find/<fingerprint>) and New
+// companies (Follow / Ignore). At lg the selected posting is the right column ("Pick a posting"
+// until one is picked); below lg its own view with Back and a pager. Follow up and Apply moved to
+// the Apply tab (#471 slice 3). Tested at the route seam through App and driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -22,8 +23,9 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
+import { addJob, getAllJobs, markAppliedByUrl, removeJob, updateJob } from './store';
 import { ymd } from './jobEvents';
+import { viewport } from './test/viewport';
 import { getProfile, replaceProfiles, saveProfile } from './profile';
 import { resetScan } from './feed/autoScan';
 import { getAllDecided } from './feed/decided';
@@ -80,6 +82,8 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  // viewport() installs a matchMedia stub; drop it so the next test is narrow again.
+  delete (window as { matchMedia?: unknown }).matchMedia;
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
@@ -107,7 +111,7 @@ describe('the shell: Today and Jobs', () => {
     },
   );
 
-  it('Today shows, in order: Review new, Apply, Follow up, then New companies', async () => {
+  it('Find shows, in order: Review new, then New companies; Follow up and Apply are on Apply', async () => {
     seedFound();
     window.location.hash = '#/find';
     renderApp();
@@ -115,7 +119,8 @@ describe('the shell: Today and Jobs', () => {
     const names = within(screen.getByRole('main'))
       .getAllByRole('region')
       .map((r) => r.getAttribute('aria-label')?.replace(/ \(.*$/, ''));
-    expect(names).toEqual(['Review new', 'Apply', 'Follow up', 'New companies']);
+    expect(names).toEqual(['Review new', 'New companies']);
+    expect(screen.queryByRole('button', { name: /Start applying|Resume applying/ })).toBeNull();
   });
 
   it('a first run opens on Today with the design-systems profile, no setup screen', async () => {
@@ -182,89 +187,93 @@ describe('Review new on Today', () => {
     expect(titles).toEqual(['Design Systems Engineer', 'Design Systems Designer']);
   });
 
-  it('a row opens the in-app preview, with Open posting one tap away', async () => {
+  it('below lg a title opens the posting as its own view, with Back and the pager', async () => {
     const user = userEvent.setup();
     window.location.hash = '#/find';
     renderApp();
     const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
-    await user.click(within(ul).getByRole('button', { name: 'Design Systems Engineer' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Design Systems Engineer' });
-    expect(within(dialog).getByRole('link', { name: /Open posting/ })).toHaveAttribute(
+    const link = within(ul).getByRole('link', { name: 'Design Systems Engineer' });
+    expect(link).toHaveAttribute('href', '#/find/beta%3A%3Adesign%20systems%20engineer');
+    await user.click(link);
+    await waitFor(() =>
+      expect(window.location.hash).toBe('#/find/beta%3A%3Adesign%20systems%20engineer'),
+    );
+    // The posting's title is the page's h1; the list is gone.
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Design Systems Engineer' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'New postings' })).toBeNull();
+    expect(screen.getByRole('link', { name: /Open posting/ })).toHaveAttribute(
       'href',
       'https://news.ycombinator.com/item?id=hn2',
     );
-    // Back closes the preview and stays on Today.
-    window.history.back();
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(window.location.hash).toBe('#/find');
-  });
-});
-
-describe('Apply', () => {
-  it('counts To apply and Start applying opens Apply mode on its head', async () => {
-    addJob('https://acme.example.com/jobs/1', 'Designer');
-    addJob('https://beta.example.com/jobs/2', 'Engineer');
-    window.location.hash = '#/find';
-    renderApp();
-    const apply = section(/^Apply/);
-    expect(within(apply).getByText('2 saved jobs, not yet applied')).toBeInTheDocument();
-    await userEvent.click(within(apply).getByRole('button', { name: 'Start applying' }));
-    await waitFor(() =>
-      expect(window.location.hash).toMatch(
-        new RegExp(`^#/apply/${jobIdOf('https://beta.example.com/jobs/2')}\\?from=%2Ffind$`),
-      ),
-    );
-  });
-
-  it('with nothing saved, Start applying is off', async () => {
-    window.location.hash = '#/find';
-    renderApp();
-    const apply = section(/^Apply/);
-    expect(within(apply).getByText('Nothing saved to apply to yet')).toBeInTheDocument();
-    expect(within(apply).getByRole('button', { name: 'Start applying' })).toBeDisabled();
-  });
-});
-
-describe('Follow up', () => {
-  const applied = (url: string, company: string, daysBack: number) => {
-    addJob(url, 'Designer');
-    markAppliedByUrl(url);
-    updateJob(url, { applied: ymd(daysAgo(daysBack)), company });
-  };
-
-  it('lists what is due with its date, and opens the follow-up dialog', async () => {
-    applied('https://acme.example.com/jobs/1', 'Acme', 9);
-    window.location.hash = '#/find';
-    renderApp();
-    const follow = section(/^Follow up/);
-    const due = within(follow).getByRole('list', { name: 'Due follow-ups' });
-    // The title opens the job's page; the company and the day it fell due under it.
-    expect(within(due).getByRole('link', { name: 'Designer' })).toHaveAttribute(
-      'href',
-      `#/apply/${jobIdOf('https://acme.example.com/jobs/1')}`,
-    );
-    expect(within(due).getByText(/^Acme · Due /)).toBeInTheDocument();
-    await userEvent.click(within(follow).getByRole('button', { name: /^Follow up/ }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('counts what falls due in the coming week', async () => {
-    // Applied 4 and 5 days ago: due in 3 and 2 days.
-    applied('https://beta.example.com/jobs/2', 'Beta', 4);
-    applied('https://gamma.example.com/jobs/3', 'Gamma', 5);
-    window.location.hash = '#/find';
-    renderApp();
-    const follow = section(/^Follow up/);
-    expect(within(follow).getByText('Nothing due today')).toBeInTheDocument();
-    expect(within(follow).getByText('Upcoming: 2 this week')).toBeInTheDocument();
-  });
-
-  it('says so when nothing waits on a reply', async () => {
-    window.location.hash = '#/find';
-    renderApp();
+    const pager = screen.getByRole('navigation', { name: 'Postings in the list' });
+    // Both posted now: Acme's comes first.
+    expect(within(pager).getByText('2 of 2')).toBeInTheDocument();
+    await user.click(within(pager).getByRole('button', { name: 'Previous page' }));
     expect(
-      within(section(/^Follow up/)).getByText('Nothing waiting on a reply'),
+      await screen.findByRole('heading', { level: 1, name: 'Design Systems Designer' }),
     ).toBeInTheDocument();
+    // Back returns to the list, in one step.
+    await user.click(screen.getByRole('button', { name: 'Back to Find' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    expect(await screen.findByRole('list', { name: 'New postings' })).toBeInTheDocument();
+  });
+
+  it('at lg nothing is selected when the tab opens; a pick shows beside the list, in place', async () => {
+    viewport(1280);
+    const user = userEvent.setup();
+    window.location.hash = '#/find';
+    renderApp();
+    const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    expect(screen.getByText('Pick a posting')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    const steps = window.history.length;
+    await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer' }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Design Systems Engineer' }),
+    ).toBeInTheDocument();
+    // The list stays, its card marked current; a pick replaces the history entry.
+    expect(screen.getByRole('list', { name: 'New postings' })).toBeInTheDocument();
+    expect(window.history.length).toBe(steps);
+    expect(within(ul).getAllByRole('article', { current: true })).toHaveLength(1);
+    expect(screen.queryByRole('navigation', { name: 'Postings in the list' })).toBeNull();
+  });
+
+  it('a decision on the selected posting moves on to the next one', async () => {
+    viewport(1280);
+    const user = userEvent.setup();
+    window.location.hash = '#/find/beta%3A%3Adesign%20systems%20engineer';
+    renderApp();
+    const detail = (
+      await screen.findByRole('heading', { level: 1, name: 'Design Systems Engineer' })
+    ).closest('section')!;
+    await user.click(
+      within(detail as HTMLElement).getByRole('button', {
+        name: 'Skip Design Systems Engineer at Beta',
+      }),
+    );
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Design Systems Designer' }),
+    ).toBeInTheDocument();
+    expect(getAllDecided().decided.map((d) => d.fingerprint)).toContain(
+      'beta::design systems engineer',
+    );
+  });
+});
+
+describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
+  it('a due follow-up shows under Apply, not on Find', async () => {
+    addJob('https://acme.example.com/jobs/1', 'Designer');
+    markAppliedByUrl('https://acme.example.com/jobs/1');
+    updateJob('https://acme.example.com/jobs/1', { applied: ymd(daysAgo(9)), company: 'Acme' });
+    window.location.hash = '#/find';
+    renderApp();
+    await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: /^Apply/ })).toBeNull();
+    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    expect(await screen.findByRole('region', { name: /^Follow up/ })).toBeInTheDocument();
   });
 });
 

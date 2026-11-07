@@ -492,6 +492,42 @@ export function openJob(jobId: string | null, replace = false): void {
   );
 }
 
+/** The posting `#/find/<fingerprint>` selects on Find (#471 slice 3), or null. */
+export function postingOf(r: Route): string | null {
+  if (r.tab !== FIND_TAB || !r.sub) return null;
+  try {
+    return decodeURIComponent(r.sub);
+  } catch {
+    return r.sub;
+  }
+}
+
+/** The hash that selects a posting on Find, for links. */
+export function findHash(fingerprint: string): string {
+  return buildHash({
+    tab: FIND_TAB,
+    sub: encodeURIComponent(fingerprint),
+    pillar: null,
+    jobId: null,
+  });
+}
+
+/** Select a posting on Find (null: none, back to the list). `replace` moves in place (a pick
+ *  beside the list, the pager, the next posting after a decision), keeping where Find was opened
+ *  from. */
+export function selectPosting(fingerprint: string | null, replace = false): void {
+  const cur = getSnapshot();
+  navigate(
+    {
+      tab: FIND_TAB,
+      sub: fingerprint === null ? null : encodeURIComponent(fingerprint),
+      jobId: null,
+      ...(replace && cur.tab === FIND_TAB ? { from: cur.from ?? null } : {}),
+    },
+    replace,
+  );
+}
+
 /** The Company slug (still escaped) a route opens in the Apply tab, or null. */
 export function companySlugOf(r: Route): string | null {
   return r.tab === JOB_TAB && !r.jobId && r.sub?.startsWith(`${COMPANY_SEG}/`)
@@ -542,6 +578,7 @@ export function pageKey(r: Route): string {
  *  top-level lists, which have no Back. */
 export function defaultBack(r: Route): string | null {
   if (r.tab === JOB_TAB) return r.jobId || r.sub ? PIPELINE_HASH : null;
+  if (r.tab === FIND_TAB) return r.sub ? `#/${FIND_TAB}` : null;
   if (r.tab === DOCUMENTS_TAB) return r.sub ? `#/${DOCUMENTS_TAB}` : PIPELINE_HASH;
   if (r.tab === LEGAL_TAB) return `#/${HOME_TAB}`;
   return null;

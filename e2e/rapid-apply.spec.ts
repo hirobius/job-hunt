@@ -53,6 +53,8 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
       .first()
       .click();
     await expect(list.getByRole('listitem')).toHaveCount(left - 1);
+    // Past the double-tap guard (answerGuard.ts), so the next Save is a new decision.
+    await page.waitForTimeout(800);
   }
   const notice = page
     .getByRole('region', { name: /^Notifications/ })
