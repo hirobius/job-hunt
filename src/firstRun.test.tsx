@@ -100,7 +100,7 @@ describe('a first visit', () => {
     renderApp();
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();
-    expect(screen.getByRole('region', { name: /^Apply/ })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: /^Review new/ })).toBeInTheDocument();
   });
 
   it('keeps a profile that is already there', async () => {

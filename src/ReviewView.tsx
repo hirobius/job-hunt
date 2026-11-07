@@ -1,7 +1,8 @@
 // Review new (simplify 5/9, #386; docs/specs/simplify.md): every undecided design-system posting
 // from every source, two ways. Browse (the default) is one list, newest first, to sort and filter;
-// tapping a title opens a short preview (details, why it is listed, Save / Skip / Not this company,
-// Open posting); "Load more" pages it. Deck is the same postings one card at a time. No fit tiers
+// a title selects the posting (#471 slice 3: `#/find/<fingerprint>`), and the posting shows in the
+// right column at lg (details, why it is listed, Save / Skip / Not this company, Open posting), or
+// as its own view with Back and a pager below lg. "Load more" pages the list. Deck is the same postings one card at a time. No fit tiers
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
@@ -12,17 +13,18 @@ import {
   Box,
   Button,
   Card,
-  Dialog,
   Disclosure,
   Icon,
   InlineLink,
   Menu,
   Pagination,
   SegmentedControl,
+  Sidebar,
   Skeleton,
   Stack,
   Tag,
   Text,
+  useAtLeast,
 } from '@hirobius/design-system';
 import {
   Briefcase,
@@ -30,12 +32,19 @@ import {
   ChevronDown,
   ExternalLink,
   MapPin,
+  MousePointerClick,
   SearchX,
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { PostingTitle } from './PostingLink';
-import { useBackCloses, useBackSheet } from './useBackCloses';
+import { useBackSheet } from './useBackCloses';
+import { findHash, postingOf, selectPosting, useRoute, type Route } from './route';
+import { inPlaceClick } from './back';
+import { tooSoon } from './answerGuard';
+import { focusNewHeading, pageHeadingNow } from './focusRescue';
+import BackLink from './BackLink';
+import { usePageTitle } from './pageTitle';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
@@ -70,15 +79,26 @@ const FILTERS: FeedFilter[] = ['new', 'remote'];
 const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
 
+const FIND: Route = { tab: 'find', sub: null, pillar: null, jobId: null };
+
 export default function ReviewView({
   label = 'New postings',
   scanStatus = false,
+  header,
+  before,
+  after,
 }: {
-  /** The panel's name: "Review new" on Today. */
+  /** The panel's name: "Review new" on Find. */
   label?: string;
-  /** Today: the auto-scan's status sits above the panel and says the new and source counts (this
+  /** Find: the auto-scan's status sits above the panel and says the new and source counts (this
    *  Feed's, so the page has one number); the panel doesn't repeat them. */
   scanStatus?: boolean;
+  /** The page's head (its h1), shown while no posting is selected: a selected posting's title is
+   *  the page's h1 then (#363, as a job's is on Apply). */
+  header?: ReactNode;
+  /** Find's list column, above and under the list: Daily picks, New companies. */
+  before?: ReactNode;
+  after?: ReactNode;
 }) {
   const feed = useFeed();
   const { view } = feed;
@@ -92,10 +112,14 @@ export default function ReviewView({
   const rows = useMemo(() => (view ? sortRows(view.rows, sort) : []), [view, sort]);
   const listed = useMemo(() => filterRows(rows, on), [rows, on]);
   const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
-  // The open preview, by posting (it closes once its posting leaves the list).
-  const [previewFp, setPreviewFp] = useRemembered<string | null>(kept('preview'), null);
-  const preview = previewFp ? (view?.rows.find((r) => r.fingerprint === previewFp) ?? null) : null;
-  useBackCloses(!!preview, () => setPreviewFp(null), 'review-preview');
+  // The selected posting is in the route (#/find/<fingerprint>), so a link to it is shareable and
+  // survives a reload. Nothing is selected when the tab opens (Adrian 2026-11-05).
+  const route = useRoute();
+  const selectedFp = postingOf(route);
+  const selected = selectedFp
+    ? (view?.rows.find((r) => r.fingerprint === selectedFp) ?? null)
+    : null;
+  const wide = useAtLeast('lg');
   const sortSheet = useBackSheet('review-sort');
 
   const toggle = (f: FeedFilter) => {
@@ -104,7 +128,31 @@ export default function ReviewView({
     setCard(0);
   };
 
-  const actions = rowActions;
+  // A decision on the selected posting moves on to the next one in the list as it shows (in place,
+  // before the row leaves), else back to no selection.
+  const next = (r: FeedRow) => {
+    const at = listed.findIndex((x) => x.fingerprint === r.fingerprint);
+    const to = at < 0 ? undefined : (listed[at + 1] ?? listed[at - 1]);
+    selectPosting(to && to.fingerprint !== r.fingerprint ? to.fingerprint : null, true);
+  };
+  // A double tap's second tap lands on the card or posting that took the decided one's place: the
+  // same 700 ms guard as Apply's answers (answerGuard.ts).
+  const actions = guarded(rowActions);
+  const onSelected = (run: (row: FeedRow, from: Element | null) => void) => (row: FeedRow) => {
+    if (tooSoon()) return;
+    const from = pageHeadingNow();
+    if (row.fingerprint === selectedFp) next(row);
+    run(row, null);
+    // Focus goes to the next posting's title, or to Find's heading after the last one.
+    focusNewHeading(from);
+  };
+  const detailActions: RowActions = {
+    save: onSelected(rowActions.save),
+    skip: onSelected(rowActions.skip),
+    mute: onSelected(rowActions.mute),
+  };
+  // At lg a pick replaces the history entry; below lg the list opens the posting (Back returns).
+  const open = (r: FeedRow) => selectPosting(r.fingerprint, wide || !!selectedFp);
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
   const caughtUp =
@@ -239,7 +287,8 @@ export default function ReviewView({
           onMore={() => setShown((n) => n + REVIEW_PAGE)}
           now={feed.at}
           actions={actions}
-          onOpen={(r) => setPreviewFp(r.fingerprint)}
+          onOpen={open}
+          selected={selectedFp}
         />
       ) : (
         <PanelBody>
@@ -270,22 +319,46 @@ export default function ReviewView({
           />
         </PanelBody>
       )}
-      <PostingPreview
-        r={preview}
-        now={feed.at}
-        actions={actions}
-        onClose={() => setPreviewFp(null)}
-      />
     </Panel>
   );
-  return status ? (
-    <Stack gap="normal">
-      {status}
-      {panel}
+  const list = (
+    <Stack gap="px24">
+      {!selectedFp && header}
+      {before}
+      {status ? (
+        <Stack gap="normal">
+          {status}
+          {panel}
+        </Stack>
+      ) : (
+        panel
+      )}
+      {after}
     </Stack>
-  ) : (
-    panel
   );
+  if (!header) return list;
+  const detail = (
+    <PostingDetail
+      key={selected?.fingerprint ?? selectedFp ?? 'none'}
+      r={selected}
+      waiting={!!selectedFp && !selected && (feed.loading || !view)}
+      wide={wide}
+      list={listed}
+      now={feed.at}
+      actions={detailActions}
+    />
+  );
+  // At lg: the list column beside the selected posting ("Pick a posting" until one is picked).
+  if (wide)
+    return (
+      <Sidebar side="start" sideWidth="26rem" contentMin="50%" gap="normal">
+        {list}
+        {/* Sticky, so a posting picked far down the list shows beside it, not at the page top. */}
+        <Box className="rjb-find-detail">{detail}</Box>
+      </Sidebar>
+    );
+  // Below lg: the list is the tab; a selected posting is its own view, with Back and the pager.
+  return selectedFp ? detail : list;
 }
 
 const decidedAny = (h: { decided: number; muted: number; saved: number }) =>
@@ -352,6 +425,13 @@ interface RowActions {
   mute: (r: FeedRow, from: Element | null) => void;
 }
 
+/** Each action, ignored within the double-tap guard of the one before. */
+const guarded = (a: RowActions): RowActions => ({
+  save: (r, from) => !tooSoon() && a.save(r, from),
+  skip: (r, from) => !tooSoon() && a.skip(r, from),
+  mute: (r, from) => !tooSoon() && a.mute(r, from),
+});
+
 const rowActions: RowActions = {
   // The row collapses first, then the job is saved (a saved posting leaves the list).
   save: (r, from) =>
@@ -391,6 +471,7 @@ function RowList({
   now,
   actions,
   onOpen,
+  selected,
 }: {
   label: string;
   rows: FeedRow[];
@@ -399,6 +480,8 @@ function RowList({
   now: number;
   actions: RowActions;
   onOpen: (r: FeedRow) => void;
+  /** The selected posting's fingerprint: its card is marked current. */
+  selected: string | null;
 }) {
   const left = rows.length - shown;
   return (
@@ -417,7 +500,12 @@ function RowList({
       >
         {rows.slice(0, shown).map((r) => (
           <Box as="li" key={r.fingerprint}>
-            <Card as="article" padding="none">
+            <Card
+              as="article"
+              padding="none"
+              aria-current={r.fingerprint === selected ? 'true' : undefined}
+              className={r.fingerprint === selected ? 'rjb-selected' : undefined}
+            >
               <Box sx={{ p: 'md' }}>
                 <PostingCard r={r} now={now} onOpen={onOpen} actions={actions} />
               </Box>
@@ -525,9 +613,9 @@ function PostingCard({
 }: {
   r: FeedRow;
   now: number;
-  /** Browse: the title opens the in-app preview, with Open posting beside it. */
+  /** Browse: the title selects the posting (#/find/<fingerprint>), with Open posting beside it. */
   onOpen?: (r: FeedRow) => void;
-  /** The preview names the posting in its own header. */
+  /** The selected posting's view names it in its own header. */
   noTitle?: boolean;
   actions: RowActions;
   /** Extra content above the footer (the Deck's snippet). */
@@ -554,14 +642,10 @@ function PostingCard({
         {noTitle ? null : onOpen ? (
           <PostingTitle url={r.url} title={r.title} company={r.company}>
             <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
-              <Button
-                variant="tertiary"
-                size="sm"
-                className="rjb-preview-title"
-                aria-haspopup="dialog"
-                onClick={() => onOpen(r)}
-              >
-                {r.title}
+              <Button variant="tertiary" size="sm" className="rjb-preview-title" asChild>
+                <a href={findHash(r.fingerprint)} onClick={inPlaceClick(() => onOpen(r))}>
+                  {r.title}
+                </a>
               </Button>
             </Text>
           </PostingTitle>
@@ -684,41 +768,90 @@ function LoadingRows() {
   );
 }
 
-/** The short in-app preview a row's title opens (Adrian 2026-10-28): the posting's details, why it
- *  is listed and a first look at its text, with Save, Skip and Not this company, and Open posting
- *  one tap away. A decision closes it. */
-function PostingPreview({
+/** The selected posting (#471 slice 3; was the preview dialog, Adrian 2026-10-28): its details,
+ *  why it is listed and a first look at its text, with Save, Skip and Not this company, and Open
+ *  posting one tap away. Its title is the page's h1. At lg it is the right column ("Pick a
+ *  posting" until one is picked); below lg its own view, with Back to the list and "‹ 2 of N ›"
+ *  over the list as it shows. A decision moves on to the next posting. */
+function PostingDetail({
   r,
+  waiting,
+  wide,
+  list,
   now,
   actions,
-  onClose,
 }: {
   r: FeedRow | null;
+  /** A posting is named in the route but the Feed is still reading. */
+  waiting: boolean;
+  wide: boolean;
+  list: FeedRow[];
   now: number;
   actions: RowActions;
-  onClose: () => void;
 }) {
-  const decided = (run: (row: FeedRow, from: Element | null) => void) => (row: FeedRow) => {
-    onClose();
-    run(row, null);
-  };
-  const close: RowActions = {
-    save: decided(actions.save),
-    skip: decided(actions.skip),
-    mute: decided(actions.mute),
-  };
+  usePageTitle(r ? r.title : wide ? 'Find' : null);
   // Fetched on open when the list was read without it (a phone, or the server's rows).
   const { text, loading } = usePostingText(r);
+  const at = r ? list.findIndex((x) => x.fingerprint === r.fingerprint) : -1;
+  const top = !wide && (
+    <Stack direction="row" gap="tight" align="center" justify="space-between">
+      <BackLink as="button" className="rjb-back" fallback={FIND} fallbackLabel="Find" />
+      {at >= 0 && list.length > 1 && (
+        <Box sx={{ flex: '0 0 auto' }}>
+          <Pagination
+            variant="compact"
+            label="Postings in the list"
+            page={at + 1}
+            count={list.length}
+            onPageChange={(p) => selectPosting(list[p - 1].fingerprint, true)}
+          />
+        </Box>
+      )}
+    </Stack>
+  );
+  if (!r)
+    return (
+      <Stack gap="normal">
+        {top}
+        {waiting ? (
+          <Box aria-busy="true">
+            <Text variant="ui" as="p" role="status" tone="secondary">
+              Reading your sources…
+            </Text>
+            <Stack gap="normal" aria-hidden="true">
+              <Skeleton variant="text" width="60%" />
+              <Skeleton variant="rectangular" height={120} />
+            </Stack>
+          </Box>
+        ) : (
+          <EmptyState
+            framed
+            icon={MousePointerClick}
+            title={wide ? 'Pick a posting' : 'This posting is gone'}
+            description={
+              wide
+                ? 'Its details, Save, Skip and Not this company show here.'
+                : 'It was saved, skipped or left the list. Pick another one.'
+            }
+          />
+        )}
+      </Stack>
+    );
   return (
-    <Dialog open={!!r} onOpenChange={(o) => !o && onClose()}>
-      {r && (
-        <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{r.title}</Dialog.Title>
-            <Dialog.Description>{r.company || SOURCE_LABEL[r.source]}</Dialog.Description>
-          </Dialog.Header>
-          <Stack gap="normal">
-            <PostingCard r={r} now={now} noTitle actions={close}>
+    <Box as="section" aria-labelledby="rjb-posting-title" sx={{ minWidth: 0 }}>
+      <Stack gap="normal">
+        {top}
+        <Stack gap="px4">
+          <Text as="h1" variant="title" id="rjb-posting-title">
+            {r.title}
+          </Text>
+          <Text variant="ui" as="p" tone="secondary">
+            {r.company || SOURCE_LABEL[r.source]}
+          </Text>
+        </Stack>
+        <Card as="article" padding="none" aria-label={rowName(r)}>
+          <DeckBody>
+            <PostingCard r={r} now={now} noTitle actions={actions}>
               {text.trim() ? (
                 <Text variant="body" as="p" tone="secondary">
                   {excerpt(text)}
@@ -727,15 +860,17 @@ function PostingPreview({
                 <Skeleton variant="text" width="80%" />
               ) : null}
             </PostingCard>
-            <Button variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
-              <a href={r.url} target="_blank" rel="noopener noreferrer">
-                Open posting
-              </a>
-            </Button>
-          </Stack>
-        </Dialog.Content>
-      )}
-    </Dialog>
+          </DeckBody>
+        </Card>
+        <Box>
+          <Button variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
+            <a href={r.url} target="_blank" rel="noopener noreferrer">
+              Open posting
+            </a>
+          </Button>
+        </Box>
+      </Stack>
+    </Box>
   );
 }
 

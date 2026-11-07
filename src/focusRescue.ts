@@ -104,6 +104,21 @@ export function successor(spot: Spot, shown = shownInBrowser): HTMLElement | nul
 /** Focus a heading as a page's landing spot: it takes focus (tabindex -1) but is no tab stop and
  *  draws no ring. Also for a control that leaves with what it changed (Try with sample data,
  *  Clear sample data, #345), so focus lands on its page's heading, never on <body>. */
+/** The page's heading now (main's h1). */
+export const pageHeadingNow = () => document.querySelector<HTMLElement>('main h1');
+
+/** After a decision replaces the view (Mark applied, Not a fit, a posting saved or skipped: the next
+ *  one, or the list after the last), focus goes to the new page heading, never left on <body>. Waits
+ *  for it to differ from `from` (a Back lands on its pop), a few frames at most. */
+export function focusNewHeading(from: HTMLElement | null, frames = 60): void {
+  const h = pageHeadingNow();
+  if (h && h !== from && h.isConnected) {
+    focusAsHeading(h);
+    return;
+  }
+  if (frames > 0) requestAnimationFrame(() => focusNewHeading(from, frames - 1));
+}
+
 export function focusAsHeading(h: HTMLElement): boolean {
   if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
   h.setAttribute('data-focus-heading', '');

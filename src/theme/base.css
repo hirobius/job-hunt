@@ -865,7 +865,7 @@ p {
   }
 }
 
-/* Review new: a posting's title opens its in-app preview (#386). An HDS tertiary Button set as
+/* Review new: a posting's title selects it (#386; #471 slice 3: the right column). An HDS tertiary Button set as
  * the card's title: no padding, left-aligned, wrapping, in the title's own type; still 40px tall
  * on a phone for the tap. */
 .rjb-card-title .rjb-preview-title {
@@ -881,6 +881,22 @@ p {
 
 .rjb-card-title .rjb-preview-title:hover {
   text-decoration: underline;
+}
+
+/* Find (#471 slice 3): the posting selected in the list column is marked current, as a list row
+ * is (selected/current keeps its edge: "No outlines on surfaces" spares it). */
+/* Find at lg: the selected posting stays in view beside a long list (its own scroll when taller
+ * than the window). */
+.rjb-find-detail {
+  position: sticky;
+  top: var(--primitive-space-6);
+  align-self: start;
+  max-height: calc(100vh - 2 * var(--primitive-space-6));
+  overflow-y: auto;
+}
+
+.rjb-selected {
+  box-shadow: inset 0 0 0 var(--semantic-focus-ring-width) var(--semantic-color-border-accent);
 }
 
 /* The animated logo (src/brand/RoleFlame.tsx, loaded by LazyRoleFlameLogo): the flame's three layers
