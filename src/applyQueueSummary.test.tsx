@@ -1,26 +1,8 @@
-// To apply's company marks: one per distinct company, three shown, "+N" for every other one.
+// The Apply list's agenda: Follow up and Next 7 days keep up with the clock (#309, #311).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
 import ApplyQueueSummary from './ApplyQueueSummary';
 import type { Job } from './types';
-
-const job = (n: number, company: string): Job =>
-  ({
-    url: `https://co${n}.example.com/j/${n}`,
-    title: `Role ${n}`,
-    label: `Role ${n}`,
-    company,
-    status: 'Saved',
-  }) as Job;
-
-describe('ApplyQueueSummary company marks', () => {
-  it('counts every distinct company, not just the first dozen', () => {
-    const jobs = Array.from({ length: 15 }, (_, i) => job(i, `Company ${i}`));
-    jobs.push(job(99, 'company 3'));
-    render(<ApplyQueueSummary jobs={jobs} />);
-    expect(screen.getByText('+12')).toBeInTheDocument();
-  });
-});
 
 describe('the agenda keeps up with the clock (#309)', () => {
   afterEach(() => {

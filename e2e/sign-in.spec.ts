@@ -5,7 +5,7 @@ import { test, expect, type Page } from '@playwright/test';
 // its brand shrinks on a short one, so the field and the button stay in view. At desktop it fills
 // the viewport with one centred column.
 const openSignIn = async (page: Page) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: /^Sign in/ }).click();
   return page.getByRole('dialog', { name: 'Sign in' });

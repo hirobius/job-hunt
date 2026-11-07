@@ -1,4 +1,4 @@
-// Rapid apply: saves say where they went, the Pipeline opens on To apply, and Apply mode walks the
+// Rapid apply: saves say where they went, the Apply tab walks the list (#471), and a job walks the
 // queue with the Application kit. Tested at the route seam through App, by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -28,7 +28,6 @@ import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
-import { ymd } from './jobEvents';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://bolt.example/jobs/2';
@@ -41,8 +40,8 @@ const findNotice = async () => {
   return region;
 };
 
-/** Apply mode's pager, looked up fresh (it can re-render as the walk moves on). */
-const pagerOf = () => within(screen.getByRole('navigation', { name: 'Jobs to apply' }));
+/** The phone's pager, looked up fresh (it can re-render as the walk moves on). */
+const pagerOf = () => within(screen.getByRole('navigation', { name: 'Jobs in the list' }));
 
 const renderApp = () =>
   render(
@@ -57,7 +56,7 @@ beforeEach(() => {
   localStorage.clear();
   replaceApplyKit(emptyKit());
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
   addJob(A, 'Acme Designer');
   addJob(B, 'Bolt Designer');
   addJob(C, 'Cask Designer');
@@ -85,29 +84,19 @@ describe('save notice', () => {
   });
 });
 
-describe('To apply queue and Apply mode', () => {
-  it('Pipeline opens on To apply (N) with Start applying, starred first', async () => {
+describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', () => {
+  it('the list has no To apply panel or Start applying: a row opens the job, starred first', async () => {
     const user = userEvent.setup();
     renderApp();
-    expect(screen.getByRole('region', { name: 'To apply (3)' })).toBeInTheDocument();
-    // Jobs are starred, not pinned (the Star button's word).
-    expect(screen.getByText('Starred first, then newest.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Start applying' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /^To apply/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Start applying|Resume applying/ })).toBeNull();
+    const titles = screen.getAllByRole('link', { name: /Designer$/ }).map((l) => l.textContent);
+    expect(titles[0]).toBe('Acme Designer');
+    await user.click(screen.getByRole('link', { name: 'Acme Designer' }));
     expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
     expect(await screen.findByRole('heading', { name: 'Acme Designer' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', A);
-  });
-
-  it('with nothing to apply to, Apply mode points to Review new instead of a dead end', async () => {
-    const user = userEvent.setup();
-    getAllJobs()
-      .slice()
-      .forEach((j) => removeJob(j.url));
-    window.location.hash = '#/apply/nope';
-    renderApp();
-    expect(await screen.findByText('To apply is empty')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Review new postings' }));
-    expect(window.location.hash).toBe('#/today');
   });
 
   it('kit fields are entered once inline and copied with a Copied confirmation', async () => {
@@ -148,58 +137,44 @@ describe('To apply queue and Apply mode', () => {
     expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
   });
 
-  it('Mark applied → follow-up date → pager Next; Not a fit sets aside with Undo', async () => {
+  it('Mark applied and Not a fit move on to the next job in the list, each with Undo', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    const pager = await screen.findByRole('navigation', { name: 'Jobs to apply' });
-    expect(within(pager).getByText('1 of 3')).toBeInTheDocument();
-    expect(within(pager).getByRole('button', { name: 'Previous page' })).toBeDisabled();
-    await user.click(await screen.findByRole('button', { name: 'Mark applied' }));
+    // The list as it shows: Acme (starred), then newest first: Cask, Bolt.
+    await screen.findByRole('navigation', { name: 'Jobs in the list' });
+    expect(pagerOf().getByText('1 of 3')).toBeInTheDocument();
+    expect(pagerOf().getByRole('button', { name: 'Previous page' })).toBeDisabled();
+    await user.click(await screen.findByRole('button', { name: /^Mark applied/ }));
     expect(findJobByUrl(A)?.status).toBe('Applied');
-    // rev-3 B: the meta line follows the status: the applied date, not "Saved N days ago".
-    expect(screen.getByText(/Applied today/)).toBeInTheDocument();
-    expect(screen.queryByText(/Saved (today|\d+ days? ago)/)).toBeNull();
-    // A short title, the company in the body, and the date as the Pipeline writes it (no ISO).
-    const note = screen.getByText(
-      /Follow up on (Today|Tomorrow|[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2})\./,
-    );
-    const alert = note.closest('.rjb-inline-alerts') as HTMLElement;
-    expect(within(alert).getByText('Applied')).toBeInTheDocument();
-    // v1.5 motion (#279): the note just made arrives with motion (base.css .rjb-arrive).
-    expect(alert).toHaveClass('rjb-arrive');
-    expect(screen.queryByText(/\d{4}-\d{2}-\d{2}/)).toBeNull();
-    // The applied job holds its place, so the pager still reads 1 of 3.
-    expect(within(pager).getByText('1 of 3')).toBeInTheDocument();
-    await user.click(within(pager).getByRole('button', { name: 'Next page' }));
+    // In place: the next job, with no history step.
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(C)}`));
     expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
-    // QA: the job applied to on this walk keeps its place after you move on, so the count holds.
+    // Acme is starred, so it stays in the Active list, and Cask is second.
     expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Not a fit' }));
+    await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
     expect(findJobByUrl(C)?.archived).toBe(true);
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
-    // The set-aside job leaves the walk; the applied one stays, so the pager never vanishes.
     expect(pagerOf().getByText('2 of 2')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    const region = await findNotice();
+    await user.click(within(region).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)?.archived).toBe(false);
-    // Undo reopens the job set aside at its place in the walk (return paths).
+    // Undo reopens the job set aside, at its place in the list (return paths).
     expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
     expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
   });
 
   it('Mark applied raises a notice with Undo that puts the job back in To apply (#212)', async () => {
     const user = userEvent.setup();
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    window.location.hash = `#/apply/${jobIdOf(B)}`;
     renderApp();
-    await user.click(await screen.findByRole('button', { name: 'Mark applied' }));
-    expect(findJobByUrl(A)?.status).toBe('Applied');
+    await user.click(await screen.findByRole('button', { name: /^Mark applied/ }));
+    expect(findJobByUrl(B)?.status).toBe('Applied');
     const region = await findNotice();
     expect(within(region).getByText(/Marked applied/)).toBeInTheDocument();
     await user.click(within(region).getByRole('button', { name: 'Undo' }));
-    expect(findJobByUrl(A)?.status).toBe('Saved');
-    expect(findJobByUrl(A)?.applied).toBeFalsy();
-    expect(await screen.findByRole('button', { name: 'Mark applied' })).toBeInTheDocument();
-    expect(pagerOf().getByText('1 of 3')).toBeInTheDocument();
+    expect(findJobByUrl(B)?.status).toBe('Saved');
+    expect(findJobByUrl(B)?.applied).toBeFalsy();
   });
 
   it('with one job left the pager still shows, as 1 of 1 with both arrows off (QA)', async () => {
@@ -207,54 +182,29 @@ describe('To apply queue and Apply mode', () => {
     removeJob(C);
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    const pager = await screen.findByRole('navigation', { name: 'Jobs to apply' });
+    const pager = await screen.findByRole('navigation', { name: 'Jobs in the list' });
     expect(within(pager).getByText('1 of 1')).toBeInTheDocument();
     expect(within(pager).getByRole('button', { name: 'Previous page' })).toBeDisabled();
     expect(within(pager).getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
 
-  it('after Mark applied the meta line gives the applied date, not the saved one (QA, rev-3 B)', async () => {
-    const user = userEvent.setup();
-    updateJob(A, { history: [{ status: 'Saved', at: '2026-01-05' }] });
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
+  it('a job the list hides has Back but no place in the walk', async () => {
+    updateJob(B, { status: 'Rejected' });
+    window.location.hash = `#/apply/${jobIdOf(B)}`;
     renderApp();
-    const header = (await screen.findByRole('heading', { name: 'Acme Designer' })).closest(
-      'header',
-    )!;
-    expect(header).toHaveTextContent(/Saved \d+ days ago/);
-    await user.click(screen.getByRole('button', { name: 'Mark applied' }));
-    expect(header).toHaveTextContent('Applied today');
-    expect(header).not.toHaveTextContent(/Saved \d+ days ago/);
-  });
-
-  it('a solicitation says when to respond by, not when to follow up (#308)', async () => {
-    const d = new Date();
-    updateJob(A, { deadline: ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) });
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const header = (await screen.findByRole('heading', { name: 'Acme Designer' })).closest(
-      'header',
-    )!;
-    expect(header).toHaveTextContent('Apply by Tomorrow');
-    expect(screen.queryByText(/Follow up on/)).toBeNull();
-  });
-
-  it('a job opened already applied shows its Applied note still: only Mark applied moves it', async () => {
-    updateJob(A, { status: 'Applied' });
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const note = await screen.findByText(/It's under Follow up in the Pipeline/);
-    expect(note.closest('.rjb-inline-alerts')).not.toHaveClass('rjb-arrive');
+    expect(await screen.findByRole('heading', { name: 'Bolt Designer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Apply/ })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Jobs in the list' })).toBeNull();
   });
 
   it('a double tap on Not a fit sets aside one job, not the next one too', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    await user.click(await screen.findByRole('button', { name: 'Not a fit' }));
+    await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
     // The next job renders under the finger; the second tap of the double tap lands on it.
     await screen.findByRole('heading', { name: 'Cask Designer' });
-    await user.click(screen.getByRole('button', { name: 'Not a fit' }));
+    await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
     expect(findJobByUrl(A)?.archived).toBe(true);
     expect(findJobByUrl(C)?.archived).toBeFalsy();
     expect(screen.getByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
@@ -270,7 +220,7 @@ describe('To apply queue and Apply mode', () => {
 });
 
 // The templates are the library's Outreach messages (#227).
-describe('Apply sheet: templates inside Apply mode (#239)', () => {
+describe("Apply sheet: templates in a job's Apply view (#239)", () => {
   beforeEach(() => {
     setOutreachMessages([
       { id: 'intro', label: 'Cold intro', body: 'Hi, the [Role] role at [Company]. [Your name]' },
@@ -297,7 +247,7 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     expect(
       await within(list).findByRole('button', { name: 'Copied Cold intro' }),
     ).toBeInTheDocument();
-    // Documents remembers Apply mode, so its Back and a Save come back here (return paths).
+    // Documents remembers the job, so its Back and a Save come back here (return paths).
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
       `#/copy-deck?from=%2Fapply%2F${jobIdOf(A)}`,
@@ -335,7 +285,7 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     renderApp();
     await screen.findByRole('link', { name: 'Open application' });
     expect(screen.queryByRole('list', { name: 'Your templates' })).toBeNull();
-    // A new message, remembering Apply mode: saving it comes back here (return paths).
+    // A new message, remembering the job: saving it comes back here (return paths).
     expect(screen.getByRole('link', { name: 'Write a message' })).toHaveAttribute(
       'href',
       `#/copy-deck/new/outreach?from=%2Fapply%2F${jobIdOf(A)}`,
@@ -374,7 +324,7 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
 describe('Application kit: a deleted template pick (#314)', () => {
   afterEach(() => setOutreachMessages([]));
 
-  it('delete-then-open-Apply-mode: the pick reads as No template, is cleared, and re-adding the message does not re-link it', async () => {
+  it('delete-then-open-the-job: the pick reads as No template, is cleared, and re-adding the message does not re-link it', async () => {
     const user = userEvent.setup();
     setOutreachMessages([
       { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
@@ -427,7 +377,7 @@ describe('Application kit: a pick on a snippet not moved yet (#314 review)', () 
   });
 });
 
-describe('Apply mode header keeps to two items per dotted line (#192)', () => {
+describe('the job header keeps to two items per dotted line (#192)', () => {
   it('badges above the title, company on its line, the position in the pager', async () => {
     updateJob(A, { location: 'Remote', verdict: 'match' });
     window.location.hash = `#/apply/${jobIdOf(A)}`;

@@ -1,12 +1,24 @@
-// A saved job's own page (#127, #130): `#/queue/<jobId>`, inside the Pipeline tab. A header
-// (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks).
+// A saved job's Apply view (#127, #130, #471): `#/apply/<jobId>`, inside the Apply tab. A header
+// (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks). At
+// lg the list sits beside it; below lg it stands alone, with Back and the "‹ 2 of N ›" pager.
 import { useEffect } from 'react';
 import { Box, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobius/design-system';
 import { findJobById, jobIdOf, useJobs } from './store';
 import { titleOf } from './jobRow';
 import { usePageTitle } from './pageTitle';
-import { getRoute, goBackTo, navigate, openJob, originOf, useRoute } from './route';
-import { getPipelineView, visibleJobs } from './pipelineView';
+import {
+  getRoute,
+  goBack,
+  goBackTo,
+  navigate,
+  openJob,
+  originOf,
+  useRoute,
+  type Route,
+} from './route';
+import { getPipelineView, usePipelineView, visibleJobs } from './pipelineView';
+import { BackToPipeline } from './JobHeader';
+import ApplyPager from './ApplyPager';
 import { ApplicationKit, ApplyTemplates } from './ApplySheet';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
@@ -40,19 +52,23 @@ function JobDetail({
   );
 }
 
-/** Beside the list (#471): after Mark applied or Not a fit, open the job after this one in the
- *  list as it shows now (else the one before it). In place: Back does not walk every job. */
+/** After Mark applied or Not a fit (#471), open the job after this one in the list as it shows
+ *  now (else the one before it). Called before the answer lands, so the job still has its place.
+ *  In place: Back does not walk every job. */
 function openNextAfter(job: Job, jobs: Job[]) {
   const shown = visibleJobs(jobs, getPipelineView());
   const at = shown.findIndex((j) => j.url === job.url);
   const next = at < 0 ? shown[0] : (shown[at + 1] ?? shown[at - 1]);
-  if (!next || next.url === job.url) return;
+  // The last one in the list: back to the list (or wherever the job was opened from).
+  if (!next || next.url === job.url) return goBack(APPLY_LIST);
   const { from, section } = getRoute();
   navigate(
-    { tab: 'queue', jobId: jobIdOf(next.url), from: from ?? null, section: section ?? null },
+    { tab: 'apply', jobId: jobIdOf(next.url), from: from ?? null, section: section ?? null },
     true,
   );
 }
+
+const APPLY_LIST: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
 
 function JobPageSkeleton() {
   return (
@@ -97,19 +113,21 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // HDS Sidebar only wraps with CSS, so below lg it would stack the list above the job: choose in
   // JS and show the job alone, with a Back link, instead.
   const wide = useAtLeast('lg');
+  const view = usePipelineView();
 
   // Not found yet: it may be about to sync in, so wait quietly. Once sync has settled the effect
   // above has already sent us back to the Pipeline.
   if (!job) return <JobPageSkeleton />;
 
-  // Keyed by job, so every field's draft resets when the job changes. At lg the rail stands in for
-  // Back to the Pipeline, but a job opened from elsewhere (Companies, a Company page) shows its Back.
+  // Keyed by job, so every field's draft resets when the job changes. At lg the list stands in for
+  // Back to it, but a job opened from elsewhere (Find, a Company page) shows its Back. Below lg the
+  // Back sits in one row with the pager instead.
   const detail = (
     <JobDetail
       key={job.url}
       job={job}
-      showBack={!wide || !!origin}
-      onAnswered={wide ? () => openNextAfter(job, jobs) : undefined}
+      showBack={wide && !!origin}
+      onAnswered={() => openNextAfter(job, jobs)}
     />
   );
   if (wide)
@@ -119,5 +137,18 @@ export default function JobPage({ jobId }: { jobId: string }) {
         {detail}
       </Sidebar>
     );
-  return <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>{detail}</Box>;
+  return (
+    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+      <Stack gap="normal">
+        <Stack direction="row" gap="tight" align="center" justify="space-between">
+          <BackToPipeline />
+          {/* Hug the right edge: the pager is only as wide as its three parts. */}
+          <Box sx={{ flex: '0 0 auto' }}>
+            <ApplyPager job={job} list={visibleJobs(jobs, view)} />
+          </Box>
+        </Stack>
+        {detail}
+      </Stack>
+    </Box>
+  );
 }

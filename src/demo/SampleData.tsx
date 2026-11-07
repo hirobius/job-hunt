@@ -42,7 +42,7 @@ export function TrySampleButton({
             if (hasCloudSession()) return;
             loadSample();
             // Show it in the Pipeline, unless the user has moved on meanwhile.
-            if (window.location.hash === from) navigate({ tab: 'queue', sub: null, jobId: null });
+            if (window.location.hash === from) navigate({ tab: 'apply', sub: null, jobId: null });
             onLoaded?.();
           })
           .catch(() => {})

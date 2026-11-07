@@ -26,7 +26,7 @@ describe('company routes', () => {
   });
 
   it('openCompany navigates to the company page and drops any job id', () => {
-    window.location.hash = '#/queue/abc';
+    window.location.hash = '#/apply/abc';
     openCompany('acme');
     expect(getRoute()).toEqual({ tab: 'company', sub: 'acme', pillar: null, jobId: null });
   });

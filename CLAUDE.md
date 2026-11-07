@@ -148,17 +148,24 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
-- **Two screens: Find and Apply (#471 slice 1, #475; Adrian 2026-11-05).** The top tabs are **Find** (slug
-  `today`, `Today.tsx`, home; was "Today") and **Apply** (slug `queue`, `TrackerView.tsx`; page head and Backs
-  say "Apply"; was "Jobs" / "Pipeline"). Slugs are unchanged. The job page and Apply mode share one view
-  (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`), then `ApplySheet.tsx`
-  Templates + Application kit, then Details, Notes, Documents, Decks). At ≥ lg the Apply tab opens on the
-  first job to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry and Mark
-  applied / Not a fit move to the next job. Below lg the Apply tab is the list page (`PipelinePage`). A
+- **Two screens: Find and Apply (#471; Adrian 2026-11-05).** The top tabs are **Find** (slug `find`,
+  `Today.tsx`, home; was "Today", `#/today`) and **Apply** (slug `apply`, `TrackerView.tsx`; was "Jobs" /
+  "Pipeline", `#/queue`). **Routes (slice 1):** `#/apply/<jobId>` is a job's Apply view (`route.ts`
+  `APPLY_TAB`, `jobId`); `redirectOf` (in place, no history step) sends `#/today` → `#/find`, `#/queue` →
+  `#/apply`, `#/queue/<id>` → `#/apply/<id>` (origin and section kept); an old `?from=` reads as its new route
+  (`originOf`, `routeLabel`). **There is no Apply mode, To apply panel or Start applying on Apply:** the tab is
+  the walk. One job view (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`;
+  a 700 ms double-tap guard on Not a fit), then `ApplySheet.tsx` Templates + Application kit, then Details,
+  Notes, Documents, Decks). Mark applied / Not a fit open the next job in the list as it shows (in place, before
+  the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
+  to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. Below lg the tab is
+  the list page (`PipelinePage`: Follow up and Next 7 days, then the Jobs panel), and a job stands alone with
+  "← Apply" and the "‹ 2 of N ›" pager over the list as it shows (`ApplyPager.tsx`, label "Jobs in the list";
+  none for a job the list hides). Find's Apply panel still says Start applying until slice 3 moves it. A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. Still to come
-  (#471): Apply mode's own route goes, Company in the right column, the Find two-column view.
+  (#471): Company in the right column, the Find two-column view, Documents and Legal as dialogs.
 - **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
-  (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `queue`), plus
+  (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
   tab-less pages (Documents, legal, a job, Apply mode, a Company). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Today.
 - **Design-systems only (Adrian 2026-10-29):** content is design systems and nothing else. The one starter pack
@@ -253,7 +260,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
 - **Final shell (simplify #383 + amendment 2, Q6; PR from `claude/simplify-shell`):** exactly **two top tabs,
-  Today · Jobs** (renamed Find · Apply in #475, see Two screens above; slugs unchanged).
+  Today · Jobs** (renamed Find · Apply in #475, see Two screens above; slugs `find` · `apply` since #471).
   **No Companies tab:** `route.ts` `redirectOf` sends `#/discover/*` and `#/apprenticeships` to `#/today` (the
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash

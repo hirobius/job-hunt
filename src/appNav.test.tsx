@@ -81,7 +81,7 @@ describe('an unknown route (review nit)', () => {
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
     expect(screen.queryByRole('tabpanel')).toBeNull();
     screen.getByRole('button', { name: 'Go to Find' }).click();
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/today'));
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/find'));
   });
 
   // Supabase's email link signs in through the hash (implicit flow), and an expired or used link
@@ -98,7 +98,7 @@ describe('an unknown route (review nit)', () => {
     renderApp();
     expect(screen.getByRole('tab', { name: 'Find', selected: true })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
-    expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/today');
+    expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/find');
   });
 
   it('the old Trades slug (#/apprenticeships) still lands on home', () => {
@@ -123,10 +123,10 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
 
     // In-place hop (same tab, other sub): nothing remounts, focus stays.
     await act(async () => {
-      window.location.hash = '#/queue';
+      window.location.hash = '#/apply';
     });
     await act(async () => {
-      window.location.hash = '#/queue/apply';
+      window.location.hash = '#/apply/apply';
     });
     expect(document.querySelector('.rjb-view-enter')).toBe(stack);
     expect(marker.isConnected).toBe(true);
@@ -134,7 +134,7 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
     // A page-kind change replays the motion by restarting the class on the same node.
     const removed = vi.spyOn(stack.classList, 'remove');
     await act(async () => {
-      window.location.hash = '#/today';
+      window.location.hash = '#/find';
     });
     expect(removed).toHaveBeenCalledWith('rjb-view-enter');
     expect(stack.classList.contains('rjb-view-enter')).toBe(true);

@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 // The rapid-apply loop end to end: save from Review new on Today, see where the saves went,
-// then walk the To apply queue in Apply mode until it is empty and everything waits on a follow-up.
+// then walk the Apply list until nothing is left to apply to and everything waits on a follow-up.
 // The feed is answered with synthetic Hacker News posts (no real people); every other host fails.
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
-// Apply mode's walk with its pager is the phone flow; from lg the Jobs tab is the list beside the
-// job's Apply view (#471, jobPage.test.tsx and the 1440 test below).
+// The phone flow: a job opened from the Apply list walks it (#471: no Apply mode or Start applying);
+// from lg the list sits beside the job's Apply view (the 1440 test below).
 test.use({ viewport: { width: 390, height: 844 } });
 
-test('save 3 postings → To apply (3) → apply to each → Follow up (3)', async ({ page }) => {
+test('save 3 postings → the Apply list → apply to each → Follow up (3)', async ({ page }) => {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => {
     const url = r.request().url();
     if (!url.startsWith('https://hn.algolia.com/')) return r.abort();
@@ -42,7 +42,7 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   });
 
   // A first visit gets the design-systems Search profile on its own (no setup screen).
-  await page.goto('/#/today');
+  await page.goto('/#/find');
 
   // Save all three postings from Review new; each leaves the list and says where it went.
   const list = page.getByRole('list', { name: 'New postings' });
@@ -61,11 +61,12 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   await expect(notice).toBeVisible();
   // A single save's Open opens that job's page; the Jobs tab has all three in To apply.
   await notice.getByRole('button', { name: 'Open' }).click();
-  await expect(page).toHaveURL(/#\/queue\/[^/?]+/);
+  await expect(page).toHaveURL(/#\/apply\/[^/?]+/);
   await page.getByRole('tab', { name: 'Apply' }).click();
 
-  await expect(page.getByRole('region', { name: 'To apply (3)' })).toBeVisible();
-  await page.getByRole('button', { name: 'Start applying' }).click();
+  const jobs = page.getByRole('region', { name: 'Jobs' });
+  await expect(jobs.locator('a[href^="#/apply/"]')).toHaveCount(3);
+  await jobs.locator('a[href^="#/apply/"]').first().click();
   await expect(page).toHaveURL(/#\/apply\//);
 
   // The kit: enter a name once (empty fields wait behind one row), copy it.
@@ -76,20 +77,18 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   await page.getByRole('button', { name: 'Copy Name' }).click();
   await expect(page.getByRole('button', { name: 'Copied Name' })).toBeVisible();
 
+  // Mark applied moves on to the next job in the list, in place; the last goes back to the list.
   for (let n = 1; n <= 3; n++) {
     await expect(page.getByRole('link', { name: /Open application/ })).toBeVisible();
-    await page.getByRole('button', { name: 'Mark applied' }).click();
-    await expect(
-      page.getByText(/Follow up on (Today|Tomorrow|[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2})\./),
-    ).toBeVisible();
-    // The pager walks on; every job applied to on the way holds its place (QA), so it reads n of 3.
-    const pager = page.getByRole('navigation', { name: 'Jobs to apply' });
-    await expect(pager).toContainText(`${n} of 3`);
-    if (n < 3) await pager.getByRole('button', { name: 'Next page' }).click();
-    else await page.getByRole('button', { name: /To apply is empty/ }).click();
+    const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
+    await expect(pager).toContainText(`1 of ${4 - n}`);
+    // The three postings share a title, so watch the job's own address.
+    const shown = page.url();
+    await page.getByRole('button', { name: /^Mark applied/ }).click();
+    if (n < 3) await expect.poll(() => page.url()).not.toBe(shown);
   }
 
-  await expect(page.getByRole('region', { name: 'To apply (0)' })).toBeVisible();
+  await expect(page).toHaveURL(/#\/apply$/);
   await expect(page.getByRole('region', { name: 'Follow up (3)' })).toBeVisible();
 });
 
@@ -101,8 +100,7 @@ test('Apply sheet: templates filled for the job, copyable at 390', async ({ page
   await page.goto(
     '/?add=' + encodeURIComponent('https://acme.example/jobs/1') + '&t=Acme+Designer',
   );
-  await expect(page.getByRole('region', { name: 'To apply (1)' })).toBeVisible();
-  await page.getByRole('button', { name: 'Start applying' }).click();
+  await page.getByRole('region', { name: 'Jobs' }).locator('a[href^="#/apply/"]').first().click();
   await expect(page).toHaveURL(/#\/apply\//);
   // A first run has no messages (Adrian 2026-10-22): one tap adds the starters here.
   await page
@@ -143,12 +141,12 @@ test('at 1440 the Jobs tab is the list beside the job, and Mark applied walks it
   ] as const)
     await page.goto(`/?add=${encodeURIComponent(`https://acme.example/jobs/${n}`)}&t=${t}`);
   await page.getByRole('tab', { name: 'Apply' }).click();
-  await page.evaluate(() => (location.hash = '#/queue'));
+  await page.evaluate(() => (location.hash = '#/apply'));
   const rail = page.getByRole('navigation', { name: 'Jobs' });
-  await expect(rail.locator('a[href^="#/queue/"]')).toHaveCount(2);
+  await expect(rail.locator('a[href^="#/apply/"]')).toHaveCount(2);
   const first = (await page.getByRole('heading', { level: 1 }).textContent())!.trim();
   await expect(page.getByRole('link', { name: /Open application/ })).toBeVisible();
   await page.getByRole('button', { name: `Mark applied: ${first}` }).click();
   await expect(page.getByRole('heading', { level: 1 })).not.toHaveText(first);
-  await expect(page).toHaveURL(/#\/queue\/[^/?]+/);
+  await expect(page).toHaveURL(/#\/apply\/[^/?]+/);
 });

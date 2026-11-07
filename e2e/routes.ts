@@ -1,10 +1,10 @@
 // Every route of the app with the sample pipeline and a starter track loaded, for the guardrail
-// specs (layout-rules, visual). Mirrors a11y.spec.ts's list, plus the job page and Apply mode.
+// specs (layout-rules, visual). Mirrors a11y.spec.ts's list, plus a job's Apply view.
 import { expect, type Page } from '@playwright/test';
 
 export const ROUTES = [
-  '#/today',
-  '#/queue',
+  '#/find',
+  '#/apply',
   '#/copy-deck',
   '#/copy-deck/tpl-outreach',
   '#/legal/privacy',
@@ -23,7 +23,7 @@ export const BOARD_JOB = 'https://boards.greenhouse.io/acme/jobs/77';
 
 /** Sample data (with its Sample track, from the first starter pack), landing on Today. */
 export async function seed(page: Page) {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // One job on a company board, so the Jobs panel's liveness row ("Check which are still
   // open") is in every Pipeline shot (QA). External requests are refused, so it never says closed.
@@ -34,7 +34,7 @@ export async function seed(page: Page) {
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await addStarters(page);
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/today');
+  await go(page, '#/find');
   await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
@@ -50,27 +50,21 @@ export async function go(page: Page, hash: string) {
   await page.waitForTimeout(500);
 }
 
-/** The job page and Apply mode get their ids from the sample data, so they are reached by click. */
+/** A job's Apply view gets its id from the sample data, so it is reached by click. */
 export async function openJob(page: Page) {
-  await go(page, '#/queue');
-  await page.locator('a[href^="#/queue/"]').first().click();
-  await page.waitForTimeout(500);
-}
-
-/** Apply mode with no job picked offers Start applying at every width. From lg the Jobs tab is the
- *  list beside a job (#471) and has no To apply panel, so tests start the walk from there. */
-export async function startApplying(page: Page) {
   await go(page, '#/apply');
-  await page.getByRole('button', { name: 'Start applying' }).click();
-}
-
-export async function openApply(page: Page) {
-  await startApplying(page);
-  await expect(page).toHaveURL(/#\/apply\//);
+  await page.locator('a[href^="#/apply/"]').first().click();
   await page.waitForTimeout(500);
 }
 
-/** Visit every route, then the job page and Apply mode, calling `check` on each. */
+/** The first job in the Apply list, in its Apply view (#471: there is no Apply mode or Start
+ *  applying any more; the tab is the walk). */
+export async function openApply(page: Page) {
+  await openJob(page);
+  await expect(page).toHaveURL(/#\/apply\//);
+}
+
+/** Visit every route, then a job's Apply view, calling `check` on each. */
 export async function visitAll(page: Page, check: (name: string) => Promise<void>) {
   for (const hash of ROUTES) {
     await go(page, hash);
@@ -78,6 +72,4 @@ export async function visitAll(page: Page, check: (name: string) => Promise<void
   }
   await openJob(page);
   await check('job page');
-  await openApply(page);
-  await check('apply mode');
 }

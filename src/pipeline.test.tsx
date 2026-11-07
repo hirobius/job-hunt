@@ -72,7 +72,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
   addJob(SAVED, 'Design Engineer');
   updateJob(SAVED, { company: 'Acme' });
   addJob(APPLIED, 'Zenith Product Designer');
@@ -97,7 +97,7 @@ describe('Pipeline on a phone (#129)', () => {
     expect(screen.queryByRole('table')).toBeNull();
     const card = screen.getByRole('article', { name: 'Design Engineer' });
     const title = within(card).getByRole('link', { name: 'Design Engineer' });
-    expect(title).toHaveAttribute('href', `#/queue/${jobIdOf(SAVED)}`);
+    expect(title).toHaveAttribute('href', `#/apply/${jobIdOf(SAVED)}`);
     // Its heading holds the link alone.
     expect(title.closest('h3')!.textContent).toBe('Design Engineer');
   });
@@ -351,7 +351,7 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
     const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
     expect(within(card).getByRole('link', { name: 'Zenith Product Designer' })).toHaveAttribute(
       'href',
-      `#/queue/${jobIdOf(APPLIED)}`,
+      `#/apply/${jobIdOf(APPLIED)}`,
     );
     expect(within(card).getByText('Applied')).toBeInTheDocument();
     expect(within(card).getByText('Follow-up due')).toBeInTheDocument();
@@ -422,9 +422,9 @@ describe('shared list state (#130 slice 4)', () => {
     await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Zenith');
     // The title also links from the Follow up list; either opens the same job.
     await userEvent.click(screen.getAllByRole('link', { name: 'Zenith Product Designer' })[0]);
-    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(APPLIED)}`));
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(APPLIED)}`));
     await userEvent.click(screen.getByRole('button', { name: /Back to Apply/ }));
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('Zenith');
     expect(screen.queryByRole('link', { name: 'Design Engineer' })).toBeNull();
   });
@@ -438,7 +438,7 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
       'Retired · Acme Cloud',
       'Remote',
     ]);
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     const texts = [...document.body.querySelectorAll('*')]
       .filter((e) => e.children.length === 0)

@@ -15,7 +15,7 @@ import {
   type ErrorReport,
 } from './errorReport';
 
-const where = { hash: '#/queue/abc123', userAgent: 'Mozilla/5.0 Chrome/130.0 Safari/537.36' };
+const where = { hash: '#/apply/abc123', userAgent: 'Mozilla/5.0 Chrome/130.0 Safari/537.36' };
 
 describe('error reports (#47)', () => {
   afterEach(() => {
@@ -24,7 +24,7 @@ describe('error reports (#47)', () => {
 
   it('strips emails and URL queries from text', () => {
     expect(scrubText('no user ada@example.com here', 100)).toBe('no user [email] here');
-    expect(scrubText('at https://roleflame.vercel.app/?add=https://x.io/j#/queue/9', 200)).toBe(
+    expect(scrubText('at https://roleflame.vercel.app/?add=https://x.io/j#/apply/9', 200)).toBe(
       'at https://roleflame.vercel.app/',
     );
     expect(scrubText(`Unexpected token 'A', "Acme Corp notes" is not valid JSON`, 200)).toBe(
@@ -42,7 +42,7 @@ describe('error reports (#47)', () => {
   });
 
   it('keeps only the tab of the route, never a job id', () => {
-    expect(routeOf('#/queue/abc123')).toBe('queue');
+    expect(routeOf('#/apply/abc123')).toBe('apply');
     expect(routeOf('#/copy-deck/snippet-1')).toBe('copy-deck');
     expect(routeOf('')).toBe('');
     expect(routeOf('#/<script>')).toBe('');
@@ -65,7 +65,7 @@ describe('error reports (#47)', () => {
     expect(r.message.startsWith('TypeError: bad')).toBe(true);
     expect(r.message.length).toBe(MAX_MESSAGE);
     expect(r.stack!.length).toBe(MAX_STACK);
-    expect(r.route).toBe('queue');
+    expect(r.route).toBe('apply');
     expect(buildReport('rejection', 'plain string', where)).toMatchObject({
       message: 'plain string',
       stack: null,

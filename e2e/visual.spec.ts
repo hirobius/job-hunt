@@ -9,7 +9,7 @@
 // held on frame 0. Its motion is covered by e2e/brand.spec.ts and src/brand/roleFlameMotion.test.tsx.
 import { existsSync, readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { ROUTES, go, openJob, openApply, seed } from './routes';
+import { ROUTES, go, openJob, seed } from './routes';
 import visualEnv from './visual-env.json' with { type: 'json' };
 
 // Outside the pinned image (inPinnedImage below) this spec never draws: a plain `npm run test:e2e` skips it, and an update
@@ -89,8 +89,6 @@ for (const theme of ['light', 'dark'] as const) {
       }
       await openJob(page);
       await shoot(page, `${theme}-390-job-page`);
-      await openApply(page);
-      await shoot(page, `${theme}-390-apply-mode`);
     });
   });
 
@@ -108,8 +106,8 @@ for (const theme of ['light', 'dark'] as const) {
     test('the Pipeline and the job page match their baselines', async ({ page }) => {
       test.setTimeout(120_000);
       await prepare(page, theme);
-      await go(page, '#/queue');
-      await shoot(page, `${theme}-1440-queue`);
+      await go(page, '#/apply');
+      await shoot(page, `${theme}-1440-apply`);
       await openJob(page);
       await shoot(page, `${theme}-1440-job-page`);
     });

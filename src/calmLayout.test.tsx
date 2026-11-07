@@ -1,7 +1,7 @@
 // Calm list 7/7 (#241): the header and spacing pass. Tested at the route seam through App.
 // - The app name never competes with a page title: a body-size wordmark at every width (rev-3
 //   mock), named by BRAND (an image, not a heading: #363).
-// - The Pipeline is panels (rev-3 mock): To apply, Follow up and Jobs are HDS Cards with a count
+// - The Pipeline is panels (rev-3 mock): Follow up and Jobs are HDS Cards with a count
 //   Badge; no tinted banner boxes.
 // - No cards within cards, ever (Adrian 2026-11-01, #449; replaced "lists are cards", 2026-10-23):
 //   one card level max. A list inside a panel is rows in the panel's flow, split by spacing and
@@ -93,17 +93,17 @@ describe('app bar (rev-3)', () => {
 });
 
 describe('Pipeline panels (rev-3)', () => {
-  it('To apply, Follow up and Jobs are HDS Cards with a count Badge; no tinted banners', async () => {
+  it('Follow up and Jobs are HDS Cards with a count Badge; no To apply panel (#471), no tinted banners', async () => {
     loadSample();
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
-    const toApply = await screen.findByRole('region', { name: /^To apply/ });
-    const panel = toApply.closest('[role="tabpanel"]')!;
-    for (const name of [/^To apply/, /^Follow up/, /^Jobs$/]) {
+    const jobsPanel = await screen.findByRole('region', { name: /^Jobs$/ });
+    const panel = jobsPanel.closest('[role="tabpanel"]')!;
+    for (const name of [/^Follow up/, /^Jobs$/]) {
       const region = screen.getByRole('region', { name });
       expect(region).toHaveAttribute('data-padding');
     }
-    expect(within(toApply).getByText('3')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /^To apply/ })).toBeNull();
     expect(screen.getAllByRole('article').length).toBeGreaterThan(0);
     expect(tintedBoxesIn(panel)).toHaveLength(0);
     // No sync banner (and no avatar dot): the Account menu's sync line says it.
@@ -112,10 +112,10 @@ describe('Pipeline panels (rev-3)', () => {
 
   it('the Pipeline panels stack 24 apart', async () => {
     loadSample();
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
-    const toApply = await screen.findByRole('region', { name: /^To apply/ });
-    expect(toApply.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
+    const jobsPanel = await screen.findByRole('region', { name: /^Jobs$/ });
+    expect(jobsPanel.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
   });
 
   it('the Documents library is rows in its panel, not a card per document (#449)', async () => {
@@ -136,7 +136,7 @@ describe('Pipeline panels (rev-3)', () => {
   it('the Pipeline on a phone is job rows in the Jobs panel, never cards in a card (#449)', async () => {
     viewport(390);
     loadSample();
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     const { container } = renderApp();
     const jobs = await screen.findByRole('region', { name: /^Jobs$/ });
     const rows = within(jobs).getAllByRole('article');
@@ -151,7 +151,7 @@ describe('Pipeline panels (rev-3)', () => {
   it('the Pipeline on desktop has no card inside a card (#449)', async () => {
     viewport(1440);
     loadSample();
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     const { container } = renderApp();
     // From lg the Jobs tab is the list beside the first job (#471).
     await screen.findByRole('navigation', { name: 'Jobs' });
@@ -163,7 +163,7 @@ describe('Pipeline panels (rev-3)', () => {
 describe('Today: no cards within cards (#449)', () => {
   it('Review new is a plain section (heading + count), not a card', async () => {
     viewport(390);
-    window.location.hash = '#/today';
+    window.location.hash = '#/find';
     const { container } = renderApp();
     const review = await screen.findByRole('region', { name: /^Review new/ });
     expect(isCard(review)).toBe(false);

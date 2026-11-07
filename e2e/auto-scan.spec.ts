@@ -73,7 +73,7 @@ for (const width of [390, 1440]) {
     test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 900 });
     await network(page);
-    await page.goto('/#/today');
+    await page.goto('/#/find');
     // A design-systems track that follows nothing yet (no clicks here or below).
     await page.evaluate(seedTrack);
 
@@ -104,7 +104,7 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 900 });
   await network(page);
-  await page.goto('/#/today');
+  await page.goto('/#/find');
   await page.evaluate(seedTrack);
   const status = page.getByText(/^Scanning [\d,]+ sources? · Last scanned /);
   await expect(status).toBeVisible({ timeout: 60_000 });

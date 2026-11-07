@@ -15,47 +15,47 @@ beforeEach(resetTabMemory);
 
 describe('tab memory', () => {
   it('remembers the last route of each top tab', async () => {
-    await visit('#/queue/abc?section=screening');
-    await visit('#/today');
+    await visit('#/apply/abc?section=screening');
+    await visit('#/find');
     await visit('#/copy-deck');
-    expect(lastRouteOf('queue')).toBe('#/queue/abc?section=screening');
-    expect(lastRouteOf('today')).toBe('#/today');
+    expect(lastRouteOf('apply')).toBe('#/apply/abc?section=screening');
+    expect(lastRouteOf('find')).toBe('#/find');
   });
 
   it('counts Apply mode and a Company page as the Pipeline', async () => {
     await visit('#/apply/xyz');
-    expect(lastRouteOf('queue')).toBe('#/apply/xyz');
+    expect(lastRouteOf('apply')).toBe('#/apply/xyz');
     await visit('#/company/acme');
-    expect(lastRouteOf('queue')).toBe('#/company/acme');
+    expect(lastRouteOf('apply')).toBe('#/company/acme');
   });
 
   it('falls back to the tab root before anything was visited', () => {
-    expect(lastRouteOf('queue')).toBe('#/queue');
-    expect(lastRouteOf('today')).toBe('#/today');
+    expect(lastRouteOf('apply')).toBe('#/apply');
+    expect(lastRouteOf('find')).toBe('#/find');
   });
 
   // Review blocker (2026-10-22): a removed job's page stayed the Pipeline's place, so every tap on
   // the tab reopened it and its fallback sent the user to the origin again.
   it('a remembered job page or Apply mode whose job is no longer saved reopens the list', async () => {
-    await visit('#/queue/gone123?from=%2Ftoday');
-    await visit('#/today');
-    openTab('queue');
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await visit('#/apply/gone123?from=%2Ffind');
+    await visit('#/find');
+    openTab('apply');
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     await visit('#/apply/gone456');
-    await visit('#/today');
-    openTab('queue');
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await visit('#/find');
+    openTab('apply');
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
   });
 
   it('a remembered job page whose job is saved reopens the job', async () => {
     const url = 'https://acme.example/jobs/tab-memory';
     addJob(url, 'Fabricator');
     try {
-      await visit(`#/queue/${jobIdOf(url)}?section=screening`);
-      await visit('#/today');
-      openTab('queue');
+      await visit(`#/apply/${jobIdOf(url)}?section=screening`);
+      await visit('#/find');
+      openTab('apply');
       await waitFor(() =>
-        expect(window.location.hash).toBe(`#/queue/${jobIdOf(url)}?section=screening`),
+        expect(window.location.hash).toBe(`#/apply/${jobIdOf(url)}?section=screening`),
       );
     } finally {
       removeJob(url);
@@ -64,8 +64,8 @@ describe('tab memory', () => {
 
   it('openTab goes back to where the tab was left', async () => {
     await visit('#/company/acme');
-    await visit('#/today');
-    openTab('queue');
+    await visit('#/find');
+    openTab('apply');
     await waitFor(() => expect(window.location.hash).toBe('#/company/acme'));
   });
 });

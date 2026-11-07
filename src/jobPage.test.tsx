@@ -1,4 +1,4 @@
-// The job page (#130), tested at the route seam through App: #/queue/<jobId>. Slice by slice:
+// The job page (#130), tested at the route seam through App: #/apply/<jobId>. Slice by slice:
 // header + Overview, tabs, delete, two-pane desktop.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -43,7 +43,7 @@ const renderApp = () =>
   );
 
 const openJobPage = (url = URL_A) => {
-  window.location.hash = `#/queue/${jobIdOf(url)}`;
+  window.location.hash = `#/apply/${jobIdOf(url)}`;
   return renderApp();
 };
 
@@ -206,7 +206,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     await userEvent.type(link, 'https://acme.example/jobs/8{Enter}');
     expect(getAllJobs()[0].url).toBe('https://acme.example/jobs/8');
     await waitFor(() =>
-      expect(window.location.hash).toBe(`#/queue/${jobIdOf('https://acme.example/jobs/8')}`),
+      expect(window.location.hash).toBe(`#/apply/${jobIdOf('https://acme.example/jobs/8')}`),
     );
   });
 
@@ -250,7 +250,7 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
     // A hash change (browser Back) unmounts the field: the draft is flushed on unmount.
     await userEvent.type(notes(), ' and hours');
     act(() => {
-      window.location.hash = '#/queue';
+      window.location.hash = '#/apply';
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Notes' })).toBeNull());
@@ -333,7 +333,7 @@ describe('job page remove (Recently removed)', () => {
     await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Remove' }));
     expect(getAllJobs()).toHaveLength(0);
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(screen.getByText('Removed “Design Engineer”')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(getAllJobs().map((j) => j.notes)).toEqual(['Ask about the shop floor']);
@@ -343,7 +343,7 @@ describe('job page remove (Recently removed)', () => {
   it('Recently removed (in the Account menu) restores or deletes for good', async () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
     for (const name of ['Design Engineer', 'Welder']) {
@@ -365,7 +365,7 @@ describe('job page remove (Recently removed)', () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
     updateJob(URL_A, { notes: 'Ask about the shop floor' });
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     for (const name of ['Design Engineer', 'Welder']) {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
@@ -390,7 +390,7 @@ describe('job page remove (Recently removed)', () => {
 
   it('deleting the last one closes the dialog and its Undo moves to the toast', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
@@ -415,7 +415,7 @@ describe('job page remove (Recently removed)', () => {
         removedAt: new Date().toISOString(),
       },
     ]);
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await openRecentlyRemoved(1);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
@@ -430,7 +430,7 @@ const rail = () => screen.getByRole('navigation', { name: 'Jobs' });
 const railRows = () =>
   within(rail())
     .getAllByRole('link')
-    .filter((l) => l.getAttribute('href')?.startsWith('#/queue/'));
+    .filter((l) => l.getAttribute('href')?.startsWith('#/apply/'));
 /** One job's row link in the rail (its posting link beside it names the title too). */
 const railRow = (title: string) => {
   const row = railRows().find((l) => l.textContent?.includes(title));
@@ -491,7 +491,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     openJobPage(URL_A);
     await userEvent.click(railRow('Welder'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Welder' })).toBeInTheDocument();
-    expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}`);
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`);
     expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
   });
 
@@ -507,11 +507,11 @@ describe('job page two-pane (#130 slice 5)', () => {
 
   it('the Jobs tab at lg opens on the first job beside the list (#471)', () => {
     viewport(1280);
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: 'Welder' })).toBeInTheDocument();
     expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
-    expect(window.location.hash).toBe('#/queue');
+    expect(window.location.hash).toBe('#/apply');
   });
 
   it('Mark applied beside the list moves on to the next job (#471)', async () => {
@@ -521,7 +521,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_A)}`);
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_A)}`);
   });
 
   it('pins the open job at the top with a note when the filter hides it', () => {
@@ -583,7 +583,7 @@ describe('job page polish and guards (#130 slice 6)', () => {
   });
 
   it('shows a skeleton, never Job not found, for an id that has not synced yet', () => {
-    window.location.hash = '#/queue/notsyncedyet';
+    window.location.hash = '#/apply/notsyncedyet';
     renderApp();
     expect(screen.getByText(/Looking for this job/)).toBeInTheDocument();
     expect(screen.queryByText('Job not found')).toBeNull();
@@ -706,7 +706,7 @@ describe('job page keeps focus where the work is', () => {
     await userEvent.clear(link);
     await userEvent.type(link, 'https://acme.example/jobs/8{Enter}');
     await waitFor(() =>
-      expect(window.location.hash).toBe(`#/queue/${jobIdOf('https://acme.example/jobs/8')}`),
+      expect(window.location.hash).toBe(`#/apply/${jobIdOf('https://acme.example/jobs/8')}`),
     );
     expect(screen.getByRole('textbox', { name: 'Link' })).toHaveFocus();
     expect(screen.getByRole('textbox', { name: 'Title' })).toBeInTheDocument();
@@ -722,7 +722,7 @@ describe('job page keeps focus where the work is', () => {
     await userEvent.type(link, 'https://acme.example/jobs/9');
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() =>
-      expect(window.location.hash).toBe(`#/queue/${jobIdOf('https://acme.example/jobs/9')}`),
+      expect(window.location.hash).toBe(`#/apply/${jobIdOf('https://acme.example/jobs/9')}`),
     );
     expect(screen.queryByRole('textbox', { name: 'Link' })).not.toBeInTheDocument();
   });

@@ -21,11 +21,16 @@ import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
 
-const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
+const PIPELINE: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
+/** How long after a Not a fit another one is ignored: the next job's Not a fit renders under the
+ *  finger, so a double tap's second tap would set it aside too. Module-wide: the header is keyed by
+ *  job, so a ref would start afresh on the next job. */
+const DOUBLE_TAP_MS = 700;
+let lastNotAFit = 0;
 
-/** "← Pipeline": a quiet link-like button back to where the page was opened from (return paths):
- *  the Pipeline by default, else the page that opened it, by name ("← Companies", "← Acme
- *  Metals"). Its name says where it goes. Apply mode uses it too. */
+/** "← Apply": a quiet link-like button back to where the page was opened from (return paths):
+ *  the Apply list by default, else the page that opened it, by name ("← Find", "← Acme
+ *  Metals"). Its name says where it goes. */
 export function BackToPipeline() {
   return <BackLink as="button" className="rjb-back" fallback={PIPELINE} fallbackLabel="Apply" />;
 }
@@ -69,16 +74,21 @@ export default function JobHeader({
     addInterview
   );
   const title = titleOf(job);
+  // The view moves on first, while the job still has its place in the list, then the answer
+  // lands (its notice is raised on the page it stays on).
   const markApplied = () => {
-    markAppliedWithUndo(job);
     onAnswered?.();
+    markAppliedWithUndo(job);
   };
   const notAFit = () => {
+    const now = Date.now();
+    if (now - lastNotAFit < DOUBLE_TAP_MS) return;
+    lastNotAFit = now;
     const id = jobIdOf(job.url);
-    // Undo puts it back in To apply and shows it again.
-    setAsideWithUndo(job, () => openJob(id, true));
     if (onAnswered) onAnswered();
     else goBack(PIPELINE);
+    // Undo puts it back in To apply and shows it again.
+    setAsideWithUndo(job, () => openJob(id, true));
   };
   // A job closed on the board was opened to clear it out: retiring it goes back to where it was
   // opened from (the Pipeline's closed list), like Remove does for any job.

@@ -12,7 +12,7 @@ test.beforeEach(async ({ context }) => {
 test.use({ viewport: { width: 390, height: 844 } });
 
 test('a row menu on a phone fits the screen and its last item can be clicked', async ({ page }) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page
     .getByRole('button', { name: /Try with sample data/ })
     .first()
@@ -35,7 +35,7 @@ test('a row menu on a phone fits the screen and its last item can be clicked', a
 // A dialog opened from an Account menu item hands focus back to the Account button on close: the
 // item that opened it is gone (the Menu is non-modal), so focus would otherwise fall to the body.
 test('closing Reset or Sign in returns focus to the Account button', async ({ page }) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   const account = page.getByRole('button', { name: /^Account/ });
 
   await account.click();

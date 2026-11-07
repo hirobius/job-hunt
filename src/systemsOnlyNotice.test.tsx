@@ -54,7 +54,7 @@ beforeEach(() => {
     meta: '',
   });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
 });
 afterEach(cleanup);
 

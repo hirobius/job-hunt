@@ -9,7 +9,7 @@ import BackLink from './BackLink';
 import { inPlaceClick } from './back';
 import { usePageTitle } from './pageTitle';
 
-const TODAY: Route = { tab: 'today', sub: null, pillar: null, jobId: null };
+const TODAY: Route = { tab: 'find', sub: null, pillar: null, jobId: null };
 
 export default function LegalPage() {
   const route = useRoute();

@@ -205,7 +205,7 @@ function probe(page: Page) {
             return n.parentElement;
         return el;
       };
-      document.querySelectorAll('h1, h2, h3, h4, h5, h6, a[href^="#/queue/"]').forEach((el) => {
+      document.querySelectorAll('h1, h2, h3, h4, h5, h6, a[href^="#/apply/"]').forEach((el) => {
         if (!visible(el)) return;
         const title = titleText(el);
         const scope =
@@ -269,7 +269,7 @@ for (const theme of THEMES) {
       test('the focused top tab draws one ring around its label', async ({ page }) => {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
-        await page.goto('/#/today');
+        await page.goto('/#/find');
         const tab = page.getByRole('tab', { name: 'Find' });
         await expect(tab).toBeVisible();
         await page.keyboard.press('Shift'); // a key press first, so focus shows as focus-visible
@@ -305,11 +305,11 @@ for (const theme of THEMES) {
       test('the empty and filtered-empty Pipeline hold the layout rules', async ({ page }) => {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
-        await page.goto('/#/queue');
+        await page.goto('/#/apply');
         await expect(page.getByText('Track your first job')).toBeVisible();
         expect(await probe(page)).toEqual([]);
         await seed(page);
-        await page.evaluate(() => (location.hash = '#/queue'));
+        await page.evaluate(() => (location.hash = '#/apply'));
         // From lg the search is the list column's beside a job (#471): the open job stays, pinned.
         await page.getByRole('textbox', { name: /^Search (saved )?jobs$/ }).fill('zzz nothing');
         await expect(page.getByText(/No jobs match|Not in this filter/).first()).toBeVisible();

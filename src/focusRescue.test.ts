@@ -101,24 +101,24 @@ describe('installFocusRescue', () => {
     $('#a2').focus();
     // The page changes: the old page goes, the new one (with its heading) comes in.
     document.body.innerHTML = `<main><h2 id="job">Two</h2></main>`;
-    window.location.hash = '#/queue/abc';
+    window.location.hash = '#/apply/abc';
     await waitFor(() => expect(document.activeElement?.id).toBe('job'));
     expect($('#job').getAttribute('tabindex')).toBe('-1');
   });
 
   it('coming back to a page focuses the control that left it, once it is listed again', async () => {
     installFocusRescue(shown);
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     await new Promise((r) => setTimeout(r, 50));
     list();
     $('#a2').focus();
     // The route changes first, then React renders the new page.
-    window.location.hash = '#/queue/two';
+    window.location.hash = '#/apply/two';
     await new Promise((r) => setTimeout(r, 0));
     document.body.innerHTML = `<main><h2 id="job">Two</h2></main>`;
     await waitFor(() => expect(document.activeElement?.id).toBe('job'));
     // Back: the list comes in after the page's heading.
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     await new Promise((r) => setTimeout(r, 0));
     document.body.innerHTML = `<main><h2 id="p">Pipeline</h2></main>`;
     await waitFor(() => expect(document.activeElement?.id).toBe('p'));

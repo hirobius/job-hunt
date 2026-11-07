@@ -10,7 +10,7 @@ test.beforeEach(async ({ context }) => {
 for (const width of [390, 1440]) {
   test(`the header flame holds still at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    await page.goto('/#/queue');
+    await page.goto('/#/apply');
     const flame = page.locator('header .rjb-rf > svg');
     await expect(flame).toBeVisible();
     const measure = () =>
@@ -34,7 +34,7 @@ for (const width of [390, 1440]) {
 
 test('under reduced motion the flame and the letters are still', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   const outer = page.locator('header .rjb-rf > svg > path').first();
   await expect(outer).toBeAttached();
   const d = await outer.getAttribute('d');
@@ -58,7 +58,7 @@ test('the boot splash is the flame while the app loads, and React replaces it', 
     await held;
     await route.continue();
   });
-  await page.goto('/#/queue', { waitUntil: 'commit' });
+  await page.goto('/#/apply', { waitUntil: 'commit' });
   const splash = page.getByRole('status', { name: /^Loading / });
   await expect(splash.locator('.rjb-flame svg path').first()).toBeAttached();
   await expect(page.locator('#root')).not.toContainText('%BRAND');
@@ -71,7 +71,7 @@ test('the boot splash is the flame while the app loads, and React replaces it', 
 // its letters flicker while it runs.
 test('the logo names the product and flickers: header and sign-in', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   const header = page.locator('header .rjb-rf');
   await expect(header.locator('> svg')).toBeVisible();
   await expect(header).toHaveAttribute('role', 'img');

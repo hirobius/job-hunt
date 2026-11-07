@@ -54,7 +54,7 @@ describe('PostingTitle', () => {
   it('puts the posting link right after the title, beside it and never inside it', () => {
     render(
       <PostingTitle url={URL} title="Design Engineer" company="Acme">
-        <a href="#/queue/1">Design Engineer</a>
+        <a href="#/apply/1">Design Engineer</a>
       </PostingTitle>,
     );
     const title = screen.getByRole('link', { name: 'Design Engineer' });

@@ -87,7 +87,7 @@ describe('the Supabase client loads lazily', () => {
 describe('readAuthTokens', () => {
   it.each<[string, unknown]>([
     ['', null],
-    ['#/queue', null],
+    ['#/apply', null],
     ['#access_token=a', null],
     ['#access_token=a&refresh_token=r&type=magiclink', { access_token: 'a', refresh_token: 'r' }],
   ])('%s', async (hash, out) => {

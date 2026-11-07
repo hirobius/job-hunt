@@ -91,10 +91,10 @@ export default function Today() {
             <Button
               variant="primary"
               disabled={!m.apply.start}
-              // Apply mode's Back (and its end) comes back here (return paths).
+              // The job's Back comes back here (return paths).
               onClick={() =>
                 m.apply.start &&
-                navigate(withOrigin({ tab: 'apply', sub: jobIdOf(m.apply.start.url) }, route))
+                navigate(withOrigin({ tab: 'apply', jobId: jobIdOf(m.apply.start.url) }, route))
               }
             >
               {m.apply.resumeAt > 0
