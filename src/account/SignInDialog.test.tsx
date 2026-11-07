@@ -3,7 +3,7 @@
 // app does, one field, one primary button (Send link), validation on submit, a "Check your email"
 // state with Resend (30 s cooldown) and Use a different email, and Continue without an account
 // on both. The auth call is mocked at the seam.
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 import SignInDialog, { RESEND_COOLDOWN_S } from './SignInDialog';
 import { SIGN_IN_ERRORS } from './signInErrors';
 import { BRAND } from '../brand';
+import { googleSignInEnabled, setGoogleSignIn } from './googleSignInFlag';
 
 function Harness({
   sendLink,
@@ -81,7 +82,24 @@ describe('SignInDialog', () => {
     ).toEqual(['Sign in']);
   });
 
-  it('shows only the flame, the wordmark, Continue with Google, Email, Send link and Continue without an account', () => {
+  it('ships without Continue with Google: Email, Send link and Continue without an account (provider not set up)', () => {
+    expect(googleSignInEnabled()).toBe(false);
+    const { dialog } = setup();
+    expect(screen.queryByRole('button', { name: 'Continue with Google' })).toBeNull();
+    expect(
+      within(dialog)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Send link', 'Continue without an account']);
+    expect(dialog.textContent).toBe(
+      `${BRAND.name}Sign inEmailSend linkContinue without an account`,
+    );
+    // The magic link still signs in.
+    expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument();
+  });
+
+  it('with the flag on: the flame, the wordmark, Continue with Google, Email, Send link and Continue without an account', () => {
+    setGoogleSignIn(true);
     const { dialog } = setup();
     // No paragraphs (Adrian 2026-10-29): the title is for screen readers only.
     expect(dialog.querySelectorAll('p:not(.rjb-logo-word)')).toHaveLength(0);
@@ -198,6 +216,7 @@ describe('SignInDialog', () => {
   });
 
   describe('Continue with Google (#482)', () => {
+    beforeEach(() => setGoogleSignIn(true));
     const googleButton = () => screen.getByRole('button', { name: 'Continue with Google' });
 
     it("sits above the email field, an HDS secondary Button with Google's mark (decorative)", () => {
