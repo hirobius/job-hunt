@@ -79,6 +79,14 @@ describe('AutoScanOnOpen and the sign-in screen', () => {
     expect(scan.cancel).toHaveBeenCalledTimes(1);
   });
 
+  it('signed out, sync settling under a Scan now run leaves it running', () => {
+    const view = render(host({ user: null, settled: false }));
+    view.rerender(host({ user: null, settled: true }));
+    view.rerender(host({ user: null, settled: true, status: 'Saved' }));
+    expect(scan.cancel).not.toHaveBeenCalled();
+    expect(scan.start).not.toHaveBeenCalled();
+  });
+
   it('does nothing before sync has settled', () => {
     render(host({ settled: false }));
     expect(scan.start).not.toHaveBeenCalled();
