@@ -21,22 +21,22 @@ import BackLink from './BackLink';
 import type { Back } from './back';
 import { CloudSyncContext } from './account/accountContext';
 
-const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
+const PIPELINE: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
 const LIBRARY: Route = { tab: 'copy-deck', sub: null, pillar: null, jobId: null };
 const NEW = 'new/';
 
 const isLibrary = (r: Route) => r.tab === 'copy-deck' && !r.sub;
 
-/** Where a Save goes straight back to: the job page or Apply mode the editor was opened from,
+/** Where a Save goes straight back to: the job's Apply view the editor was opened from,
  *  directly or through the library (return paths). Documents opened from anywhere else stay put. */
 function returnTarget(route: Route): Route | null {
   let o = originOf(route);
   if (o && isLibrary(o)) o = originOf(o);
-  return o && ((o.tab === 'queue' && o.jobId) || o.tab === 'apply') ? o : null;
+  return o && o.tab === 'apply' && o.jobId ? o : null;
 }
 
 // The editor's Back: "All documents" when it goes to the library, else the page it was opened from
-// by name ("← Senior UX Designer", "← Apply mode (2 of 3)").
+// by name ("← Senior UX Designer", "← Apply").
 const libraryWords = (b: Back) => (isLibrary(b.origin) ? 'All documents' : b.label);
 const libraryName = (b: Back) => (isLibrary(b.origin) ? null : `Back to ${b.label}`);
 
@@ -62,7 +62,7 @@ export default function DocumentsView() {
     if (named && named !== sub) navigate({ sub: named, from: route.from ?? null }, true);
     else if (!named && (sub.startsWith(NEW) || (settled && !moving))) {
       // Its job page, keeping where the link came from (return paths).
-      if (jobId) return navigate({ tab: 'queue', jobId, from: route.from ?? null }, true);
+      if (jobId) return navigate({ tab: 'apply', jobId, from: route.from ?? null }, true);
       // Unknown or deleted: back to the page that linked here, else the library.
       const back = originOf(route);
       if (back) goBackTo(back);

@@ -81,7 +81,7 @@ describe('CloudSyncProvider sendLink (#44)', () => {
 
   it('asks Supabase to redirect to an allow-listed origin at the root, never the current path', async () => {
     const otp = vi.spyOn(fake().client.auth, 'signInWithOtp');
-    history.pushState(null, '', '/deep/path?next=https://evil.example#/queue');
+    history.pushState(null, '', '/deep/path?next=https://evil.example#/apply');
     try {
       render(
         <ToastProvider>

@@ -9,14 +9,14 @@ const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
 async function seed(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await go(page, '#/copy-deck');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/today');
+  await go(page, '#/find');
   await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
@@ -88,7 +88,7 @@ for (const theme of ['light', 'dark'] as const) {
         await seed(page);
         const bad: string[] = [];
 
-        await go(page, '#/queue');
+        await go(page, '#/apply');
         await page.getByRole('button', { name: /^Account/ }).click();
         await expect(page.getByRole('menu')).toBeVisible();
         bad.push(...(await axe(page, 'menu open')));
@@ -119,14 +119,14 @@ for (const theme of ['light', 'dark'] as const) {
         await page.waitForTimeout(500);
         bad.push(...(await axe(page, 'outreach editor')));
 
-        await go(page, '#/queue');
+        await go(page, '#/apply');
         await page.getByRole('button', { name: 'Add job' }).first().click();
         await expect(page.getByRole('dialog')).toBeVisible();
         bad.push(...(await axe(page, 'add job')));
         await page.keyboard.press('Escape');
 
         // The job page is one page (#416, a11y.spec.ts scans it): axe its Add interview dialog.
-        await page.locator('a[href^="#/queue/"]').first().click();
+        await page.locator('a[href^="#/apply/"]').first().click();
         await page
           .getByRole('button', { name: /^More actions/ })
           .first()
@@ -150,7 +150,7 @@ test.describe('the open top tab panel is not a Tab stop (#364)', () => {
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await seed(page);
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       const panel = page.getByRole('tabpanel');
       await expect(panel).toHaveAttribute('tabindex', '-1');
       await page.getByRole('tab', { selected: true }).focus();
@@ -173,7 +173,7 @@ test.describe('keyboard only', () => {
     page,
   }) => {
     await seed(page);
-    await go(page, '#/queue');
+    await go(page, '#/apply');
     await page.getByRole('button', { name: /^Account/ }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('menu')).toBeVisible();
@@ -183,7 +183,7 @@ test.describe('keyboard only', () => {
     await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible();
     expect(await tabTo(page, 'Back to Apply')).toBe(true);
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#\/queue$/);
+    await expect(page).toHaveURL(/#\/apply$/);
 
     await page.getByRole('button', { name: /^Account/ }).focus();
     await page.keyboard.press('Enter');
@@ -192,12 +192,12 @@ test.describe('keyboard only', () => {
     await arrowTo(page, 'Privacy and terms', 'ArrowUp');
     await page.keyboard.press('Enter');
     // Opened from the Pipeline, the page remembers it and its Back goes there (return paths).
-    await expect(page).toHaveURL(/#\/legal\/privacy\?from=%2Fqueue$/);
+    await expect(page).toHaveURL(/#\/legal\/privacy\?from=%2Fapply$/);
     // React 19 holds a lazy page's reveal a beat (Suspense throttle): tab once it is on screen.
     await expect(page.getByRole('heading', { name: 'Privacy policy' })).toBeVisible();
     expect(await tabTo(page, 'Back to Apply')).toBe(true);
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#\/queue$/);
+    await expect(page).toHaveURL(/#\/apply$/);
   });
 
   test('job Details → Company page → Back to Apply', async ({ page }) => {
@@ -206,14 +206,14 @@ test.describe('keyboard only', () => {
     await expect(page.getByRole('heading', { level: 1, name: /Larkspur/ })).toBeVisible();
     expect(await tabTo(page, 'Back to Apply')).toBe(true);
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#\/queue$/);
+    await expect(page).toHaveURL(/#\/apply$/);
   });
 
   test('Search profile: focus moves into the dialog, Escape returns it to Account', async ({
     page,
   }) => {
     await seed(page);
-    await go(page, '#/queue');
+    await go(page, '#/apply');
     const account = page.getByRole('button', { name: /^Account/ });
     await account.click();
     await page.getByRole('menuitem', { name: 'Search profile' }).click();
@@ -227,7 +227,7 @@ test.describe('keyboard only', () => {
 
   test('Add job: Escape returns focus to the button that opened it', async ({ page }) => {
     await seed(page);
-    await go(page, '#/queue');
+    await go(page, '#/apply');
     const add = page.getByRole('button', { name: 'Add job' }).first();
     await add.focus();
     await page.keyboard.press('Enter');
@@ -255,17 +255,17 @@ for (const width of [390, 1440] as const) {
 
     test('a page change moves focus to the new page heading', async ({ page }) => {
       await seed(page);
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       // From lg the Jobs tab is the list beside a job (#471): a pick there moves in place, so open
       // the second row, and Back leaves the tab (return-paths.spec.ts covers it).
       const wide = width > 1000;
-      const link = page.locator('a[href^="#/queue/"]:not([aria-current])').first();
+      const link = page.locator('a[href^="#/apply/"]:not([aria-current])').first();
       const title = wide
         ? (await link.locator('.rjb-semibold').textContent())!.trim()
         : (await link.textContent())!.trim();
       await link.focus();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/#\/queue\/./);
+      await expect(page).toHaveURL(/#\/apply\/./);
       await expect.poll(() => focused(page)).toBe(`H1 ${title}`);
       // The heading takes focus but is not a tab stop: no ring, nothing to press.
       const heading = page.getByRole('heading', { level: 1, name: title });
@@ -273,7 +273,7 @@ for (const width of [390, 1440] as const) {
       // The browser's Back is a page change too: it lands on the title that opened the job (#359).
       if (!wide) {
         await page.goBack();
-        await expect(page).toHaveURL(/#\/queue$/);
+        await expect(page).toHaveURL(/#\/apply$/);
         await expect.poll(() => focused(page)).toBe(`A ${title}`);
       }
       // A page never seen before gets its heading.
@@ -282,14 +282,14 @@ for (const width of [390, 1440] as const) {
       // A top tab keeps focus on the tab (it is still there).
       await page.getByRole('tab', { name: 'Find' }).focus();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/#\/today$/);
+      await expect(page).toHaveURL(/#\/find$/);
       await expect.poll(() => focused(page)).toBe('BUTTON Find');
     });
 
     // #345: the pressed control leaves with what it changed (the empty state, the banner).
     test('Try with sample data and Clear hand focus to the Pipeline heading', async ({ page }) => {
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-      await page.goto('/#/queue');
+      await page.goto('/#/apply');
       await page.getByRole('button', { name: 'Try with sample data' }).focus();
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
@@ -308,7 +308,7 @@ for (const width of [390, 1440] as const) {
       page,
     }) => {
       await seed(page);
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       // Record what live regions say: Radix's announcer is only on the page for a second.
       await page.evaluate(() => {
         const said: string[] = ((window as unknown as { said: string[] }).said = []);

@@ -1,4 +1,4 @@
-// Simplify Jobs (#416, Adrian 2026-10-28): the Jobs page keeps To apply + Start applying, Follow
+// Simplify Jobs (#416, Adrian 2026-10-28): the Jobs page keeps (since #471, no To apply panel) Follow
 // up, Next 7 days and the job list; Getting started goes, Recently removed and Export links move
 // to the Account menu. The job page is one page (no tabs): Details, Notes, then Documents and
 // Decks as plain lists of external links. To-dos, screening and interviews leave the page but
@@ -36,7 +36,7 @@ const renderApp = () =>
   );
 
 const openJobPage = (url = URL_A) => {
-  window.location.hash = `#/queue/${jobIdOf(url)}`;
+  window.location.hash = `#/apply/${jobIdOf(url)}`;
   return renderApp();
 };
 
@@ -60,15 +60,15 @@ afterEach(() => {
 });
 
 describe('the Jobs page keeps only what Adrian listed', () => {
-  it('keeps To apply, Follow up and the job list; no Getting started, Export links or Find the next company', async () => {
+  it('keeps Follow up and the job list; no To apply panel, Start applying (#471), Getting started, Export links or Find the next company', async () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
     updateJob(URL_B, { status: 'Applied', applied: '2026-01-01' });
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
-    expect(await screen.findByRole('region', { name: /To apply/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Start applying/ })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: /Follow up/ })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: /Follow up/ })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /To apply/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Start applying/ })).toBeNull();
     expect(screen.getByRole('region', { name: 'Jobs' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Status:/ })).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('the Jobs page keeps only what Adrian listed', () => {
   it('Recently removed is not on the page: the Account menu opens it', async () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     let menu = await openAccount();
     expect(within(menu).queryByRole('menuitem', { name: /Recently removed/ })).toBeNull();
@@ -104,7 +104,7 @@ describe('the Jobs page keeps only what Adrian listed', () => {
 
   it('Export links lives in the Account menu', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     const menu = await openAccount();
     expect(within(menu).getByRole('menuitem', { name: 'Export links' })).toBeInTheDocument();
@@ -150,7 +150,7 @@ describe('the job page is one page', () => {
 
   it('an old ?section= link opens the one page', () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = `#/queue/${jobIdOf(URL_A)}?section=interviews`;
+    window.location.hash = `#/apply/${jobIdOf(URL_A)}?section=interviews`;
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Notes' })).toBeInTheDocument();
@@ -252,7 +252,7 @@ describe('Add interview is one item in the job menu', () => {
       expect.objectContaining({ kind: 'interview', date: ymd(day) }),
     ]);
     // Next 7 days on the Jobs page shows it.
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     expect(await screen.findByRole('region', { name: /Next 7 days/ })).toBeInTheDocument();
   });
 
@@ -266,7 +266,7 @@ describe('Add interview is one item in the job menu', () => {
 
   it('a Pipeline card menu has Add interview too', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
     expect(await screen.findByRole('menuitem', { name: 'Add interview…' })).toBeInTheDocument();
@@ -274,7 +274,7 @@ describe('Add interview is one item in the job menu', () => {
 
   it('closing it gives focus back to the ⋯ button that opened it', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     const more = screen.getByRole('button', { name: 'More actions: Design Engineer' });
     await userEvent.click(more);

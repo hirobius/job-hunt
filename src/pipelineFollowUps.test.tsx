@@ -1,6 +1,6 @@
 // Calm list 2/7 (#236): Today is gone. Due follow-ups and the next 7 days of interviews and calls
-// live at the top of the Pipeline, under To apply, as one Follow up section (due first, then the
-// rest with their dates) and one Next 7 days list. `#/today` is home again (#383). Tested at the
+// live at the top of the Apply list, as one Follow up section (due first, then the
+// rest with their dates) and one Next 7 days list. `#/find` is home again (#383). Tested at the
 // route seam through App and driven by role + name.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -60,7 +60,7 @@ beforeEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
   replaceProfiles([]);
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
 });
 afterEach(() => {
   cleanup();
@@ -70,13 +70,13 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('#/today is home again (#383; was retired in #236)', () => {
+describe('#/find is home again (#383; was retired in #236)', () => {
   it('opens Today, not Companies', async () => {
     seedPack('consulting');
-    window.location.hash = '#/today';
+    window.location.hash = '#/find';
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
-    expect(window.location.hash).toBe('#/today');
+    expect(window.location.hash).toBe('#/find');
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
 
@@ -85,13 +85,13 @@ describe('#/today is home again (#383; was retired in #236)', () => {
     window.location.hash = '';
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
-    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
   });
 
   it('a ?add= quick-add link still lands on the Pipeline', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
-    expect(window.location.hash).toBe('#/queue');
+    expect(window.location.hash).toBe('#/apply');
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
   });
 });
@@ -114,7 +114,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     for (const r of rows.slice(2)) expect(within(r).queryByRole('button')).toBeNull();
     expect(within(due[0]).getAllByRole('link')[0]).toHaveAttribute(
       'href',
-      `#/queue/${jobIdOf('https://brambleandfinch.example.com/jobs/design-systems-designer')}`,
+      `#/apply/${jobIdOf('https://brambleandfinch.example.com/jobs/design-systems-designer')}`,
     );
     // No job shows twice in the section.
     const names = rows.map(titleOf);
@@ -213,7 +213,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     );
     await waitFor(() =>
       expect(window.location.hash).toBe(
-        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/principal-design-systems-engineer')}`,
+        `#/apply/${jobIdOf('https://meridianoak.example.com/careers/principal-design-systems-engineer')}`,
       ),
     );
     // One page since #416: the job opens on its header and Details.
@@ -264,7 +264,7 @@ describe('empty sections render nothing (#236)', () => {
     renderApp();
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
-    expect(screen.getByRole('region', { name: /^To apply/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /^Jobs$/ })).toBeInTheDocument();
   });
 
   it('an applied job not yet due shows under Follow up with its date and no action', () => {
@@ -320,7 +320,7 @@ describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
   });
 
   it('the sample, tried from the Jobs empty state, shows its follow-ups', async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
     expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();

@@ -117,8 +117,8 @@ export function notifySaved(
         // postings), so its Back returns there (return paths).
         run: () =>
           one
-            ? navigate(withOrigin({ tab: 'queue', jobId: jobIdOf(urls[0]) }, savedOn))
-            : navigate({ tab: 'queue', sub: null }),
+            ? navigate(withOrigin({ tab: 'apply', jobId: jobIdOf(urls[0]) }, savedOn))
+            : navigate({ tab: 'apply', sub: null }),
       },
       {
         label: 'Undo',

@@ -9,7 +9,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 const openFind = async (page: import('@playwright/test').Page) => {
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Add job' }).click();
   await page
     .getByRole('dialog', { name: 'Add a job' })

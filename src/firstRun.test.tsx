@@ -79,7 +79,7 @@ describe('a first visit', () => {
     // The seed list, followed with no step at all.
     expect(getSources()).toHaveLength(seedSources().length);
     expect(seedSources().length).toBeGreaterThan(20);
-    expect(window.location.hash).toBe('#/today');
+    expect(window.location.hash).toBe('#/find');
     expect(await screen.findByRole('region', { name: /^Review new/ })).toBeInTheDocument();
     // No setup screen and no step counter anywhere.
     expect(screen.queryByText('Set up your search')).toBeNull();
@@ -96,7 +96,7 @@ describe('a first visit', () => {
 
   it('jobs saved before a profile existed get the profile too, with no setup screen', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/today';
+    window.location.hash = '#/find';
     renderApp();
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();
@@ -115,7 +115,7 @@ describe('a first visit', () => {
 
 describe('sample data, from the Jobs empty state', () => {
   it('stays opt-in: it fills the Pipeline and adds no track', async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await click('Try with sample data');
     expect(await screen.findByRole('status', { name: 'Sample data' })).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('sample data, from the Jobs empty state', () => {
   });
 
   it('Clear sample data removes the sample jobs', async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await click('Try with sample data');
     await click('Clear sample data');
@@ -136,7 +136,7 @@ describe('Account menu → Search profile', () => {
   it('edits the profile in use: titles, remote only and leave out', async () => {
     saveProfile({ titles: ['Design Systems Lead'], mode: 'remote', leaveOut: ['Intern'] });
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await click('Account');
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Search profile' }));
@@ -161,7 +161,7 @@ describe('Account menu → Search profile', () => {
 describe('Account menu → Search profile, opened before the profile arrives', () => {
   it('follows the stored profile until edited, so Save never writes the defaults over it', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await click('Account');
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Search profile' }));

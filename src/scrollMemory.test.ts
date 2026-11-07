@@ -37,17 +37,17 @@ afterEach(() => {
 
 describe('scroll memory', () => {
   it("restores a page's position once it is tall enough to hold it", async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     await new Promise((r) => setTimeout(r, 10));
     height = 4000;
     await scrollBy(2577);
-    window.location.hash = '#/queue/abc';
+    window.location.hash = '#/apply/abc';
     await new Promise((r) => setTimeout(r, 10));
     await scrollBy(0);
     // Back on the list: the page is still the short job page for a moment, then the list renders.
     height = 900;
-    window.location.hash = '#/queue';
-    requestScrollRestore('#/queue');
+    window.location.hash = '#/apply';
+    requestScrollRestore('#/apply');
     expect(isRestoring()).toBe(true);
     await new Promise((r) => setTimeout(r, 50));
     expect(y).not.toBe(2577);
@@ -60,19 +60,19 @@ describe('scroll memory', () => {
   // dispatched after the URL had already gone back but before its hashchange, and was saved as the
   // list's position, so the list came back at its top.
   it("a scroll between the URL changing and its hashchange is not saved as the new page's", async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     await new Promise((r) => setTimeout(r, 10));
     height = 9000;
     await scrollBy(6200);
-    window.location.hash = '#/queue/abc';
+    window.location.hash = '#/apply/abc';
     await new Promise((r) => setTimeout(r, 10));
     // Back: the URL is the list's at once, the hashchange comes a task later. The job page's
     // scroll to its top lands in between.
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     y = 0;
     window.dispatchEvent(new Event('scroll'));
     await new Promise((r) => setTimeout(r, 10));
-    requestScrollRestore('#/queue');
+    requestScrollRestore('#/apply');
     await waitFor(() => expect(y).toBe(6200));
   });
 
@@ -96,16 +96,16 @@ describe('scroll memory', () => {
   // applied, removed or retired) never grows back to the old position. It used to sit at the top
   // for the whole long wait, and a scroll in that time lost the row.
   it('a page that came back shorter lands at its end as soon as it holds still', async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     await new Promise((r) => setTimeout(r, 10));
     height = 4000;
     await scrollBy(3200);
-    window.location.hash = '#/queue/last';
+    window.location.hash = '#/apply/last';
     await new Promise((r) => setTimeout(r, 10));
     await scrollBy(0);
     height = 3600; // one row fewer: the most it can scroll is 2800
-    window.location.hash = '#/queue';
-    requestScrollRestore('#/queue');
+    window.location.hash = '#/apply';
+    requestScrollRestore('#/apply');
     await waitFor(() => expect(y).toBe(2800), { timeout: 700 });
     // A row loading late still gets its room: the page grows, the position follows.
     height = 4000;

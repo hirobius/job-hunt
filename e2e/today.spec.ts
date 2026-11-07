@@ -13,9 +13,9 @@ for (const width of [390, 1440]) {
     await seed(page);
     // A fresh load with no route lands on Today; an old Companies link does too.
     await page.goto('/');
-    await expect(page).toHaveURL(/#\/today$/);
+    await expect(page).toHaveURL(/#\/find$/);
     await page.goto('/#/discover/live');
-    await expect(page).toHaveURL(/#\/today$/);
+    await expect(page).toHaveURL(/#\/find$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
     await expect(page.getByRole('tab')).toHaveText(['Find', 'Apply']);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeVisible();
@@ -47,9 +47,9 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
     else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
     await page.getByRole('tab', { name: 'Find' }).click();
-    await expect(page).toHaveURL(/#\/today$/);
+    await expect(page).toHaveURL(/#\/find$/);
 
-    // Apply: Start applying opens Apply mode.
+    // Apply: Start applying opens the first job's Apply view (the panel moves to Apply in #471 slice 3).
     await page
       .getByRole('region', { name: /^Apply/ })
       .getByRole('button')

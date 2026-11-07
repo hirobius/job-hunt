@@ -24,8 +24,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
   {
     id: 'pipeline',
     title: 'Pipeline',
-    route: '#/queue',
-    tab: 'queue',
+    route: '#/apply',
+    tab: 'apply',
     sources: [
       { file: 'src/TrackerView.tsx', component: 'TrackerView' },
       { file: 'src/JobListCard.tsx', component: 'JobListCard' },
@@ -37,8 +37,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
   {
     id: 'job-page',
     title: 'Job page',
-    route: '#/queue/sample',
-    tab: 'queue',
+    route: '#/apply/sample',
+    tab: 'apply',
     sources: [{ file: 'src/JobPage.tsx', component: 'JobPage' }],
     nodeId: '26:4057',
     phoneNodeId: '20:3868',

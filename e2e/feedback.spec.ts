@@ -185,16 +185,16 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
       const el = document.querySelector('.rjb-view-enter');
       return el ? getComputedStyle(el).animationName : null;
     });
-  await go(page, '#/today');
+  await go(page, '#/find');
   await expect(page.locator('.rjb-view-enter')).toHaveCount(1);
   expect(await enterName()).toBe('rjb-view-enter');
   await page.getByRole('tab', { name: 'Apply' }).click();
-  await expect(page).toHaveURL(/#\/queue/);
+  await expect(page).toHaveURL(/#\/apply/);
   expect(await enterName()).toBe('rjb-view-enter');
 });
 
 test('Today: Scan now and the Account menu’s Companies answer within 300 ms', async ({ page }) => {
-  await go(page, '#/today');
+  await go(page, '#/find');
   await press(page, button(page, /^(Scan now|Stop scan)$/), 'Scan now');
   await menu(page, 'Account', 'Companies');
   await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
@@ -204,7 +204,7 @@ test('Today: Scan now and the Account menu’s Companies answer within 300 ms', 
 test('Pipeline: every row and page action answers within 300 ms', async ({ page }) => {
   // The Pipeline page runs up to lg; from lg the Jobs tab is the list beside a job (#471).
   await page.setViewportSize({ width: 800, height: 900 });
-  await go(page, '#/queue');
+  await go(page, '#/apply');
   await press(page, button(page, 'Mark applied: Design Technologist'), 'Mark applied');
   await expect(
     page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
@@ -233,12 +233,11 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
     await closeOverlay(page);
   }
   await press(page, button(page, 'Check which are still open'), 'Check which are still open');
-  await press(page, button(page, 'Start applying'), 'Start applying');
 });
 
 test('Pipeline cards (390): Remove collapses the card before it goes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await go(page, '#/queue');
+  await go(page, '#/apply');
   await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
   await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
   await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
@@ -284,7 +283,7 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
   await expect(removeLink).toHaveCount(0);
 
   await menu(page, more, 'Remove');
-  await expect(page).toHaveURL(/#\/queue$/);
+  await expect(page).toHaveURL(/#\/apply$/);
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
 });
 
@@ -343,7 +342,7 @@ test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
   test('view enter (#279): the page shows at once, with no enter animation', async ({ page }) => {
-    await go(page, '#/today');
+    await go(page, '#/find');
     const name = await page.evaluate(() => {
       const el = document.querySelector('.rjb-view-enter');
       return el ? getComputedStyle(el).animationName : null;
@@ -369,7 +368,7 @@ test.describe('reduced motion', () => {
 
     // At 390, where the same Remove collapses the card with motion on (the test above).
     await page.setViewportSize({ width: 390, height: 844 });
-    await go(page, '#/queue');
+    await go(page, '#/apply');
     await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
     await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();

@@ -1,5 +1,5 @@
 // Recently removed: emptying the list keeps focus on the page (#306), and each row says how long
-// it has left (#307). Through App at #/queue, like jobPage.test.tsx.
+// it has left (#307). Through App at #/apply, like jobPage.test.tsx.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -21,7 +21,7 @@ const URL_B = 'https://zenith.example/jobs/2';
 const DAY = 86_400_000;
 
 const renderPipeline = () => {
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
   return render(
     <ColorModeProvider>
       <ToastProvider>
@@ -66,7 +66,7 @@ describe('Recently removed keeps focus when it empties (#306)', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Restore: Design Engineer' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() =>
-      expect(document.activeElement?.getAttribute('href')).toBe(`#/queue/${jobIdOf(URL_A)}`),
+      expect(document.activeElement?.getAttribute('href')).toBe(`#/apply/${jobIdOf(URL_A)}`),
     );
   });
 

@@ -1,4 +1,4 @@
-// #127: every saved job has its own route, #/queue/<jobId>, rendered through App. Tested at the
+// #127: every saved job has its own route, #/apply/<jobId>, rendered through App. Tested at the
 // route seam: a job link opens that job, the card links to its page, an unknown id falls back to
 // the Pipeline once sync has settled, and quick-add still lands on the Pipeline.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,9 +51,9 @@ afterEach(() => {
 });
 
 describe('job route (#127)', () => {
-  it('#/queue/<jobId> opens that job on its own page, with the editor open for a job without a company', async () => {
+  it('#/apply/<jobId> opens that job on its own page, with the editor open for a job without a company', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
+    window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Design Engineer');
@@ -68,7 +68,7 @@ describe('job route (#127)', () => {
   it('a retired job says so on its page, without fading its text', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { archived: true });
-    window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
+    window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     const { container: page } = renderApp();
     expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     // The header says Retired next to the status (it replaced the card's "Retired · Saved" eyebrow).
@@ -82,49 +82,49 @@ describe('job route (#127)', () => {
 
   it('Back returns to the Pipeline list', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
+    window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: /Back to Apply/ }));
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
   });
 
   it('a job in the list links to its page', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('link', { name: 'Design Engineer' }));
-    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_A)}`));
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_A)}`));
   });
 
   it('an unknown job id falls back to the Pipeline once sync has settled', async () => {
-    window.location.hash = '#/queue/doesnotexist';
+    window.location.hash = '#/apply/doesnotexist';
     renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
   });
 
   it('signed in but offline, an unknown id stays put instead of guessing it is gone', async () => {
     h.fake!.failNext('tracker', 'select');
-    window.location.hash = '#/queue/notsyncedyet';
+    window.location.hash = '#/apply/notsyncedyet';
     renderApp();
     act(() => h.fake!.signIn('u1'));
     // A job that is about to sync in is never called missing: a skeleton, not 'not found'.
     expect(await screen.findByText(/Looking for this job/)).toBeInTheDocument();
     expect(screen.queryByText('Job not found')).toBeNull();
     await new Promise((r) => setTimeout(r, 50));
-    expect(window.location.hash).toBe('#/queue/notsyncedyet');
+    expect(window.location.hash).toBe('#/apply/notsyncedyet');
   });
 
   // Return paths: the Pipeline tab reopens where it was left (the job page); tapping it again, as
   // the open tab, goes to its root, the list.
   it('switching tabs and back reopens the job; the open tab again goes to the list', async () => {
     addJob(URL_A, 'Design Engineer');
-    window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
+    window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Design Engineer' });
     await userEvent.click(screen.getByRole('tab', { name: 'Find' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
     await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
@@ -136,6 +136,6 @@ describe('job route (#127)', () => {
   it('a ?add= quick-add link still lands on the Pipeline, not a job page', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
-    expect(window.location.hash).toBe('#/queue');
+    expect(window.location.hash).toBe('#/apply');
   });
 });

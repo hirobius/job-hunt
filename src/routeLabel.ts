@@ -1,11 +1,10 @@
 // What a route is called where a Back names it (return paths, Adrian 2026-10-22): "← Senior UX
-// Designer", "← Apply mode (2 of 3)", "← Today". Pure over the saved jobs and documents, with a
+// Designer", "← Apply", "← Find". Pure over the saved jobs and documents, with a
 // hook that reads them live.
 import { useMemo } from 'react';
-import { COMPANY_TAB, type Route } from './route';
+import { APPLY_TAB, COMPANY_TAB, FIND_TAB, redirectOf, type Route } from './route';
 import { findJobById, useJobs } from './store';
 import { titleOf } from './jobRow';
-import { applySequence } from './applyQueue';
 import { companyBySlug } from './companies';
 import { DOCUMENT_KINDS, useDocuments, type Document } from './documents';
 import { legalTitleFor } from './legalRoute';
@@ -21,25 +20,17 @@ const decode = (s: string) => {
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 /** The name of the page a route shows. */
-export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): string {
+export function routeLabel(route: Route, ctx: { jobs: Job[]; docs: Document[] }): string {
+  // An old hash (#/apply/<id>, #/find) is named as the page it now opens.
+  const r = redirectOf(route) ?? route;
   switch (r.tab) {
-    case 'queue': {
+    case APPLY_TAB: {
       if (!r.jobId) return 'Apply';
       const job = findJobById(r.jobId, ctx.jobs);
       return job ? titleOf(job) : 'Job';
     }
-    case 'apply': {
-      const job = r.sub ? findJobById(r.sub, ctx.jobs) : undefined;
-      if (!job) return 'Apply mode';
-      const seq = applySequence(ctx.jobs, job);
-      const at = seq.findIndex((j) => j.url === job.url);
-      return at < 0 ? 'Apply mode' : `Apply mode (${at + 1} of ${seq.length})`;
-    }
     case COMPANY_TAB:
       return (r.sub && companyBySlug(r.sub, ctx.jobs, ctx.docs)?.name) || 'Company';
-    // An old link's origin under the retired Companies tab: it lands on Today (route.ts).
-    case 'discover':
-      return 'Find';
     case 'copy-deck': {
       if (!r.sub) return 'Documents';
       if (r.sub.startsWith('new/')) {
@@ -51,7 +42,7 @@ export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): st
     }
     case 'legal':
       return legalTitleFor(r.sub);
-    case 'today':
+    case FIND_TAB:
     case '':
       return 'Find';
     default:

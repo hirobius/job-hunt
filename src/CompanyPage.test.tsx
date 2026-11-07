@@ -56,7 +56,7 @@ describe('Company page (#230)', () => {
   it('rev-3 panels: Jobs and Documents with count badges, job rows like Pipeline cards, Back on the edge', async () => {
     seedAcme();
     render(<CompanyPage slug="acme" />);
-    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/queue');
+    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/apply');
     expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveTextContent(/^Apply$/);
     const jobs = screen.getByRole('region', { name: 'Jobs' });
     expect(within(jobs).getByText('2')).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe('Company page (#230)', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Remove note' }));
     expect(getAllDocuments().some((d) => d.id === id)).toBe(false);
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
     expect(getAllDocuments().some((d) => d.id === id)).toBe(true);
     await waitFor(() => expect(window.location.hash).toBe('#/company/bolt'));
@@ -213,7 +213,7 @@ describe('Company page (#230)', () => {
     expect(screen.getByText('No company here')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Go to the Pipeline' })).toHaveAttribute(
       'href',
-      '#/queue',
+      '#/apply',
     );
   });
 

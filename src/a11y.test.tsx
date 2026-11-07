@@ -127,7 +127,7 @@ describe('a11y — the Pipeline after the first job (#132)', () => {
   it('the Pipeline after the first job', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     const { container, getByRole } = withTheme(<TrackerView />);
-    expect(getByRole('region', { name: /To apply/ })).toBeInTheDocument();
+    expect(getByRole('region', { name: /^Jobs$/ })).toBeInTheDocument();
     await auditA11y(container);
   });
 });

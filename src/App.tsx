@@ -7,7 +7,9 @@ import {
   isAuthCallback,
   pageKey,
   parseHash,
+  APPLY_TAB,
   COMPANY_TAB,
+  FIND_TAB,
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
 import {
@@ -20,7 +22,7 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
-import { ApplyMode, CompanyPage, JobPage, Today, TrackerView } from './routeViews';
+import { CompanyPage, JobPage, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
 import { useViewEnter } from './viewEnter';
@@ -51,8 +53,8 @@ import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
 import { PageErrorBoundary } from './ErrorBoundary';
 
-// Code-split every route view: Documents and the rest here, the Pipeline, job page,
-// Apply mode and Company page through routeViews.ts (they render without a Suspense step once
+// Code-split every route view: Documents and the rest here, the Apply list, the job view and
+// the Company page through routeViews.ts (they render without a Suspense step once
 // loaded, so moving between them never flashes a skeleton).
 const DocumentsView = lazy(importFresh(() => import('./DocumentsView')));
 const LegalPage = lazy(importFresh(() => import('./LegalPage')));
@@ -67,19 +69,18 @@ const AutoScanOnOpen = lazy(() =>
   ),
 );
 
-// Top-level tabs, in render order: exactly two, Today · Jobs (simplify #383 + amendment 2, Q6).
-// The URL hash carries the slug (`queue` is the Pipeline, its tab named Jobs). The Companies tab is
-// gone with its screens (#389): route.ts sends `#/discover/*` (and the Trades slug) to Today, and
+// Top-level tabs, in render order: exactly two, Find · Apply (#471; were Today · Jobs, slugs
+// `today` · `queue`, which route.ts redirects). The Companies tab is
+// gone with its screens (#389): route.ts sends `#/discover/*` (and the Trades slug) to Find, and
 // Followed / Ignored companies sit under the Account menu. Templates lost its tab (#240) and became the
 // Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
 // from the Apply sheet and the Menu.
-const TAB_SLUGS = ['today', 'queue'] as const;
+const TAB_SLUGS = [FIND_TAB, APPLY_TAB] as const;
 const DOCUMENTS_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
-// Today is home; quick-add always shows the Pipeline, where the new job is.
-const HOME_ROUTE = 'today';
-const QUICK_ADD_LANDING = 'queue';
-const APPLY_ROUTE = 'apply';
+// Find is home; quick-add always shows the Apply list, where the new job is.
+const HOME_ROUTE = FIND_TAB;
+const QUICK_ADD_LANDING = APPLY_TAB;
 // The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
 const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
@@ -134,9 +135,7 @@ function SystemsOnlyMigration() {
 
 export default function App() {
   const route = useRoute();
-  // Apply mode (#/apply/<jobId>) and a Company's page (#/company/<slug>, #230) are Pipeline
-  // pages: the Pipeline tab stays selected.
-  const applying = route.tab === APPLY_ROUTE;
+  // A Company's page (#/company/<slug>, #230) is an Apply page: the Apply tab stays selected.
   const company = route.tab === COMPANY_TAB;
   const documents = route.tab === DOCUMENTS_ROUTE;
   // The Privacy policy and Terms (#43): pages with no tab, like Documents.
@@ -144,20 +143,20 @@ export default function App() {
   // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
   // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
   const slugs: string[] = [...TAB_SLUGS];
-  const known: string[] = [...slugs, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
+  const known: string[] = [...slugs, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
   const notFound = route.tab !== '' && !isAuthCallback(route) && !known.includes(route.tab);
   const noTab = documents || legal || notFound;
-  const slugIndex = slugs.indexOf(applying || company ? QUICK_ADD_LANDING : route.tab);
+  const slugIndex = slugs.indexOf(company ? APPLY_TAB : route.tab);
   const tabSlug = slugIndex >= 0 ? slugs[slugIndex] : slugs[defaultTabIndex];
-  // The section pages' titles; a job, Apply mode, a Company and the legal pages set their own.
+  // The section pages' titles; a job, a Company and the legal pages set their own.
   usePageTitle(
     notFound
       ? 'Page not found'
       : documents
         ? 'Documents'
-        : applying || company || legal || route.jobId
+        : company || legal || route.jobId
           ? null
-          : tabSlug === 'queue'
+          : tabSlug === APPLY_TAB
             ? 'Apply'
             : 'Find',
   );
@@ -304,10 +303,10 @@ export default function App() {
                       <AccountMenu />
                     </Stack>
                     <TabsList className="rjb-top-tabs" aria-label="Sections">
-                      <TabsTrigger value="today" {...trigger('today')}>
+                      <TabsTrigger value={FIND_TAB} {...trigger(FIND_TAB)}>
                         Find
                       </TabsTrigger>
-                      <TabsTrigger value="queue" {...trigger('queue')}>
+                      <TabsTrigger value={APPLY_TAB} {...trigger(APPLY_TAB)}>
                         Apply
                       </TabsTrigger>
                     </TabsList>
@@ -320,18 +319,16 @@ export default function App() {
                     {/* Not keyed: remounting on pageKey drops focus and pager state on in-place
                         hops. useViewEnter replays the motion on a page-kind change instead. */}
                     <Stack gap="px24" ref={viewRef} className="rjb-view-enter">
-                      <TabsContent value="today" variant="bare" tabIndex={-1}>
+                      <TabsContent value={FIND_TAB} variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
                           <PageHold firstRun={firstRun}>
                             <Today />
                           </PageHold>
                         </Suspense>
                       </TabsContent>
-                      <TabsContent value="queue" variant="bare" tabIndex={-1}>
+                      <TabsContent value={APPLY_TAB} variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
-                          {applying ? (
-                            <ApplyMode jobId={route.sub} />
-                          ) : company ? (
+                          {company ? (
                             <CompanyPage slug={route.sub ?? ''} />
                           ) : route.jobId ? (
                             <>

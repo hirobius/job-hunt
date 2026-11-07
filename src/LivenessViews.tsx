@@ -84,7 +84,7 @@ export function PipelineLiveness({ jobs }: { jobs: Job[] }) {
               {/* The job's page, and its posting beside it to confirm it is gone. */}
               <JobPostingTitle job={j}>
                 <Text variant="ui" as="span">
-                  <InlineLink href={`#/queue/${jobIdOf(j.url)}`} externalIcon={false}>
+                  <InlineLink href={`#/apply/${jobIdOf(j.url)}`} externalIcon={false}>
                     {titleOf(j)}
                   </InlineLink>
                 </Text>

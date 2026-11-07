@@ -18,14 +18,14 @@ describe('a sign-in link that comes back with an error', () => {
       FAILED_LINK_MSG,
     );
     expect(authLinkErrorMessage('#access_token=a&refresh_token=b')).toBeNull();
-    expect(authLinkErrorMessage('#/queue')).toBeNull();
+    expect(authLinkErrorMessage('#/apply')).toBeNull();
     expect(authLinkErrorMessage('')).toBeNull();
   });
 });
 
 describe('a Google sign-in that comes back with an error (#482)', () => {
   it('an error in the query (the PKCE flow) is worded for Google: cancelled, or any other', () => {
-    expect(authLinkErrorMessage('#/queue', '?error=access_denied&error_description=denied')).toBe(
+    expect(authLinkErrorMessage('#/apply', '?error=access_denied&error_description=denied')).toBe(
       GOOGLE_CANCELLED_MSG,
     );
     expect(authLinkErrorMessage('', '?error=server_error&error_description=x')).toBe(

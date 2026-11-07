@@ -55,7 +55,7 @@ beforeEach(() => {
   addTile(g, { name: 'Acme jobs', url: 'https://boards.greenhouse.io/acme', meta: '' });
   addTile(g, { name: 'DS Slack', url: 'https://ds-slack.example.org/', meta: 'Community' });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
 });
 afterEach(cleanup);
 

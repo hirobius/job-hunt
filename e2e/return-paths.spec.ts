@@ -41,13 +41,13 @@ for (const width of [390, 800] as const) {
     test('a job opened from far down the Pipeline comes back to that row, in one step', async ({
       page,
     }) => {
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       await showAll(page);
       await atBottom(page);
       await page.waitForTimeout(400);
       const before = await scrollY(page);
       expect(before).toBeGreaterThan(300);
-      const link = jobsPanel(page).locator('a[href^="#/queue/"]').last();
+      const link = jobsPanel(page).locator('a[href^="#/apply/"]').last();
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
@@ -55,25 +55,25 @@ for (const width of [390, 800] as const) {
 
       // The browser's Back: the list, its filter, the row in view.
       await page.goBack();
-      await expect(page).toHaveURL(/#\/queue$/);
+      await expect(page).toHaveURL(/#\/apply$/);
       await expectScroll(page, before);
       await expect(jobsPanel(page).getByRole('link', { name: title }).first()).toBeInViewport();
 
       // And the in-app way back: a pop, so the browser's Back doesn't reopen the job.
-      await jobsPanel(page).locator('a[href^="#/queue/"]').last().click();
+      await jobsPanel(page).locator('a[href^="#/apply/"]').last().click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       if (phone) {
         await page.getByRole('button', { name: 'Back to Apply' }).click();
-        await expect(page).toHaveURL(/#\/queue$/);
+        await expect(page).toHaveURL(/#\/apply$/);
         await expectScroll(page, before);
       } else {
         // At 1440 the rail stands in for Back: Change filters lands on the Jobs panel.
         await page.getByRole('navigation', { name: 'Jobs' }).getByText('Change filters').click();
-        await expect(page).toHaveURL(/#\/queue$/);
+        await expect(page).toHaveURL(/#\/apply$/);
         await expect(page.getByRole('button', { name: /^Status:/ })).toBeInViewport();
       }
       await page.goBack();
-      await expect(page).not.toHaveURL(/#\/queue\//);
+      await expect(page).not.toHaveURL(/#\/apply\//);
     });
 
     test('a job that leaves the list on the way (Mark applied): Back lands at the list end at once, and a scroll then starts there', async ({
@@ -81,18 +81,18 @@ for (const width of [390, 800] as const) {
     }) => {
       // The default Active filter: Mark applied takes the job out of the list, so the page comes
       // back one row shorter and never grows back to where it was.
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       await atBottom(page);
       await page.waitForTimeout(400);
       const before = await scrollY(page);
       expect(before).toBeGreaterThan(300);
-      const last = jobsPanel(page).locator('a[href^="#/queue/"]').last();
+      const last = jobsPanel(page).locator('a[href^="#/apply/"]').last();
       const title = (await last.textContent())!.trim();
       await last.click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       await page.getByRole('button', { name: 'Mark applied' }).first().click();
       await page.goBack();
-      await expect(page).toHaveURL(/#\/queue$/);
+      await expect(page).toHaveURL(/#\/apply$/);
       await page.waitForTimeout(500);
       const y = await scrollY(page);
       expect(y).toBeGreaterThan(before - 400);
@@ -106,14 +106,14 @@ for (const width of [390, 800] as const) {
     test('a job and its Company page each name the other on their Back', async ({ page }) => {
       // A job opened from the Company page goes back to the Company, at every width.
       await go(page, '#/company/larkspur-analytics');
-      const row = page.getByRole('list', { name: /^Jobs at / }).locator('a[href^="#/queue/"]');
+      const row = page.getByRole('list', { name: /^Jobs at / }).locator('a[href^="#/apply/"]');
       const title = (await row.first().textContent())!.trim();
       await row.first().click();
       await page.getByRole('button', { name: 'Back to Larkspur Analytics' }).click();
       await expect(page).toHaveURL(/#\/company\/larkspur-analytics$/);
 
       // The Company page opened from the job (scrolled down to its Details) goes back to it, there.
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       await jobsPanel(page).getByRole('link', { name: title }).first().click();
       const details = page.getByRole('region', { name: 'Details' });
       await details.scrollIntoViewIfNeeded();
@@ -128,28 +128,29 @@ for (const width of [390, 800] as const) {
       await expectScroll(page, before);
     });
 
-    test('Apply mode: the pager moves in place, Back leaves in one step, Start applying resumes', async ({
+    test("a job's pager moves in place, Back leaves in one step; Documents names the job", async ({
       page,
     }) => {
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       await scrollTo(page, 120);
       const before = await scrollY(page);
-      await page.getByRole('button', { name: 'Start applying' }).click();
-      const pager = page.getByRole('navigation', { name: 'Jobs to apply' });
+      await jobsPanel(page).locator('a[href^="#/apply/"]').first().click();
+      const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
       await expect(pager.getByText(/^1 of \d+$/)).toBeVisible();
       const of = (await pager.getByText(/^1 of \d+$/).textContent())!.replace('1 of ', '');
       await pager.getByRole('button', { name: 'Next page' }).click();
       await expect(pager.getByText(`2 of ${of}`)).toBeVisible();
+      // In place: one Back leaves the job for the list, at the scroll it had.
       await page.goBack();
-      await expect(page).toHaveURL(/#\/queue$/);
+      await expect(page).toHaveURL(/#\/apply$/);
       await expectScroll(page, before);
-      await page.getByRole('button', { name: `Resume applying (2 of ${of})` }).click();
+      await jobsPanel(page).locator('a[href^="#/apply/"]').nth(1).click();
       await expect(pager.getByText(`2 of ${of}`)).toBeVisible();
 
-      // Edit documents: Documents names Apply mode, and Back returns to the same job.
+      // Edit documents: Documents names the job, and Back returns to it.
       const job = (await page.getByRole('heading', { level: 1 }).first().textContent())!.trim();
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page.getByRole('link', { name: `Back to Apply mode (2 of ${of})` }).click();
+      await page.getByRole('link', { name: `Back to ${job}` }).click();
       await expect(page).toHaveURL(/#\/apply\//);
       await expect(pager.getByText(`2 of ${of}`)).toBeVisible();
       await expect(page.getByRole('heading', { level: 1, name: job })).toBeVisible();
@@ -166,9 +167,9 @@ for (const width of [390, 800] as const) {
         await page.waitForTimeout(300);
         await expect(page).toHaveURL(url);
       };
-      await go(page, '#/today');
-      await go(page, '#/queue');
-      const queue = /#\/queue$/;
+      await go(page, '#/find');
+      await go(page, '#/apply');
+      const queue = /#\/apply$/;
       await page.getByRole('button', { name: 'Add job' }).click();
       await page.getByLabel('Job link').fill('https://example.com/jobs/typed');
       await closesOnBack(page.getByRole('dialog'), queue);
@@ -183,7 +184,7 @@ for (const width of [390, 800] as const) {
 
       // A row's menu, the Status filter, and Recently removed.
       const firstTitle = (await jobsPanel(page)
-        .locator('a[href^="#/queue/"]')
+        .locator('a[href^="#/apply/"]')
         .first()
         .textContent())!.trim();
       await page
@@ -223,9 +224,9 @@ for (const width of [390, 800] as const) {
         await page.getByRole('menuitem', { name: 'Remove' }).click();
       };
       // Opened from its Company page, with the Pipeline behind it.
-      await go(page, '#/queue');
+      await go(page, '#/apply');
       await go(page, '#/company/larkspur-analytics');
-      const row = page.getByRole('list', { name: /^Jobs at / }).locator('a[href^="#/queue/"]');
+      const row = page.getByRole('list', { name: /^Jobs at / }).locator('a[href^="#/apply/"]');
       const title = (await row.first().textContent())!.trim();
       await row.first().click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
@@ -235,39 +236,39 @@ for (const width of [390, 800] as const) {
       await expect(page).toHaveURL(/#\/company\/larkspur-analytics$/);
 
       // Opened from far down the Pipeline, with Today behind it: back at the row.
-      await go(page, '#/today');
-      await go(page, '#/queue');
+      await go(page, '#/find');
+      await go(page, '#/apply');
       await showAll(page);
       await atBottom(page);
       await page.waitForTimeout(400);
       const before = await scrollY(page);
       expect(before).toBeGreaterThan(600);
-      const last = jobsPanel(page).locator('a[href^="#/queue/"]').last();
+      const last = jobsPanel(page).locator('a[href^="#/apply/"]').last();
       const lastTitle = (await last.textContent())!.trim();
       await last.click();
       await expect(page.getByRole('heading', { level: 1, name: lastTitle })).toBeVisible();
       await removeOpenJob(lastTitle);
-      await expect(page).toHaveURL(/#\/queue$/);
+      await expect(page).toHaveURL(/#\/apply$/);
       // One row shorter, so the page clamps a little, at once: never at the top while it waits.
       await page.waitForTimeout(800);
       expect(await scrollY(page)).toBeGreaterThan(before - 400);
-      await expect(page).toHaveURL(/#\/queue$/);
+      await expect(page).toHaveURL(/#\/apply$/);
 
       // Opened from Today (a save notice's Open names it), with another page behind it: Remove
       // lands on Today, and the Pipeline tab then opens the list, not the removed job.
-      const next = jobsPanel(page).locator('a[href^="#/queue/"]').first();
-      const id = (await next.getAttribute('href'))!.replace('#/queue/', '');
+      const next = jobsPanel(page).locator('a[href^="#/apply/"]').first();
+      const id = (await next.getAttribute('href'))!.replace('#/apply/', '');
       const nextTitle = (await next.textContent())!.trim();
       await go(page, '#/copy-deck');
-      await go(page, '#/today');
-      await go(page, `#/queue/${id}?from=%2Ftoday`);
+      await go(page, '#/find');
+      await go(page, `#/apply/${id}?from=%2Ffind`);
       await expect(page.getByRole('heading', { level: 1, name: nextTitle })).toBeVisible();
       await removeOpenJob(nextTitle);
-      await expect(page).toHaveURL(/#\/today$/);
+      await expect(page).toHaveURL(/#\/find$/);
       await page.waitForTimeout(600);
-      await expect(page).toHaveURL(/#\/today$/);
+      await expect(page).toHaveURL(/#\/find$/);
       await page.getByRole('tab', { name: 'Apply' }).click();
-      await expect(page).toHaveURL(/#\/queue$/);
+      await expect(page).toHaveURL(/#\/apply$/);
       await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
     });
 
@@ -299,9 +300,9 @@ for (const width of [390, 800] as const) {
       // The dev server runs effects twice on mount (StrictMode): each fallback still goes back once.
       const hash = () => page.evaluate(() => location.hash);
       const cases: [string, string, string][] = [
-        ['#/queue', '#/copy-deck/does-not-exist?from=%2Fqueue', '#/queue'],
-        ['#/today', '#/queue/nojob123?from=%2Ftoday', '#/today'],
-        ['#/queue', '#/queue/nojob123', '#/queue'],
+        ['#/apply', '#/copy-deck/does-not-exist?from=%2Fapply', '#/apply'],
+        ['#/find', '#/apply/nojob123?from=%2Ffind', '#/find'],
+        ['#/apply', '#/apply/nojob123', '#/apply'],
       ];
       for (const [origin, unknown, lands] of cases) {
         // Another page behind the origin, so a second pop would have somewhere to go.
@@ -324,24 +325,28 @@ for (const width of [390, 800] as const) {
         await expect(page).toHaveURL(re);
       };
       // A job opened from the Pipeline, Today behind it: the open tab, tapped twice.
-      await go(page, '#/today');
-      await go(page, '#/queue');
-      const link = jobsPanel(page).locator('a[href^="#/queue/"]').first();
+      await go(page, '#/find');
+      await go(page, '#/apply');
+      const link = jobsPanel(page).locator('a[href^="#/apply/"]').first();
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       await page.getByRole('tab', { name: 'Apply' }).dblclick();
-      await stays(/#\/queue$/);
+      await stays(/#\/apply$/);
       if (phone) {
         // At lg the rail stands in for Back on a job opened from the list.
-        await jobsPanel(page).locator('a[href^="#/queue/"]').first().click();
+        await jobsPanel(page).locator('a[href^="#/apply/"]').first().click();
         await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
         await page.getByRole('button', { name: 'Back to Apply' }).dblclick();
-        await stays(/#\/queue$/);
+        await stays(/#\/apply$/);
       }
 
-      // Apply mode: a double Save in a new document from Edit documents saves one and comes back.
-      await page.getByRole('button', { name: /^(Start|Resume) applying/ }).click();
+      // A job's Apply view: a double Save in a new document from Edit documents saves one and
+      // comes back. A job still to apply to (Saved), so Not a fit is there below.
+      await go(page, '#/apply');
+      await page.getByRole('button', { name: /^Status:/ }).click();
+      await page.getByRole('menuitemradio', { name: /^Saved/ }).click();
+      await jobsPanel(page).locator('a[href^="#/apply/"]').first().click();
       await expect(page).toHaveURL(/#\/apply\//);
       const apply = await hash();
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
@@ -357,39 +362,41 @@ for (const width of [390, 800] as const) {
       expect(await hash()).toBe(apply);
       expect(await count()).toBe(docs + 1);
 
-      // Not a fit on the last job to apply to, clicked twice: back to the Pipeline once.
-      const pager = page.getByRole('navigation', { name: 'Jobs to apply' });
-      const of = Number((await pager.getByText(/^\d+ of \d+$/).textContent())!.split(' of ')[1]);
-      for (let left = of; left > 1; left--) {
-        const shown = (await page.getByRole('heading', { level: 1 }).first().textContent())!;
-        await page.getByRole('button', { name: 'Not a fit' }).click();
-        await expect(page.getByRole('heading', { level: 1 }).first()).not.toHaveText(shown);
-        // Past the double-tap guard (ApplyMode DOUBLE_TAP_MS), so the next tap is a new one.
-        await page.waitForTimeout(800);
-      }
-      await page.getByRole('button', { name: 'Not a fit' }).dblclick();
-      await stays(/#\/queue$/);
+      // Not a fit, clicked twice: one job set aside, one move to the next job, in place.
+      const setAside = () =>
+        page.evaluate(
+          () =>
+            (JSON.parse(localStorage.getItem('rjb_shortlist') || '[]') as { archived?: boolean }[])
+              .filter((j) => j.archived).length,
+        );
+      const aside = await setAside();
+      const steps = await page.evaluate(() => history.length);
+      await page.getByRole('button', { name: /^Not a fit/ }).dblclick();
+      await expect.poll(hash).not.toBe(apply);
+      await page.waitForTimeout(600);
+      expect(await setAside()).toBe(aside + 1);
+      expect(await page.evaluate(() => history.length)).toBe(steps);
     });
 
     test('each top tab reopens where it was left', async ({ page }) => {
-      await go(page, '#/today');
+      await go(page, '#/find');
       await page.getByRole('tab', { name: 'Apply' }).click();
-      const link = jobsPanel(page).locator('a[href^="#/queue/"]').first();
+      const link = jobsPanel(page).locator('a[href^="#/apply/"]').first();
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       await page.getByRole('tab', { name: 'Find' }).click();
-      await expect(page).toHaveURL(/#\/today$/);
+      await expect(page).toHaveURL(/#\/find$/);
       await page.getByRole('tab', { name: 'Apply' }).click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       // The open tab, tapped again, goes to its root.
       await page.getByRole('tab', { name: 'Apply' }).click();
-      await expect(page).toHaveURL(/#\/queue$/);
+      await expect(page).toHaveURL(/#\/apply$/);
     });
 
     // Review blockers (2026-10-22): coming back must restore what the person was doing, not only
     // the page. Each walk changes the view, leaves with a key action, and comes back both ways.
-    test('Apply mode: a half-typed kit field is still open with its text after Edit documents', async ({
+    test("a job's Apply view: a half-typed kit field is still open with its text after Edit documents", async ({
       page,
     }) => {
       await openApply(page);
@@ -400,7 +407,7 @@ for (const width of [390, 800] as const) {
       const field = page.getByRole('textbox', { name: label, exact: true });
       await field.fill('Half typ');
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page.getByRole('link', { name: /^Back to Apply mode/ }).click();
+      await page.getByRole('link', { name: /^Back to / }).click();
       await expect(page).toHaveURL(/#\/apply\//);
       await expect(field).toHaveValue('Half typ');
       // And the browser's Back.
@@ -418,7 +425,7 @@ for (const width of [390, 800] as const) {
 test.describe('return paths at 1440', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
   const rail = (page: Page) => page.getByRole('navigation', { name: 'Jobs' });
-  const rows = (page: Page) => rail(page).locator('a[href^="#/queue/"]');
+  const rows = (page: Page) => rail(page).locator('a[href^="#/apply/"]');
 
   test.beforeEach(async ({ page }) => {
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
@@ -426,8 +433,8 @@ test.describe('return paths at 1440', () => {
   });
 
   test('picks in the list move in place: one Back leaves the Jobs tab', async ({ page }) => {
-    await go(page, '#/today');
-    await go(page, '#/queue');
+    await go(page, '#/find');
+    await go(page, '#/apply');
     // It opens on the first job to apply to.
     await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
     for (const i of [1, 2]) {
@@ -436,28 +443,28 @@ test.describe('return paths at 1440', () => {
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     }
     await page.goBack();
-    await expect(page).toHaveURL(/#\/today$/);
+    await expect(page).toHaveURL(/#\/find$/);
   });
 
   test('the Jobs tab reopens on the job it was left on; tapped again, its first job to apply', async ({
     page,
   }) => {
-    await go(page, '#/today');
+    await go(page, '#/find');
     await page.getByRole('tab', { name: 'Apply' }).click();
     const title = (await rows(page).nth(1).locator('.rjb-semibold').textContent())!.trim();
     await rows(page).nth(1).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await page.getByRole('tab', { name: 'Find' }).click();
-    await expect(page).toHaveURL(/#\/today$/);
+    await expect(page).toHaveURL(/#\/find$/);
     await page.getByRole('tab', { name: 'Apply' }).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await page.getByRole('tab', { name: 'Apply' }).click();
-    await expect(page).toHaveURL(/#\/queue$/);
+    await expect(page).toHaveURL(/#\/apply$/);
     await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
   });
 
   test('a job and its Company page each name the other on their Back', async ({ page }) => {
-    await go(page, '#/queue');
+    await go(page, '#/apply');
     const row = rows(page).filter({ hasText: 'Larkspur Analytics' }).first();
     const title = (await row.locator('.rjb-semibold').textContent())!.trim();
     await row.click();

@@ -54,7 +54,7 @@ afterEach(() => {
 describe('Pipeline filtered to nothing', () => {
   it('a search with no match: No jobs match "q", a sentence, and Clear search', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz nothing');
     expect(screen.getByText('No jobs match "zzz nothing"')).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('Pipeline filtered to nothing', () => {
 
   it('nothing left to apply to: a short title and where to look', async () => {
     setStatusByUrl('https://acme.example/jobs/1', 'Applied', 'Design Engineer');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
     expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('a clean first run', () => {
   });
 
   it('the Add job field shows its name, not a made-up link', async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getAllByRole('button', { name: 'Add job' })[0]);
     const dialog = await screen.findByRole('dialog', { name: 'Add a job' });

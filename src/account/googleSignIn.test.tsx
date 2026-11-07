@@ -147,12 +147,12 @@ describe('coming back from Google', () => {
     const v = newVerifier();
     rememberOAuthRequest(v);
     await issue('good-code', v, ME);
-    await boot('?code=good-code#/today');
+    await boot('?code=good-code#/find');
     expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(exchanges).toEqual([{ auth_code: 'good-code', code_verifier: v }]);
     expect(location.search).toBe('');
-    expect(location.hash).toBe('#/today');
+    expect(location.hash).toBe('#/find');
     expect(readOAuthRequest()).toBe(false); // used once
   });
 
@@ -253,9 +253,9 @@ describe('the pieces', () => {
       state: null,
       replaceState: (_s: unknown, _t: string, u: string) => calls.push(u),
     };
-    stripAuthFragment({ hash: '#/today', pathname: '/', search: '?code=abc&x=1' }, hist);
-    stripAuthFragment({ hash: '#/queue', pathname: '/', search: '?x=1' }, hist);
-    expect(calls).toEqual(['/?x=1#/today']);
+    stripAuthFragment({ hash: '#/find', pathname: '/', search: '?code=abc&x=1' }, hist);
+    stripAuthFragment({ hash: '#/apply', pathname: '/', search: '?x=1' }, hist);
+    expect(calls).toEqual(['/?x=1#/find']);
     expect(readAuthCode('?code=abc')).toBe('abc');
     expect(readAuthCode('?x=1')).toBeNull();
   });

@@ -63,7 +63,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/queue';
+  window.location.hash = '#/apply';
   // Zenith is Applied, so the default Active view shows Acme only.
   replaceAll([job(ACME, 'Welder', 'Acme'), job(ZENITH, 'Fitter', 'Zenith', 'Applied')]);
   downloads = [];

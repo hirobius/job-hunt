@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
 // and the Pipeline's tertiary "Check which are still open" starts on the Jobs panel's content edge.
 async function sample(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto('/#/queue');
+  await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // The Jobs panel, or from lg the list column beside the first job (#471).
   await expect(page.getByRole('textbox', { name: /^Search (saved )?jobs$/ })).toBeVisible();
@@ -37,7 +37,7 @@ for (const width of [390, 1440]) {
     await sample(page);
     // A board job (Greenhouse) is what the liveness check reads.
     await page.goto('/?add=' + encodeURIComponent('https://boards.greenhouse.io/acme/jobs/123'));
-    await page.evaluate(() => (location.hash = '#/queue'));
+    await page.evaluate(() => (location.hash = '#/apply'));
     const check = page.getByRole('button', { name: 'Check which are still open' });
     await expect(check).toBeVisible();
     const textLeft = await check.evaluate((b) => {

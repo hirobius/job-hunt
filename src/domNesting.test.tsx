@@ -1,6 +1,6 @@
 // Valid DOM nesting on the pages that hand HDS PageHeader a `description`: PageHeader wraps it in a
 // <p>, so a <p> or a block (<div>) inside it is invalid HTML and React logs validateDOMNesting on
-// every render (Apply mode's meta line, Discover's "where · Change" row).
+// every render (a job's header meta line, Discover's "where · Change" row).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
@@ -54,12 +54,11 @@ const nestingErrors = () =>
   errors.mock.calls.filter((c: unknown[]) => String(c[0]).includes('validateDOMNesting'));
 
 describe('PageHeader descriptions hold inline content only', () => {
-  it('Apply mode: the meta line is not a <p> inside the header <p>', async () => {
+  it("a job's Apply view: the meta line is not a <p> inside the header <p>", async () => {
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    expect(await screen.findByText('Acme')).toBeVisible();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Acme Designer' })).toBeVisible();
     expect(badNesting()).toEqual([]);
     expect(nestingErrors()).toEqual([]);
   });
-
 });

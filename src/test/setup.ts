@@ -9,6 +9,7 @@ import { resetTabMemory } from '../tabMemory';
 import { resetViewMemory } from '../viewMemory';
 import { resetHistoryRecord } from '../route';
 import { resetTabAccount } from '../tabAccount';
+import { resetAnswerGuard } from '../answerGuard';
 import { resetGoogleSignIn } from '../account/googleSignInFlag';
 import '@testing-library/jest-dom/vitest';
 
@@ -48,6 +49,8 @@ beforeEach(resetViewMemory);
 beforeEach(resetHistoryRecord);
 // Every test is a fresh tab: no account, not frozen, shared storage writable (#288).
 beforeEach(resetTabAccount);
+// Mark applied / Not a fit ignore a second answer within 700 ms (a double tap): start each test fresh.
+beforeEach(resetAnswerGuard);
 // The Google button ships hidden (googleSignInFlag.ts); its suites turn it on.
 beforeEach(resetGoogleSignIn);
 

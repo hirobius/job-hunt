@@ -86,9 +86,9 @@ export default function DocumentEditor({
   kind: DocumentKind;
   onBack: () => void;
   onCreated: (id: string) => void;
-  /** The page's Back in place of "All documents" (return paths: it names a job or Apply mode). */
+  /** The page's Back in place of "All documents" (return paths: it names a job). */
   back?: ReactNode;
-  /** Opened from a job or Apply mode (return paths): a Save goes straight back there, and the
+  /** Opened from a job (return paths): a Save goes straight back there, and the
    *  toast says so. */
   returnTo?: { label: string; go: () => void };
 }) {
@@ -111,7 +111,7 @@ export default function DocumentEditor({
   }
   // The browser's Back closes the menu and stays on the page (return paths).
   const menu = useBackSheet('document-menu');
-  // Opened from a scrolled list, the editor starts at its head (like JobPage and ApplyMode).
+  // Opened from a scrolled list, the editor starts at its head (like JobPage).
   useEffect(() => {
     scrollToTop();
   }, [doc?.id, kind]);

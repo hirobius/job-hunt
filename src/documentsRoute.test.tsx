@@ -77,11 +77,11 @@ describe('the Documents page', () => {
     await renderApp();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/queue');
+    expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/apply');
   });
 
   it('the Menu opens Documents', async () => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     await renderApp();
     await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     const menu = await screen.findByRole('menu');
@@ -273,7 +273,7 @@ describe('editing a message changes what the fill paths use', () => {
   it('the follow-up dialog', async () => {
     await editFollowUp();
     setStatus(JOB, 'Applied');
-    window.location.hash = '#/queue';
+    window.location.hash = '#/apply';
     await renderApp();
     openFollowUp(JOB);
     const dialog = await screen.findByRole('dialog');
@@ -314,15 +314,15 @@ describe('the Company page (#230)', () => {
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',
-      `#/queue/${jobIdOf(JOB)}?from=%2Fcompany%2Facme-metals`,
+      `#/apply/${jobIdOf(JOB)}?from=%2Fcompany%2Facme-metals`,
     );
   });
 
   it("a job's company links to its page; a job with no company has no link", async () => {
-    window.location.hash = `#/queue/${jobIdOf(JOB)}`;
+    window.location.hash = `#/apply/${jobIdOf(JOB)}`;
     await renderApp();
     const link = await screen.findByRole('link', { name: 'Acme Metals' });
-    expect(link).toHaveAttribute('href', `#/company/acme-metals?from=%2Fqueue%2F${jobIdOf(JOB)}`);
+    expect(link).toHaveAttribute('href', `#/company/acme-metals?from=%2Fapply%2F${jobIdOf(JOB)}`);
     await userEvent.click(link);
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
@@ -340,7 +340,7 @@ describe('a link to a document that is not a Base one', () => {
     const id = createDocument({ kind: 'cover', title: 'Acme letter', text: 'Hi', jobUrl: JOB });
     window.location.hash = `#/copy-deck/${id}`;
     await renderApp();
-    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(JOB)}`));
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(JOB)}`));
     expect(screen.queryByRole('button', { name: /^Version history/ })).toBeNull();
   });
 
@@ -350,7 +350,7 @@ describe('a link to a document that is not a Base one', () => {
     if (!r.ok) throw new Error(r.error);
     window.location.hash = `#/copy-deck/${r.id}`;
     await renderApp();
-    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(JOB)}`));
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(JOB)}`));
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
   });
 
