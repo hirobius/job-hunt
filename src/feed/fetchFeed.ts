@@ -13,6 +13,7 @@ import { PROXIED_SEARCH, PROXIED_SOURCES } from './sources/proxiedIds';
 import { fetchRemotive } from './sources/remotive';
 import { SOURCE_LABEL, type Posting } from './types';
 import { SOURCE_ENABLED } from './sourceEnabled';
+import { lightBoards } from './lightBoards';
 
 export { SOURCE_ENABLED };
 /** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */
@@ -142,6 +143,9 @@ export const CACHE_BUDGET_CHARS = 16_000_000;
 /** At most this many network reads at once through one fetcher (2026-11-07: on a phone, Review new
  *  and the scan together had far more in flight, and the main thread drowned in parsing). */
 export const MAX_FETCHES_IN_FLIGHT = 6;
+
+/** At most one progress snapshot this often while sources answer (the last one trails). */
+export const SNAPSHOT_MS = 500;
 
 export function createFetchJson({
   fetchImpl = (u: string, init?: RequestInit) => fetch(u, init),
@@ -468,7 +472,7 @@ export async function fetchFeed(
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
       board: b,
-      run: () => fetchBoard(b, fetchJson),
+      run: () => fetchBoard(b, fetchJson, { light: lightBoards() }),
     })),
   ];
   const tasks = req.only ? all.filter((t) => req.only!.includes(t.key)) : all;
@@ -490,15 +494,38 @@ export async function fetchFeed(
       boardsTotal: boardsRead,
     };
   };
+  // A snapshot walks every posting read so far, so one per answer was quadratic over hundreds of
+  // boards (2026-11-07 phone profile): at most one per SNAPSHOT_MS, the last one trailing.
+  let lastSnap = -Infinity;
+  let snapTimer: ReturnType<typeof setTimeout> | undefined;
+  const progress = () => {
+    if (!req.onProgress) return;
+    const wait = lastSnap + SNAPSHOT_MS - Date.now();
+    if (wait <= 0) {
+      lastSnap = Date.now();
+      req.onProgress(snapshot());
+    } else
+      snapTimer ??= setTimeout(() => {
+        snapTimer = undefined;
+        lastSnap = Date.now();
+        req.onProgress?.(snapshot());
+      }, wait);
+  };
   const settled = await settleAll(
     tasks.map((t) => () => withTimeout(t.run(), sourceTimeoutMs)),
     (i) => !!tasks[i].board,
     (i, r) => {
       results[i] = r;
-      req.onProgress?.(snapshot());
+      progress();
     },
     (i) => tasks[i].board?.kind ?? '',
   );
+  // A trailing snapshot still due goes out now, so the last progress is the whole read.
+  if (snapTimer !== undefined) {
+    clearTimeout(snapTimer);
+    snapTimer = undefined;
+    req.onProgress?.(snapshot());
+  }
   const postings: Posting[] = [];
   const have = new Set<string>();
   const sources = settled.map((r, i) => statusOf(tasks[i], r, postings, have));

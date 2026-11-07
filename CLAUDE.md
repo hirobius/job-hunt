@@ -454,7 +454,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
   `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
-  posting and adds the server's, so signed in is never fewer. Not applied or deployed: see its README.
+  posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
+  `serverFirstReader`, in `useFeed`):** reads the server's rows and skips the browser's sweep of every followed board;
+  no rows yet (a new account before its first sync) or a failed read falls back to the browser read. **Phones**
+  (`feed/lightBoards.ts`, below lg): Greenhouse boards are read as the plain list, no descriptions (`fetchBoard`
+  `light`, `greenhouseListUrl`), so leave-out words there match the title only; a posting's text is fetched when it
+  is opened (`feed/postingText.ts` `usePostingText`, Greenhouse's single-job endpoint). Pinned in `feed/feedLoad.test.ts`.
   `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
   `feed/postingReader.test.ts`.
 - **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/tracks/feeds/` holds sources only
@@ -808,7 +813,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
   deliberately not built yet.
 - **Job sources slice (2026-10-15, `docs/specs/job-sources.md`).**
   - **No board cap.** `fetchFeed` reads every distinct watched board, 6 at a time (`BOARD_CONCURRENCY`),
-    and calls `onProgress` as each answers; Review new repaints every 250ms with "Read N of M boards".
+    and calls `onProgress` as each answers; Review new repaints every second (was 250 ms, 2026-11-07) with "Read N of M boards".
   - **More sources.** HN also reads the monthly "Freelancer? Seeking freelancer?" thread (only
     SEEKING FREELANCER posts, marked contract). Jobicy and Remote OK sit behind `SOURCE_ENABLED` in
     `fetchFeed.ts` (Jobicy on; Remote OK off until its live legal notice is read and checked), and Workable and Recruitee are watchable boards. All four are

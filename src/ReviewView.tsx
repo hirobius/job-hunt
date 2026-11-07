@@ -61,6 +61,7 @@ import { addJobDetailed } from './store';
 import { notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
+import { usePostingText } from './feed/postingText';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -706,6 +707,8 @@ function PostingPreview({
     skip: decided(actions.skip),
     mute: decided(actions.mute),
   };
+  // Fetched on open when the list was read without it (a phone, or the server's rows).
+  const { text, loading } = usePostingText(r);
   return (
     <Dialog open={!!r} onOpenChange={(o) => !o && onClose()}>
       {r && (
@@ -716,11 +719,13 @@ function PostingPreview({
           </Dialog.Header>
           <Stack gap="normal">
             <PostingCard r={r} now={now} noTitle actions={close}>
-              {r.text.trim() && (
+              {text.trim() ? (
                 <Text variant="body" as="p" tone="secondary">
-                  {excerpt(r.text)}
+                  {excerpt(text)}
                 </Text>
-              )}
+              ) : loading ? (
+                <Skeleton variant="text" width="80%" />
+              ) : null}
             </PostingCard>
             <Button variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
               <a href={r.url} target="_blank" rel="noopener noreferrer">
