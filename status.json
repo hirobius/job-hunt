@@ -1,8 +1,10 @@
 {
-  "updatedAt": "2026-11-05T08:00:00Z",
+  "updatedAt": "2026-11-07T15:00:00Z",
   "phase": "live",
-  "headline": "Daily picks in the app (claude/daily-picks, PR open, not merged): the scheduled run writes its hand-picked roles to daily_picks through a token-guarded RPC; Today lists them with the fit line, draft note (Copy), Save and Skip.",
+  "headline": "Two screens (#471, ADR 0010): Find and Apply are the only top tabs, each a list beside a detail at lg; Documents and Privacy and terms are dialogs in the page URL (#493, #494, #495, #500 merged).",
   "next": [
+    "Review open PRs: #498 (feed load, main merged in), #503 (route dialog loading frame), the slice 6 docs PR (ADR 0010, CONTEXT.md, CLAUDE.md).",
+    "#471 slice 5 (visual tune-up of the two columns) waits on Adrian's details.",
     "Daily picks: apply 20261105100000_daily_picks.sql, make a feed token (docs/daily-picks.md), put PICKS_TOKEN in the scheduled run environment, allow nelrcmbkimjjmfmgnixj.supabase.co, swap in the new prompt. Then merge.",
     "Merge claude/rf-int-hiraga (PR #435 flame E + #436 rename to hiraga, on main): verify + test:e2e green. Flame animates continuously (4.5 s settle reverted, Adrian) and motion lazy-loaded (entry 249.3/250 kB). Not merged.",
     "Review PR claude/flake-companies: Account → Companies feedback flake. Root cause: the press did extra render passes before the dialog's first paint (a second pass waiting on an already-loaded chunk, the whole list redrawn when the menu closed as the dialog took focus, 40 first rows) while Review new rebuilt hundreds of closed 'sources unavailable' rows on every scan tick. All cut in the app; 300 ms budget unchanged. Also scoped two toast e2e checks off the screen-reader announcer copy. Not merged.",

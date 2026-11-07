@@ -26,13 +26,21 @@ _Avoid_: reminder, nudge, ping
 The model that owns a Job's Status transitions and its Follow-up clock — the read-side derivations (is it due, days until, active) and the write-side transitions (`src/jobState.ts`).
 _Avoid_: job state, workflow, state machine
 
-**Pipeline**:
-The view of every saved Job, as one list with search, a Status filter and sort (`#/queue`). It was called the Tracker until #128.
-_Avoid_: tracker, queue (in copy), board
+**Apply**:
+The work tab (`#/apply`, ADR 0010): the list of every saved Job (search, Status, Sort, Follow up, Next 7 days) beside the selected Job's Apply view. At lg it opens on the first Job to apply to; on a phone the list is the tab and a Job is its own view with Back and "‹ 2 of N ›". It replaced the Pipeline (`#/queue`, called the Tracker until #128), the job page and Apply mode.
+_Avoid_: Pipeline, Jobs tab, tracker, queue (in copy), board, Apply mode
 
-**Today**:
-The home tab (`#/today`): the scan's status, Review new, Apply, Follow up and New companies. With the Pipeline (the Jobs tab) it is one of the two top tabs. The old Companies tab (`#/discover`) is gone (#389); its routes land here.
-_Avoid_: dashboard, home page, Discover, Companies (as a page)
+**Apply view**:
+One Job on the Apply tab (`#/apply/<jobId>`): badges, title and company, the next step for its Status (Saved: Open application, then Mark applied | Not a fit), the Templates and Application kit, then Details, Notes, Documents and Decks. Mark applied and Not a fit open the next Job in the list.
+_Avoid_: job page, job detail, Apply mode, wizard
+
+**Find**:
+The home tab (`#/find`, ADR 0010; was Today): the scan's status, Daily picks, Review new and New companies in the list column, beside the selected Posting (`#/find/<fingerprint>`). Nothing is selected when the tab opens ("Pick a posting").
+_Avoid_: Today, dashboard, home page, Discover, Companies (as a page)
+
+**Route dialog**:
+Documents and Privacy and terms (ADR 0010): a dialog over the open page, held in that page's URL (`?documents=`, `?legal=`), so a link opens it and Back closes it. Not a page and not a tab.
+_Avoid_: Documents page, Legal page, modal page
 
 **Search profile**:
 What the user is looking for, one per account (`rjb_profiles`, blob v12): job titles, the broad ATS terms, the design-system inclusion check, leave out, pay floor, level, location and remote only. Set up by onboarding and edited from the Account menu. It replaced tracks (ADR 0009).
@@ -47,23 +55,19 @@ Every design-system Posting read from the Sources and feeds for the Search profi
 _Avoid_: results, search results, inbox
 
 **Review new**:
-The Feed on Today, as the Browse list (default) or the Deck: Save makes a Job and follows its board, Skip hides that one Posting, Not this company mutes its Source.
+The Feed on Find, as the Browse list (default) or the Deck: Save makes a Job and follows its board, Skip hides that one Posting, Not this company mutes its Source.
 _Avoid_: triage, inbox, Live postings
 
 **Auto-scan**:
-The one run that finds companies, checks their boards and reads every Source and feed, on app open (every 6 hours) or on Scan now. Its finds show as New companies on Today, with Follow or Ignore.
+The one run that finds companies, checks their boards and reads every Source and feed, on app open (every 6 hours) or on Scan now. Its finds show as New companies on Find, with Follow or Ignore.
 _Avoid_: crawl, sync, refresh
 
-**Apply mode**:
-Working through To apply one Job at a time (`#/apply/<id>`): open the application, then Mark applied or Not a fit, with the Outreach messages filled for the Job and the Application kit to copy from.
-_Avoid_: wizard, apply flow
-
 **First run**:
-A visit with no Search profile, no old tracks and no Jobs. Today shows onboarding, the Search profile form (with a sample-data offer); with Jobs but no profile, Review new asks to set one up.
+A visit with no Search profile, no old tracks and no Jobs. There is no setup screen: once sync settles the default design-systems profile and starter Sources are added, and Find opens on Review new; sample data is the Apply tab's empty-state offer.
 _Avoid_: new user, empty state
 
 **Active queue**:
-The default Pipeline view: Jobs not yet applied to (Saved) plus any pinned as Priority, with Retired Jobs excluded.
+The default Apply list view: Jobs not yet applied to (Saved) plus any pinned as Priority, with Retired Jobs excluded.
 _Avoid_: inbox, backlog, todo
 
 **Priority**:
