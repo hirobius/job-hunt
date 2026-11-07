@@ -24,6 +24,11 @@ export interface StoredPosting {
   verdict: Verdict;
   reasons: string[];
   fingerprint: string;
+  /** The description the sync stored (≤ 20,000 characters; empty for a rejected row), so the
+   *  Feed ranks a server row as it ranks the same posting read in the browser. */
+  descriptionText?: string;
+  /** `${kind}:${slug}` for a board (`lever.eu:` for Lever's EU host), else the feed's id. */
+  board?: string;
 }
 
 interface Row {
@@ -41,6 +46,8 @@ interface Row {
   verdict: Verdict;
   reasons: unknown;
   fingerprint: string;
+  description_text?: string | null;
+  board?: string | null;
 }
 
 /** PostgREST's most rows to one request. */
@@ -62,6 +69,8 @@ export function fromRow(r: Row): StoredPosting {
     verdict: r.verdict,
     reasons: Array.isArray(r.reasons) ? r.reasons.filter((x) => typeof x === 'string') : [],
     fingerprint: r.fingerprint,
+    ...(r.description_text ? { descriptionText: r.description_text } : {}),
+    ...(r.board ? { board: r.board } : {}),
   };
 }
 
@@ -84,7 +93,7 @@ export async function loadServerRows(): Promise<StoredPosting[]> {
   const { data, error } = await db
     .from('postings')
     .select(
-      'id, track_slug, source, source_id, company, title, location, remote, url, posted_at, score, verdict, reasons, fingerprint',
+      'id, track_slug, source, source_id, company, title, location, remote, url, posted_at, score, verdict, reasons, fingerprint, description_text, board',
     )
     .in('verdict', ['queue', 'review'])
     .is('closed_at', null)

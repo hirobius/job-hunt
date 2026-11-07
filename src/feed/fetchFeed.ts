@@ -13,6 +13,9 @@ import { PROXIED_SEARCH, PROXIED_SOURCES } from './sources/proxiedIds';
 import { fetchRemotive } from './sources/remotive';
 import { SOURCE_LABEL, type Posting } from './types';
 import { SOURCE_ENABLED } from './sourceEnabled';
+import { lightBoards } from './lightBoards';
+import { fillTexts } from './lightText';
+import { includeFields, passesInclude, type IncludeRule } from './mustInclude';
 
 export { SOURCE_ENABLED };
 /** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */
@@ -142,6 +145,9 @@ export const CACHE_BUDGET_CHARS = 16_000_000;
 /** At most this many network reads at once through one fetcher (2026-11-07: on a phone, Review new
  *  and the scan together had far more in flight, and the main thread drowned in parsing). */
 export const MAX_FETCHES_IN_FLIGHT = 6;
+
+/** At most one progress snapshot this often while sources answer (the last one trails). */
+export const SNAPSHOT_MS = 500;
 
 export function createFetchJson({
   fetchImpl = (u: string, init?: RequestInit) => fetch(u, init),
@@ -340,6 +346,9 @@ interface SourceTask {
   label: string;
   board?: Board;
   run: () => Promise<Posting[]>;
+  /** Work after the read that must never cost it (a phone's description reads): it runs outside
+   *  the read's timeout, with its own deadline, and gives back what it has by then. */
+  after?: (read: Posting[]) => Promise<Posting[]>;
 }
 
 /** Reject with a timeout FetchError if `p` hasn't settled in `ms` (the source is then reported failed). */
@@ -384,6 +393,10 @@ export async function fetchFeed(
     onProgress?: (p: FeedProgress) => void;
     /** Read only these sources (by `SourceStatus.key`) — "Retry" on a failed source. */
     only?: string[];
+    /** The profile's inclusion check. With one that reads titles only, a phone reads Greenhouse
+     *  boards as plain lists and then reads the description of each posting it lets in (lightText.ts),
+     *  so what can be listed ranks as a full read does. */
+    include?: IncludeRule;
   },
   fetchJson: FetchJson = liveFetchJson,
   {
@@ -453,6 +466,22 @@ export async function fetchFeed(
   };
 
   const boards = boardsFromUrls(req.boardUrls, Infinity);
+  // A phone reads a Greenhouse board's plain list (lightBoards.ts) when the inclusion check reads
+  // titles only, then the description of each posting that passes it.
+  const include = req.include;
+  const light = !!include && lightBoards() && !includeFields(include).text ? include : null;
+  const readBoard = async (b: Board): Promise<Posting[]> => {
+    if (!light || b.kind !== 'greenhouse') return fetchBoard(b, fetchJson);
+    return fetchBoard(b, fetchJson, { light: true });
+  };
+  // Outside the list read's timeout (#498 review): a slow description read never loses the board.
+  const fillBoard = (b: Board) =>
+    light && b.kind === 'greenhouse'
+      ? (list: Posting[]) =>
+          fillTexts(list, fetchJson, (p) => passesInclude(light, p.title, ''), {
+            deadlineMs: sourceTimeoutMs,
+          })
+      : undefined;
   const all: SourceTask[] = [
     ...terms.flatMap(termTasks),
     // A whole-feed board (designsystems.jobs, WWR) is read once per search, like a watched board,
@@ -468,7 +497,8 @@ export async function fetchFeed(
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
       board: b,
-      run: () => fetchBoard(b, fetchJson),
+      run: () => readBoard(b),
+      after: fillBoard(b),
     })),
   ];
   const tasks = req.only ? all.filter((t) => req.only!.includes(t.key)) : all;
@@ -490,15 +520,47 @@ export async function fetchFeed(
       boardsTotal: boardsRead,
     };
   };
-  const settled = await settleAll(
-    tasks.map((t) => () => withTimeout(t.run(), sourceTimeoutMs)),
-    (i) => !!tasks[i].board,
-    (i, r) => {
-      results[i] = r;
-      req.onProgress?.(snapshot());
-    },
-    (i) => tasks[i].board?.kind ?? '',
-  );
+  // A snapshot walks every posting read so far, so one per answer was quadratic over hundreds of
+  // boards (2026-11-07 phone profile): at most one per SNAPSHOT_MS, the last one trailing.
+  let lastSnap = -Infinity;
+  let snapTimer: ReturnType<typeof setTimeout> | undefined;
+  const progress = () => {
+    if (!req.onProgress) return;
+    const wait = lastSnap + SNAPSHOT_MS - Date.now();
+    if (wait <= 0) {
+      lastSnap = Date.now();
+      req.onProgress(snapshot());
+    } else
+      snapTimer ??= setTimeout(() => {
+        snapTimer = undefined;
+        lastSnap = Date.now();
+        req.onProgress?.(snapshot());
+      }, wait);
+  };
+  let settled: PromiseSettledResult<Posting[]>[];
+  try {
+    settled = await settleAll(
+      tasks.map((t) => async () => {
+        const read = await withTimeout(t.run(), sourceTimeoutMs);
+        return t.after ? t.after(read) : read;
+      }),
+      (i) => !!tasks[i].board,
+      (i, r) => {
+        results[i] = r;
+        progress();
+      },
+      (i) => tasks[i].board?.kind ?? '',
+    );
+  } finally {
+    // Never left running past the read, whatever ends it.
+    clearTimeout(snapTimer);
+  }
+  // A trailing snapshot still due goes out now, so the last progress is the whole read.
+  if (snapTimer !== undefined) {
+    clearTimeout(snapTimer);
+    snapTimer = undefined;
+    req.onProgress?.(snapshot());
+  }
   const postings: Posting[] = [];
   const have = new Set<string>();
   const sources = settled.map((r, i) => statusOf(tasks[i], r, postings, have));

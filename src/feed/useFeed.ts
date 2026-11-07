@@ -2,7 +2,9 @@
 // and Sources (blob v12; since #388, in place of the active track's stores), one read through the
 // reader, and the view built from it. What was read is kept for this page load (viewMemory), so
 // opening a posting and coming Back shows the same rows with no new read; Refresh reads again.
-import { useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
+import { CloudSyncContext } from '../account/accountContext';
+import { serverFirstReader } from './serverFeed';
 import { dedupKey, useJobs } from '../store';
 import { useRemembered } from '../viewMemory';
 import { useProfile } from '../profile';
@@ -64,7 +66,9 @@ function storedRead(): Read | null {
   };
 }
 
-const REPAINT_MS = 250;
+// Once a second while boards answer (was 250 ms: each repaint re-ranks every posting read so far,
+// which held a phone's main thread for most of a minute; 2026-11-07).
+const REPAINT_MS = 1000;
 
 export interface FeedState {
   view: FeedView | null;
@@ -79,8 +83,14 @@ export interface FeedState {
 }
 
 export function useFeed(given?: PostingReader): FeedState {
-  // Review new reads live and adds what the auto-scan kept (feed/autoScan.ts).
-  const reader = useMemo(() => given ?? scanReader(liveReader), [given]);
+  // Signed in, Review new reads the server's rows (serverFeed.ts; the browser sweep only when the
+  // server has none). Either way it adds what the auto-scan kept (feed/autoScan.ts). Read from the
+  // context directly: Review new also renders outside the provider in tests.
+  const signedIn = !!useContext(CloudSyncContext)?.user;
+  const reader = useMemo(
+    () => given ?? scanReader(signedIn ? serverFirstReader(liveReader) : liveReader),
+    [given, signedIn],
+  );
   const { profile, sources } = useFeedInputs();
   const decided = useDecided();
   const jobs = useJobs();
@@ -92,7 +102,7 @@ export function useFeed(given?: PostingReader): FeedState {
     .filter((f) => f.status !== 'new')
     .map((f) => `${f.key}=${f.status}`)
     .join(',')}`;
-  const key = `${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}`;
+  const key = `${signedIn ? 'server' : 'browser'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}`;
   const [read, setRead] = useRemembered<Read | null>('review:read', storedRead);
   const [attempt, setAttempt] = useRemembered('review:attempt', 0);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
@@ -136,18 +146,20 @@ export function useFeed(given?: PostingReader): FeedState {
           ? { progress, seen: seenBefore }
           : { seen: noteSeen(fingerprintsOf(result), at) }),
       });
-    reader
-      .read(ask, (p) => {
-        if (!alive || timer) return;
-        timer = setTimeout(() => {
-          timer = undefined;
-          if (alive)
-            done(fold({ postings: p.postings, sources: p.sources }), startedAt, {
-              done: p.boardsDone,
-              total: p.boardsTotal,
-            });
-        }, REPAINT_MS);
-      })
+    // Signed in, a company or title added since the last read is read in the browser: the server
+    // has not read it yet (its sync runs every 15 minutes), and its jobs show at once.
+    const by = onlyAdded && signedIn ? browserFirst : reader;
+    by.read(ask, (p) => {
+      if (!alive || timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (alive)
+          done(fold({ postings: p.postings, sources: p.sources }), startedAt, {
+            done: p.boardsDone,
+            total: p.boardsTotal,
+          });
+      }, REPAINT_MS);
+    })
       .then((result) => {
         clearTimeout(timer);
         timer = undefined;
@@ -171,7 +183,7 @@ export function useFeed(given?: PostingReader): FeedState {
     };
     // req derives from key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, attempt, hasQuery, reader]);
+  }, [key, attempt, hasQuery, reader, signedIn]);
 
   // The rows of the last read stay up while a changed request is read (never a blank list).
   const current = read?.result || read?.key === key ? read : null;
@@ -210,6 +222,7 @@ export function useFeed(given?: PostingReader): FeedState {
 }
 
 const liveReader = browserReader();
+const browserFirst = scanReader(liveReader);
 
 /** A read of only what was added, folded into the one before it: its postings after the old
  *  ones (a posting read twice kept once), its sources' statuses added. */

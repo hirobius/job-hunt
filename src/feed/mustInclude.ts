@@ -182,12 +182,19 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** The regex for one term over normalized text: its words in order, one space apart, whole words,
  *  the last one singular or plural ("design system" ↔ "design systems"). Null for a blank term. */
 export function phraseRegex(term: string): RegExp | null {
+  // Built once per term (2026-11-07 phone profile: the Feed compiled one per posting per repaint).
+  // The regex has no `g` flag, so sharing it is safe (no lastIndex state).
+  if (phraseCache.has(term)) return phraseCache.get(term)!;
   const words = normalizeForPhrase(term).trim().split(' ').filter(Boolean);
-  if (!words.length) return null;
-  const last = inflect(words[words.length - 1]);
+  const last = words.length ? inflect(words[words.length - 1]) : '';
   const body = [...words.slice(0, -1).map(escapeRe), last].join(' ');
-  return new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`);
+  const re = words.length ? new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`) : null;
+  if (phraseCache.size > PHRASE_CACHE_MAX) phraseCache.clear();
+  phraseCache.set(term, re);
+  return re;
 }
+const PHRASE_CACHE_MAX = 500;
+const phraseCache = new Map<string, RegExp | null>();
 
 // A bare list is a plain phrase test over both fields: no related titles.
 const ruleOf = (rule: IncludeRule) =>

@@ -51,8 +51,8 @@ export function postingFromRow(r: StoredPosting): Posting | null {
     location: r.location,
     ...(r.remote && { mode: 'remote' as const }),
     postedAt: r.postedAt,
-    // The body stays on the server: the row is scored already.
-    text: '',
+    // The stored description, so the Feed ranks it as the browser's read of it (#498 review).
+    text: r.descriptionText ?? '',
     trackScore: {
       score: r.score,
       verdict: r.verdict as Verdict,

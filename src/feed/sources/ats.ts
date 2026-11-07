@@ -373,8 +373,14 @@ export function boardJobs(b: Board, body: unknown): unknown[] | null {
   return Array.isArray(list) ? list : null;
 }
 
-export async function fetchBoard(b: Board, fetchJson: FetchJson): Promise<Posting[]> {
-  const body = await fetchJson(boardApiUrl(b));
+export async function fetchBoard(
+  b: Board,
+  fetchJson: FetchJson,
+  opts: { light?: boolean } = {},
+): Promise<Posting[]> {
+  // Light: a Greenhouse board's plain list, no descriptions (phones; lightBoards.ts).
+  const url = opts.light && b.kind === 'greenhouse' ? greenhouseListUrl(b.slug) : boardApiUrl(b);
+  const body = await fetchJson(url);
   const found = boardJobs(b, body);
   // The unofficial endpoints may change shape: say so rather than show an empty board.
   if (!found && UNOFFICIAL.has(b.kind)) throw new Error(`${b.kind} board response had no job list`);

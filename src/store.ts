@@ -103,6 +103,18 @@ function normalizeJobUrl(rawUrl: string): string {
   return u && !/^https?:\/\//i.test(u) ? 'https://' + u : u;
 }
 export function dedupKey(u: string): string {
+  // Cached (2026-11-07 phone profile: the Feed keyed every posting's URL on every repaint).
+  const hit = dedupCache.get(u);
+  if (hit !== undefined) return hit;
+  const key = computeDedupKey(u);
+  if (dedupCache.size > DEDUP_CACHE_MAX) dedupCache.clear();
+  dedupCache.set(u, key);
+  return key;
+}
+const DEDUP_CACHE_MAX = 20_000;
+const dedupCache = new Map<string, string>();
+
+function computeDedupKey(u: string): string {
   try {
     const x = new URL(u);
     const h = x.hostname.replace(/^www\./, '').toLowerCase();

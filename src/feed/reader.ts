@@ -12,12 +12,15 @@ import {
   type SOURCE_ENABLED,
 } from './fetchFeed';
 import type { FetchJson } from './sources/http';
+import type { IncludeRule } from './mustInclude';
 
 export interface FeedRequest {
   /** Every title to search the term sources for (the wide sweep). */
   terms: string[];
   /** Every board link to read. */
   boardUrls: string[];
+  /** The profile's inclusion check (a phone's light board read uses it; fetchFeed `include`). */
+  include?: IncludeRule;
 }
 
 export interface PostingReader {
@@ -31,6 +34,10 @@ export function browserReader(
 ): PostingReader {
   return {
     read: (req, onProgress) =>
-      fetchFeed({ terms: req.terms, boardUrls: req.boardUrls, onProgress }, fetchJson, opts),
+      fetchFeed(
+        { terms: req.terms, boardUrls: req.boardUrls, include: req.include, onProgress },
+        fetchJson,
+        opts,
+      ),
   };
 }

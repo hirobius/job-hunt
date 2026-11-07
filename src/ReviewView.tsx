@@ -70,6 +70,7 @@ import { addJobDetailed } from './store';
 import { notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
+import { usePostingText } from './feed/postingText';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -789,6 +790,8 @@ function PostingDetail({
   actions: RowActions;
 }) {
   usePageTitle(r ? r.title : wide ? 'Find' : null);
+  // Fetched on open when the list was read without it (a phone, or the server's rows).
+  const { text, loading } = usePostingText(r);
   const at = r ? list.findIndex((x) => x.fingerprint === r.fingerprint) : -1;
   const top = !wide && (
     <Stack direction="row" gap="tight" align="center" justify="space-between">
@@ -849,11 +852,13 @@ function PostingDetail({
         <Card as="article" padding="none" aria-label={rowName(r)}>
           <DeckBody>
             <PostingCard r={r} now={now} noTitle actions={actions}>
-              {r.text.trim() && (
+              {text.trim() ? (
                 <Text variant="body" as="p" tone="secondary">
-                  {excerpt(r.text)}
+                  {excerpt(text)}
                 </Text>
-              )}
+              ) : loading ? (
+                <Skeleton variant="text" width="80%" />
+              ) : null}
             </PostingCard>
           </DeckBody>
         </Card>

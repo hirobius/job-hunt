@@ -470,7 +470,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
   `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
-  posting and adds the server's, so signed in is never fewer. Not applied or deployed: see its README.
+  posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
+  `serverFirstReader`, in `useFeed`):** reads the server's rows (with their stored `description_text`, ≤ 20,000
+  characters, and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
+  only the request's rows (its boards; feeds when it searches a title), with one progress call. No rows yet (a new
+  account before its first sync) or a failed read falls back to the browser read, and a company or title added
+  since the last read is read in the browser (the server has not read it yet). **Phones** (`feed/lightBoards.ts`,
+  below lg, only with a titles-only inclusion check): Greenhouse boards are read as the plain list
+  (`greenhouseListUrl`), then each posting the check lets in gets its description from the single-job endpoint
+  (`feed/lightText.ts` `fillTexts`, ≤ 25 per board, outside the list read's 15 s timeout with its own deadline: the list is never lost, texts not read in time load on open), so everything that can be listed ranks exactly as on a full
+  read; an opened posting with no text fetches it (`feed/postingText.ts` `usePostingText`). Pinned in `feed/feedLoad.test.ts`.
   `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
   `feed/postingReader.test.ts`.
 - **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/tracks/feeds/` holds sources only
@@ -824,7 +833,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
   deliberately not built yet.
 - **Job sources slice (2026-10-15, `docs/specs/job-sources.md`).**
   - **No board cap.** `fetchFeed` reads every distinct watched board, 6 at a time (`BOARD_CONCURRENCY`),
-    and calls `onProgress` as each answers; Review new repaints every 250ms with "Read N of M boards".
+    and calls `onProgress` as each answers; Review new repaints every second (was 250 ms, 2026-11-07) with "Read N of M boards".
   - **More sources.** HN also reads the monthly "Freelancer? Seeking freelancer?" thread (only
     SEEKING FREELANCER posts, marked contract). Jobicy and Remote OK sit behind `SOURCE_ENABLED` in
     `fetchFeed.ts` (Jobicy on; Remote OK off until its live legal notice is read and checked), and Workable and Recruitee are watchable boards. All four are

@@ -117,6 +117,19 @@ export function rankAll(postings: Posting[], o: Omit<RankOptions, 'term'>): Rank
   return rankWith(postings, { ...o, term: '' }, () => 'title', 0);
 }
 
+const ownCache = new WeakMap<Posting, { term: string; signals: Signal[]; snippet: string }>();
+function ownWork(p: Posting, term: string): { signals: Signal[]; snippet: string } {
+  const hit = ownCache.get(p);
+  if (hit && hit.term === term) return hit;
+  const work = {
+    term,
+    signals: detectSignals(`${p.title}\n${p.text}`),
+    snippet: snippetAround(p.text, term),
+  };
+  ownCache.set(p, work);
+  return work;
+}
+
 function rankWith(
   postings: Posting[],
   o: RankOptions,
@@ -127,7 +140,10 @@ function rankWith(
   for (const p of postings) {
     const hit = hitOf(p);
     if (!hit || !passesFilters(p, o.where, o.mode)) continue;
-    const signals = detectSignals(`${p.title}\n${p.text}`);
+    // The posting's own work, once per posting object and term: the Feed rebuilds on every repaint
+    // while boards answer (2026-11-07 phone profile: this was half the main thread).
+    const own = ownWork(p, o.term);
+    const signals = own.signals;
     let score = hitScore ?? SCORE[hit];
     for (const s of signals) score += SCORE[s.id];
     const t = p.postedAt ? Date.parse(p.postedAt) : NaN;
@@ -136,7 +152,7 @@ function rankWith(
       if (days <= 14) score += SCORE.fresh;
       else if (days <= 45) score += SCORE.recent;
     }
-    ranked.push({ ...p, hit, signals, score, snippet: snippetAround(p.text, o.term) });
+    ranked.push({ ...p, hit, signals, score, snippet: own.snippet });
   }
   ranked.sort(
     (a, b) =>
