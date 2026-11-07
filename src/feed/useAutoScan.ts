@@ -7,7 +7,7 @@ import { DESIGN_SYSTEMS_TITLES } from '../searchDefaults';
 import { useCloudSync } from '../account/accountContext';
 import { useFeedInputs } from './useFeed';
 import { boardUrlsOf } from './profile';
-import { scanOnOpen, type ScanInput } from './autoScan';
+import { cancelScan, scanOnOpen, type ScanInput } from './autoScan';
 
 /** What to scan for: the profile's titles, inclusion check, Remote only and leave-out words, and
  *  the followed boards. */
@@ -28,16 +28,24 @@ export function useScanInput(): ScanInput {
   );
 }
 
-/** Mounted once in the shell: scans on open when a scan is due. */
+/** Mounted once in the shell: scans on open when a scan is due. Never behind the sign-in screen
+ *  (2026-11-07: on a phone the scan's hundreds of board reads made it crawl, 8 → 300 MB heap and
+ *  ~1 s long tasks): it waits until the screen closes, and a run in flight when it opens stops
+ *  (what it found is kept, and the next start finishes it). */
 export function AutoScanOnOpen(): null {
-  const { settled } = useCloudSync();
+  const { settled, signInOpen } = useCloudSync();
   const input = useScanInput();
   const latest = useRef(input);
   useEffect(() => {
     latest.current = input;
   }, [input]);
   useEffect(() => {
-    if (settled) return scanOnOpen(() => latest.current);
-  }, [settled]);
+    if (!settled) return;
+    if (signInOpen) {
+      cancelScan();
+      return;
+    }
+    return scanOnOpen(() => latest.current);
+  }, [settled, signInOpen]);
   return null;
 }
