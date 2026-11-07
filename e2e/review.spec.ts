@@ -56,8 +56,11 @@ async function setUp(page: Page) {
   // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/find$/);
   await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
-  // Signed out, nothing scans on open (2026-11-07): Scan now does.
+  // The profile has landed (Review new's own controls show), so the page no longer swaps under
+  // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
+  await expect(page.getByRole('radio', { name: 'Browse' })).toBeVisible();
   await page.getByRole('button', { name: 'Scan now' }).click();
+  await expect(page.getByText(/^Not scanned yet/)).toHaveCount(0);
 }
 
 for (const width of [390, 1440]) {
