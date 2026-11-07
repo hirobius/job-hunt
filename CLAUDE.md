@@ -471,7 +471,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   since the last read is read in the browser (the server has not read it yet). **Phones** (`feed/lightBoards.ts`,
   below lg, only with a titles-only inclusion check): Greenhouse boards are read as the plain list
   (`greenhouseListUrl`), then each posting the check lets in gets its description from the single-job endpoint
-  (`feed/lightText.ts` `fillTexts`, ≤ 25 per board), so everything that can be listed ranks exactly as on a full
+  (`feed/lightText.ts` `fillTexts`, ≤ 25 per board, outside the list read's 15 s timeout with its own deadline: the list is never lost, texts not read in time load on open), so everything that can be listed ranks exactly as on a full
   read; an opened posting with no text fetches it (`feed/postingText.ts` `usePostingText`). Pinned in `feed/feedLoad.test.ts`.
   `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
   `feed/postingReader.test.ts`.

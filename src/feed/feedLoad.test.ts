@@ -151,6 +151,33 @@ describe('a phone reads Greenhouse boards without descriptions, and ranks as a f
     expect(light).toEqual(full);
   });
 
+  it('slow description reads never lose the board: the list stays, with the texts read in time', async () => {
+    setLightBoards(true);
+    const fetchJson = vi.fn(async (url: string) => {
+      if (url.endsWith('/jobs/3')) return new Promise(() => {}); // never answers
+      const one = /\/jobs\/(\d+)$/.exec(url);
+      if (one) return JOBS.find((j) => String(j.id) === one[1]);
+      if (url.endsWith('/jobs')) return { jobs: JOBS.map(({ content: _c, ...j }) => j) };
+      return { hits: [], jobs: [] };
+    });
+    const out = await fetchFeed(
+      {
+        terms: ['Design Systems Engineer'],
+        boardUrls: ['https://boards.greenhouse.io/acme'],
+        include,
+      },
+      fetchJson,
+      { kv: { get: () => null, set: () => {} }, sourceTimeoutMs: 100 },
+    );
+    const board = out.sources.find((s) => s.key.includes('acme'))!;
+    expect(board.error).toBeUndefined();
+    expect(board.fetched).toBe(3);
+    const text = (id: number) => out.postings.find((p) => p.id === `greenhouse:acme:${id}`)?.text;
+    expect(text(1)).toContain('design system');
+    // Not read in time: listed with no text (fetched when opened).
+    expect(text(3)).toBe('');
+  });
+
   it('a check that reads descriptions keeps the full read', async () => {
     setLightBoards(true);
     const asked: string[] = [];

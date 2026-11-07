@@ -34,7 +34,14 @@ export async function fillTexts(
   postings: Posting[],
   fetchJson: FetchJson,
   wanted: (p: Posting) => boolean,
-  max = MAX_TEXTS_PER_BOARD,
+  {
+    max = MAX_TEXTS_PER_BOARD,
+    deadlineMs,
+  }: {
+    max?: number;
+    /** Give back the list with the texts read by then (the rest stay empty, fetched on open). */
+    deadlineMs?: number;
+  } = {},
 ): Promise<Posting[]> {
   const todo = new Set(
     postings
@@ -43,10 +50,18 @@ export async function fillTexts(
       .map((p) => p.id),
   );
   if (!todo.size) return postings;
-  const texts = new Map(
-    await Promise.all(
-      [...todo].map(async (id) => [id, await greenhouseText(id, fetchJson)] as const),
-    ),
+  // Each text lands in the map as it answers, so a deadline keeps the ones read so far.
+  const texts = new Map<string, string>();
+  const all = Promise.all(
+    [...todo].map(async (id) => {
+      const text = await greenhouseText(id, fetchJson);
+      if (text) texts.set(id, text);
+    }),
   );
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await (deadlineMs === undefined
+    ? all
+    : Promise.race([all, new Promise<void>((done) => (timer = setTimeout(done, deadlineMs)))]));
+  clearTimeout(timer);
   return postings.map((p) => (texts.get(p.id) ? { ...p, text: texts.get(p.id)! } : p));
 }

@@ -346,6 +346,9 @@ interface SourceTask {
   label: string;
   board?: Board;
   run: () => Promise<Posting[]>;
+  /** Work after the read that must never cost it (a phone's description reads): it runs outside
+   *  the read's timeout, with its own deadline, and gives back what it has by then. */
+  after?: (read: Posting[]) => Promise<Posting[]>;
 }
 
 /** Reject with a timeout FetchError if `p` hasn't settled in `ms` (the source is then reported failed). */
@@ -469,9 +472,16 @@ export async function fetchFeed(
   const light = !!include && lightBoards() && !includeFields(include).text ? include : null;
   const readBoard = async (b: Board): Promise<Posting[]> => {
     if (!light || b.kind !== 'greenhouse') return fetchBoard(b, fetchJson);
-    const list = await fetchBoard(b, fetchJson, { light: true });
-    return fillTexts(list, fetchJson, (p) => passesInclude(light, p.title, ''));
+    return fetchBoard(b, fetchJson, { light: true });
   };
+  // Outside the list read's timeout (#498 review): a slow description read never loses the board.
+  const fillBoard = (b: Board) =>
+    light && b.kind === 'greenhouse'
+      ? (list: Posting[]) =>
+          fillTexts(list, fetchJson, (p) => passesInclude(light, p.title, ''), {
+            deadlineMs: sourceTimeoutMs,
+          })
+      : undefined;
   const all: SourceTask[] = [
     ...terms.flatMap(termTasks),
     // A whole-feed board (designsystems.jobs, WWR) is read once per search, like a watched board,
@@ -488,6 +498,7 @@ export async function fetchFeed(
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
       board: b,
       run: () => readBoard(b),
+      after: fillBoard(b),
     })),
   ];
   const tasks = req.only ? all.filter((t) => req.only!.includes(t.key)) : all;
@@ -529,7 +540,10 @@ export async function fetchFeed(
   let settled: PromiseSettledResult<Posting[]>[];
   try {
     settled = await settleAll(
-      tasks.map((t) => () => withTimeout(t.run(), sourceTimeoutMs)),
+      tasks.map((t) => async () => {
+        const read = await withTimeout(t.run(), sourceTimeoutMs);
+        return t.after ? t.after(read) : read;
+      }),
       (i) => !!tasks[i].board,
       (i, r) => {
         results[i] = r;
