@@ -27,7 +27,7 @@ describe('serverUpdatedLine (#448)', () => {
 });
 
 describe('"Updated N min ago" is not announced every minute (#448 review)', () => {
-  it('sits outside the scan line\'s live region', async () => {
+  it("sits outside the scan line's live region", async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync('src/AutoScanViews.tsx', 'utf8');
     const block = src.slice(src.indexOf('{updated && ('), src.indexOf('{line}'));
