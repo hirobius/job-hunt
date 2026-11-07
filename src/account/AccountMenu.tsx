@@ -20,9 +20,8 @@ import { useDocuments } from '../documents';
 import { clearLocalData } from '../localReset';
 import { useColorMode } from '../ColorMode';
 import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
-import { getRoute, navigate, withOrigin } from '../route';
+import { openDocuments, openLegal } from '../route';
 import { useBackCloses } from '../useBackCloses';
-import { LEGAL_ROUTE } from '../legalRoute';
 import { openExportLinks } from '../exportLinks';
 import { CompaniesDialog, SearchProfileDialog, useLoadedWhen } from '../lazyDialogs';
 import { openRecentlyRemoved } from '../jobDialogs';
@@ -119,9 +118,9 @@ export default function AccountMenu() {
             </>
           )}
           <Menu.Separator />
-          {/* Documents (was Templates, #227) has no tab (#240); it opens from here and the Apply
-              sheet, remembering the page it was opened from so its Back returns there. */}
-          <Menu.Item onSelect={() => navigate(withOrigin({ tab: 'copy-deck' }, getRoute()))}>
+          {/* Documents (was Templates, #227) is a dialog over the page (#471 slice 4); it opens from
+              here and the Apply sheet, and Back or Close returns to the page under it. */}
+          <Menu.Item onSelect={() => openDocuments('')}>
             Documents
           </Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
@@ -145,7 +144,7 @@ export default function AccountMenu() {
             Send feedback
           </Menu.Item>
           <Menu.Item
-            onSelect={() => navigate(withOrigin({ tab: LEGAL_ROUTE, sub: 'privacy' }, getRoute()))}
+            onSelect={() => openLegal('privacy')}
           >
             Privacy and terms
           </Menu.Item>

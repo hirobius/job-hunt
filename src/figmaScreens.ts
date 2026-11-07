@@ -48,8 +48,9 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
     id: 'templates',
     // Templates became the Documents library (#227); the frame id and shot keep their names.
     title: 'Documents',
-    route: '#/copy-deck/tpl-outreach',
-    tab: 'copy-deck',
+    // A dialog over the open tab since #471 slice 4.
+    route: '#/find?documents=tpl-outreach',
+    tab: 'find',
     sources: [
       { file: 'src/DocumentsView.tsx', component: 'DocumentsView' },
       { file: 'src/DocumentsLibrary.tsx', component: 'DocumentsLibrary' },

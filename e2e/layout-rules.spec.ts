@@ -228,7 +228,7 @@ function probe(page: Page) {
           );
       });
       // 8. Back links ("← Pipeline", "Back to companies"): the arrow lines up with the page
-      // heading (rev-3), never inset by the tertiary Button's leading padding.
+      // heading (rev-3), or the dialog's, never inset by the tertiary Button's leading padding.
       const h1 = [...document.querySelectorAll('h1')].find(visible);
       if (h1)
         document.querySelectorAll('a, button').forEach((el) => {
@@ -236,8 +236,11 @@ function probe(page: Page) {
           const arrow = el.firstElementChild;
           if (!visible(el) || !/^(Back|All documents)/.test(name) || arrow?.tagName !== 'svg')
             return;
+          // In a dialog (Documents, #471 slice 4) it lines up with the dialog's own heading.
+          const dialog = el.closest('[role="dialog"]');
+          const head = dialog ? (dialog.querySelector('h2') ?? h1) : h1;
           const d = Math.round(
-            arrow.getBoundingClientRect().left - h1.getBoundingClientRect().left,
+            arrow.getBoundingClientRect().left - head.getBoundingClientRect().left,
           );
           if (Math.abs(d) > 1) out.push(`back inset: ${label(el)} arrow is ${d}px off the heading`);
         });

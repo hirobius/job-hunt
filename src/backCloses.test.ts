@@ -17,8 +17,10 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-/** Sheets whose open state, and so their Back wiring, lives in the file that mounts them. */
-const WIRED_ELSEWHERE: Record<string, number> = {};
+/** Sheets whose open state, and so their Back wiring, lives elsewhere: the Documents and Legal
+ *  dialogs' open state is the route (`?documents=`, `?legal=`, #471 slice 4), so opening one pushes
+ *  its own history entry and the browser's Back closes it (route.ts `closeDialog`). */
+const WIRED_ELSEWHERE: Record<string, number> = { 'DocumentsView.tsx': 1, 'LegalPage.tsx': 1 };
 
 /** An overlay root's opening tag: `<Dialog`, `<AlertDialog`, `<Menu`, `<HdsMenu`, `<Popover`. */
 const ROOT = /<(?:Dialog|AlertDialog|Menu|HdsMenu|Popover)(?=[\s>])[^>]*>/g;

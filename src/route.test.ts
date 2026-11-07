@@ -13,6 +13,11 @@ import {
   subscribeScrollRestore,
   backInFlight,
   redirectOf,
+  closeDialog,
+  documentsHash,
+  openDocuments,
+  openLegal,
+  resetHistoryRecord,
   type Route,
 } from './route';
 import { jobIdOf } from './store';
@@ -191,16 +196,9 @@ describe('route — withOrigin records where a jump came from', () => {
   });
 
   it("leaves it out when the origin is the page's own default way back", () => {
-    // A job, a Company and Documents go back to the Apply list by default; an open document goes
-    // back to the library; the legal pages to Find.
+    // A job and a Company go back to the Apply list by default, a selected posting to Find.
     expect(buildHash(withOrigin({ tab: 'apply', jobId: 'A' }, at('#/apply')))).toBe('#/apply/A');
-    expect(buildHash(withOrigin({ tab: 'copy-deck' }, at('#/apply')))).toBe('#/copy-deck');
-    expect(buildHash(withOrigin({ tab: 'copy-deck', sub: 'd1' }, at('#/copy-deck')))).toBe(
-      '#/copy-deck/d1',
-    );
-    expect(buildHash(withOrigin({ tab: 'legal', sub: 'privacy' }, at('#/find')))).toBe(
-      '#/legal/privacy',
-    );
+    expect(buildHash(withOrigin({ tab: 'find', sub: 'p1' }, at('#/find')))).toBe('#/find/p1');
   });
 
   it("keeps one level of the origin's own origin, so two Backs still work", () => {
@@ -307,7 +305,7 @@ describe('route — goBackTo', () => {
   });
 
   it('a goBackTo to another page asked while a pop is in flight runs once it has landed', async () => {
-    window.location.hash = '#/copy-deck/d8';
+    window.location.hash = '#/other/d8';
     await settle();
     window.location.hash = '#/company/twice3-co';
     await settle();
@@ -317,19 +315,19 @@ describe('route — goBackTo', () => {
     expect(backInFlight()).toBe(true);
     // Asked again before the pop lands: once it has, the Company is behind no more, so this one
     // goes on to where it was then asked to go (a document), exactly once.
-    goBackTo(parseHash('#/copy-deck/d8'));
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/d8'));
+    goBackTo(parseHash('#/other/d8'));
+    await waitFor(() => expect(window.location.hash).toBe('#/other/d8'));
     await settle();
-    expect(window.location.hash).toBe('#/copy-deck/d8');
+    expect(window.location.hash).toBe('#/other/d8');
     expect(backInFlight()).toBe(false);
   });
 
   it('replaces the current entry when the page is not behind it (a cold load)', async () => {
-    window.location.hash = '#/legal/terms?from=%2Fcopy-deck%2Fd9';
+    window.location.hash = '#/other2/terms?from=%2Fother%2Fd9';
     await settle();
     const length = window.history.length;
-    goBackTo(parseHash('#/copy-deck/d9'));
-    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/d9'));
+    goBackTo(parseHash('#/other/d9'));
+    await waitFor(() => expect(window.location.hash).toBe('#/other/d9'));
     expect(window.history.length).toBe(length);
   });
 });
@@ -403,11 +401,78 @@ describe('route — old routes redirect in place (simplify Q6, #471: two tabs, F
   it('navigate and goBackTo never write an old route', async () => {
     navigate({ tab: 'discover', sub: 'ats' });
     expect(window.location.hash).toBe('#/find');
-    window.location.hash = '#/legal/terms';
-    await waitFor(() => expect(getRoute().tab).toBe('legal'));
+    window.location.hash = '#/other2/terms';
+    await waitFor(() => expect(getRoute().tab).toBe('other2'));
     goBackTo(parseHash('#/discover/ats'));
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
     navigate({ tab: 'queue', sub: 'k3x9a1' });
     expect(window.location.hash).toBe('#/apply/k3x9a1');
+  });
+});
+
+describe('route — Documents and Legal are dialogs over a page (#471 slice 4)', () => {
+  const settle = () => new Promise((r) => setTimeout(r, 30));
+
+  it.each([
+    ['#/copy-deck', { tab: 'find', documents: '' }],
+    ['#/copy-deck/tpl-cover', { tab: 'find', documents: 'tpl-cover' }],
+    ['#/copy-deck/new/outreach', { tab: 'find', documents: 'new/outreach' }],
+    ['#/copy-deck/d1?from=%2Fapply%2Fk3', { tab: 'apply', jobId: 'k3', documents: 'd1' }],
+    ['#/copy-deck?from=%2Fqueue%2Fk3', { tab: 'apply', jobId: 'k3', documents: '' }],
+    ['#/legal/terms', { tab: 'find', legal: 'terms' }],
+    ['#/legal', { tab: 'find', legal: 'privacy' }],
+    ['#/legal/privacy?from=%2Fapply', { tab: 'apply', legal: 'privacy' }],
+  ])('an old %s opens the dialog over the page it came from', (hash, want) => {
+    expect(redirectOf(parseHash(hash))).toMatchObject(want);
+  });
+
+  it('the dialog rides in the query and round-trips', () => {
+    expect(buildHash({ ...parseHash('#/apply/k3'), documents: 'new/outreach' })).toBe(
+      '#/apply/k3?documents=new%2Foutreach',
+    );
+    expect(parseHash('#/apply/k3?documents=').documents).toBe('');
+    expect(parseHash('#/find?legal=terms').legal).toBe('terms');
+    expect(documentsHash('', parseHash('#/apply/k3?from=%2Ffind'))).toBe(
+      '#/apply/k3?from=%2Ffind&documents=',
+    );
+  });
+
+  it('opening pushes an entry, a step inside pushes, and Close pops to the page as it was', async () => {
+    window.location.hash = '#/apply/dlg1';
+    await settle();
+    const length = window.history.length;
+    openDocuments('');
+    await settle();
+    expect(window.location.hash).toBe('#/apply/dlg1?documents=');
+    openDocuments('d1');
+    await settle();
+    expect(window.location.hash).toBe('#/apply/dlg1?documents=d1');
+    expect(window.history.length).toBe(length + 2);
+    closeDialog();
+    await waitFor(() => expect(window.location.hash).toBe('#/apply/dlg1'));
+    await settle();
+    expect(backInFlight()).toBe(false);
+  });
+
+  it('a dialog opened by a link (nothing behind it) closes in place', async () => {
+    window.location.hash = '#/find?legal=terms';
+    await settle();
+    resetHistoryRecord();
+    closeDialog();
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+  });
+
+  it('another page closes the dialog; the Legal tabs swap in place', async () => {
+    window.location.hash = '#/apply/dlg2';
+    await settle();
+    openLegal('privacy');
+    await settle();
+    const length = window.history.length;
+    openLegal('terms', true);
+    expect(window.location.hash).toBe('#/apply/dlg2?legal=terms');
+    expect(window.history.length).toBe(length);
+    navigate({ tab: 'find', jobId: null });
+    await settle();
+    expect(window.location.hash).toBe('#/find');
   });
 });

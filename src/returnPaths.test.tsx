@@ -178,8 +178,9 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     await userEvent.click(screen.getByRole('button', { name: 'Add Name' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Pla');
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
-    await heading('Documents');
-    await userEvent.click(screen.getByRole('link', { name: /^Back to Fabricator/ }));
+    // Documents is a dialog over the job (#471 slice 4): Close returns to it as it was.
+    const docs = await screen.findByRole('dialog', { name: 'Documents' });
+    await userEvent.click(within(docs).getByRole('button', { name: /Close/ }));
     await at(`#/apply/${idA}`);
     expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveValue('Sam Pla');
     // Cancel closes it, and the next visit starts closed.
@@ -187,13 +188,13 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
   });
 
-  it('Edit documents: Documents names the job, and saving a message comes straight back', async () => {
+  it('Edit documents: Documents opens over the job, and saving a message comes straight back', async () => {
     window.location.hash = `#/apply/${jobIdOf(C)}`;
     renderApp();
     await heading('Machinist');
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
-    await heading('Documents');
-    expect(screen.getByRole('link', { name: 'Back to Machinist' })).toBeVisible();
+    await screen.findByRole('dialog', { name: 'Documents' });
+    await at(`#/apply/${jobIdOf(C)}?documents=`);
     const outreach = screen.getByRole('region', { name: 'Outreach messages' });
     await userEvent.click(within(outreach).getByRole('button', { name: /Cold intro/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Open Cold intro' }));
@@ -210,30 +211,32 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
 });
 
 describe('pages opened from the Account menu', () => {
-  it('Documents from a job page names the job and goes back to it', async () => {
+  it('Documents opens over a job page; the browser Back closes it on the job', async () => {
     window.location.hash = `#/apply/${idA}`;
     renderApp();
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Documents' }));
-    await heading('Documents');
-    await userEvent.click(screen.getByRole('link', { name: 'Back to Fabricator' }));
+    await screen.findByRole('dialog', { name: 'Documents' });
+    await at(`#/apply/${idA}?documents=`);
+    window.history.back();
     await at(`#/apply/${idA}`);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await heading('Fabricator');
   });
 
-  it('Privacy and terms from the Pipeline goes back there, also after swapping to the Terms', async () => {
+  it('Privacy and terms over the Apply list closes back there, also after swapping to the Terms', async () => {
     window.location.hash = '#/apply';
     renderApp();
     await heading('Apply');
     await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Privacy and terms' }));
-    await heading('Privacy policy');
+    const legal = await screen.findByRole('dialog', { name: 'Privacy and terms' });
     const length = window.history.length;
-    await userEvent.click(screen.getByRole('link', { name: 'Terms of use' }));
-    await heading('Terms of use');
+    await userEvent.click(within(legal).getByRole('tab', { name: 'Terms of use' }));
+    await at('#/apply?legal=terms');
     expect(window.history.length).toBe(length);
-    await userEvent.click(screen.getByRole('link', { name: 'Back to Apply' }));
+    await userEvent.click(within(legal).getByRole('button', { name: /Close/ }));
     await at('#/apply');
   });
 });
@@ -292,7 +295,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   };
 
   it('Sign in, picked from the Account menu, with an email typed', async () => {
-    await over('#/copy-deck', '#/apply');
+    await over('#/find', '#/apply');
     await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign in to sync…' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
@@ -302,7 +305,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     await closesOnBack(() => screen.queryByRole('dialog', { name: 'Sign in' }), '#/apply');
     // No step left behind by the menu: the next Back leaves the page.
     window.history.back();
-    await at('#/copy-deck');
+    await at('#/find');
   });
 
   it('Recently removed', async () => {
@@ -337,14 +340,14 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   });
 
   it("Remove from a job page opened on its own: Back doesn't come back to the removed job", async () => {
-    await over('#/copy-deck', `#/apply/${idA}`);
+    await over('#/find', `#/apply/${idA}`);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     await at('#/apply');
     await new Promise((r) => setTimeout(r, 80));
     window.history.back();
-    await at('#/copy-deck');
+    await at('#/find');
   });
 
   it('closing it on screen leaves no extra step for Back', async () => {
@@ -455,7 +458,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     await startAt('#/apply', `#/apply/${idA}`);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
-    await heading('Documents');
+    await screen.findByRole('dialog', { name: 'Documents' });
     const library = window.location.hash;
     const outreach = screen.getByRole('region', { name: 'Outreach messages' });
     await userEvent.click(within(outreach).getByRole('button', { name: /Cold intro/ }));
@@ -504,10 +507,10 @@ describe('one navigation per Remove, Delete or double click', () => {
     await startAt('#/apply', `#/apply/${idA}`);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
-    await heading('Documents');
+    await screen.findByRole('dialog', { name: 'Documents' });
     const before = getAllDocuments().length;
     await userEvent.click(screen.getByRole('button', { name: 'New résumé' }));
-    await heading('New résumé');
+    await screen.findByRole('heading', { level: 2, name: 'New résumé' });
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Ten years of welding.');
     const pops = countPops();
     doubleClick(screen.getByRole('button', { name: 'Save' }));

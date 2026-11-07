@@ -21,7 +21,7 @@ async function open(page: Page) {
     if (!localStorage.getItem('rjb_documents'))
       localStorage.setItem('rjb_documents', JSON.stringify(d));
   }, DOCS);
-  await page.goto('/#/copy-deck/msg-x');
+  await page.goto('/#/find?documents=msg-x');
 }
 const preview = (page: Page) => page.getByRole('region', { name: 'Preview' });
 const stored = (page: Page) =>

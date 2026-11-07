@@ -163,11 +163,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   "← Apply" and the "‹ 2 of N ›" pager over the list as it shows (`ApplyPager.tsx`, label "Jobs in the list";
   none for a job the list hides). A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
-  `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). Still to come (#471): Documents and Legal as dialogs. **Company (slice 2):** `#/apply/company/<slug>`
+  `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
 - **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
-  tab-less pages (Documents, legal, a job, Apply mode, a Company). `types.ts` holds the Job model.
+  tab pages (a job, a posting, a Company) and two dialogs over them (Documents, Privacy and terms; #471 slice 4). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Today.
 - **Design-systems only (Adrian 2026-10-29):** content is design systems and nothing else. The one starter pack
   is Design Systems (`curation/starterPacks.ts` `STARTER_PACKS`; `radar/directory.ts` `DIRECTORY_BY_PACK` /
@@ -306,10 +306,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   when the place line doesn't say it, pay left and Save right in the footer, Skip / Not this company under it);
   `calmLayout.test.tsx` fails on any Card inside a Card.
   Pinned in `src/calmLayout.test.tsx`.
-- **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
-  is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
-  Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to
-  Pipeline. `DocumentsLibrary` is a `Panel` per kind (count, "New" in the header) of HDS Disclosure
+- **Documents library (#227; replaced Templates #132; a dialog since #471 slice 4):** one HDS `Dialog`
+  (`DocumentsView.tsx`, size xl, titled "Documents") over the page it was asked from: `?documents=` on
+  that page's hash (`''` the library, a document's id, `new/<kind>` a New editor; `route.documents`,
+  `documentsHash` / `openDocuments` / `dialogStepBack` / `closeDialog`; `pageKey` ignores it). At lg the
+  library is the left column (`listOnly`) and the open document's editor the right ("Pick a document"
+  until one is open; a pick replaces the entry); below lg one view, an open pushes and the editor's Back
+  steps back. Close, Escape and the browser's Back shut it on the page (a pop when the dialog-less entry
+  is just behind, else in place); opened over a job, a Save closes it there. Old `#/copy-deck[/<id>]`
+  links redirect in place to their `?from=` page (else Find) with the dialog open. Reached from the
+  Account menu's Documents item and the Apply sheet's Edit documents link. Headings in it are h2 (the
+  page keeps its h1). `DocumentsLibrary` is a `Panel` per kind (count, "New" in the header) of HDS Disclosure
   rows, one open at a time (redesign slice 3, rev-3 M): closed, the title and its variables as chips;
   open, the first lines (`templateFill.previewText`, cut on a word or blank boundary) with Copy, Open
   (the editor) and a menu (Pin, Duplicate, Delete). `DocumentEditor` (rev-3 N: the document's title as
@@ -553,8 +560,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   answered; recorded Greenhouse/Lever/Ashby answers in `src/tracks/fixtures/` back `rotationDryRun.test.ts` and
   `npm run sync:dry-run -- --rotate --fixtures` (offline). Arbeitnow, Remote OK and WWR hosts were refused by the build
   network, so those stay unverified live.
-- **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
-  like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
+- **Privacy and terms (#43, #47; a dialog since #471 slice 4):** one HDS `Dialog` (`LegalPage.tsx`,
+  "Privacy and terms") with two HDS Tabs, Privacy policy and Terms of use, over the open page:
+  `?legal=privacy|terms` (`openLegal`; a tab swaps in place, Back closes). Old `#/legal/<doc>` links
+  redirect to it in place. Menu item "Privacy and terms", last before Sign out. The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
   false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced

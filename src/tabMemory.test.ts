@@ -17,6 +17,7 @@ describe('tab memory', () => {
   it('remembers the last route of each top tab', async () => {
     await visit('#/apply/abc?section=screening');
     await visit('#/find');
+    // An old Documents link opens the dialog over Find; the tab is still left at Find.
     await visit('#/copy-deck');
     expect(lastRouteOf('apply')).toBe('#/apply/abc?section=screening');
     expect(lastRouteOf('find')).toBe('#/find');

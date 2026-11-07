@@ -30,7 +30,6 @@ import { useViewEnter } from './viewEnter';
 import { BrandLogo } from './brand/Flame';
 import { BootHold } from './brand/BootHold';
 import { needsClientAtBoot } from './supabase';
-import { LEGAL_ROUTE } from './legalRoute';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
@@ -48,7 +47,7 @@ import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNoti
 import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
 import { STATUSES, type Status } from './types';
-import { CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
+import { PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
 import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
@@ -77,7 +76,6 @@ const AutoScanOnOpen = lazy(() =>
 // Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
 // from the Apply sheet and the Menu.
 const TAB_SLUGS = [FIND_TAB, APPLY_TAB] as const;
-const DOCUMENTS_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
 // Find is home; quick-add always shows the Apply list, where the new job is.
 const HOME_ROUTE = FIND_TAB;
@@ -139,24 +137,22 @@ export default function App() {
   // A Company's page (#/apply/company/<slug>, #230, #471) is in the Apply tab.
   const companySlug = companySlugOf(route);
   const company = companySlug !== null;
-  const documents = route.tab === DOCUMENTS_ROUTE;
-  // The Privacy policy and Terms (#43): pages with no tab, like Documents.
-  const legal = route.tab === LEGAL_ROUTE;
+  // Documents and the Privacy policy and Terms are dialogs over the page (#471 slice 4).
+  const documents = route.documents !== null && route.documents !== undefined;
+  const legal = !!route.legal;
   // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
   // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
   const slugs: string[] = [...TAB_SLUGS];
-  const known: string[] = [...slugs, DOCUMENTS_ROUTE, LEGAL_ROUTE];
+  const known: string[] = [...slugs];
   const notFound = route.tab !== '' && !isAuthCallback(route) && !known.includes(route.tab);
-  const noTab = documents || legal || notFound;
+  const noTab = notFound;
   const slugIndex = slugs.indexOf(route.tab);
   const tabSlug = slugIndex >= 0 ? slugs[slugIndex] : slugs[defaultTabIndex];
   // The section pages' titles; a job, a Company and the legal pages set their own.
   usePageTitle(
     notFound
       ? 'Page not found'
-      : documents
-        ? 'Documents'
-        : company || legal || route.jobId || postingOf(route)
+      : documents || legal || company || route.jobId || postingOf(route)
           ? null
           : tabSlug === APPLY_TAB
             ? 'Apply'
@@ -346,7 +342,7 @@ export default function App() {
                         </Suspense>
                       </TabsContent>
                       {documents && (
-                        <Suspense fallback={<CopyDeckSkeleton />}>
+                        <Suspense fallback={null}>
                           <DocumentsView />
                         </Suspense>
                       )}

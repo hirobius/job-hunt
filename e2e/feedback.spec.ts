@@ -288,7 +288,7 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
 });
 
 test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({ page }) => {
-  await go(page, '#/copy-deck');
+  await go(page, '#/find?documents=');
   const row = button(page, /^Follow-up after applying/);
   await press(page, row, 'Open a document row');
   await press(page, button(page, 'Copy'), 'Copy');
@@ -319,16 +319,19 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   // It comes back as it was: still the open row.
   await press(page, button(page, 'Open Follow-up after applying'), 'Open');
   for (const name of ['New résumé', 'New cover letter', 'New outreach message', 'New note']) {
-    await go(page, '#/copy-deck');
+    await go(page, '#/find?documents=');
     await press(page, button(page, name), name);
   }
 
   // The editor: its menus, the variables panel and Save.
-  await go(page, '#/copy-deck/tpl-outreach');
-  for (const name of ['Insert variable', 'More actions', /^Version history/]) {
+  await go(page, '#/find?documents=tpl-outreach');
+  for (const name of ['Insert variable', 'More actions']) {
     await press(page, button(page, name), String(name));
     await closeOverlay(page);
   }
+  // Version history opens in place: a second press shuts it (Escape would close Documents itself).
+  await press(page, button(page, /^Version history/), 'Version history');
+  await button(page, /^Version history/).click();
   await press(page, page.getByRole('combobox', { name: /^Fill for: / }), 'Fill for');
   await closeOverlay(page);
   await press(page, button(page, 'Copy filled text'), 'Copy filled text');

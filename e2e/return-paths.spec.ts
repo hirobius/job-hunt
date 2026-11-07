@@ -128,7 +128,7 @@ for (const width of [390, 800] as const) {
       await expectScroll(page, before);
     });
 
-    test("a job's pager moves in place, Back leaves in one step; Documents names the job", async ({
+    test("a job's pager moves in place, Back leaves in one step; Documents opens over the job", async ({
       page,
     }) => {
       await go(page, '#/apply');
@@ -147,10 +147,12 @@ for (const width of [390, 800] as const) {
       await jobsPanel(page).locator('a[href^="#/apply/"]').nth(1).click();
       await expect(pager.getByText(`2 of ${of}`)).toBeVisible();
 
-      // Edit documents: Documents names the job, and Back returns to it.
+      // Edit documents: Documents opens over the job (#471 slice 4), and the browser's Back closes it.
       const job = (await page.getByRole('heading', { level: 1 }).first().textContent())!.trim();
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page.getByRole('link', { name: `Back to ${job}` }).click();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
+      await page.goBack();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toHaveCount(0);
       await expect(page).toHaveURL(/#\/apply\//);
       await expect(pager.getByText(`2 of ${of}`)).toBeVisible();
       await expect(page.getByRole('heading', { level: 1, name: job })).toBeVisible();
@@ -259,7 +261,7 @@ for (const width of [390, 800] as const) {
       const next = jobsPanel(page).locator('a[href^="#/apply/"]').first();
       const id = (await next.getAttribute('href'))!.replace('#/apply/', '');
       const nextTitle = (await next.textContent())!.trim();
-      await go(page, '#/copy-deck');
+      await go(page, '#/find?documents=');
       await go(page, '#/find');
       await go(page, `#/apply/${id}?from=%2Ffind`);
       await expect(page.getByRole('heading', { level: 1, name: nextTitle })).toBeVisible();
@@ -277,7 +279,7 @@ for (const width of [390, 800] as const) {
     }) => {
       await openApply(page);
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const library = await page.evaluate(() => location.hash);
       const outreach = page.getByRole('region', { name: 'Outreach messages' });
       await outreach.locator('button[aria-expanded]').first().click();
@@ -300,13 +302,14 @@ for (const width of [390, 800] as const) {
       // The dev server runs effects twice on mount (StrictMode): each fallback still goes back once.
       const hash = () => page.evaluate(() => location.hash);
       const cases: [string, string, string][] = [
-        ['#/apply', '#/copy-deck/does-not-exist?from=%2Fapply', '#/apply'],
+        // A document is a dialog over the page (#471 slice 4): an unknown one shows the library.
+        ['#/apply', '#/apply?documents=does-not-exist', '#/apply?documents='],
         ['#/find', '#/apply/nojob123?from=%2Ffind', '#/find'],
         ['#/apply', '#/apply/nojob123', '#/apply'],
       ];
       for (const [origin, unknown, lands] of cases) {
         // Another page behind the origin, so a second pop would have somewhere to go.
-        await go(page, '#/copy-deck');
+        await go(page, '#/find?documents=');
         await go(page, origin);
         await go(page, unknown);
         await expect.poll(hash).toBe(lands);
@@ -350,7 +353,7 @@ for (const width of [390, 800] as const) {
       await expect(page).toHaveURL(/#\/apply\//);
       const apply = await hash();
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const count = () =>
         page.evaluate(() => JSON.parse(localStorage.getItem('rjb_documents') || '[]').length);
       const docs = await count();
@@ -408,12 +411,15 @@ for (const width of [390, 800] as const) {
       const field = page.getByRole('textbox', { name: label, exact: true });
       await field.fill('Half typ');
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page.getByRole('link', { name: /^Back to / }).click();
-      await expect(page).toHaveURL(/#\/apply\//);
+      await page
+        .getByRole('dialog', { name: 'Documents' })
+        .getByRole('button', { name: 'Close' })
+        .click();
+      await expect(page).toHaveURL(/#\/apply\/[^?]+$/);
       await expect(field).toHaveValue('Half typ');
       // And the browser's Back.
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page).toHaveURL(/#\/copy-deck/);
+      await expect(page).toHaveURL(/documents=/);
       await page.goBack();
       await expect(page).toHaveURL(/#\/apply\//);
       await expect(field).toHaveValue('Half typ');

@@ -12,7 +12,7 @@ async function seed(page: Page) {
   await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
-  await go(page, '#/copy-deck');
+  await go(page, '#/find?documents=');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
@@ -109,13 +109,13 @@ for (const theme of ['light', 'dark'] as const) {
         await page.keyboard.press('Escape');
         await expect(page.getByRole('dialog')).toBeHidden();
 
-        await go(page, '#/copy-deck');
+        await go(page, '#/find?documents=');
         // A row expands in place (rev-3 M): axe it open, then Open goes to the editor.
         await page.getByRole('button', { name: 'Follow-up after applying' }).click();
         await page.waitForTimeout(300);
         bad.push(...(await axe(page, 'document row open')));
         await page.getByRole('button', { name: 'Open Follow-up after applying' }).click();
-        await expect(page).toHaveURL(/#\/copy-deck\/./);
+        await expect(page).toHaveURL(/documents=./);
         await page.waitForTimeout(500);
         bad.push(...(await axe(page, 'outreach editor')));
 
@@ -169,7 +169,7 @@ test.describe('the open top tab panel is not a Tab stop (#364)', () => {
 test.describe('keyboard only', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('Menu → Documents → back to the Pipeline, and Menu → Privacy and terms → back again', async ({
+  test('Menu → Documents → Escape back on Apply, and Menu → Privacy and terms → Escape again', async ({
     page,
   }) => {
     await seed(page);
@@ -179,11 +179,15 @@ test.describe('keyboard only', () => {
     await expect(page.getByRole('menu')).toBeVisible();
     await arrowTo(page, 'Documents', 'ArrowDown');
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#\/copy-deck$/);
-    await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible();
-    expect(await tabTo(page, 'Back to Apply')).toBe(true);
-    await page.keyboard.press('Enter');
+    // A dialog over the page it was asked from (#471 slice 4); Escape closes it there.
+    await expect(page).toHaveURL(/#\/apply\?documents=$/);
+    const docs = page.getByRole('dialog', { name: 'Documents' });
+    await expect(docs).toBeVisible();
+    expect(await docs.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(docs).toBeHidden();
     await expect(page).toHaveURL(/#\/apply$/);
+    await expect.poll(() => focused(page)).toMatch(/^BUTTON Account/);
 
     await page.getByRole('button', { name: /^Account/ }).focus();
     await page.keyboard.press('Enter');
@@ -191,12 +195,15 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('End');
     await arrowTo(page, 'Privacy and terms', 'ArrowUp');
     await page.keyboard.press('Enter');
-    // Opened from the Pipeline, the page remembers it and its Back goes there (return paths).
-    await expect(page).toHaveURL(/#\/legal\/privacy\?from=%2Fapply$/);
-    // React 19 holds a lazy page's reveal a beat (Suspense throttle): tab once it is on screen.
-    await expect(page.getByRole('heading', { name: 'Privacy policy' })).toBeVisible();
-    expect(await tabTo(page, 'Back to Apply')).toBe(true);
-    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/#\/apply\?legal=privacy$/);
+    const legal = page.getByRole('dialog', { name: 'Privacy and terms' });
+    await expect(legal.getByRole('tab', { name: 'Privacy policy', selected: true })).toBeVisible();
+    // The tabs swap in place with the arrow keys.
+    await legal.getByRole('tab', { name: 'Privacy policy' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page).toHaveURL(/#\/apply\?legal=terms$/);
+    await page.keyboard.press('Escape');
+    await expect(legal).toBeHidden();
     await expect(page).toHaveURL(/#\/apply$/);
   });
 
@@ -279,7 +286,17 @@ for (const width of [390, 1440] as const) {
       }
       // A page never seen before gets its heading.
       await go(page, '#/legal/terms');
-      await expect.poll(() => focused(page)).toBe('H1 Terms of use');
+      // Legal is a dialog now (#471 slice 4): focus goes into it.
+      await expect(page.getByRole('dialog', { name: 'Privacy and terms' })).toBeVisible();
+      await expect
+        .poll(() =>
+          page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]')),
+        )
+        .toBe(true);
+      // Opened by a link, it has no opener: closing hands focus to the page's heading.
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect.poll(() => focused(page)).toBe('H1 Find');
       // A top tab keeps focus on the tab (it is still there).
       await page.getByRole('tab', { name: 'Find' }).focus();
       await page.keyboard.press('Enter');

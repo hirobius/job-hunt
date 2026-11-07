@@ -5,10 +5,11 @@ import { expect, type Page } from '@playwright/test';
 export const ROUTES = [
   '#/find',
   '#/apply',
-  '#/copy-deck',
-  '#/copy-deck/tpl-outreach',
-  '#/legal/privacy',
-  '#/legal/terms',
+  // Documents and Legal are dialogs over the open tab (#471 slice 4).
+  '#/find?documents=',
+  '#/find?documents=tpl-outreach',
+  '#/find?legal=privacy',
+  '#/find?legal=terms',
   // A Company's page (#230), named by a sample job's company.
   '#/apply/company/larkspur-analytics',
   // An unknown route shows Page not found, not Companies.
@@ -46,9 +47,12 @@ export async function seed(page: Page) {
 
 /** Add the starter messages from Documents' empty state (a first run adds none). */
 export async function addStarters(page: Page) {
-  await go(page, '#/copy-deck');
-  await page.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
+  await go(page, '#/find?documents=');
+  const docs = page.getByRole('dialog', { name: 'Documents' });
+  await docs.getByRole('button', { name: 'Add starter messages' }).click();
+  await expect(docs.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
+  await docs.getByRole('button', { name: 'Close' }).click();
+  await expect(docs).toBeHidden();
 }
 
 export async function go(page: Page, hash: string) {

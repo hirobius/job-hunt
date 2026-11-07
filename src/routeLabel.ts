@@ -10,19 +10,24 @@ import { DOCUMENT_KINDS, useDocuments, type Document } from './documents';
 import { legalTitleFor } from './legalRoute';
 import type { Job } from './types';
 
-const decode = (s: string) => {
-  try {
-    return decodeURIComponent(s);
-  } catch {
-    return s;
-  }
-};
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 /** The name of the page a route shows. */
 export function routeLabel(route: Route, ctx: { jobs: Job[]; docs: Document[] }): string {
   // An old hash (#/apply/<id>, #/find) is named as the page it now opens.
   const r = redirectOf(route) ?? route;
+  // A dialog over a page is named as the dialog (#471 slice 4): a Back to it reopens it.
+  if (r.documents !== null && r.documents !== undefined) {
+    const sub = r.documents;
+    if (!sub) return 'Documents';
+    if (sub.startsWith('new/')) {
+      const kind = DOCUMENT_KINDS.find((k) => k.kind === sub.slice(4));
+      return kind ? `New ${lower(kind.label)}` : 'New document';
+    }
+    const doc = ctx.docs.find((d) => d.id === sub);
+    return doc ? doc.title || 'Untitled' : 'Document';
+  }
+  if (r.legal) return legalTitleFor(r.legal);
   switch (r.tab) {
     case APPLY_TAB: {
       const slug = companySlugOf(r);
@@ -31,17 +36,6 @@ export function routeLabel(route: Route, ctx: { jobs: Job[]; docs: Document[] })
       const job = findJobById(r.jobId, ctx.jobs);
       return job ? titleOf(job) : 'Job';
     }
-    case 'copy-deck': {
-      if (!r.sub) return 'Documents';
-      if (r.sub.startsWith('new/')) {
-        const kind = DOCUMENT_KINDS.find((k) => k.kind === r.sub!.slice(4));
-        return kind ? `New ${lower(kind.label)}` : 'New document';
-      }
-      const doc = ctx.docs.find((d) => d.id === decode(r.sub!));
-      return doc ? doc.title || 'Untitled' : 'Document';
-    }
-    case 'legal':
-      return legalTitleFor(r.sub);
     case FIND_TAB:
     case '':
       return 'Find';

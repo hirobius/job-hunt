@@ -80,7 +80,10 @@ export default function DocumentEditor({
   onCreated,
   back,
   returnTo,
+  titleAs = 'h1',
 }: {
+  /** Its title's heading level: h2 inside the Documents dialog (the page under it keeps its h1). */
+  titleAs?: 'h1' | 'h2';
   /** The document to edit; left out for a new one, which is created on its first Save. */
   doc?: Document;
   kind: DocumentKind;
@@ -298,7 +301,7 @@ export default function DocumentEditor({
         )}
       </BackGuard.Provider>
       <Stack gap="px4">
-        <Text variant="title" as="h1">
+        <Text variant="title" as={titleAs}>
           {doc ? doc.title || 'Untitled' : `New ${label.charAt(0).toLowerCase()}${label.slice(1)}`}
         </Text>
         <Text variant="caption" as="p" tone="secondary">
