@@ -473,7 +473,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
   Migrations `20261029100000` and `20261029100200` widen the `postings.source` check.
 - **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
-  buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles; on only when `main.tsx` calls
+  buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles, **never while the sign-in screen is open**: it waits, and a run in flight stops when the screen opens, 2026-11-07, `feed/autoScanOnOpen.test.tsx`; on only when `main.tsx` calls
   `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →
   GitHub DS orgs → Adele → `SEED_LEADS`, empty until the seed list lands) → the probe (≤ 40 new leads a run, the
   rest queued; its limiter and cache) → the **identity check** (`feed/identity.ts`, #417: one ATS only, and the
