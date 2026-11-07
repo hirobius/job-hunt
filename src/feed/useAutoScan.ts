@@ -28,12 +28,15 @@ export function useScanInput(): ScanInput {
   );
 }
 
-/** Mounted once in the shell: scans on open when a scan is due. Never behind the sign-in screen
- *  (2026-11-07: on a phone the scan's hundreds of board reads made it crawl, 8 → 300 MB heap and
- *  ~1 s long tasks): it waits until the screen closes, and a run in flight when it opens stops
- *  (what it found is kept, and the next start finishes it). */
+/** Mounted once in the shell: scans on open when a scan is due. Signed in only, and never behind
+ *  the sign-in screen (2026-11-07: on a phone the scan's hundreds of board reads made it crawl,
+ *  8 → 300 MB heap and ~1 s long tasks). Signed out, nothing scans on open: the server's sync reads
+ *  the boards every 15 minutes for an account, and Scan now still works. The sign-in screen makes
+ *  it wait, and a run in flight when it opens stops (what it found is kept, and the next start
+ *  finishes it). */
 export function AutoScanOnOpen(): null {
-  const { settled, signInOpen } = useCloudSync();
+  const { settled, signInOpen, user } = useCloudSync();
+  const signedIn = !!user;
   const input = useScanInput();
   const latest = useRef(input);
   useEffect(() => {
@@ -41,11 +44,11 @@ export function AutoScanOnOpen(): null {
   }, [input]);
   useEffect(() => {
     if (!settled) return;
-    if (signInOpen) {
+    if (signInOpen || !signedIn) {
       cancelScan();
       return;
     }
     return scanOnOpen(() => latest.current);
-  }, [settled, signInOpen]);
+  }, [settled, signInOpen, signedIn]);
   return null;
 }

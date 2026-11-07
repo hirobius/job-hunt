@@ -66,7 +66,12 @@ export function ScanStatus({
     ? progressLine(progress)
     : (state.error ??
       lastScannedLine(state, undefined, counts, scanning) ??
-      (updated ? null : 'Not scanned yet. The first scan runs on its own.'));
+      (updated
+        ? null
+        : user
+          ? 'Not scanned yet. The first scan runs on its own.'
+          : // Signed out, nothing scans on open (2026-11-07): Scan now does.
+            'Not scanned yet. Scan now to look.'));
   return (
     <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
       {/* Its own line (the meta-line rule, #192: at most two items on a " · " line). The server's

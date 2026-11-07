@@ -27,8 +27,14 @@ export async function seed(page: Page) {
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // One job on a company board, so the Jobs panel's liveness row ("Check which are still
   // open") is in every Pipeline shot (QA). External requests are refused, so it never says closed.
-  await page.getByRole('button', { name: 'Add job' }).click();
+  // The sample lands first (its notice, then focus moves to the page head); a click on Add job
+  // while that settles could be lost, so open the dialog until it shows.
+  await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
   const add = page.getByRole('dialog', { name: 'Add a job' });
+  await expect(async () => {
+    if (!(await add.isVisible())) await page.getByRole('button', { name: 'Add job' }).click();
+    await expect(add).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
   await add.getByLabel('Job link').fill(BOARD_JOB);
   await add.getByRole('button', { name: 'Add job' }).click();
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.

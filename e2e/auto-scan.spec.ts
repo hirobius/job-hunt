@@ -1,11 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Auto-scan (simplify 8/11, #415): a fresh profile gets postings with zero clicks. The scan runs
-// on open: it finds a YC company hiring now (Acme, acme.com), probes for its board, confirms it
-// against the website (#417), reads it with every feed and keeps its remote design-system role.
-// Review new shows that posting and Acme under New companies, and nobody pressed a button. Every
-// host is synthetic: YC's mirror lists Acme, Acme's Greenhouse board has two roles, everything
-// else answers empty or "no such board".
+// Auto-scan (simplify 8/11, #415). Signed out, nothing scans on open (2026-11-07: on a phone the
+// browser scan drowned the sign-in screen; a signed-in account's boards are read by the server's
+// sync every 15 minutes, and its scan on open is pinned in autoScanOnOpen.test.tsx). Scan now runs
+// it: it finds a YC company hiring now (Acme, acme.com), probes for its board, confirms it against
+// the website (#417), reads it with every feed and keeps its remote design-system role. Review new
+// shows that posting and Acme under New companies. Every host is synthetic: YC's mirror lists
+// Acme, Acme's Greenhouse board has two roles, everything else answers empty or "no such board".
 const ACME_JOBS = {
   jobs: [
     {
@@ -27,9 +28,10 @@ const ACME_JOBS = {
   ],
 };
 
-async function network(page: Page) {
+async function network(page: Page, asked: string[] = []) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => {
     const url = r.request().url();
+    asked.push(url);
     const json = (body: unknown, status = 200) =>
       r.fulfill({
         status,
@@ -69,13 +71,20 @@ async function seedTrack() {
 }
 
 for (const width of [390, 1440]) {
-  test(`a fresh profile gets postings with zero clicks (${width})`, async ({ page }) => {
+  test(`signed out nothing scans on open; Scan now finds the postings (${width})`, async ({
+    page,
+  }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 900 });
-    await network(page);
+    const asked: string[] = [];
+    await network(page, asked);
     await page.goto('/#/today');
-    // A design-systems track that follows nothing yet (no clicks here or below).
+    // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
+    await expect(page.getByText('Not scanned yet. Scan now to look.')).toBeVisible();
+    await page.waitForTimeout(3000);
+    expect(asked.filter((u) => u.includes('yc-oss.github.io'))).toEqual([]);
+    await page.getByRole('button', { name: 'Scan now' }).click();
 
     await expect(
       page.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d, \d+ new$/),
@@ -106,6 +115,7 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await network(page);
   await page.goto('/#/today');
   await page.evaluate(seedTrack);
+  await page.getByRole('button', { name: 'Scan now' }).click();
   const status = page.getByText(/^Scanning [\d,]+ sources? · Last scanned /);
   await expect(status).toBeVisible({ timeout: 60_000 });
 
