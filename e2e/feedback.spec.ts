@@ -325,10 +325,13 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
 
   // The editor: its menus, the variables panel and Save.
   await go(page, '#/find?documents=tpl-outreach');
-  for (const name of ['Insert variable', 'More actions', /^Version history/]) {
+  for (const name of ['Insert variable', 'More actions']) {
     await press(page, button(page, name), String(name));
     await closeOverlay(page);
   }
+  // Version history opens in place: a second press shuts it (Escape would close Documents itself).
+  await press(page, button(page, /^Version history/), 'Version history');
+  await button(page, /^Version history/).click();
   await press(page, page.getByRole('combobox', { name: /^Fill for: / }), 'Fill for');
   await closeOverlay(page);
   await press(page, button(page, 'Copy filled text'), 'Copy filled text');

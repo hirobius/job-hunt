@@ -293,7 +293,10 @@ for (const width of [390, 1440] as const) {
           page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]')),
         )
         .toBe(true);
+      // Opened by a link, it has no opener: closing hands focus to the page's heading.
       await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect.poll(() => focused(page)).toBe('H1 Find');
       // A top tab keeps focus on the tab (it is still there).
       await page.getByRole('tab', { name: 'Find' }).focus();
       await page.keyboard.press('Enter');
