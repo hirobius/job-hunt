@@ -42,12 +42,17 @@ export function AutoScanOnOpen(): null {
   useEffect(() => {
     latest.current = input;
   }, [input]);
+  // Stop a run only on a sign-out, never merely for being signed out: a signed-out Scan now must
+  // not be cut short when sync settles under it (2026-11-07).
+  const wasSignedIn = useRef(signedIn);
   useEffect(() => {
-    if (!settled) return;
-    if (signInOpen || !signedIn) {
+    const signedOut = wasSignedIn.current && !signedIn;
+    wasSignedIn.current = signedIn;
+    if (signInOpen || signedOut) {
       cancelScan();
       return;
     }
+    if (!settled || !signedIn) return;
     return scanOnOpen(() => latest.current);
   }, [settled, signInOpen, signedIn]);
   return null;
