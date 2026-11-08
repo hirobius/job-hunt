@@ -413,11 +413,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
   furniture: unsynced is only the Account menu's sync line (no Avatar dot), and `SampleBanner` is a one-line note under the page header. Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
-  host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
+  host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 44px phone controls (`--rjb-touch`, retro quick wins 2026-11-08),
   reduced motion); secondary colour is `Text tone="secondary"`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (all at 4.5 since the 0.32.0 audit; tracked
-  upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
+  upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 44px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
 - **Rapid apply (2026-10-17; Apply mode, To apply and Start applying are gone since #471, see Two screens):** every save (Review new, the Find box, quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
   Open + Undo (`NoticeHost` in the shell: an HDS Toast with `actions`, one at a time).
@@ -628,7 +628,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   so a long unbroken title never runs under the link or pushes it off screen) and every job rail row
   (beside the row's link, `hds-gaps/NavListActionItem`: NavList.Item has no trailing slot). Its
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
-  and is stacked above the text there, so all of it takes the tap; 40x40 on a phone. Rows only a line
+  and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Rows only a line
   tall that each end in one (`.rjb-posting-rows`) grow to the target instead, so targets never
   overlap. Unsaved listings (Review new's rows) have no page: their title is the link out, with HDS's external icon. Apply mode keeps Open application.
   Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts` (hit-tests

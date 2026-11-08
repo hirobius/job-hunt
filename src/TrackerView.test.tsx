@@ -174,10 +174,12 @@ describe('Pipeline hierarchy', () => {
     expect(title.nextElementSibling?.textContent).toBe('1 active · 1 total');
   });
 
-  it('first use says 0 jobs under the title', () => {
+  it('first use has no count under the title: the empty state says it (retro quick wins)', () => {
     renderTracker();
     const title = screen.getByRole('heading', { level: 1, name: 'Apply' });
-    expect(title.nextElementSibling?.textContent).toBe('0 jobs');
+    expect(title.nextElementSibling).toBeNull();
+    expect(screen.queryByText('0 jobs')).toBeNull();
+    expect(screen.getByText('Track your first job')).toBeInTheDocument();
   });
 });
 

@@ -119,11 +119,10 @@ function PipelinePage() {
               <Text as="h1" variant="title" ref={heading}>
                 Apply
               </Text>
-              <MetaCaption
-                items={
-                  jobs.length > 0 ? [`${counts.active} active`, `${counts.all} total`] : ['0 jobs']
-                }
-              />
+              {/* No "0 jobs" under an empty page: the empty state says it (retro quick wins). */}
+              {jobs.length > 0 && (
+                <MetaCaption items={[`${counts.active} active`, `${counts.all} total`]} />
+              )}
             </Stack>
             {/* One primary action per state: on first use it lives in the empty state instead. */}
             {jobs.length > 0 && addJobButton}

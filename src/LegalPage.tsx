@@ -22,6 +22,16 @@ import { useDialogFocus } from './dialogFocus';
 
 type LegalDoc = typeof PRIVACY;
 
+function focusClose(e: Event) {
+  // HDS's close button is named by its sr-only text ("Close"), not an aria-label.
+  const close = [...((e.target as HTMLElement | null)?.querySelectorAll('button') ?? [])].find(
+    (b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim() === 'Close',
+  );
+  if (!close) return;
+  e.preventDefault();
+  close.focus({ preventScroll: true });
+}
+
 export default function LegalPage() {
   const route = useRoute();
   const doc = legalDocFor(route.legal ?? null);
@@ -29,7 +39,14 @@ export default function LegalPage() {
   const onCloseAutoFocus = useDialogFocus(!!route.legal);
   return (
     <Dialog open={!!route.legal} onOpenChange={(o) => !o && closeDialog()}>
-      <Dialog.Content size="lg" className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
+      <Dialog.Content
+        size="lg"
+        className="rjb-dialog"
+        onCloseAutoFocus={onCloseAutoFocus}
+        // Open on Close, not the first tab or link in the text (retro quick wins, 2026-11-08): a
+        // screen reader starts at the top and a phone shows no stray ring mid-dialog.
+        onOpenAutoFocus={focusClose}
+      >
         <Dialog.Header>
           <Dialog.Title>Privacy and terms</Dialog.Title>
           <Dialog.Description>

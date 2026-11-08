@@ -32,7 +32,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
-- Touch targets are at least 40 px on a phone. Text contrast is AA (4.5) in light and dark.
+- Touch targets are at least 44 px on a phone. Text contrast is AA (4.5) in light and dark.
 
 ## Show
 
