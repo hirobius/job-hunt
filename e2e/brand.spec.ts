@@ -105,3 +105,29 @@ test('the logo names the product and flickers: header and sign-in', async ({ pag
   expect(Math.abs(flame!.x + flame!.width / 2 - mid)).toBeLessThanOrEqual(2);
   expect(Math.abs(name!.x + name!.width / 2 - mid)).toBeLessThanOrEqual(2);
 });
+
+// Retro quick wins (2026-11-08): the app bar's flame throws embers ~21px over the logo; they stay on
+// screen (with 24px over the bar they ran off the top of a phone).
+for (const width of [390, 1440]) {
+  test(`the app bar's embers stay on screen at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await page.goto('/#/find');
+    await page.locator('header .rjb-rf svg').first().waitFor();
+    let top = Infinity;
+    for (let i = 0; i < 30; i++) {
+      top = Math.min(
+        top,
+        await page.evaluate(() => {
+          let t = Infinity;
+          document
+            .querySelectorAll('header .rjb-rf svg path')
+            .forEach((p) => (t = Math.min(t, p.getBoundingClientRect().top)));
+          return t;
+        }),
+      );
+      await page.waitForTimeout(100);
+    }
+    expect(top).toBeGreaterThanOrEqual(0);
+  });
+}

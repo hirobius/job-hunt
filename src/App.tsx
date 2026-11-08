@@ -278,7 +278,9 @@ export default function App() {
         {/* The portfolio's shell (Adrian 2026-10-22): 1048 in all (narrowed 2026-10-24), gutters that grow with the
             viewport, so content stops near 920. Header, tabs and every page share it. */}
         <PageShell>
-          <Box sx={{ py: 'md' }}>
+          {/* 32 over the app bar, 24 under the page: the flame's embers rise ~21px over the logo,
+              and with 24 they ran off the top of a phone screen (retro quick wins, 2026-11-08). */}
+          <Box sx={{ pt: 'lg', pb: 'md' }}>
             {/* On the Documents, legal and not-found pages no tab is selected (and no tab panel mounts).
                 Manual activation there: Tab past the Account button focuses the first tab, which
                 would otherwise select it and leave the page before a keyboard user reaches it. */}
