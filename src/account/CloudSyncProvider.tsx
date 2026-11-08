@@ -83,8 +83,7 @@ import {
 import { deviceData, mergeQuestion } from './deviceData';
 import { dropSampleTrack } from '../demo/sampleTrack';
 import { dropAutoSetup } from '../autoSetup';
-import { MergeConfirmDialog } from './AuthGuards';
-import { LinkConfirmScreen } from '../lazyDialogs';
+import { LinkConfirmScreen, MergeConfirmDialog } from '../lazyDialogs';
 
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
 const loadPkce = importFresh(() => import('./oauthPkce'));
@@ -869,11 +868,16 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
           />
         </Suspense>
       )}
-      <MergeConfirmDialog
-        question={mergeAsk?.question ?? null}
-        onAdd={addDeviceData}
-        onKeep={keepDeviceData}
-      />
+      {/* "Add this device's N jobs to …?": its own chunk too (shown once per account, at most). */}
+      {mergeAsk && (
+        <Suspense fallback={null}>
+          <MergeConfirmDialog
+            question={mergeAsk.question}
+            onAdd={addDeviceData}
+            onKeep={keepDeviceData}
+          />
+        </Suspense>
+      )}
     </CloudSyncContext.Provider>
   );
 }

@@ -60,7 +60,13 @@ async function boot(hash: string, opts: { job?: boolean } = {}) {
   const { useCloudSync } = await import('./accountContext');
   function Probe() {
     const { user } = useCloudSync();
-    return <span>{user ? `in:${user.email}` : 'out'}</span>;
+    // A page with its own h1, where focus lands after a confirm closes (#516 review).
+    return (
+      <main>
+        <h1>Page</h1>
+        <span>{user ? `in:${user.email}` : 'out'}</span>
+      </main>
+    );
   }
   render(
     <ToastProvider>
@@ -89,6 +95,16 @@ describe('an unsolicited sign-in link (no request from this browser)', () => {
     expect((await h.fake?.client.auth.getSession())?.data.session ?? null).toBeNull();
     expect(h.fake?.tables.tracker ?? []).toEqual([]);
     expect(store.getAllJobs()).toHaveLength(1);
+  });
+
+  it('after the merge ask (Add or Don’t add), focus is on the page’s h1, never <body>', async () => {
+    await boot(linkFor(ATTACKER), { job: true });
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
+    await userEvent.click(await screen.findByRole('button', { name: "Don't add" }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Page' })),
+    );
   });
 
   it('confirmed, it signs in, but this device’s data is not added unless asked (default: keep)', async () => {

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Roleflame",
-  "short_name": "Roleflame",
+  "name": "roleflame",
+  "short_name": "roleflame",
   "description": "A job-application tracker and discovery board: screen postings, track your pipeline, and generate targeted searches.",
   "start_url": "/",
   "scope": "/",

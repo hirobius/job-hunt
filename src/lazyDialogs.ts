@@ -10,6 +10,7 @@ import { importFresh } from './staleBuild';
 const named = <P extends object>(c: ComponentType<P>) => ({ default: c });
 
 export const SignInDialog = lazyView(importFresh(() => import('./account/SignInDialog')));
+export const MergeConfirmDialog = lazyView(importFresh(() => import('./account/AuthGuards')));
 export const LinkConfirmScreen = lazyView(importFresh(() => import('./account/LinkConfirmScreen')));
 export const ExportLinksDialog = lazyView(importFresh(() => import('./ExportLinksDialog')));
 export const CompaniesDialog = lazyView(importFresh(() => import('./CompaniesDialog')));
@@ -34,6 +35,7 @@ export const preloadDialogs = () =>
     [
       SignInDialog,
       LinkConfirmScreen,
+      MergeConfirmDialog,
       ExportLinksDialog,
       CompaniesDialog,
       SearchProfileDialog,

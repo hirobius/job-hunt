@@ -4,7 +4,7 @@ Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**Roleflame** (renamed 2026-11-02, Adrian, hirobius/ops#1092 / #55; before that **hiraga**, lowercase, 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
+**roleflame**, all lowercase since 2026-11-08 (renamed Roleflame 2026-11-02, Adrian, hirobius/ops#1092 / #55; before that **hiraga**, lowercase, 2026-10-30, Adrian: hire + Firaga, and _hi_ 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
 **https://roleflame.vercel.app** (since 2026-11-05; repo `hirobius/job-hunt`; the old
 `roleforge-app.vercel.app` and `job-hunt-jade.vercel.app` still serve and are accepted sign-in origins until they redirect). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
@@ -49,7 +49,7 @@ code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo
 one small row on a short screen). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in the HDS display family at 700 (Sora 700, loaded by HDS's fonts.css), its dynamic styles come from helpers (no
 inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and stops on frame 0
-after 5 s on screen (`FLAME_MOTION_LIMIT_MS`, WCAG 2.2.2; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
+after 5 s on screen (`FLAME_MOTION_LIMIT_MS`, WCAG 2.2.2; `roleFlameMotion.test.tsx`), except the **app bar's**, which loops on (`continuous`, Adrian 2026-11-08), still under reduced motion and under the Account menu's **Pause animations** / Play animations (WCAG 2.2.2; `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion). The boot splash, icons, og-image and BootHold still use
 flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
 
 ## Stack & conventions
@@ -543,7 +543,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
   `AutoScanViews.tsx`: `ScanStatus` (**Adrian 2026-11-08: no status text above Browse / Deck.** Signed in nothing (the
   server syncs every 15 minutes); signed out one compact Scan now / Stop scan in Review new's heading row (`Panel
-  trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
+trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
   signed out), the sources that didn't answer and the "not shown" counts are the Account menu's **Scan details**
   (`ScanDetailsDialog.tsx`, lazy; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears
   Review new's status. Pinned in `autoScanViews.test.tsx`, `review.test.tsx`, `todayHome.test.tsx`,
@@ -714,7 +714,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   with `iconLeft={<GoogleMark />}`; `src/account/google-g.svg` is Google's G as given, its own four colours per
   Google's branding rules, the one allowed third-party svg in `brand/flame.test.tsx` `THIRD_PARTY_MARKS`).
   `useCloudSync().signInWithGoogle` → `signInWithOAuth({ provider: 'google', redirectTo: magicLinkRedirect, queryParams:
-  { code_challenge, code_challenge_method: 's256' } })`: **PKCE bound to this browser** (`account/oauthPkce.ts`; review
+{ code_challenge, code_challenge_method: 's256' } })`: **PKCE bound to this browser** (`account/oauthPkce.ts`; review
   of #483: an unbound "started Google" note let a crafted token link sign in after an abandoned start). The verifier
   stays in `rjb_oauth_request` (10 min, taken once); the return's `?code=` is taken and stripped by `authFragment.ts`
   and swapped at `/auth/v1/token?grant_type=pkce` with that verifier, then `acceptLink` with the email the token names.

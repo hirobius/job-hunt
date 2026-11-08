@@ -33,6 +33,7 @@ import { openRecentlyRemoved } from '../jobDialogs';
 import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
+import { motionPaused, setMotionPaused } from '../motionPref';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -155,6 +156,12 @@ export default function AccountMenu() {
           )}
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
+          {/* WCAG 2.2.2: the app bar's flame loops on; this stops it (motionPref.ts). */}
+          {/* Read fresh each time the menu opens (its content renders only then), so another
+              tab's choice or a system change shows here too (#516 review). */}
+          <Menu.Item onSelect={() => setMotionPaused(!motionPaused())}>
+            {motionPaused() ? 'Play animations' : 'Pause animations'}
+          </Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
             Send feedback
           </Menu.Item>

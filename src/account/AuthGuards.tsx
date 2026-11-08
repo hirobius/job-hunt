@@ -5,8 +5,19 @@
 // each answer runs once, and Escape or Back is the safe one.
 import { AlertDialog, Button } from '@hirobius/design-system';
 import { useBackCloses } from '../useBackCloses';
+import { focusAsHeading, pageHeadingNow } from '../focusRescue';
 
-export function MergeConfirmDialog({
+/** The dialog leaves with the answer (its host unmounts it), so no close-focus runs: once it has
+ *  gone, focus goes to the page's own h1, never <body> (#516 review). */
+const thenToHeading = (answer: () => void) => () => {
+  answer();
+  setTimeout(() => {
+    const h = pageHeadingNow();
+    if (h) focusAsHeading(h);
+  });
+};
+
+export default function MergeConfirmDialog({
   question,
   onAdd,
   onKeep,
@@ -16,9 +27,9 @@ export function MergeConfirmDialog({
   onKeep: () => void;
 }) {
   const open = question !== null;
-  useBackCloses(open, onKeep, 'merge-confirm');
+  useBackCloses(open, thenToHeading(onKeep), 'merge-confirm');
   return (
-    <AlertDialog open={open} onOpenChange={(o) => !o && onKeep()}>
+    <AlertDialog open={open} onOpenChange={(o) => !o && thenToHeading(onKeep)()}>
       <AlertDialog.Content>
         <AlertDialog.Header>
           <AlertDialog.Title>{question}</AlertDialog.Title>
@@ -29,10 +40,10 @@ export function MergeConfirmDialog({
           </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer>
-          <Button variant="secondary" onClick={onKeep}>
+          <Button variant="secondary" onClick={thenToHeading(onKeep)}>
             Don't add
           </Button>
-          <Button variant="primary" onClick={onAdd}>
+          <Button variant="primary" onClick={thenToHeading(onAdd)}>
             Add to account
           </Button>
         </AlertDialog.Footer>

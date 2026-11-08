@@ -145,6 +145,10 @@ for (const [width, height] of [
     await page.waitForTimeout(600 + 150);
     await page.screenshot({ path: `test-results/signin-moving-${width}.png` });
     await expect(page.locator('.rjb-signin-screen')).toHaveCount(0, { timeout: 3000 });
+    // Focus lands on the page's own h1, never on <body> (#516 review).
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.matches('main h1') ?? false))
+      .toBe(true);
   });
 }
 

@@ -106,6 +106,31 @@ test('the logo names the product and flickers: header and sign-in', async ({ pag
   expect(Math.abs(name!.x + name!.width / 2 - mid)).toBeLessThanOrEqual(2);
 });
 
+// Adrian 2026-11-08: the app bar's flame loops on (past the 5 s limit the sign-in screen keeps);
+// under reduced motion it is still from the start.
+test('the app bar flame keeps burning after 5 s, and is still under reduced motion', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#/find');
+  // The flame's first layer (its d holds the embers too, so it changes every frame).
+  const path = page.locator('header .rjb-rf > svg path').first();
+  await expect(path).toBeAttached();
+  await page.waitForTimeout(5600);
+  const a = await path.getAttribute('d');
+  await expect.poll(() => path.getAttribute('d'), { timeout: 2000 }).not.toBe(a);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  // Under reduced motion the logo may stay the still wordmark: either way nothing moves.
+  const any = page.locator('header [role="img"] svg path').first();
+  await expect(any).toBeAttached();
+  await page.waitForTimeout(300);
+  const still = await any.getAttribute('d');
+  await page.waitForTimeout(800);
+  expect(await any.getAttribute('d')).toBe(still);
+});
+
 // Retro quick wins (2026-11-08): the app bar's flame throws embers ~21px over the logo; they stay on
 // screen (with 24px over the bar they ran off the top of a phone).
 for (const width of [390, 1440]) {
@@ -131,3 +156,24 @@ for (const width of [390, 1440]) {
     expect(top).toBeGreaterThanOrEqual(0);
   });
 }
+
+// WCAG 2.2.2 (#516): Pause animations in the Account menu stops the looping flame, and the choice
+// is kept on this device.
+test('Pause animations stops the app bar flame and is kept after a reload', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#/find');
+  const path = page.locator('header .rjb-rf > svg path').first();
+  await expect(path).toBeAttached();
+  await page.getByRole('button', { name: 'Account' }).click();
+  await page.getByRole('menuitem', { name: 'Pause animations' }).click();
+  const still = await path.getAttribute('d');
+  await page.waitForTimeout(800);
+  expect(await path.getAttribute('d')).toBe(still);
+  await page.reload();
+  await expect(path).toBeAttached();
+  const after = await path.getAttribute('d');
+  await page.waitForTimeout(800);
+  expect(await path.getAttribute('d')).toBe(after);
+  await page.getByRole('button', { name: 'Account' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Play animations' })).toBeVisible();
+});

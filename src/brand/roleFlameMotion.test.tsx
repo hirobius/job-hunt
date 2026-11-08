@@ -4,6 +4,7 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FLAME_MOTION_LIMIT_MS, RoleFlameLogo } from './RoleFlame';
+import { setMotionPaused } from '../motionPref';
 
 let reduce = false;
 let hidden = false;
@@ -11,6 +12,7 @@ let mqListeners: (() => void)[] = [];
 
 beforeEach(() => {
   reduce = false;
+  localStorage.removeItem('rjb_ui_pause_motion');
   hidden = false;
   mqListeners = [];
   vi.useFakeTimers();
@@ -38,8 +40,8 @@ function setHidden(h: boolean) {
   });
 }
 
-function mount() {
-  const { container } = render(<RoleFlameLogo />);
+function mount(props: { continuous?: boolean } = {}) {
+  const { container } = render(<RoleFlameLogo {...props} />);
   const d = () => container.querySelector('path')!.getAttribute('d');
   const letterTransform = () =>
     (container.querySelector('.rjb-rf-l') as HTMLElement).style.transform;
@@ -61,6 +63,49 @@ describe('RoleFlameLogo motion', () => {
     expect(d()).toBe(still);
     advance(2000);
     expect(d()).toBe(still);
+  });
+
+  it('continuous (the app bar, Adrian 2026-11-08): still moving well past 5 s', () => {
+    const { d } = mount({ continuous: true });
+    advance(FLAME_MOTION_LIMIT_MS + 3000);
+    const later = d();
+    advance(300);
+    expect(d()).not.toBe(later);
+    expect(later).not.toBeNull();
+  });
+
+  it('continuous still holds frame 0 under reduced motion', () => {
+    reduce = true;
+    const { d } = mount({ continuous: true });
+    const still = d();
+    advance(FLAME_MOTION_LIMIT_MS + 3000);
+    expect(d()).toBe(still);
+  });
+
+  it('Pause animations (Account menu, WCAG 2.2.2) stops even the continuous flame, at once', () => {
+    const { d } = mount({ continuous: true });
+    const still = d();
+    advance(300);
+    expect(d()).not.toBe(still);
+    act(() => setMotionPaused(true));
+    expect(d()).toBe(still);
+    advance(2000);
+    expect(d()).toBe(still);
+    act(() => setMotionPaused(false));
+    advance(300);
+    expect(d()).not.toBe(still);
+  });
+
+  it('Play wins over the system setting: an explicit choice runs the flame under reduced motion', () => {
+    reduce = true;
+    const { d } = mount({ continuous: true });
+    const still = d();
+    advance(1000);
+    // No choice yet: it follows the system and holds still.
+    expect(d()).toBe(still);
+    act(() => setMotionPaused(false));
+    advance(300);
+    expect(d()).not.toBe(still);
   });
 
   it('pauses while the tab is hidden, and hidden time does not count', () => {

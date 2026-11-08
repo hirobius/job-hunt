@@ -37,7 +37,7 @@ Supabase project: `nelrcmbkimjjmfmgnixj`.
 | Field                     | Value                                                                                                                                         |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sender email              | `login@mail.hirobius.com`                                                                                                                     |
-| Sender name               | `Roleflame` (`src/brand.ts`; #278 originally said Roleforge)                                                                                  |
+| Sender name               | `roleflame` (`src/brand.ts`; #278 originally said Roleforge)                                                                                  |
 | Host                      | `smtp.resend.com`                                                                                                                             |
 | Port                      | `465`                                                                                                                                         |
 | Username                  | `resend`                                                                                                                                      |
@@ -79,7 +79,7 @@ holds the email text only (`supabase/templates/`).
    **Emails sent per hour** = `60` → Save.
    Direct: https://supabase.com/dashboard/project/nelrcmbkimjjmfmgnixj/auth/rate-limits
 7. **Supabase: paste the template.** **Authentication → Emails →
-   Templates → Magic link** → Subject `Your Roleflame sign-in link`, body =
+   Templates → Magic link** → Subject `Your roleflame sign-in link`, body =
    all of `supabase/templates/magic_link.html` → Save.
 8. **Test end to end.** On the live app, request a sign-in link for your own
    email. Done means: the email arrives **from `login@mail.hirobius.com`**,
