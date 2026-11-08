@@ -627,7 +627,7 @@ p {
 
 /* Select trigger text (HDS gap, registry: "Select trigger text centred and wrapping"): HDS Select
  * centres its value and lets it wrap, so a long job label in "Fill for" on a phone breaks onto two
- * centred lines and the trigger grows past the 40px fields under it. One start-aligned line with an
+ * centred lines and the trigger grows past the 44px fields under it. One start-aligned line with an
  * ellipsis, like a native select. */
 [data-hds] button[role='combobox'] > span:first-child {
   flex: 1 1 auto;

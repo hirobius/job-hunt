@@ -93,8 +93,8 @@ test('a value set under Variables fills the preview and is kept on the message',
 });
 
 // HDS gap (registry: "Select trigger text centred and wrapping"): a long job label in "Fill for"
-// stays on one start-aligned line, so the trigger keeps the 40px height of the fields under it.
-test('Fill for keeps a long job label on one 40px line (390)', async ({ page }) => {
+// stays on one start-aligned line, so the trigger keeps the 44px phone height of the fields under it.
+test('Fill for keeps a long job label on one 44px line (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await page.addInitScript(() => {
     if (!localStorage.getItem('rjb_shortlist'))
@@ -117,7 +117,7 @@ test('Fill for keeps a long job label on one 40px line (390)', async ({ page }) 
   await page.getByRole('option', { name: /Senior Product Designer/ }).click();
   await expect(trigger).toContainText('Larkspur');
   const box = await trigger.boundingBox();
-  expect(Math.round(box!.height)).toBeLessThanOrEqual(40);
+  expect(Math.round(box!.height)).toBeLessThanOrEqual(44);
   const span = trigger.locator('> span').first();
   await expect(span).toHaveCSS('text-align', 'start');
   await expect(span).toHaveCSS('white-space', 'nowrap');
