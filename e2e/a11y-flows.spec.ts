@@ -197,8 +197,8 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
   for (const [role, name] of [
     ['radio', 'Deck'],
     ['radio', 'Browse'],
-    ['tab', 'Apply'],
-    ['tab', 'Find'],
+    ['link', 'Apply'],
+    ['link', 'Find'],
     ['button', 'Scan now'],
   ] as const) {
     await page.getByRole(role, { name, exact: true }).first().click();
