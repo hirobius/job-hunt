@@ -199,14 +199,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**: links in a `nav` named "Sections", the open one `aria-current="page"`, styled as HDS tabs by `.rjb-top-tab`; not ARIA tabs, no tab panel (top tabs PR, 2026-11-08; HDS ask: Tabs as navigation links); tests use `test/topTabs.ts` / `e2e/routes.ts` `topTab`, `currentTab`) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
-  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` (an HDS Menu; below sm drawn as a bottom sheet with a grab handle and its own scroll, from sm a dropdown ≥ 16rem, by `src/theme/late.css`: late shell styles that ride the animated logo's chunk, off the first-load CSS budget; account menu PR 2026-11-08) holds sign-in/out, Documents, Search profile, Companies, Back up,
   Restore…, Export CSV, theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Documents, Search profile, Companies, Scan details, Back up, Restore…, Export CSV). Pillars and tracks are gone from the UI (ADR 0009).
+  data = Documents, Search profile, Companies, Scan details | "Data": Back up, Restore…, Export CSV, Export links, Recently removed (N) when the trash has some). Pillars and tracks are gone from the UI (ADR 0009).
 - **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local; update baselines with `npm run test:visual -- --update-snapshots`). **Baselines are drawn only in the pinned Playwright image** (`e2e/visual-env.json`: image digest + its Chromium, #485): `test:visual` runs the spec there through Docker (`scripts/visual-docker.mjs`); elsewhere the spec skips and an update fails (`src/visualEnv.test.ts`). Bump the digest with `@playwright/test` and re-take every baseline in the same PR.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
