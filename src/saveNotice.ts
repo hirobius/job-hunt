@@ -52,10 +52,22 @@ let seq = 0;
 /** The route the notice was raised on: any move away from it makes the notice stale. */
 let shownOn = '';
 
+/** Open modal lists that show notices themselves (the All jobs sheet): while one is open, every
+ *  notice is `inDialog`, so its Undo stays in reach (the toast behind a modal is not). */
+let dialogHosts = 0;
+export function noticeHost(delta: 1 | -1) {
+  dialogHosts = Math.max(0, dialogHosts + delta);
+  if (delta < 0) noticeToToast();
+}
+
 export function showNotice(n: Omit<Notice, 'id'>) {
   watchForStale();
   shownOn = buildHash(getRoute());
-  store.set({ ...n, id: ++seq });
+  store.set({
+    ...n,
+    ...(dialogHosts > 0 && !n.inDialog ? { inDialog: true as const } : {}),
+    id: ++seq,
+  });
 }
 export const dismissNotice = () => store.set(null);
 export const useNotice = store.use;

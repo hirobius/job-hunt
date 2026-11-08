@@ -66,10 +66,12 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await expect(page).toHaveURL(/#\/apply\/[^/?]+/);
   await page.getByRole('tab', { name: 'Apply' }).click();
 
-  const jobs = page.getByRole('region', { name: 'Jobs' });
+  // Below lg the tab is one job (Proposal A); its list is the All jobs sheet.
+  await page.getByRole('button', { name: 'All jobs' }).click();
+  const jobs = page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Jobs' });
   await expect(jobs.locator('a[href^="#/apply/"]')).toHaveCount(3);
   await jobs.locator('a[href^="#/apply/"]').first().click();
-  await expect(page).toHaveURL(/#\/apply\//);
+  await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeHidden();
 
   // The kit: enter a name once (empty fields wait behind one row), copy it.
   await page.getByRole('button', { name: /^Fill in \d+ more/ }).click();
@@ -92,8 +94,11 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
     await page.waitForTimeout(800);
   }
 
-  await expect(page).toHaveURL(/#\/apply$/);
-  await expect(page.getByRole('region', { name: 'Follow up (3)' })).toBeVisible();
+  // Nothing left to apply to: the tab still shows a job, and All jobs has Follow up (3).
+  await page.getByRole('button', { name: 'All jobs' }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Follow up (3)' }),
+  ).toBeVisible();
 });
 
 // The Apply sheet (#239): the starter templates show filled for the job, one copy row each, and the
@@ -104,8 +109,10 @@ test('Apply sheet: templates filled for the job, copyable at 390', async ({ page
   await page.goto(
     '/?add=' + encodeURIComponent('https://acme.example/jobs/1') + '&t=Acme+Designer',
   );
-  await page.getByRole('region', { name: 'Jobs' }).locator('a[href^="#/apply/"]').first().click();
-  await expect(page).toHaveURL(/#\/apply\//);
+  // The quick add lands on Apply, which below lg is the job itself (Proposal A).
+  await expect(page.getByRole('heading', { level: 1, name: 'Acme Designer' })).toBeVisible();
+  // Templates start closed on a new device (Proposal A); open them.
+  await page.getByRole('button', { name: /^Templates \(/ }).click();
   // A first run has no messages (Adrian 2026-10-22): one tap adds the starters here.
   await page
     .getByRole('region', { name: 'Templates' })
@@ -115,7 +122,6 @@ test('Apply sheet: templates filled for the job, copyable at 390', async ({ page
   const list = page.getByRole('list', { name: 'Your templates' });
   await expect(list.getByRole('listitem').first()).toBeVisible();
   const intro = list.getByRole('listitem', { name: 'Outreach note' });
-  await expect(intro).toContainText('Acme Designer');
   await intro.getByRole('button', { name: 'Copy Outreach note' }).click();
   await expect(intro.getByRole('button', { name: 'Copied Outreach note' })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Acme Designer');

@@ -2,6 +2,7 @@
 // header + Overview, tabs, delete, two-pane desktop.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -81,21 +82,24 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
   });
 
-  it('the header opens the posting in one tap from beside the title (Adrian 2026-10-22)', () => {
+  it('no glyph by the title: the posting is Open application or the menu (Adrian 2026-11-08)', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
     const header = screen
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
-    const posting = within(header).getByRole('link', {
-      name: 'Open posting for Design Engineer at Acme',
-    });
-    expect(posting).toHaveAttribute('href', URL_A);
-    expect(posting).toHaveAttribute('target', '_blank');
-    // Beside the title, not inside the heading; the next step stays the header's one primary.
-    expect(posting.closest('h2')).toBeNull();
-    expect(within(header).getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
+    expect(within(header).queryByRole('link', { name: /^Open posting for / })).toBeNull();
+    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
+      'href',
+      URL_A,
+    );
+    await userEvent.click(
+      within(header).getByRole('button', { name: 'More actions: Design Engineer' }),
+    );
+    expect(
+      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Open posting' }),
+    ).toHaveAttribute('href', URL_A);
   });
 
   it('a job that is only a URL still opens its posting from the header', () => {
@@ -104,7 +108,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     // Details opens as fields (no link fact), so the header is the one-tap way out.
     expect(screen.getByRole('textbox', { name: 'Link' })).toBeInTheDocument();
     const header = screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement;
-    expect(within(header).getByRole('link', { name: /^Open posting/ })).toHaveAttribute(
+    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
       'href',
       URL_A,
     );
@@ -250,7 +254,7 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
     // A hash change (browser Back) unmounts the field: the draft is flushed on unmount.
     await userEvent.type(notes(), ' and hours');
     act(() => {
-      window.location.hash = '#/apply';
+      window.location.hash = '#/find';
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Notes' })).toBeNull());
@@ -346,10 +350,13 @@ describe('job page remove (Recently removed)', () => {
     window.location.hash = '#/apply';
     renderApp();
     expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
+    await openAllJobs();
     for (const name of ['Design Engineer', 'Welder']) {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
       await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     }
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
     await openRecentlyRemoved(2);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Restore: Welder' }));
@@ -367,10 +374,13 @@ describe('job page remove (Recently removed)', () => {
     updateJob(URL_A, { notes: 'Ask about the shop floor' });
     window.location.hash = '#/apply';
     renderApp();
+    await openAllJobs();
     for (const name of ['Design Engineer', 'Welder']) {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
       await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     }
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
     await openRecentlyRemoved(2);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(
@@ -479,11 +489,12 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(railRows()).toHaveLength(2);
   });
 
-  it('below lg there is only the job, with Back', () => {
+  it('below lg there is only the job, under the filter bar and the pager (Proposal A)', () => {
     viewport(390);
     openJobPage(URL_A);
     expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
-    expect(screen.getByRole('button', { name: /Back to Apply/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Filter jobs' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All jobs' })).toBeInTheDocument();
   });
 
   it('clicking another rail row swaps the job without leaving the page', async () => {
@@ -729,7 +740,7 @@ describe('job page keeps focus where the work is', () => {
     addJob(URL_A);
     openJobPage();
     await userEvent.type(screen.getByRole('textbox', { name: 'Company' }), 'A');
-    expect(screen.getByRole('status')).toHaveTextContent('Saved');
+    expect(screen.getAllByRole('status').some((s) => s.textContent === 'Saved')).toBe(true);
   });
 
   it('a new link keeps the fields open, with focus on Link', async () => {

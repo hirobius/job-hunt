@@ -6,6 +6,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import FindBox from './FindBox';
 import { getAllJobs, removeJob } from './store';
@@ -44,10 +45,13 @@ afterEach(() => {
 
 const renderPipeline = () =>
   render(
-    <ToastProvider>
-      <TrackerView />
-      <NoticeHost />
-    </ToastProvider>,
+    // With a job the tab is that job's Apply view (Proposal A), which reads sync.
+    <CloudSyncContext.Provider value={{ user: null, settled: true } as unknown as CloudSyncApi}>
+      <ToastProvider>
+        <TrackerView />
+        <NoticeHost />
+      </ToastProvider>
+    </CloudSyncContext.Provider>,
   );
 
 /** Add job → "Paste a company, board or title instead" → the Find dialog. */

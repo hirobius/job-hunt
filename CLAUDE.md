@@ -162,10 +162,21 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then `ApplySheet.tsx` Templates + Application kit, then Details,
   Notes, Documents, Decks). Mark applied / Not a fit open the next job in the list as it shows (in place, before
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
-  to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. Below lg the tab is
-  the list page (`PipelinePage`: Follow up and Next 7 days, then the Jobs panel), and a job stands alone with
-  "← Apply" and the "‹ 2 of N ›" pager over the list as it shows (`ApplyPager.tsx`, label "Jobs in the list";
-  none for a job the list hides). A
+  to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
+  screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
+  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search, Status, Sort and "Check which
+  are still open"; Add job; a "Active · N jobs" status line), then a sticky row with the "‹ 3 of 55 ›" pager over the
+  filtered list (`ApplyPager.tsx`, label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways
+  swipe on the job steps it too) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
+  `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (Follow up, Next 7
+  days, the Jobs panel, each job its own Card). A pick pops the sheet's entry, then replaces the page's, so Back leaves
+  the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
+  elsewhere keeps its "← Back". **Templates** (`ApplySheet.tsx` `ApplyTemplates`): a Disclosure "Templates (N)", closed
+  by default and remembered per device (`templatesOpen.ts`, `rjb_ui_templates_open`; tests open it by default), only
+  documents with a `[blank]` (a plain note like a study plan is not a template); each row is its name, a one-line
+  filled preview, the blanks-left chip and a Copy icon button; the row opens a dialog with the full filled text
+  (`BlankText`: a blank filled there saves on the job), Copy and Edit template (Documents at that document). No posting
+  glyph by a title on Apply (the header's Open application, or the menu's Open posting). A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
@@ -523,7 +534,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →
   GitHub DS orgs → Adele → `SEED_LEADS`, empty until the seed list lands) → the probe (≤ 40 new leads a run, the
   rest queued; its limiter and cache) → the **identity check** (`feed/identity.ts`, #417: one ATS only, and the
-  website's domain must match the slug or name; else unconfirmed, shown but never read) → the Feed's
+  website's domain must match the slug or name; else unconfirmed, shown but never read, **and for one run only** (discovery noise, 2026-11-08: the next run drops a still-unconfirmed row unless followed or ignored; its key stays probed); a lead whose careers site is Workday / SuccessFactors / Taleo (`feed/unsupportedAts.ts`, hand-kept by name) is never probed and is listed in Scan details as "unsupported board") → the Feed's
   `PostingReader` over followed + confirmed found boards and every feed (Remotive / GitHub budgets hold) → the
   inclusion check (the profile's must include, else "design system") and **remote only** (Adrian 2026-10-28:
   `remoteOnly`: remote keeps, on-site/hybrid drops, no mode and no city keeps with `remoteUnstated`, "Remote not

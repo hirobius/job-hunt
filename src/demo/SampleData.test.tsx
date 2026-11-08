@@ -1,15 +1,21 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from '../TrackerView';
+import { CloudSyncContext, type CloudSyncApi } from '../account/accountContext';
 import { addJob, getAllJobs, removeJob } from '../store';
 
+// With jobs the tab is the first job's Apply view (Proposal A, Adrian 2026-11-08), which reads sync.
 const renderTracker = () =>
   render(
-    <ToastProvider>
-      <TrackerView />
-    </ToastProvider>,
+    <CloudSyncContext.Provider value={{ user: null, settled: true } as unknown as CloudSyncApi}>
+      <ToastProvider>
+        <main>
+          <TrackerView />
+        </main>
+      </ToastProvider>
+    </CloudSyncContext.Provider>,
   );
 
 afterEach(() => {
@@ -36,12 +42,10 @@ describe('Try with sample data (Tracker)', () => {
 
       await user.click(tryButton()!);
       expect(banner()).toHaveTextContent(/10 fictional jobs/);
-      // Saved jobs + the pinned follow-ups/interviews show in the default Active view (their
-      // agenda sits above the list, #236).
-      expect(screen.getAllByText('Design Technologist')[0]).toBeInTheDocument();
-      // Applied jobs are also listed under Follow up, so this title appears twice.
-      expect(screen.getAllByText('Principal Design Systems Engineer').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Design Systems Designer')[0]).toBeInTheDocument();
+      // The tab is now the first job to apply to (Proposal A), under the filter bar.
+      expect(getAllJobs()).toHaveLength(10);
+      expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+      expect(screen.getByText(/^Active · \d+ jobs$/)).toBeInTheDocument();
       expect(tryButton()).toBeNull();
 
       await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
@@ -56,15 +60,16 @@ describe('Try with sample data (Tracker)', () => {
   it('Try with sample data and Clear hand focus to the Pipeline heading', async () => {
     const user = userEvent.setup();
     renderTracker();
-    const heading = () => screen.getByRole('heading', { name: 'Apply' });
+    const heading = () => screen.getByRole('heading', { level: 1 });
 
     await user.click(tryButton()!);
     expect(banner()).toBeInTheDocument();
-    expect(heading()).toHaveFocus();
+    // The first job's title (Proposal A: the tab is the job).
+    await waitFor(() => expect(heading()).toHaveFocus());
 
     await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
     expect(banner()).toBeNull();
-    expect(heading()).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Apply' })).toHaveFocus());
   });
 
   it('is not offered when the tracker already has real jobs', () => {
@@ -84,6 +89,7 @@ describe('Try with sample data (Tracker)', () => {
     const user = userEvent.setup();
     renderTracker();
     await user.click(tryButton()!);
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
     await user.type(screen.getByPlaceholderText(/search/i), 'zzz-no-match');
     expect(banner()).toBeInTheDocument();
   });

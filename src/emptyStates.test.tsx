@@ -2,6 +2,7 @@
 // tested at the route seam through App and driven by title text and the action's role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -56,6 +57,8 @@ describe('Pipeline filtered to nothing', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     window.location.hash = '#/apply';
     renderApp();
+    // The Apply list is the All jobs sheet on a phone (Proposal A).
+    await openAllJobs();
     await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz nothing');
     expect(screen.getByText('No jobs match "zzz nothing"')).toBeInTheDocument();
     expect(screen.getByText('Try a shorter word, or clear the search.')).toBeInTheDocument();
@@ -68,6 +71,7 @@ describe('Pipeline filtered to nothing', () => {
     setStatusByUrl('https://acme.example/jobs/1', 'Applied', 'Design Engineer');
     window.location.hash = '#/apply';
     renderApp();
+    await openAllJobs();
     expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
     expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
   });

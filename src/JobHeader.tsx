@@ -18,7 +18,6 @@ import { focusNewHeading, pageHeadingNow } from './focusRescue';
 import { tooSoon } from './answerGuard';
 import { checkFor, useLiveness } from './livenessStore';
 import { JobBadges, RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
-import { JobPostingTitle } from './PostingLink';
 import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
@@ -98,13 +97,11 @@ export default function JobHeader({
         {showBack && <BackToPipeline />}
         <Stack gap="tight">
           <JobBadges job={job} />
-          {/* The posting is one tap from the title (Adrian 2026-10-22), quiet beside it: the
-              header's one primary stays the next step. */}
-          <JobPostingTitle job={job} size="md">
-            <Text variant="title" as="h1">
-              {titleOf(job)}
-            </Text>
-          </JobPostingTitle>
+          {/* No glyph beside the title (Adrian 2026-11-08): the posting is Open application, or
+              the menu's Open posting. */}
+          <Text variant="title" as="h1" className="rjb-break">
+            {titleOf(job)}
+          </Text>
           <Stack direction="row" gap="px8" align="center">
             {job.company?.trim() && <CompanyLogo company={job.company} postings={[job.url]} />}
             <MetaCaption items={[job.company?.trim(), job.location?.trim(), when]} />

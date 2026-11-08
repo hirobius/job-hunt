@@ -9,6 +9,7 @@
 //   all: its heading, count and metadata declare the group.
 // - Rev-3 rhythm: the Pipeline's panels stack 24 apart.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { openAllJobs } from './test/allJobs';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -97,12 +98,12 @@ describe('Pipeline panels (rev-3)', () => {
     loadSample();
     window.location.hash = '#/apply';
     renderApp();
-    const jobsPanel = await screen.findByRole('region', { name: /^Jobs$/ });
-    const panel = jobsPanel.closest('[role="tabpanel"]')!;
-    for (const name of [/^Follow up/, /^Jobs$/]) {
-      const region = screen.getByRole('region', { name });
-      expect(region).toHaveAttribute('data-padding');
-    }
+    // On a phone the list is the All jobs sheet (Proposal A, Adrian 2026-11-08).
+    const panel = await openAllJobs();
+    await screen.findByRole('region', { name: /^Jobs$/ });
+    expect(screen.getByRole('region', { name: /^Follow up/ })).toHaveAttribute('data-padding');
+    // Jobs is flat: each job is its own card (Adrian 2026-11-08).
+    expect(screen.getByRole('region', { name: /^Jobs$/ })).not.toHaveAttribute('data-padding');
     expect(screen.queryByRole('region', { name: /^To apply/ })).toBeNull();
     expect(screen.getAllByRole('article').length).toBeGreaterThan(0);
     expect(tintedBoxesIn(panel)).toHaveLength(0);
@@ -114,6 +115,7 @@ describe('Pipeline panels (rev-3)', () => {
     loadSample();
     window.location.hash = '#/apply';
     renderApp();
+    await openAllJobs();
     const jobsPanel = await screen.findByRole('region', { name: /^Jobs$/ });
     expect(jobsPanel.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
   });
@@ -133,19 +135,18 @@ describe('Pipeline panels (rev-3)', () => {
     expect(nestedCards(container)).toEqual([]);
   });
 
-  it('the Pipeline on a phone is job rows in the Jobs panel, never cards in a card (#449)', async () => {
+  it('the Apply list on a phone is one card per job in a flat panel, never cards in a card', async () => {
     viewport(390);
     loadSample();
     window.location.hash = '#/apply';
-    const { container } = renderApp();
+    renderApp();
+    const sheet = await openAllJobs();
     const jobs = await screen.findByRole('region', { name: /^Jobs$/ });
     const rows = within(jobs).getAllByRole('article');
     expect(rows.length).toBeGreaterThan(1);
-    for (const r of rows) {
-      expect(isCard(r)).toBe(false);
-      expect(r.closest('.rjb-items')).not.toBeNull();
-    }
-    expect(nestedCards(container)).toEqual([]);
+    // Each job its own card (Adrian 2026-11-08), its article inside that card.
+    for (const r of rows) expect(r.parentElement!.closest('[data-padding]')).not.toBeNull();
+    expect(nestedCards(sheet)).toEqual([]);
   });
 
   it('the Pipeline on desktop has no card inside a card (#449)', async () => {

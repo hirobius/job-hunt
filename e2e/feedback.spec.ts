@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openJob, PROD_URL, seed } from './routes';
+import { go, openAllJobs, openFilters, openJob, PROD_URL, seed } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -153,7 +153,7 @@ async function press(page: Page, target: Locator, name: string) {
   expect(seen, `${name}: took ${Math.round(seen)} ms (${why})`).toBeLessThanOrEqual(LIMIT_MS);
 }
 
-const button = (page: Page, name: string | RegExp) =>
+const button = (page: Page | Locator, name: string | RegExp) =>
   page.getByRole('button', { name, exact: typeof name === 'string' }).first();
 const item = (page: Page, name: string) =>
   page
@@ -161,8 +161,8 @@ const item = (page: Page, name: string) =>
     .or(page.getByRole('menuitemradio', { name, exact: true }));
 
 /** Open a row's menu (itself an action) and pick an item. */
-async function menu(page: Page, trigger: string, choice: string) {
-  await press(page, button(page, trigger), trigger);
+async function menu(page: Page, trigger: string, choice: string, scope: Page | Locator = page) {
+  await press(page, button(scope, trigger), trigger);
   await press(page, item(page, choice), `${trigger} → ${choice}`);
 }
 
@@ -201,47 +201,56 @@ test('Today: Scan now and the Account menu’s Companies answer within 300 ms', 
   await closeOverlay(page);
 });
 
-test('Pipeline: every row and page action answers within 300 ms', async ({ page }) => {
-  // The Pipeline page runs up to lg; from lg the Jobs tab is the list beside a job (#471).
+test('Apply list: every row and page action answers within 300 ms', async ({ page }) => {
+  // Below lg the list is the All jobs sheet (Proposal A); from lg the list beside a job (#471).
   await page.setViewportSize({ width: 800, height: 900 });
   await go(page, '#/apply');
-  await press(page, button(page, 'Mark applied: Design Technologist'), 'Mark applied');
+  const sheet = await openAllJobs(page);
+  await press(page, button(sheet, 'Mark applied: Design Technologist'), 'Mark applied');
   await expect(
     page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
   ).toBeVisible();
 
   // The job's card flashes and collapses (cards at every width, Adrian 2026-10-24); the toast
   // alone is not the item's feedback.
-  await menu(page, 'More actions: Senior Design Systems Designer', 'Star');
+  const row = (t: string, c: string) => menu(page, `More actions: ${t}`, c, sheet);
+  await row('Senior Design Systems Designer', 'Star');
   await ranIn(page, 'rjb-flash', 'Senior Design Systems Designer');
-  await menu(page, 'More actions: Senior Design Systems Designer', 'Unstar');
+  await row('Senior Design Systems Designer', 'Unstar');
   await ranIn(page, 'rjb-flash', 'Senior Design Systems Designer');
-  await menu(page, 'More actions: Design Systems Engineer', 'Retire');
-  await menu(page, 'More actions: Product Designer, Design Systems', 'Interviewing');
+  await row('Design Systems Engineer', 'Retire');
+  await row('Product Designer, Design Systems', 'Interviewing');
   await ranIn(page, 'rjb-flash', 'Product Designer, Design Systems');
-  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+  await row('Principal Design Systems Engineer', 'Remove');
   await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
+  await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
 
   for (const name of ['Status: Active', 'Sort: Newest']) {
-    await press(page, button(page, name), name);
+    await press(page, button(sheet, name), name);
     await closeOverlay(page);
   }
-  for (const name of ['Add job', 'Follow up: Design Systems Designer', 'Clear sample data']) {
+  await press(page, button(sheet, 'Follow up: Design Systems Designer'), 'Follow up');
+  await closeOverlay(page);
+  // The sheet closes; the filter bar holds the page's own actions.
+  await closeOverlay(page);
+  await expect(sheet).toHaveCount(0);
+  await openFilters(page);
+  for (const name of ['Add job', 'Clear sample data']) {
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
   await press(page, button(page, 'Check which are still open'), 'Check which are still open');
 });
 
-test('Pipeline cards (390): Remove collapses the card before it goes', async ({ page }) => {
+test('Apply cards (390): Remove collapses the card before it goes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await go(page, '#/apply');
-  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+  const sheet = await openAllJobs(page);
+  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove', sheet);
   await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
-  await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
+  await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
 });
 
 test('Job page: every header and panel action answers within 300 ms', async ({ page }) => {
@@ -372,9 +381,10 @@ test.describe('reduced motion', () => {
     // At 390, where the same Remove collapses the card with motion on (the test above).
     await page.setViewportSize({ width: 390, height: 844 });
     await go(page, '#/apply');
-    await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
-    await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+    const sheet = await openAllJobs(page);
+    await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove', sheet);
+    await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
     await page.waitForTimeout(400);
     expect(await anims(page)).toEqual([]);
     expect(await moving()).toEqual([]);

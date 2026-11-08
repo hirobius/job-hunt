@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
-import TrackerView from './TrackerView';
+import TrackerView, { JobsList } from './TrackerView';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import { addJob, getAllJobs, markAppliedByUrl, removeJob } from './store';
 
 afterEach(() => {
@@ -12,10 +13,20 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
+// With jobs the tab is the first job's Apply view (Proposal A, Adrian 2026-11-08), which reads sync.
 const renderTracker = () =>
   render(
+    <CloudSyncContext.Provider value={{ user: null, settled: true } as unknown as CloudSyncApi}>
+      <ToastProvider>
+        <TrackerView />
+      </ToastProvider>
+    </CloudSyncContext.Provider>,
+  );
+/** The Apply list itself (on a phone, the All jobs sheet's body). */
+const renderList = () =>
+  render(
     <ToastProvider>
-      <TrackerView />
+      <JobsList />
     </ToastProvider>,
   );
 
@@ -35,7 +46,10 @@ describe('TrackerView', () => {
       'https://boards.greenhouse.io/acme/jobs/42',
     );
     await user.click(within(dialog).getByRole('button', { name: 'Add job' }));
-    expect(await screen.findByRole('link', { name: 'Acme · Greenhouse' })).toBeInTheDocument();
+    // The tab is now that job (Proposal A).
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Acme · Greenhouse' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -105,7 +119,7 @@ describe('Add job dialog', () => {
 describe('Pipeline toolbar', () => {
   it('has no status strip; status is one menu button showing the current view', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderTracker();
+    renderList();
     expect(screen.queryByRole('radiogroup', { name: /status/i })).toBeNull();
     expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
@@ -116,7 +130,7 @@ describe('Pipeline toolbar', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     addJob('https://acme.example/jobs/2', 'Product Designer');
     markAppliedByUrl('https://acme.example/jobs/2', 'Product Designer');
-    renderTracker();
+    renderList();
 
     await user.click(screen.getByRole('button', { name: /^Status:/ }));
     const menu = await screen.findByRole('menu');
@@ -135,12 +149,14 @@ describe('Pipeline toolbar', () => {
 // action, a first-use empty state with one primary + one secondary action, and no toolbar while
 // there is nothing to search or filter.
 describe('Pipeline hierarchy', () => {
-  it('opens with a Pipeline page header whose action is Add job', () => {
+  it('with jobs the tab is the first job, under Filters and Add job (Proposal A)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
-    const heading = screen.getByRole('heading', { level: 1, name: 'Apply' });
-    const header = heading.closest('header')!;
-    expect(within(header).getByRole('button', { name: 'Add job' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
+    const bar = screen.getByRole('region', { name: 'Filter jobs' });
+    expect(within(bar).getByRole('button', { name: 'Filters' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Add job' })).toBeInTheDocument();
+    expect(within(bar).getByText('Active · 1 job')).toBeInTheDocument();
   });
 
   it('first use: no toolbar, a teaching empty state with Add job + sample data', () => {
@@ -163,32 +179,19 @@ describe('Pipeline hierarchy', () => {
     expect(container.querySelector('svg.lucide-briefcase')).not.toBeNull();
   });
 
-  it('with jobs: the toolbar is back and the header shows the counts', () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderTracker();
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
-    // On its own line straight under the title (rev-3: 4px under it), not beside it and not
-    // after the actions row (where PageHeader's description sits).
-    const title = screen.getByRole('heading', { level: 1, name: 'Apply' });
-    expect(title.closest('header')).not.toBeNull();
-    expect(title.nextElementSibling?.textContent).toBe('1 active · 1 total');
-  });
-
-  it('first use has no count under the title: the empty state says it (retro quick wins)', () => {
+  it('first use says no count under the title (no "0 jobs")', () => {
     renderTracker();
     const title = screen.getByRole('heading', { level: 1, name: 'Apply' });
     expect(title.nextElementSibling).toBeNull();
     expect(screen.queryByText('0 jobs')).toBeNull();
-    expect(screen.getByText('Track your first job')).toBeInTheDocument();
   });
 });
 
-// Rev-3 s-pipeline-filtered-empty: the empty message has its own section with a way back.
 describe('Pipeline filtered to nothing', () => {
   it('a search with no match: no period, a helper line and Clear search', async () => {
     const user = userEvent.setup();
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderTracker();
+    renderList();
     await user.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz nothing');
     expect(screen.getByText('No jobs match "zzz nothing"')).toBeInTheDocument();
     expect(screen.getByText('Try a shorter word, or clear the search.')).toBeInTheDocument();
@@ -200,7 +203,7 @@ describe('Pipeline filtered to nothing', () => {
   it('a status with no jobs: Try another status, and Show active goes back', async () => {
     const user = userEvent.setup();
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderTracker();
+    renderList();
     await user.click(screen.getByRole('button', { name: /^Status:/ }));
     await user.click(await screen.findByRole('menuitemradio', { name: /^Offer/ }));
     expect(screen.getByText('Try another status.')).toBeInTheDocument();
@@ -211,7 +214,7 @@ describe('Pipeline filtered to nothing', () => {
   it('nothing left to apply to: a plain title, no em dash', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     markAppliedByUrl('https://acme.example/jobs/1', 'Design Engineer');
-    renderTracker();
+    renderList();
     expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
     expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
   });
@@ -220,7 +223,7 @@ describe('Pipeline filtered to nothing', () => {
 describe('Status and Sort show only their value', () => {
   it('the prefix lives in the name, not the visible text', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderTracker();
+    renderList();
     expect(screen.getByRole('button', { name: /^Status: Active/ }).textContent).toBe('Active');
     expect(screen.getByRole('button', { name: /^Sort:/ }).textContent).not.toMatch(/^Sort/);
   });
@@ -230,7 +233,7 @@ describe('Status and Sort show only their value', () => {
 describe('Pipeline holds the list only', () => {
   it('has no This week agenda or Insights band', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderTracker();
+    renderList();
     expect(screen.queryByRole('button', { name: /Insights/ })).toBeNull();
     expect(screen.queryByText(/^This week/)).toBeNull();
   });

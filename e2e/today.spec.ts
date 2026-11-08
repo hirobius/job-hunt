@@ -34,17 +34,20 @@ for (const width of [390, 1440]) {
 
     // Apply: the list (below lg) or the list beside the first job (lg), with Follow up in it.
     await page.getByRole('tab', { name: 'Apply' }).click();
-    if (width < 1024)
-      await expect(page.getByRole('heading', { level: 1, name: 'Apply' })).toBeVisible();
+    // Below lg the tab is one job and its list is the All jobs sheet (Proposal A).
+    if (width < 1024) await page.getByRole('button', { name: 'All jobs' }).click();
     else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
     const follow = page.getByRole('region', { name: /^Follow up/ });
     await follow
       .getByRole('button', { name: /^Follow up/ })
       .first()
       .click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    // The Follow up dialog (the All jobs sheet closes under it below lg).
+    await expect(page.getByRole('dialog', { name: /^Follow up/ })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.getByRole('dialog', { name: /^Follow up/ })).toHaveCount(0);
+    if (await page.getByRole('dialog').count()) await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.getByRole('tab', { name: 'Find' }).click();
     await expect(page).toHaveURL(/#\/find$/);
   });

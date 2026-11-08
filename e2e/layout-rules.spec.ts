@@ -12,7 +12,7 @@
 //   - a back link's arrow sits on the page heading's left edge (no tertiary inset)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
 import { test, expect, type Page } from '@playwright/test';
-import { seed, visitAll } from './routes';
+import { seed, visitAll, openFilters } from './routes';
 
 const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [390, 1440] as const;
@@ -313,9 +313,19 @@ for (const theme of THEMES) {
         expect(await probe(page)).toEqual([]);
         await seed(page);
         await page.evaluate(() => (location.hash = '#/apply'));
-        // From lg the search is the list column's beside a job (#471): the open job stays, pinned.
+        // From lg the search is the list column's beside a job (#471); below lg it is in the
+        // Apply filter bar (Proposal A). The open job stays, "Not in this filter".
+        if ((page.viewportSize()?.width ?? 0) < 1024) await openFilters(page);
         await page.getByRole('textbox', { name: /^Search (saved )?jobs$/ }).fill('zzz nothing');
-        await expect(page.getByText(/No jobs match|Not in this filter/).first()).toBeVisible();
+        // The open job stays, outside the filter: below lg its pager says so; from lg the list
+        // column does.
+        await expect(
+          (page.viewportSize()?.width ?? 0) < 1024
+            ? page
+                .getByRole('navigation', { name: 'Jobs in the list' })
+                .getByText('Not in this filter', { exact: true })
+            : page.getByText('Not in this filter', { exact: true }).first(),
+        ).toBeVisible();
         expect(await probe(page)).toEqual([]);
       });
     });

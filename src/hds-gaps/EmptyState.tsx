@@ -27,9 +27,12 @@ export function EmptyState({
   framed = false,
   icon,
   title,
+  titleId,
   className,
   ...rest
 }: EmptyStateProps & {
+  /** An id for the title, so focus can land on it (a list whose last row left). */
+  titleId?: string;
   /** Centre it with an icon tile and a bold title (rev-3 teaching empty). */
   centered?: boolean;
   /** Also frame it in one panel (implies `centered`). */
@@ -68,7 +71,7 @@ export function EmptyState({
         // HDS lays the children out with gap-1 (4px): the actions get 16px more under the sentence.
         action={rest.action ? <Box sx={{ pt: 'sm' }}>{rest.action}</Box> : undefined}
         title={
-          <Text as="span" variant="body" weight="bold" tone="primary">
+          <Text as="span" variant="body" weight="bold" tone="primary" id={titleId}>
             {title}
           </Text>
         }
