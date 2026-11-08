@@ -95,6 +95,12 @@ p {
   border-top: thin solid var(--semantic-color-border-default);
 }
 
+/* The Apply job's swipe area (Proposal A): the page still scrolls up and down; a sideways move is
+   the swipe's, never the browser's own. */
+.rjb-swipe {
+  touch-action: pan-y;
+}
+
 /* A long unbroken title (QA 2026-10-22) wraps on screen, never past it. */
 .rjb-break {
   overflow-wrap: anywhere;

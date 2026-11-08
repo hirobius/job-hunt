@@ -209,6 +209,24 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     swipe(100);
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`));
     expect(window.history.length).toBe(length);
+
+    // The page still scrolls up and down; the sideways move is the swipe's (#510 review).
+    expect(screen.getByRole('heading', { level: 1 }).closest('.rjb-swipe')).not.toBeNull();
+    // A drag that selects text is not a swipe.
+    const select = vi.spyOn(window, 'getSelection').mockReturnValue({
+      toString: () => 'Acme',
+    } as Selection);
+    swipe(-100);
+    select.mockRestore();
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
+    // Nor is one that starts inside something that scrolls sideways (it scrolls itself).
+    const h1 = screen.getByRole('heading', { level: 1 });
+    const box = h1.parentElement!;
+    box.style.overflowX = 'auto';
+    Object.defineProperty(box, 'scrollWidth', { configurable: true, value: 900 });
+    Object.defineProperty(box, 'clientWidth', { configurable: true, value: 300 });
+    swipe(-100);
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
   });
 
   it('with one job left the pager still shows, as 1 of 1 with both arrows off (QA)', async () => {
@@ -222,13 +240,37 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(within(pager).getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
 
-  it('a job the list hides has no place in the walk, and says so', async () => {
+  it('a job the list hides says so, live, and its arrows step to the nearest shown job', async () => {
     updateJob(B, { status: 'Rejected' });
     window.location.hash = `#/apply/${jobIdOf(B)}`;
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Bolt Designer' })).toBeInTheDocument();
-    expect(screen.getByText('Not in this filter')).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: 'Jobs in the list' })).toBeNull();
+    const pager = screen.getByRole('navigation', { name: 'Jobs in the list' });
+    // A live region, so a screen reader hears it as it appears (#510 review).
+    expect(within(pager).getByRole('status')).toHaveTextContent('Not in this filter');
+    // No dead end: an arrow goes to a job the filter shows, in place.
+    const length = window.history.length;
+    const arrows = within(pager)
+      .getAllByRole('button')
+      .filter((b) => !(b as HTMLButtonElement).disabled);
+    expect(arrows.length).toBeGreaterThan(0);
+    fireEvent.click(arrows[0]);
+    await waitFor(() =>
+      expect([`#/apply/${jobIdOf(A)}`, `#/apply/${jobIdOf(C)}`]).toContain(window.location.hash),
+    );
+    expect(window.history.length).toBe(length);
+  });
+
+  it('a swipe on a job the list hides steps to the nearest shown job', async () => {
+    updateJob(B, { status: 'Rejected' });
+    window.location.hash = `#/apply/${jobIdOf(B)}`;
+    renderApp();
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
+    for (const dx of [-100, 100]) {
+      fireEvent.touchStart(h1, { touches: [{ clientX: 200, clientY: 300 }] });
+      fireEvent.touchEnd(h1, { changedTouches: [{ clientX: 200 + dx, clientY: 300 }] });
+    }
+    await waitFor(() => expect(window.location.hash).not.toBe(`#/apply/${jobIdOf(B)}`));
   });
 
   it('a double tap on Mark applied applies to one job, not the next one too', async () => {

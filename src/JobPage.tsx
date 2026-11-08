@@ -16,7 +16,7 @@ import {
   useRoute,
   type Route,
 } from './route';
-import { getPipelineView, usePipelineView, visibleJobs } from './pipelineView';
+import { getPipelineView, nearestShown, usePipelineView, visibleJobs } from './pipelineView';
 import ApplyFilterBar from './ApplyFilterBar';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
@@ -146,10 +146,13 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // "‹ 3 of 55 ›" over the jobs the filter shows (a swipe steps it too), then the job in full.
   // All jobs opens a sheet to jump to any job. A job opened from elsewhere keeps its Back.
   const list = visibleJobs(jobs, view);
+  const order = visibleJobs(jobs, { ...view, filter: 'all', q: '' });
   const at = list.findIndex((j) => j.url === job.url);
-  const step = (d: number) => {
-    const to = list[at + d];
-    if (at >= 0 && to) openJob(jobIdOf(to.url), true);
+  const step = (d: -1 | 1) => {
+    // A job the filter hides steps to the nearest shown one, as its pager does.
+    const near = at < 0 ? nearestShown(job, list, order) : null;
+    const to = near ? (d < 0 ? near.prev : near.next) : list[at + d];
+    if (to) openJob(jobIdOf(to.url), true);
   };
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
@@ -157,13 +160,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
         <ApplyFilterBar jobs={jobs} />
         <Box className="rjb-apply-pager">
           <Stack direction="row" gap="tight" align="center" justify="space-between">
-            {at >= 0 ? (
-              <ApplyPager job={job} list={list} />
-            ) : (
-              <Text variant="caption" as="p" tone="secondary">
-                Not in this filter
-              </Text>
-            )}
+            <ApplyPager job={job} list={list} order={order} />
             <Button size="md" variant="secondary" onClick={() => setAll(true)}>
               All jobs
             </Button>
@@ -183,6 +180,15 @@ export default function JobPage({ jobId }: { jobId: string }) {
   );
 }
 
+/** True when `el` is inside something that scrolls sideways (below `root`): its own swipe. */
+function inSideScroller(el: Element, root: Element): boolean {
+  for (let n: Element | null = el; n && n !== root; n = n.parentElement) {
+    const x = getComputedStyle(n).overflowX;
+    if ((x === 'auto' || x === 'scroll') && n.scrollWidth > n.clientWidth) return true;
+  }
+  return false;
+}
+
 /** A horizontal swipe on the job steps the pager (Proposal A: "swipe left and right on the card").
  *  Only a clear sideways swipe of 64px or more counts, never one that starts in a field. */
 function SwipeArea({
@@ -197,16 +203,23 @@ function SwipeArea({
   const start = useRef<{ x: number; y: number } | null>(null);
   return (
     <Box
+      className="rjb-swipe"
       onTouchStart={(e: TouchEvent<HTMLDivElement>) => {
         const t = e.touches[0];
-        const field = (e.target as Element).closest('input, textarea, [contenteditable="true"]');
-        start.current = t && !field ? { x: t.clientX, y: t.clientY } : null;
+        const from = e.target as Element;
+        const field = from.closest('input, textarea, [contenteditable="true"]');
+        start.current =
+          t && !field && !inSideScroller(from, e.currentTarget)
+            ? { x: t.clientX, y: t.clientY }
+            : null;
       }}
       onTouchEnd={(e: TouchEvent<HTMLDivElement>) => {
         const s = start.current;
         const t = e.changedTouches[0];
         start.current = null;
         if (!s || !t) return;
+        // Selecting text drags sideways too: that is not a swipe.
+        if (window.getSelection()?.toString()) return;
         const dx = t.clientX - s.x;
         const dy = t.clientY - s.y;
         if (Math.abs(dx) < 64 || Math.abs(dx) < Math.abs(dy) * 1.5) return;

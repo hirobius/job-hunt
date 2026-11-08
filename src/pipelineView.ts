@@ -85,3 +85,18 @@ export const getPipelineView = store.get;
 export const setPipelineView = (patch: Partial<PipelineView>) =>
   store.set({ ...store.get(), ...patch });
 export const resetPipelineView = () => store.set(DEFAULT_VIEW);
+
+/** The nearest job the filter shows before and after `job`, by its place in `order` (every job in
+ *  the same sort): where the Apply pager steps from a job the filter hides (#510 review). */
+export function nearestShown(job: Job, list: Job[], order: Job[]): { prev?: Job; next?: Job } {
+  const shown = new Set(list.map((j) => j.url));
+  const at = order.findIndex((j) => j.url === job.url);
+  if (at < 0) return { next: list[0] };
+  return {
+    prev: order
+      .slice(0, at)
+      .reverse()
+      .find((j) => shown.has(j.url)),
+    next: order.slice(at + 1).find((j) => shown.has(j.url)),
+  };
+}
