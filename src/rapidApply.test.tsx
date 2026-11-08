@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { openAllJobs } from './test/allJobs';
-import { setTemplatesOpenByDefault } from './ApplySheet';
+import { setTemplatesOpenByDefault } from './templatesOpen';
 import { ToastProvider } from '@hirobius/design-system';
 
 const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));

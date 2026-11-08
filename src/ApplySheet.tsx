@@ -18,6 +18,7 @@ import {
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import BlankText, { BlanksLeft } from './BlankText';
 import { useBackCloses } from './useBackCloses';
+import { readTemplatesOpen, writeTemplatesOpen } from './templatesOpen';
 import { documentsHash, useRoute } from './route';
 import { useRemembered } from './viewMemory';
 import {
@@ -218,22 +219,6 @@ function DisclosureItem({
  *  template for this job. It stays in Documents. */
 const isJobTemplate = (body: string) => /\[[^\]\n]{1,60}\]/.test(body);
 
-// Templates open or closed is a device UI pref (rjb_ui_*), kept across visits (Adrian 2026-11-08).
-const TEMPLATES_OPEN_KEY = 'rjb_ui_templates_open';
-let openByDefault = false;
-/** Tests: most suites test what is inside Templates, so they start with it open. */
-export const setTemplatesOpenByDefault = (v: boolean) => {
-  openByDefault = v;
-};
-const readOpen = () => {
-  try {
-    const v = localStorage.getItem(TEMPLATES_OPEN_KEY);
-    return v === null ? openByDefault : v === '1';
-  } catch {
-    return openByDefault;
-  }
-};
-
 /** The Apply view's templates (#239; Adrian 2026-11-08): one "Templates (N)" disclosure under the
  *  job's actions, closed by default and remembered on this device. A row is the template's name,
  *  its first line, the blanks still open and Copy; tapping it opens the whole filled text in a
@@ -252,14 +237,10 @@ export function ApplyTemplates({ job }: { job: Job }) {
       ),
     [snippets, job, kit.fields.name],
   );
-  const [open, setOpenState] = useState(readOpen);
+  const [open, setOpenState] = useState(readTemplatesOpen);
   const setOpen = (v: boolean) => {
     setOpenState(v);
-    try {
-      localStorage.setItem(TEMPLATES_OPEN_KEY, v ? '1' : '0');
-    } catch {
-      /* private mode: open for this visit only */
-    }
+    writeTemplatesOpen(v);
   };
   const [shown, setShown] = useState<string | null>(null);
   useBackCloses(!!shown, () => setShown(null), 'template-view');

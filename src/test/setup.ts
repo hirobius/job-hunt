@@ -1,4 +1,4 @@
-import { setTemplatesOpenByDefault } from '../ApplySheet';
+import { setTemplatesOpenByDefault } from '../templatesOpen';
 import { beforeAll, beforeEach } from 'vitest';
 import { preloadViews } from '../routeViews';
 import { resetPipelineView } from '../pipelineView';
