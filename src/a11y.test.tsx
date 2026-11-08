@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
-import TrackerView from './TrackerView';
+import TrackerView, { JobsList } from './TrackerView';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DocumentsView from './DocumentsView';
 import { setOutreachMessages } from './test/outreach';
@@ -58,7 +58,8 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
 describe('a11y — the Pipeline agenda with the sample pipeline (#236, was Today)', () => {
   it('To apply, Follow up (due first) and the next 7 days', async () => {
     loadSample();
-    const { container, getByRole } = withTheme(<TrackerView />);
+    // The Apply list (on a phone the All jobs sheet's body, Proposal A).
+    const { container, getByRole } = withTheme(<JobsList />);
     expect(getByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
     expect(getByRole('region', { name: /^Next 7 days/ })).toBeInTheDocument();
     await auditA11y(container);
@@ -126,7 +127,7 @@ describe('a11y — the Pipeline after the first job (#132)', () => {
   // Getting started left the Pipeline (#416); the page after the first job is still audited.
   it('the Pipeline after the first job', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    const { container, getByRole } = withTheme(<TrackerView />);
+    const { container, getByRole } = withTheme(<JobsList />);
     expect(getByRole('region', { name: /^Jobs$/ })).toBeInTheDocument();
     await auditA11y(container);
   });

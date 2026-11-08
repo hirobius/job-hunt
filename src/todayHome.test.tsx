@@ -6,6 +6,7 @@
 // the Apply tab (#471 slice 3). Tested at the route seam through App and driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import type { FeedResult } from './feed/fetchFeed';
@@ -245,6 +246,8 @@ describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Apply/ })).toBeNull();
     await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    // On a phone, in the Apply list (the All jobs sheet, Proposal A).
+    await openAllJobs();
     expect(await screen.findByRole('region', { name: /^Follow up/ })).toBeInTheDocument();
   });
 });

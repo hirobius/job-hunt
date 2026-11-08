@@ -1,3 +1,4 @@
+import { setTemplatesOpenByDefault } from '../ApplySheet';
 import { beforeAll, beforeEach } from 'vitest';
 import { preloadViews } from '../routeViews';
 import { resetPipelineView } from '../pipelineView';
@@ -68,3 +69,6 @@ globalThis.ResizeObserver ??= class {
   unobserve() {}
   disconnect() {}
 };
+// The Apply view's Templates (Adrian 2026-11-08) is closed by default, kept per device; most suites
+// test what is inside it, so they start with it open (rapidApply.test.tsx pins the default).
+beforeEach(() => setTemplatesOpenByDefault(true));

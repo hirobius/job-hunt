@@ -10,13 +10,20 @@ import { jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { JobBadges, RowMenu, RowPrimaryAction } from './JobRowParts';
-import { JobPostingTitle } from './PostingLink';
+import { inPlaceClick } from './back';
 import { dateLabel } from './jobDates';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
 import { JOB_ATTR } from './listFocus';
 
-export default function JobListCard({ job }: { job: Job }) {
+export default function JobListCard({
+  job,
+  onOpen,
+}: {
+  job: Job;
+  /** Open the job in place (the All jobs sheet: a jump replaces the entry and closes the sheet). */
+  onOpen?: (job: Job) => void;
+}) {
   const titleId = useId();
   const row = rowView(job);
   // One date per job (Adrian 2026-10-28): posted, else found; the closing date is a badge.
@@ -39,14 +46,16 @@ export default function JobListCard({ job }: { job: Job }) {
         <Stack gap="px8">
           {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
           <Stack gap="px4">
-            {/* The title opens the job's page; the posting is one tap away right beside it. */}
-            <JobPostingTitle job={job}>
-              <Text variant="body" as="h3" weight="bold" className="rjb-card-title" id={titleId}>
+            {/* The title opens the job (the posting is the menu's Open posting: no glyph beside the
+                title, Adrian 2026-11-08). */}
+            <Text variant="body" as="h3" weight="bold" className="rjb-card-title" id={titleId}>
+              {/* A click on the link bubbles here: in place when the host opens it itself. */}
+              <span onClick={onOpen ? inPlaceClick(() => onOpen(job)) : undefined}>
                 <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
                   {row.title}
                 </InlineLink>
-              </Text>
-            </JobPostingTitle>
+              </span>
+            </Text>
             {job.company && (
               <Stack direction="row" gap="px8" align="center">
                 <CompanyLogo company={job.company} postings={[job.url]} />

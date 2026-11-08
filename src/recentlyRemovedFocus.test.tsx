@@ -58,7 +58,9 @@ afterEach(() => {
 });
 
 describe('Recently removed keeps focus when it empties (#306)', () => {
-  it('restoring the last one focuses the restored job in the list', async () => {
+  // On a phone the Apply tab is one job (Proposal A, Adrian 2026-11-08): no list on the page, so focus
+  // goes back to the Account button the dialog was opened from.
+  it('restoring the last one hands focus back to the Account button', async () => {
     addJob(URL_B, 'Welder');
     replaceTrash([removed(URL_A, 'Design Engineer')]);
     renderPipeline();
@@ -66,11 +68,12 @@ describe('Recently removed keeps focus when it empties (#306)', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Restore: Design Engineer' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() =>
-      expect(document.activeElement?.getAttribute('href')).toBe(`#/apply/${jobIdOf(URL_A)}`),
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Account/ })),
     );
+    expect(jobIdOf(URL_A)).toBeTruthy();
   });
 
-  it('deleting the last one focuses the Jobs panel heading', async () => {
+  it('deleting the last one hands focus back to the Account button', async () => {
     addJob(URL_B, 'Welder');
     replaceTrash([removed(URL_A, 'Design Engineer')]);
     renderPipeline();
@@ -80,13 +83,13 @@ describe('Recently removed keeps focus when it empties (#306)', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() =>
-      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Jobs' })),
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Account/ })),
     );
   });
 });
 
 describe('Recently removed focus after a restore then a delete (review)', () => {
-  it('the delete that empties it focuses the Jobs heading, not the job restored earlier', async () => {
+  it('the delete that empties it focuses the Account button, not the job restored earlier', async () => {
     addJob(URL_B, 'Welder');
     replaceTrash([removed(URL_A, 'Design Engineer'), removed('https://c.example/3', 'Machinist')]);
     renderPipeline();
@@ -97,7 +100,7 @@ describe('Recently removed focus after a restore then a delete (review)', () => 
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() =>
-      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Jobs' })),
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Account/ })),
     );
   });
 });

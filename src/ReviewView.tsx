@@ -326,6 +326,7 @@ export default function ReviewView({
           <EmptyState
             framed
             icon={SearchX}
+            titleId={EMPTY_TITLE_ID}
             title={
               on.length
                 ? 'Nothing matches these filters'
@@ -384,18 +385,23 @@ export default function ReviewView({
   return list;
 }
 
+const EMPTY_TITLE_ID = 'rjb-review-empty-title';
+
 /** After a decision on a Browse card, focus goes to the title of the card that takes its place
- *  (the next one, else the one before), once the decided card has left the list. */
+ *  (the next one, else the one before), else the empty state's title, once the decided card has
+ *  left the list. */
 function focusNextTitle(from: Element | null) {
   const li = from?.closest('li');
   const target = (li?.nextElementSibling ?? li?.previousElementSibling)?.querySelector<HTMLElement>(
     'h3',
   );
-  if (!li || !target) return;
+  if (!li) return;
   let frames = 120;
   const tick = () => {
     if (!li.isConnected) {
-      if (target.isConnected) focusAsHeading(target);
+      // The last card left: the empty state's title takes focus (#508 review).
+      const to = target?.isConnected ? target : document.getElementById(EMPTY_TITLE_ID);
+      if (to) focusAsHeading(to);
       return;
     }
     if (frames-- > 0) requestAnimationFrame(tick);
@@ -786,7 +792,13 @@ function Deck({
   if (!rows.length)
     return (
       <EmptySection>
-        <EmptyState framed icon={SearchX} title="You’re all caught up" description={empty} />
+        <EmptyState
+          framed
+          icon={SearchX}
+          titleId={EMPTY_TITLE_ID}
+          title="You’re all caught up"
+          description={empty}
+        />
       </EmptySection>
     );
   const r = rows[at];
