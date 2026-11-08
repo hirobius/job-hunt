@@ -26,6 +26,7 @@ import { loadPersisted, savePersisted } from '../persisted';
 import { ADELE, adeleNames } from './adele';
 import { YC_HIRING_URL, ycMatches } from './companySource';
 import { companyKey, muteCompany } from './decided';
+import { unsupportedAtsOf, type UnsupportedAts } from './unsupportedAts';
 import { findDesignSystemOrgs, type GhGet, type RunReport } from './dsOrgs';
 import { boardKeyOf, countSources } from './feed';
 import { liveFetchJson, type FeedProgress, type FeedResult } from './fetchFeed';
@@ -63,6 +64,7 @@ export const MAX_YC_LEADS = 30;
 export const PROBED_TTL_MS = 14 * 86400e3;
 export const MAX_QUEUE = 1000;
 export const MAX_FOUND = 300;
+export const MAX_UNSUPPORTED = 100;
 /** Postings kept between runs, and how much of each body (storage is small). */
 export const MAX_STORED = 300;
 export const TEXT_MAX = 1500;
@@ -138,6 +140,8 @@ export interface ScanState {
   found: FoundCompany[];
   /** Board key (kind:slug) → when a run last read it without error (#448). */
   boardReads?: Record<string, number>;
+  /** Leads left unprobed: their careers site is an ATS the browser can't read (Scan details). */
+  unsupported?: { name: string; ats: UnsupportedAts }[];
   error?: string;
 }
 
@@ -233,6 +237,15 @@ export function sanitizeScanState(raw: unknown): ScanState {
           ) as Record<string, number>,
         }
       : {}),
+    ...(Array.isArray(o.unsupported) && {
+      unsupported: o.unsupported
+        .flatMap((u) => {
+          const name = text((u as Record<string, unknown>)?.name).trim();
+          const ats = name ? unsupportedAtsOf(name) : null;
+          return ats ? [{ name, ats }] : [];
+        })
+        .slice(0, MAX_UNSUPPORTED),
+    }),
     ...(text(o.error) && { error: text(o.error) }),
   };
 }
@@ -483,6 +496,19 @@ export async function runScan(
   const now = deps.now();
   let s: ScanState = { ...getScanState(), startedAt: now };
   delete s.error;
+  // Discovery noise (2026-11-08): a company the identity check could not confirm is listed for
+  // one run only. Its key stays probed (PROBED_TTL_MS), so it isn't found again soon. One the
+  // person followed or ignored stays.
+  s.found = s.found.filter((f) => f.confirmed || f.status !== 'new');
+  // A queued lead whose careers site is an ATS we can't read is never probed (an older run queued it).
+  const unsupported = new Map((s.unsupported ?? []).map((u) => [companyKey(u.name), u]));
+  const skip = (l: Lead) => {
+    const ats = unsupportedAtsOf(l.name);
+    if (!ats) return false;
+    unsupported.set(companyKey(l.name), { name: l.name, ats });
+    return true;
+  };
+  s.queue = s.queue.filter((l) => !skip(l));
   const save = () => writeState({ ...s, beatAt: deps.now() });
   save();
   const step = (p: ScanProgress) => onProgress?.(p);
@@ -500,11 +526,15 @@ export async function runScan(
   const fresh: Lead[] = [];
   for (const l of await gatherLeads(input, d, signal)) {
     const k = companyKey(l.name);
-    if (!k || known.has(k)) continue;
+    if (!k || skip(l) || known.has(k)) continue;
     known.add(k);
     fresh.push(l);
   }
-  s = { ...s, queue: [...s.queue, ...fresh].slice(0, MAX_QUEUE) };
+  s = {
+    ...s,
+    queue: [...s.queue, ...fresh].slice(0, MAX_QUEUE),
+    ...(unsupported.size && { unsupported: [...unsupported.values()].slice(0, MAX_UNSUPPORTED) }),
+  };
   save();
   if (halted()) return s;
 

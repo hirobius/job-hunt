@@ -523,7 +523,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →
   GitHub DS orgs → Adele → `SEED_LEADS`, empty until the seed list lands) → the probe (≤ 40 new leads a run, the
   rest queued; its limiter and cache) → the **identity check** (`feed/identity.ts`, #417: one ATS only, and the
-  website's domain must match the slug or name; else unconfirmed, shown but never read) → the Feed's
+  website's domain must match the slug or name; else unconfirmed, shown but never read, **and for one run only** (discovery noise, 2026-11-08: the next run drops a still-unconfirmed row unless followed or ignored; its key stays probed); a lead whose careers site is Workday / SuccessFactors / Taleo (`feed/unsupportedAts.ts`, hand-kept by name) is never probed and is listed in Scan details as "unsupported board") → the Feed's
   `PostingReader` over followed + confirmed found boards and every feed (Remotive / GitHub budgets hold) → the
   inclusion check (the profile's must include, else "design system") and **remote only** (Adrian 2026-10-28:
   `remoteOnly`: remote keeps, on-site/hybrid drops, no mode and no city keeps with `remoteUnstated`, "Remote not

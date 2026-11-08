@@ -48,9 +48,10 @@ export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFoc
   const line = useScanLine(d ? { newToday: d.newToday, sources: d.sourcesRead } : undefined);
   // Signed in, the browser's discovery still runs (silently on Find): its progress shows here.
   const { user } = useCloudSync();
-  const { running, progress } = useScan();
+  const { running, progress, state } = useScan();
   const discovering = !!user && running ? progressLine(progress) : null;
   const n = d?.failed.length ?? 0;
+  const unsupported = state.unsupported ?? [];
   return (
     <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
       <Dialog.Header>
@@ -103,6 +104,26 @@ export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFoc
               )}
             </Stack>
           </>
+        )}
+        {unsupported.length > 0 && (
+          <Stack gap="tight" as="section" aria-labelledby="rjb-scan-unsupported">
+            <Text variant="body" as="h3" className="rjb-semibold" id="rjb-scan-unsupported">
+              {`${unsupported.length} ${unsupported.length === 1 ? 'company' : 'companies'} with an unsupported board`}
+            </Text>
+            <Text variant="caption" as="p" tone="secondary">
+              Their careers sites (Workday, SuccessFactors, Taleo) can’t be read here, so the scan
+              skips them.
+            </Text>
+            <ItemList label="Unsupported boards">
+              {unsupported.map((u) => (
+                <ItemRow key={u.name}>
+                  <Text variant="caption" as="p" tone="secondary">
+                    {`${u.name} · unsupported board (${u.ats})`}
+                  </Text>
+                </ItemRow>
+              ))}
+            </ItemList>
+          </Stack>
         )}
       </Stack>
     </Dialog.Content>

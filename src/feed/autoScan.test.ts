@@ -13,6 +13,7 @@ import {
   remoteOnly,
   resetScan,
   runScan,
+  sanitizeScanState,
   scanReader,
   shouldScan,
   type ScanDeps,
@@ -207,6 +208,46 @@ describe('runScan', () => {
       expect.objectContaining({ name: 'Forward', confirmed: false }),
     ]);
     expect(calls[0].boardUrls).toEqual([]);
+    // Discovery noise (2026-11-08): still unconfirmed after one run, the row goes; its key stays
+    // probed, so the next run does not find it again.
+    const next = await runScan(
+      input,
+      deps({
+        fetchJson: network([yc('Forward', 'https://goforward.com')], ['forward'], ['forward']),
+        reader: r,
+      }),
+    );
+    expect(newCompanies(next)).toEqual([]);
+  });
+
+  it('keeps an unconfirmed company the person followed or ignored', async () => {
+    const { r } = reader({});
+    const net = network([yc('Forward', 'https://goforward.com')], ['forward'], ['forward']);
+    const s = await runScan(input, deps({ fetchJson: net, reader: r }));
+    ignoreFound(s.found[0].key);
+    const next = await runScan(input, deps({ fetchJson: net, reader: r }));
+    expect(next.found).toEqual([expect.objectContaining({ name: 'Forward', status: 'ignored' })]);
+  });
+
+  it('never probes a lead whose careers site is Workday, SuccessFactors or Taleo', async () => {
+    const asked: string[] = [];
+    const net = network([yc('Salesforce', 'https://salesforce.com')], ['salesforce']);
+    const fetchJson: FetchJson = (url, opts) => {
+      asked.push(url);
+      return net(url, opts);
+    };
+    const { r } = reader({});
+    const s = await runScan(input, deps({ fetchJson, reader: r }));
+    expect(asked.some((u) => /salesforce/i.test(u))).toBe(false);
+    expect(newCompanies(s)).toEqual([]);
+    expect(s.unsupported).toEqual([{ name: 'Salesforce', ats: 'Workday' }]);
+    // It survives the trip through storage, and an unknown name is dropped there.
+    expect(
+      sanitizeScanState({
+        ...s,
+        unsupported: [...s.unsupported!, { name: 'Acme', ats: 'Workday' }],
+      }).unsupported,
+    ).toEqual([{ name: 'Salesforce', ats: 'Workday' }]);
   });
 
   it('reads every followed board and every feed with no lead at all', async () => {
