@@ -38,7 +38,8 @@ export function BrandLogo({ fontSize = 19 }: { fontSize?: number }) {
       className="rjb-logo"
       ref={(el) => el?.style.setProperty('--rjb-logo-size', `${fontSize}px`)}
     >
-      <LazyRoleFlameLogo fontSize={fontSize} />
+      {/* The app bar's flame loops on (Adrian 2026-11-08); still under reduced motion. */}
+      <LazyRoleFlameLogo fontSize={fontSize} continuous />
     </span>
   );
 }

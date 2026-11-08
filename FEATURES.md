@@ -1,4 +1,4 @@
-# Feature roadmap: Roleflame
+# Feature roadmap: roleflame
 
 Working backlog for the tracker. Ordered by impact on actually landing a job.
 The tracker stores each item as `{label, url, status}` in localStorage and mirrors

@@ -1,8 +1,8 @@
-# Roleflame
+# roleflame
 
 A job-hunt tracker with a discovery board. Live at https://roleflame.vercel.app
 
-The name is set in one place, `src/brand.ts`. It was called Apply Board, then RoleForge, Stoke and hiraga before (renamed Roleflame 2026-11-02, hirobius/ops#1092).
+The name is set in one place, `src/brand.ts`. It was called Apply Board, then RoleForge, Stoke and hiraga before (renamed Roleflame 2026-11-02, hirobius/ops#1092; written all lowercase, roleflame, since 2026-11-08).
 
 ## What it does
 

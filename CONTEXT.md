@@ -1,6 +1,6 @@
-# Roleflame (formerly hiraga, Stoke, RoleForge, Apply Board)
+# roleflame (formerly hiraga, Stoke, RoleForge, Apply Board)
 
-The domain language of Roleflame ( set in `src/brand.ts`) — a personal job-application tracker and discovery
+The domain language of roleflame ( set in `src/brand.ts`) — a personal job-application tracker and discovery
 board. These are the concepts the code models; use them exactly and avoid the listed
 synonyms so the code, docs, and architecture reviews share one vocabulary.
 

@@ -7,7 +7,7 @@ truth for the text. Paste them by hand.
 
 | Dashboard field                                           | Value                              |
 | --------------------------------------------------------- | ---------------------------------- |
-| Authentication > Emails > Templates > Magic link: Subject | `Your Roleflame sign-in link`      |
+| Authentication > Emails > Templates > Magic link: Subject | `Your roleflame sign-in link`      |
 | Authentication > Emails > Templates > Magic link: Body    | the full text of `magic_link.html` |
 
 The app signs in with a magic link only (`signInWithOtp`), so only the Magic

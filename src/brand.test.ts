@@ -19,9 +19,9 @@ const sourceFiles = (dir: string): string[] =>
   });
 
 describe('brand (#55)', () => {
-  it('is Roleflame (Adrian 2026-11-02, hirobius/ops#1092; was hiraga, Stoke, RoleForge)', () => {
-    expect(BRAND.name).toBe('Roleflame');
-    // The flame leads the word (Adrian 2026-10-30): 🔥Roleflame.
+  it('is roleflame, all lowercase (Adrian 2026-11-02, hirobius/ops#1092; lowercase 2026-11-08)', () => {
+    expect(BRAND.name).toBe('roleflame');
+    // The flame leads the word (Adrian 2026-10-30): 🔥roleflame.
     expect(BRAND.wordmark).toEqual({ flame: 'before' });
     expect(BRAND.slug).toBe('roleflame');
   });
@@ -42,7 +42,10 @@ describe('brand (#55)', () => {
 
   it('no source file hard-codes the old or current display name', () => {
     const offenders = sourceFiles(SRC).filter((f) =>
-      new RegExp(`Apply Board|RoleForge|\\bStoke\\b|\\bhiraga\\b|\\b${BRAND.name}\\b`).test(readFileSync(f, 'utf8')),
+      // The name as a word, not inside a host name (roleflame.vercel.app is an address, not copy).
+      new RegExp(
+        `Apply Board|RoleForge|\\bRoleflame\\b|\\bStoke\\b|\\bhiraga\\b|(?<![/.\\w-])${BRAND.name}(?![.\\w-])`,
+      ).test(readFileSync(f, 'utf8')),
     );
     expect(offenders).toEqual([]);
   });

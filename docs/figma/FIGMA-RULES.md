@@ -1,6 +1,6 @@
-# Figma agent rules for Roleflame
+# Figma agent rules for roleflame
 
-Paste this page into the Figma agent's prompt for any Roleflame design task. Source of truth for the
+Paste this page into the Figma agent's prompt for any roleflame design task. Source of truth for the
 code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` keeps it true.
 
 ## Build with

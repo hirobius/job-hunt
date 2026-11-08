@@ -6,10 +6,12 @@
 // backup.ts) and calendar event UIDs (ics.ts) stay fixed so old backups restore and re-exported
 // events update instead of duplicating.
 export const BRAND = {
-  /** Display name. */
-  name: 'Roleflame',
+  /** Display name, all lowercase (Adrian 2026-11-08): the wordmark, <title> ("Find · roleflame"),
+   *  the manifest, emails and docs copy. Identifiers, URLs and the repo keep their own case. */
+  name: 'roleflame',
   /** The wordmark: the flame (src/brand/flame.svg) before the name (Adrian 2026-10-30). The name is
-   *  Roleflame (Adrian 2026-11-02, hirobius/ops#1092; was hiraga, Stoke, RoleForge). */
+   *  roleflame (Adrian 2026-11-02, hirobius/ops#1092, lowercase since 2026-11-08; was hiraga, Stoke,
+   *  RoleForge). */
   wordmark: { flame: 'before' },
   /** Lowercase, URL/file-safe: download filenames. */
   slug: 'roleflame',

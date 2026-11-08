@@ -38,8 +38,8 @@ function setHidden(h: boolean) {
   });
 }
 
-function mount() {
-  const { container } = render(<RoleFlameLogo />);
+function mount(props: { continuous?: boolean } = {}) {
+  const { container } = render(<RoleFlameLogo {...props} />);
   const d = () => container.querySelector('path')!.getAttribute('d');
   const letterTransform = () =>
     (container.querySelector('.rjb-rf-l') as HTMLElement).style.transform;
@@ -60,6 +60,25 @@ describe('RoleFlameLogo motion', () => {
     advance(FLAME_MOTION_LIMIT_MS);
     expect(d()).toBe(still);
     advance(2000);
+    expect(d()).toBe(still);
+  });
+
+  it('continuous (the app bar, Adrian 2026-11-08): still moving well past 5 s', () => {
+    const { d } = mount({ continuous: true });
+    const still = d();
+    advance(FLAME_MOTION_LIMIT_MS + 3000);
+    const later = d();
+    advance(300);
+    expect(d()).not.toBe(later);
+    expect(later).not.toBeNull();
+    void still;
+  });
+
+  it('continuous still holds frame 0 under reduced motion', () => {
+    reduce = true;
+    const { d } = mount({ continuous: true });
+    const still = d();
+    advance(FLAME_MOTION_LIMIT_MS + 3000);
     expect(d()).toBe(still);
   });
 

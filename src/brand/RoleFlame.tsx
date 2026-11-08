@@ -556,6 +556,7 @@ function useFlame(
   mode: FlameMode = 'endless',
   animated = true,
   settings: FlameSettings = FLAME_SETTINGS,
+  continuous = false,
 ) {
   const reduced = usePrefersReducedMotion();
   const visible = usePageVisible();
@@ -574,7 +575,7 @@ function useFlame(
   }));
   useEffect(() => {
     if (!on || !visible) return;
-    const limit = Math.round((FLAME_MOTION_LIMIT_MS * settings.fps) / 1000);
+    const limit = continuous ? Infinity : Math.round((FLAME_MOTION_LIMIT_MS * settings.fps) / 1000);
     const id = window.setInterval(() => {
       const i = ++ticks.current;
       if (i >= limit) {
@@ -585,7 +586,7 @@ function useFlame(
       setState({ frame: next ? next() : loop[i % loop.length], tick: i });
     }, 1000 / settings.fps);
     return () => window.clearInterval(id);
-  }, [on, visible, next, loop, settings]);
+  }, [on, visible, next, loop, settings, continuous]);
   // Stopped (reduced motion, not animated, or after the 5 s limit): the first frame, held.
   return on ? { ...state, running: true } : { frame: loop[0], tick: 0, running: false };
 }
@@ -711,6 +712,9 @@ type LogoProps = {
   text?: Partial<TextSettings>;
   /** "inline" = flame beside the name (app bar). "stacked" = flame centred above the name (sign-in screen). */
   layout?: 'inline' | 'stacked';
+  /** Burn on past the 5 s limit (the app bar, Adrian 2026-11-08). Still under reduced motion and
+   *  paused while the tab is hidden, as always. */
+  continuous?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -724,11 +728,12 @@ export function RoleFlameLogo({
   settings = FLAME_SETTINGS,
   text,
   layout = 'inline',
+  continuous = false,
   className,
   style,
 }: LogoProps) {
   const T = { ...TEXT_SETTINGS, ...text };
-  const { frame, tick, running } = useFlame(mode, animated, settings);
+  const { frame, tick, running } = useFlame(mode, animated, settings, continuous);
   const [salt] = useState(() => (Math.random() * 1e6) | 0);
   const step = Math.floor(tick / Math.max(1, T.every));
   return (
