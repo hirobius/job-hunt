@@ -113,3 +113,9 @@ export async function openFilters(page: Page) {
   const filters = page.getByRole('button', { name: 'Filters' });
   if ((await filters.getAttribute('aria-expanded')) !== 'true') await filters.click();
 }
+
+/** The shell's top tabs are links in a nav (top tabs PR): one by name, or the open one. */
+export const topTab = (page: Page, name: string) =>
+  page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name, exact: true });
+export const currentTab = (page: Page) =>
+  page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]');

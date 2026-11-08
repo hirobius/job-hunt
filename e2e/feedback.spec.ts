@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openAllJobs, openFilters, openJob, PROD_URL, seed } from './routes';
+import { go, openAllJobs, openFilters, openJob, PROD_URL, seed, topTab } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -188,7 +188,7 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
   await go(page, '#/find');
   await expect(page.locator('.rjb-view-enter')).toHaveCount(1);
   expect(await enterName()).toBe('rjb-view-enter');
-  await page.getByRole('tab', { name: 'Apply' }).click();
+  await topTab(page, 'Apply').click();
   await expect(page).toHaveURL(/#\/apply/);
   expect(await enterName()).toBe('rjb-view-enter');
 });

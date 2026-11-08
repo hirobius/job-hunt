@@ -196,7 +196,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (never a heading: `role="img"` named by
   BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
   Apply, Find, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
-  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
+  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**: links in a `nav` named "Sections", the open one `aria-current="page"`, styled as HDS tabs by `.rjb-top-tab`; not ARIA tabs, no tab panel (top tabs PR, 2026-11-08; HDS ask: Tabs as navigation links); tests use `test/topTabs.ts` / `e2e/routes.ts` `topTab`, `currentTab`) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,

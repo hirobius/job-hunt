@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed } from './routes';
+import { seed, topTab } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
 // status with Scan now and Review new (the Browse list); New companies follow once a scan finds some
@@ -18,7 +18,10 @@ for (const width of [390, 1440]) {
     await page.goto('/#/discover/live');
     await expect(page).toHaveURL(/#\/find$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
-    await expect(page.getByRole('tab')).toHaveText(['Find', 'Apply']);
+    await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link')).toHaveText([
+      'Find',
+      'Apply',
+    ]);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeVisible();
     const panels = page.getByRole('main').getByRole('region');
     await expect(panels.nth(0)).toHaveAccessibleName(/^Review new/);
@@ -33,7 +36,7 @@ for (const width of [390, 1440]) {
     expect(overflow).toBeLessThanOrEqual(0);
 
     // Apply: the list (below lg) or the list beside the first job (lg), with Follow up in it.
-    await page.getByRole('tab', { name: 'Apply' }).click();
+    await topTab(page, 'Apply').click();
     // Below lg the tab is one job and its list is the All jobs sheet (Proposal A).
     if (width < 1024) await page.getByRole('button', { name: 'All jobs' }).click();
     else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
@@ -48,7 +51,7 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('dialog', { name: /^Follow up/ })).toHaveCount(0);
     if (await page.getByRole('dialog').count()) await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.getByRole('tab', { name: 'Find' }).click();
+    await topTab(page, 'Find').click();
     await expect(page).toHaveURL(/#\/find$/);
   });
 }

@@ -28,6 +28,7 @@ import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from '
 import { replaceTrash } from './trash';
 import { dismissNotice } from './saveNotice';
 import { ymd } from './jobEvents';
+import { currentTab } from './test/topTabs';
 
 const URL_A = 'https://acme.example/jobs/7';
 // Applied today: no follow-up is due, so the header's primary comes from the status alone.
@@ -585,7 +586,7 @@ describe('Company in the right column (#471 slice 2)', () => {
     // The list column stays, no row marked open; the Apply tab stays selected.
     expect(rail()).toBeInTheDocument();
     expect(within(rail()).queryByRole('link', { current: 'page' })).toBeNull();
-    expect(screen.getByRole('tab', { name: 'Apply', selected: true })).toBeInTheDocument();
+    expect(currentTab('Apply')).toBeInTheDocument();
     // Its Back names the job it came from, and a row in the list opens a job beside it.
     expect(screen.getByRole('link', { name: 'Back to Design Engineer' })).toBeInTheDocument();
     await userEvent.click(railRow('Welder'));
@@ -598,7 +599,10 @@ describe('Company in the right column (#471 slice 2)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Acme' })).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe('#/apply/company/acme'));
     expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
-    expect(screen.getByRole('link', { name: /Back to Apply|Apply/ })).toBeInTheDocument();
+    // Its Back (the top tab "Apply" is a link too, outside main).
+    expect(
+      within(screen.getByRole('main')).getByRole('link', { name: /Back to Apply|Apply/ }),
+    ).toBeInTheDocument();
   });
 });
 

@@ -360,33 +360,59 @@ p {
   box-shadow: 0 0 0 2px var(--semantic-color-surface-page);
 }
 
-/* The shell's top tabs (rev-3 .tabs): text flush with the page gutter, 24 apart, the underline as
- * wide as the label, and no tinted box on the selected tab. The 40px phone height stays. */
+/* The shell's top tabs (rev-3 .tabs; top tabs PR, 2026-11-08): a nav of links, the open one
+ * aria-current="page". HDS Tabs is ARIA tabs (a tab panel, arrow keys), which these are not: each
+ * opens a page. So they take HDS's tab look by its tokens: the ui type, muted text, a 2px underline
+ * as wide as the label in the primary content colour on the current one, and HDS's focus ring
+ * (outline, offset out) with no box shadow. Upstream ask: a link/nav form of HDS Tabs
+ * (docs/hds-upstream-asks-0.9.md, "Tabs as navigation links"). */
 .rjb-top-tabs {
+  display: flex;
+  align-items: stretch;
   gap: var(--semantic-space-fixed-md);
-  /* Room for the focus ring (2px outline, 2px out) inside the row's scroll box, which clips it;
-   * the negative margin keeps the labels flush with the gutter and the rhythm
-   * (it also replaces TabsList's mb-6: the shell owns the space under the row) (#447). */
-  height: auto;
-  padding: var(--primitive-space-1);
-  margin: calc(-1 * var(--primitive-space-1));
 }
 
-/* On a phone HDS raises TabsList's h-10 to 44px around the 40px tabs: keep that row height. */
+.rjb-top-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--primitive-space-10);
+  padding-block: var(--primitive-space-2);
+  font-family: var(--semantic-typography-ui-font-family);
+  font-size: var(--semantic-typography-ui-font-size);
+  font-weight: var(--semantic-typography-ui-font-weight);
+  line-height: var(--semantic-typography-ui-line-height);
+  color: var(--semantic-color-content-secondary);
+  text-decoration: none;
+  border-bottom: var(--primitive-space-px2) solid transparent;
+  transition:
+    color var(--hds-motion-productive-duration) var(--hds-motion-productive-easing),
+    border-color var(--hds-motion-productive-duration) var(--hds-motion-productive-easing);
+}
+
+.rjb-top-tab:hover {
+  color: var(--semantic-color-content-primary);
+}
+
+.rjb-top-tab[aria-current='page'] {
+  color: var(--semantic-color-content-primary);
+  border-bottom-color: var(--semantic-color-content-primary);
+}
+
 @media (max-width: 639px) {
-  .rjb-top-tabs {
-    margin-block: calc(-0.5 * var(--primitive-space-1));
+  .rjb-top-tab {
+    min-height: var(--rjb-touch);
   }
 }
 
-.rjb-top-tabs [role='tab'] {
-  padding-inline: 0;
-  background: transparent;
+[data-hds] .rjb-top-tab:focus-visible {
+  outline: var(--semantic-focus-ring-width) solid var(--semantic-focus-ring-color);
+  outline-offset: var(--semantic-focus-gap-width);
+  border-radius: var(--semantic-focus-radius-sm-ring);
+  box-shadow: none;
 }
 
-/* One focus ring on a tab (#447): the focus outline above already rings it, outside the box, so
- * HDS's inset ring (a box-shadow) drew a second, offset one that ran over the label once the top
- * tabs lost their inline padding. Drop the inset ring. */
+/* Other tabs (Privacy and terms): one focus ring, the outline; HDS's inset box-shadow ring drew a
+ * second one over the label (#447). */
 [data-hds] [role='tab']:focus-visible {
   box-shadow: none;
 }
@@ -399,12 +425,6 @@ p {
   [data-hds] select {
     font-size: 16px;
   }
-}
-
-/* The job page's tab row starts on the page gutter, like the badges and title above it (rev-3).
-   HDS gap (docs/hds-upstream-asks-0.9.md, "Tab row flush with the gutter"). */
-.rjb-job-tabs > [role='tab']:first-child {
-  padding-inline-start: 0;
 }
 
 /* A quiet tertiary (the job page's "← Pipeline") whose icon sits on the page gutter: its box
@@ -436,40 +456,6 @@ p {
     min-height: var(--rjb-touch);
     margin-block: calc((1lh - var(--rjb-touch)) / 2);
     vertical-align: middle;
-  }
-}
-
-/* A 40x40 icon button beside a 40px text button (Discover's New track, a tile's Open; rev-3 mock):
- * HDS lifts icon-only buttons to its 44px touch minimum, which leaves them 4px off the row's
- * centre line and not square. 40 is the app's phone target (the rule above). */
-/* A small button at the 40px height of its row's icon buttons (Discover tile footers, desktop QA):
- * keeps the sm padding and type, only the height matches. Phones already get 40 (touch rule). */
-[data-hds] .rjb-h-40 {
-  min-height: var(--primitive-space-10);
-  height: var(--primitive-space-10);
-}
-
-[data-hds] .rjb-icon-40 {
-  min-width: var(--primitive-space-10);
-  min-height: var(--primitive-space-10);
-  width: var(--primitive-space-10);
-  height: var(--primitive-space-10);
-}
-
-/* A tile's Open icon button matches its row (Save, Set aside) at every width: 40 on a phone, the
- * sm 32 from sm up, so the actions row never mixes heights. */
-[data-hds] .rjb-icon-row {
-  min-width: var(--primitive-space-10);
-  min-height: var(--primitive-space-10);
-  width: var(--primitive-space-10);
-  height: var(--primitive-space-10);
-}
-@media (min-width: 640px) {
-  [data-hds] .rjb-icon-row {
-    min-width: var(--primitive-space-8);
-    min-height: var(--primitive-space-8);
-    width: var(--primitive-space-8);
-    height: var(--primitive-space-8);
   }
 }
 
@@ -530,13 +516,6 @@ p {
   }
 }
 
-/* The location popover (rev-3 mock): md (16) padding around its field and segmented control, and
- * wide enough for the four modes at that padding. HDS Popover.Content has no padding or size prop. */
-[data-hds] .rjb-popover-md {
-  width: min(22rem, calc(100vw - 2 * var(--primitive-space-4)));
-  padding: var(--primitive-space-4);
-}
-
 /* A chip with a leading icon (the sweep's matched title on an opening row, rev-3 K). */
 .rjb-chip-icon {
   display: inline-flex;
@@ -564,17 +543,6 @@ p {
     min-height: var(--rjb-touch);
     margin-block: calc((var(--primitive-space-5) - var(--rjb-touch)) / 2);
   }
-}
-
-/* A row Disclosure that opens downward (rev-3 mock: Calibrate, Refine): the chevron points down
- * when closed and up when open. HDS's row variant turns it right (-90deg) when closed, set inline,
- * so this has to win over the inline transform. Upstream ask: a chevron direction on Disclosure
- * variant="row" (HDS gap registry, "Vertical row chevron"). */
-.rjb-disclosure-vertical button[aria-expanded] > span[aria-hidden='true'] {
-  transform: rotate(0deg) !important;
-}
-.rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
-  transform: rotate(180deg) !important;
 }
 
 /* A section row's one-line preview (ATS search's board lists, Apply now's other sections) wraps
@@ -650,12 +618,6 @@ p {
   text-overflow: ellipsis;
 }
 
-/* A generated search query (ATS search): breaks fall on its spaces and ORs, never mid-word. */
-.rjb-query {
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-}
-
 /* Four lines at most, with a "Show full query" toggle beside it. */
 .rjb-clamp-4 {
   display: -webkit-box;
@@ -663,36 +625,6 @@ p {
   -webkit-line-clamp: 4;
   line-clamp: 4;
   overflow: hidden;
-}
-
-/* The page title as the track switcher (rev-3 G, two tracks or more): a tertiary Menu trigger set
- * in the heading's own type, so the title still reads as the title. HDS Button has no
- * text-in-heading variant. Upstream ask: docs/hds-upstream-asks-0.9.md, "Title menu trigger". */
-[data-hds] .rjb-title-trigger {
-  font: inherit;
-  height: auto;
-  min-height: var(--primitive-space-10);
-  margin-block: calc((1lh - var(--primitive-space-10)) / 2);
-  padding-block: 0;
-  padding-inline: 0;
-  gap: var(--primitive-space-1);
-  text-align: start;
-  white-space: normal;
-}
-
-/* On a phone the fixed 40px controls above take the 44px touch size (retro quick wins). */
-@media (max-width: 639px) {
-  [data-hds] .rjb-h-40 {
-    min-height: var(--rjb-touch);
-    height: var(--rjb-touch);
-  }
-  [data-hds] .rjb-icon-40,
-  [data-hds] .rjb-icon-row {
-    min-width: var(--rjb-touch);
-    min-height: var(--rjb-touch);
-    width: var(--rjb-touch);
-    height: var(--rjb-touch);
-  }
 }
 
 /* A removable term pill (Manage track, rev-3 mock): 32px tall, its X a 40px hit area that

@@ -28,6 +28,7 @@ import {
 import { EMPTY_CURATION } from './curation/types';
 import { readMustInclude } from './feed/mustInclude';
 import { SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
+import { findTopTabs } from './test/topTabs';
 
 const renderApp = () =>
   render(
@@ -72,14 +73,14 @@ describe('systems-only move (2026-10-23)', () => {
     expect(getCurationState().tiles).toHaveLength(tiles);
     cleanup();
     renderApp();
-    await screen.findAllByRole('tab');
+    await findTopTabs();
     expect(screen.queryByText(SYSTEMS_ONLY_NOTICE)).toBeNull();
   });
 
   it('a track the user already set says nothing', async () => {
     localStorage.setItem('rjb_must_include', JSON.stringify({ [ds]: { terms: [] } }));
     renderApp();
-    await screen.findAllByRole('tab');
+    await findTopTabs();
     expect(screen.queryByText(SYSTEMS_ONLY_NOTICE)).toBeNull();
     expect(readMustInclude(ds).terms).toEqual([]);
   });
