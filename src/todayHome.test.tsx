@@ -29,7 +29,6 @@ import { viewport } from './test/viewport';
 import { getProfile, replaceProfiles, saveProfile } from './profile';
 import { resetScan } from './feed/autoScan';
 import { getAllDecided } from './feed/decided';
-import { feedKeys } from './feed/scanningCount';
 
 const renderApp = () =>
   render(
@@ -142,30 +141,18 @@ describe('the shell: Today and Jobs', () => {
 });
 
 describe('the auto-scan', () => {
-  it('says it has not scanned yet, with Scan now at the top of Today', async () => {
-    window.location.hash = '#/find';
-    renderApp();
-    expect(
-      screen.getByText('Not scanned yet. Scan now to look.'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
-  });
-
-  it('after a scan, says when; the new and source counts are Review new’s own (one number)', async () => {
+  it('signed out: one compact Scan now beside the Review new heading, and no status text', async () => {
     seedScan({ finishedAt: Date.now(), newCount: 4, sourceCount: 9, found: [] });
     window.location.hash = '#/find';
     renderApp();
-    // Signed out, following no board: what this browser scans is the feeds.
-    const scanning = `Scanning ${feedKeys().length} sources`;
-    // Before Review new has read: the scan's own new count.
+    const review = await screen.findByRole('region', { name: /^Review new/ });
+    expect(within(review).getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
+    await within(review).findByText('Browse');
+    // Adrian 2026-11-08: the scan's line, the sources unavailable and the "not shown" counts are the
+    // Account menu's Scan details.
     expect(
-      screen.getByText(new RegExp(`^${scanning} · Last scanned \\d\\d:\\d\\d, 4 new$`)),
-    ).toBeInTheDocument();
-    // Once it has: the Feed's, and Review new doesn't say it a second time.
-    expect(
-      await screen.findByText(new RegExp(`^${scanning} · Last scanned \\d\\d:\\d\\d, 2 new$`)),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/new today from/)).toBeNull();
+      screen.queryByText(/^Scanning |^Last scanned|^Not scanned|unavailable · details|^Not shown/),
+    ).toBeNull();
   });
 });
 

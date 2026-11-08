@@ -34,6 +34,7 @@ import { addSources, getSources, replaceSources } from './sources';
 import { SEEN_KEY, getAllDecided, postingFingerprint, unmuteCompany } from './feed/decided';
 import { resetScan, runScan } from './feed/autoScan';
 import { resetViewMemory } from './viewMemory';
+import { getScanDetails } from './feed/scanDetails';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -106,6 +107,23 @@ const titles = (ul: HTMLElement) =>
     .getAllByRole('heading', { level: 3 })
     .map((h) => h.textContent?.replace(/\s*\(opens in new tab\)$/, ''));
 
+describe('Review new: no board progress on the page (Adrian 2026-11-08)', () => {
+  it('never says "Read N of M boards", signed in or out', async () => {
+    // A read in flight: no board has answered yet.
+    feed.fetchFeed.mockReset().mockImplementation(
+      (req: { onProgress?: (p: object) => void }) =>
+        new Promise<FeedResult>(() => {
+          req.onProgress?.({ ...result([]), boardsDone: 0, boardsTotal: 250 });
+        }),
+    );
+    renderReview();
+    await screen.findByText('Browse');
+    // Past the 1 s repaint that would show progress.
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(screen.queryByText(/^Read \d+ of \d+ boards$/)).toBeNull();
+  });
+});
+
 describe('Review new: Browse', () => {
   it('shows the last read straight away after a reload, then refreshes behind it (#448)', async () => {
     const first = renderReview();
@@ -127,11 +145,13 @@ describe('Review new: Browse', () => {
     const { container } = renderReview();
     const ul = await list();
     expect(titles(ul)).toHaveLength(3);
-    expect(screen.getByText('3 new today from 2 sources')).toBeInTheDocument();
-    // Sources that didn't answer are one quiet line; the reasons wait behind it.
-    expect(screen.queryByText(/^Jobicy: timed out/)).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /^1 source unavailable/ }));
-    expect(screen.getByText(/^Jobicy: timed out/)).toBeInTheDocument();
+    // Said to a screen reader only: no status text above Browse / Deck (Adrian 2026-11-08).
+    expect(screen.getByRole('status')).toHaveTextContent('3 new today from 2 sources');
+    // Sources that didn't answer are the Account menu's Scan details, not a line on the page.
+    expect(screen.queryByText(/source unavailable/)).toBeNull();
+    expect(getScanDetails()?.failed.map((f) => f.label)).toEqual([
+      expect.stringMatching(/^Jobicy/),
+    ]);
     // The posting is one tap away beside each title.
     expect(
       within(ul).getByRole('link', { name: 'Open posting for Design Systems Designer at Beta' }),
@@ -435,6 +455,28 @@ describe('Review new: Deck card anatomy (#458)', () => {
   });
 });
 
+describe('Review new: the caught-up empty state (Adrian 2026-11-08)', () => {
+  it('sits in its own section with room around it, framed like Apply’s first-job empty', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([BASIC[0]]));
+    renderReview();
+    const ul = await list();
+    await user.click(within(ul).getByRole('button', { name: /^Skip / }));
+    const title = await screen.findByText('You’re all caught up');
+    const section = title.closest('[data-empty-section]') as HTMLElement;
+    expect(section).not.toBeNull();
+    expect(section.tagName).toBe('SECTION');
+    // The framed teaching empty: its icon tile and centred column inside one panel.
+    expect(within(section).getByText(/saved or skipped/)).toBeInTheDocument();
+    expect(section.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
+    // The Deck's caught-up state is the same section.
+    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    expect(
+      (await screen.findByText('You’re all caught up')).closest('[data-empty-section]'),
+    ).not.toBeNull();
+  });
+});
+
 describe('Review new: every design-system posting, no tiers', () => {
   it('lists each one that passes the inclusion check, newest first, and counts the rest', async () => {
     feed.fetchFeed.mockResolvedValue(
@@ -449,7 +491,9 @@ describe('Review new: every design-system posting, no tiers', () => {
     const ul = await list();
     expect(titles(ul)).toEqual(['Design Technologist', 'Design Systems Engineer']);
     expect(screen.queryByRole('region', { name: 'Review' })).toBeNull();
-    expect(screen.getByText(/2 not design-system roles/)).toBeInTheDocument();
+    // Counted for Scan details (the Account menu), not shown on the page (Adrian 2026-11-08).
+    expect(screen.queryByText(/not design-system roles/)).toBeNull();
+    expect(getScanDetails()?.hidden).toContain('2 not design-system roles');
     expect(within(ul).getByText('Related title')).toBeInTheDocument();
   });
 

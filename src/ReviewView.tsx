@@ -7,13 +7,13 @@
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
+import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import {
   Badge,
   Box,
   Button,
   Card,
-  Disclosure,
   Icon,
   InlineLink,
   Menu,
@@ -25,6 +25,7 @@ import {
   Tag,
   Text,
   useAtLeast,
+  VisuallyHidden,
 } from '@hirobius/design-system';
 import {
   Briefcase,
@@ -102,6 +103,16 @@ export default function ReviewView({
 }) {
   const feed = useFeed();
   const { view } = feed;
+  // The Account menu's Scan details read what this view last read (Adrian 2026-11-08).
+  useEffect(() => {
+    if (!view) return;
+    setScanDetails({
+      failed: view.failed,
+      hidden: hiddenParts(view.hidden),
+      newToday: view.newToday,
+      sourcesRead: view.sourcesRead,
+    });
+  }, [view]);
   const kept = (k: string) => `review:${k}`;
   const [mode, setMode] = useRemembered<Mode>(kept('mode'), 'browse');
   const [sort, setSort] = useRemembered<FeedSort>(kept('sort'), 'newest');
@@ -178,33 +189,24 @@ export default function ReviewView({
 
   const caughtUp =
     'Every posting from your sources is saved or skipped. The next scan brings new ones.';
-  const status = scanStatus && (
-    <ScanStatus
-      counts={view ? { newToday: view.newToday, sources: view.sourcesRead } : undefined}
-    />
-  );
+  // Signed out, a compact Scan now beside the heading; signed in, nothing (the server syncs).
+  const status = scanStatus && <ScanStatus />;
   const panel = (
     <Panel
       label={view ? `${label} (${listed.length})` : label}
       title={label}
       count={view ? listed.length : undefined}
       countLabel={`${listed.length} postings`}
-      description={view ? hiddenLine(view.hidden) : undefined}
+      trailing={status}
       flat
     >
       <PanelBody>
         <Stack gap="normal">
-          <Stack gap="px4">
-            <Text variant="body" as="p" role="status" className="rjb-semibold">
-              {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
-            </Text>
-            {feed.progress && (
-              <Text variant="caption" as="p" tone="secondary">
-                {`Read ${feed.progress.done} of ${feed.progress.total} boards`}
-              </Text>
-            )}
-            {view && view.failed.length > 0 && <Unavailable failed={view.failed} />}
-          </Stack>
+          {/* No status text above Browse / Deck (Adrian 2026-11-08): the source health and the "not
+              shown" counts are the Account menu's Scan details. Screen readers still hear progress. */}
+          <VisuallyHidden as="p" role="status">
+            {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
+          </VisuallyHidden>
           {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). */}
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
             <SegmentedControl
@@ -312,9 +314,9 @@ export default function ReviewView({
           selected={selectedFp}
         />
       ) : (
-        <PanelBody>
+        <EmptySection>
           <EmptyState
-            centered
+            framed
             icon={SearchX}
             title={
               on.length
@@ -338,7 +340,7 @@ export default function ReviewView({
               ) : undefined
             }
           />
-        </PanelBody>
+        </EmptySection>
       )}
     </Panel>
   );
@@ -346,14 +348,7 @@ export default function ReviewView({
     <Stack gap="px24">
       {!selectedFp && header}
       {before}
-      {status ? (
-        <Stack gap="normal">
-          {status}
-          {panel}
-        </Stack>
-      ) : (
-        panel
-      )}
+      {panel}
       {after}
     </Stack>
   );
@@ -382,63 +377,24 @@ export default function ReviewView({
   return selectedFp ? detail : list;
 }
 
-const decidedAny = (h: { decided: number; muted: number; saved: number }) =>
-  h.decided + h.muted + h.saved > 0;
-
-/** Sources that didn't answer, as one quiet line ("2 sources unavailable · details") with each
- *  one's reason behind it. Remotive's spent daily budget says when it comes back. */
-function Unavailable({ failed }: { failed: { label: string; error?: string }[] }) {
-  const n = failed.length;
-  // The list is built only while open: offline, every source fails (hundreds of boards), and the
-  // panel repaints on each scan tick, so building it closed held the main thread past 300 ms (#212).
-  const [open, setOpen] = useState(false);
-  const why = (s: { label: string; error?: string }) =>
-    s.error?.includes('daily limit reached')
-      ? `${s.label.split(' · ')[0]}: today's free searches are used up, more tomorrow.`
-      : (s.error?.replace(/ — /g, ': ') ?? `${s.label} didn’t answer.`);
+/** Review new's empty states (Adrian 2026-11-08): their own section under the toolbar, a hairline
+ *  above and room around it, like the Apply list's (TrackerView), with the framed teaching empty
+ *  (icon tile, centred text) of Apply's "Track your first job". */
+function EmptySection({ children }: { children: ReactNode }) {
   return (
-    <Disclosure
-      label={`${n} ${n === 1 ? 'source' : 'sources'} unavailable · details`}
-      variant="nav"
-      open={open}
-      onOpenChange={setOpen}
+    <Box
+      as="section"
+      aria-label="No postings"
+      data-empty-section=""
+      sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}
     >
-      <Stack gap="px4">
-        {open &&
-          failed.map((s) => (
-            <Text key={s.label} variant="caption" as="p" tone="secondary">
-              {why(s)}
-            </Text>
-          ))}
-        <Text variant="caption" as="p" tone="secondary">
-          The rest are listed.
-        </Text>
-      </Stack>
-    </Disclosure>
+      <PanelBody>{children}</PanelBody>
+    </Box>
   );
 }
 
-function hiddenLine(h: {
-  saved: number;
-  decided: number;
-  muted: number;
-  include: number;
-  exclude: number;
-  seniority: number;
-  salary: number;
-  titles: number;
-}): string | undefined {
-  const parts = [
-    h.saved > 0 && `${h.saved} saved`,
-    h.decided > 0 && `${h.decided} skipped`,
-    h.muted > 0 && `${h.muted} from muted companies`,
-    h.include > 0 && `${h.include} not design-system roles`,
-    h.seniority > 0 && `${h.seniority} by level`,
-    h.exclude > 0 && `${h.exclude} by words left out`,
-    h.salary > 0 && `${h.salary} by pay`,
-  ].filter((x): x is string => !!x);
-  return parts.length ? `Not shown: ${parts.join(', ')}` : undefined;
-}
+const decidedAny = (h: { decided: number; muted: number; saved: number }) =>
+  h.decided + h.muted + h.saved > 0;
 
 interface RowActions {
   save: (r: FeedRow, from: Element | null) => void;
@@ -722,7 +678,11 @@ function Deck({
   empty: string;
 }) {
   if (!rows.length)
-    return <EmptyState centered icon={SearchX} title="You’re all caught up" description={empty} />;
+    return (
+      <EmptySection>
+        <EmptyState framed icon={SearchX} title="You’re all caught up" description={empty} />
+      </EmptySection>
+    );
   const r = rows[at];
   return (
     <Stack gap="tight">

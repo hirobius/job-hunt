@@ -1,6 +1,6 @@
-// The auto-scan's only UI (#415): "Scan now" with "Scanning N sources · Last scanned hh:mm, K new", and
-// New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
-// end. Every action says so with an Undo.
+// The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
+// (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
+// says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';
 import { RefreshCw } from 'lucide-react';
 import { ItemList, ItemRow, Panel } from './PipelinePanel';
@@ -9,21 +9,14 @@ import {
   cancelScan,
   followFound,
   ignoreFound,
-  lastScannedLine,
   newCompanies,
-  scanBoardUrls,
   scanNow,
   useScan,
   type FoundCompany,
   type LeadSource,
-  type ScanProgress,
 } from './feed/autoScan';
-import { useScanningCount } from './feed/scanningCount';
-import { useServerUpdated } from './feed/serverUpdated';
 import { useScanInput } from './feed/useAutoScan';
 import { useCloudSync } from './account/accountContext';
-import { useProfile } from './profile';
-import { designSystemsTrack } from './tracks/track-config';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -32,76 +25,31 @@ const VIA_LABEL: Record<LeadSource, string> = {
   seed: 'the seed list',
 };
 
-function progressLine(p: ScanProgress | undefined): string {
-  switch (p?.phase) {
-    case 'probe':
-      return p.total ? `Checking boards (${p.done ?? 0} of ${p.total})…` : 'Checking boards…';
-    case 'read':
-      return 'Reading boards and feeds…';
-    case 'filter':
-      return 'Sorting postings…';
-    default:
-      return 'Finding companies…';
-  }
+/** Find's scan control (Adrian 2026-11-08): no status text on the page. Signed in, the server syncs
+ *  every 15 minutes, so nothing shows. Signed out, nothing scans on its own: one compact Scan now
+ *  (Stop scan while it runs) beside the Review new heading. When it last scanned, the sources that
+ *  didn't answer and what was left out are the Account menu's Scan details (ScanDetailsDialog). */
+export function ScanStatus() {
+  const { user } = useCloudSync();
+  return user ? null : <ScanButton />;
 }
 
-/** "Scan now" and the last scan's line (or why it failed). */
-export function ScanStatus({
-  counts,
-}: {
-  /** Review new's own new and source counts, once it has read (one number on the page). */
-  counts?: { newToday: number; sources: number };
-}) {
-  const { state, running, progress } = useScan();
+function ScanButton() {
+  const { running } = useScan();
   const input = useScanInput();
-  const { user } = useCloudSync();
-  const profile = useProfile();
-  // The server's rotation scans the whole board set only for a signed-in design systems profile
-  // (sync-postings, plan.ts compileProfile); anyone else is scanned by this browser alone.
-  const serverScans = !!user && profile?.scorer === designSystemsTrack.slug;
-  const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), serverScans);
-  // #448: the server sync runs every 15 minutes for a signed-in user; say how fresh it is.
-  const updated = useServerUpdated(!!user);
-  const line = running
-    ? progressLine(progress)
-    : (state.error ??
-      lastScannedLine(state, undefined, counts, scanning) ??
-      (updated
-        ? null
-        : user
-          ? 'Not scanned yet. The first scan runs on its own.'
-          : // Signed out, nothing scans on open (2026-11-07): Scan now does.
-            'Not scanned yet. Scan now to look.'));
-  return (
-    <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-      {/* Its own line (the meta-line rule, #192: at most two items on a " · " line). The server's
-          "Updated N min ago" sits outside the live region: its minutes tick, and a screen reader
-          must not announce it every minute. */}
-      <Stack gap="px4">
-        {updated && (
-          <Text variant="caption" as="p" tone="secondary">
-            {updated}
-          </Text>
-        )}
-        <Text variant="caption" as="p" tone="secondary" role="status">
-          {line}
-        </Text>
-      </Stack>
-      {running ? (
-        <Button size="sm" variant="tertiary" onClick={cancelScan}>
-          Stop scan
-        </Button>
-      ) : (
-        <Button
-          size="sm"
-          variant="secondary"
-          iconLeft={<Icon icon={RefreshCw} />}
-          onClick={() => void scanNow(input, undefined, { force: true })}
-        >
-          Scan now
-        </Button>
-      )}
-    </Stack>
+  return running ? (
+    <Button size="sm" variant="tertiary" onClick={cancelScan}>
+      Stop scan
+    </Button>
+  ) : (
+    <Button
+      size="sm"
+      variant="secondary"
+      iconLeft={<Icon icon={RefreshCw} />}
+      onClick={() => void scanNow(input, undefined, { force: true })}
+    >
+      Scan now
+    </Button>
   );
 }
 
