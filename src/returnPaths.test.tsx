@@ -31,6 +31,7 @@ import { getRoute, subscribeScrollRestore } from './route';
 import { getAllDocuments } from './documents';
 import { trashJob } from './trash';
 import { rememberSignInReturn, returnAfterSignIn, takeSignInReturn } from './account/signInReturn';
+import { topTab } from './test/topTabs';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://acme.example/jobs/2';
@@ -372,7 +373,7 @@ describe('top tabs reopen where they were left', () => {
     window.location.hash = `#/apply/${idA}`;
     renderApp();
     await heading('Fabricator');
-    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    await userEvent.click(topTab('Apply'));
     await at('#/apply');
     // The root of the tab is its first job (Proposal A).
     expect(await heading('Fabricator')).toBeInTheDocument();
@@ -493,7 +494,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     await startAt('#/discover/apply', '#/apply');
     await openFromList();
     const pops = countPops();
-    doubleClick(screen.getByRole('tab', { name: 'Apply' }));
+    doubleClick(topTab('Apply'));
     await staysAt('#/apply');
     pops.stop();
     // A jump from All jobs replaced the tab's entry (Proposal A), so the root is a swap, not a pop:

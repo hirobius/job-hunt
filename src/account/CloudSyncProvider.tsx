@@ -2,7 +2,7 @@
 // push, the focus re-pull and sign-out/delete, and exposes them through CloudSyncContext. The UI
 // lives elsewhere — the account menu, the one-time sync nudge and the sign-in dialog — and
 // failures surface as toasts instead of a banner on every page.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
 import { loadedSupabase, loadSupabase, needsClientAtBoot, onSupabaseLoaded } from '../supabase';
@@ -83,7 +83,8 @@ import {
 import { deviceData, mergeQuestion } from './deviceData';
 import { dropSampleTrack } from '../demo/sampleTrack';
 import { dropAutoSetup } from '../autoSetup';
-import { LinkConfirmDialog, MergeConfirmDialog } from './AuthGuards';
+import { MergeConfirmDialog } from './AuthGuards';
+import { LinkConfirmScreen } from '../lazyDialogs';
 
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
 const loadPkce = importFresh(() => import('./oauthPkce'));
@@ -520,33 +521,55 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }, []);
 
   // Set the session a link brought, then check it is the account the link named.
-  async function acceptLink(tokens: AuthTokens, email: string, failMsg = BAD_LINK_MSG) {
+  /** Take a link's session up. True once this browser holds a real session for `email`; on any
+   *  failure false, and (unless `quiet`, when the caller says it in place) a toast says so. */
+  async function acceptLink(
+    tokens: AuthTokens,
+    email: string,
+    failMsg = BAD_LINK_MSG,
+    quiet = false,
+  ): Promise<boolean> {
     clearSignInRequest();
     linkEmail.current = email;
+    const fail = () => {
+      if (!quiet) toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
+      return false;
+    };
     try {
       const supa = await loadSupabase();
       const r = await supa.auth.setSession(tokens);
-      if (r.error || !r.data.user) {
-        toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
-        return;
-      }
+      if (r.error || !r.data.user) return fail();
       if (!sameEmail(r.data.user.email, email)) {
         await supa.auth.signOut({ scope: 'local' });
-        toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
+        return fail();
       }
+      return true;
     } catch {
-      toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
+      return fail();
     } finally {
       linkEmail.current = null;
     }
   }
-  const confirmLink = () => {
+  // Sign in on the confirm screen: the screen says "Signing in…" until the session is real, then
+  // "Signed in" and its hand-over, and closes itself (closeLink). On a failure it stays, with the
+  // reason in place (no toast behind it). A second press while one runs does nothing.
+  const linkTaken = useRef(false);
+  const confirmLink = async (): Promise<boolean> => {
     const ask = linkAsk;
+    if (!ask || linkTaken.current) return false;
+    linkTaken.current = true;
+    const ok = await acceptLink(ask.tokens, ask.email, BAD_LINK_MSG, true);
+    if (!ok) linkTaken.current = false;
+    return ok;
+  };
+  const closeLink = () => {
+    linkTaken.current = false;
     setLinkAsk(null);
-    if (ask) void acceptLink(ask.tokens, ask.email);
   };
   // Cancel drops the tokens (the URL never kept them).
-  const cancelLink = () => setLinkAsk(null);
+  const cancelLink = () => {
+    if (!linkTaken.current) setLinkAsk(null);
+  };
 
   const addDeviceData = () => {
     const ask = mergeAsk;
@@ -834,11 +857,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   return (
     <CloudSyncContext.Provider value={api}>
       {children}
-      <LinkConfirmDialog
-        email={linkAsk?.email ?? null}
-        onSignIn={confirmLink}
-        onCancel={cancelLink}
-      />
+      {/* "Sign in as …?" is a full-screen step in the sign-in layout, in its own chunk (most
+          visits never see it). Until the chunk is in, nothing is taken up. */}
+      {linkAsk && (
+        <Suspense fallback={null}>
+          <LinkConfirmScreen
+            email={linkAsk.email}
+            onSignIn={confirmLink}
+            onDone={closeLink}
+            onCancel={cancelLink}
+          />
+        </Suspense>
+      )}
       <MergeConfirmDialog
         question={mergeAsk?.question ?? null}
         onAdd={addDeviceData}

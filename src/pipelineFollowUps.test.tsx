@@ -40,6 +40,7 @@ import { STARTER_SNIPPETS } from './copyDeckStore';
 import { getAllDocuments } from './documents';
 import { getProfile, replaceProfiles } from './profile';
 import { setOutreachMessages } from './test/outreach';
+import { currentTab } from './test/topTabs';
 
 const renderApp = () =>
   render(
@@ -77,7 +78,7 @@ describe('#/find is home again (#383; was retired in #236)', () => {
     window.location.hash = '#/find';
     renderApp();
     await openListOnPhone();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+    expect(currentTab()).toHaveAccessibleName('Find');
     expect(window.location.hash).toBe('#/find');
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
@@ -87,7 +88,7 @@ describe('#/find is home again (#383; was retired in #236)', () => {
     window.location.hash = '';
     renderApp();
     await openListOnPhone();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+    expect(currentTab()).toHaveAccessibleName('Find');
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
   });
 
@@ -95,7 +96,7 @@ describe('#/find is home again (#383; was retired in #236)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
     expect(window.location.hash).toBe('#/apply');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
+    expect(currentTab()).toHaveAccessibleName('Apply');
   });
 });
 
@@ -331,7 +332,7 @@ describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
     window.location.hash = '';
     renderApp();
     await openListOnPhone();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+    expect(currentTab()).toHaveAccessibleName('Find');
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();
   });

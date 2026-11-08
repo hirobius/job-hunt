@@ -196,7 +196,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (never a heading: `role="img"` named by
   BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
   Apply, Find, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
-  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
+  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**: links in a `nav` named "Sections", the open one `aria-current="page"`, styled as HDS tabs by `.rjb-top-tab`; not ARIA tabs, no tab panel (top tabs PR, 2026-11-08; HDS ask: Tabs as navigation links); tests use `test/topTabs.ts` / `e2e/routes.ts` `topTab`, `currentTab`) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` (an HDS Menu; below sm drawn as a bottom sheet with a grab handle and its own scroll, from sm a dropdown ≥ 16rem, by `src/theme/late.css`: late shell styles that ride the animated logo's chunk, off the first-load CSS budget; account menu PR 2026-11-08) holds sign-in/out, Documents, Search profile, Companies, Back up,
@@ -688,8 +688,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   import) takes `#access_token=…` and strips it with `replaceState` before the router, analytics or a
   crash report can see it (`errorReport` also scrubs `*_token=`). `account/authLink.ts`: a link signs
   in on its own only when this browser asked for one to the same email within 1 hour
-  (`rjb_signin_request`, written by `sendLink`); any other link shows "Sign in as x@y.com?" (Cancel
-  drops it). Then the merge guard: an account this device has no `rjb_sync_base` for, while the
+  (`rjb_signin_request`, written by `sendLink`); any other link shows "Sign in as x@y.com?" (Cancel drops it; a full-screen step of the sign-in layout since 2026-11-08: `LinkConfirmScreen.tsx`, lazy, in `SignInShell.tsx` with the same brand at the same place as the form and "Check your email"; Sign in takes the link up at once, shows "Signed in", then the flame and wordmark move onto the app bar's logo in 350 ms, a fade under reduced motion). Then the merge guard: an account this device has no `rjb_sync_base` for, while the <!-- pii-allow -->
   device holds data (`account/deviceData.ts`), asks "Add this device's N jobs to x@y.com?" before any
   pull or push; Don't add (the default, also Escape/Back) signs out locally and keeps the data.
   Nothing pulls or pushes for a user until that path has run for them (`handled` ref in

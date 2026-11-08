@@ -27,13 +27,30 @@
   background: var(--semantic-color-surface-page);
 }
 .rjb-signin-screen__column {
-  /* Auto margins centre it and fall to 0 when it overflows, so its top never scrolls out of reach. */
-  margin: auto;
+  /* Sign-in layout PR (2026-11-08): the brand stays at one place on every step. The column is not
+   * centred on its height (a taller step moved the brand up); it starts a fixed share of the
+   * screen down, and the step's content follows in flow, centred on the column. */
+  margin: 0 auto;
+  padding-top: clamp(var(--primitive-space-4), 12dvh, var(--primitive-space-32));
   width: 100%;
   max-width: calc(var(--primitive-space-32) * 3 + var(--primitive-space-4));
   display: flex;
   flex-direction: column;
   gap: var(--semantic-space-fixed-sm);
+}
+.rjb-signin-screen__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--semantic-space-fixed-sm);
+  text-align: center;
+}
+/* The step's words centre under the brand (HDS Dialog.Header sets text-left); a form keeps its
+ * fields' labels on the start edge. */
+.rjb-signin-screen .rjb-signin-screen__step > * {
+  text-align: center;
+}
+.rjb-signin-screen .rjb-signin-screen__step > form {
+  text-align: start;
 }
 .rjb-signin-screen__brand {
   --rjb-logo-size: var(--primitive-space-7);
@@ -49,8 +66,12 @@
   .rjb-signin-screen {
     padding-block: var(--semantic-space-fixed-sm);
   }
-  .rjb-signin-screen__column {
+  .rjb-signin-screen__column,
+  .rjb-signin-screen__step {
     gap: var(--semantic-space-fixed-xs);
+  }
+  .rjb-signin-screen__column {
+    padding-top: 0;
   }
   /* The animated logo follows the font size: one small row. */
   .rjb-signin-screen__brand .rjb-rf {
