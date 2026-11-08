@@ -99,7 +99,7 @@ export default function JobHeader({
           <JobBadges job={job} />
           {/* No glyph beside the title (Adrian 2026-11-08): the posting is Open application, or
               the menu's Open posting. */}
-          <Text variant="title" as="h1">
+          <Text variant="title" as="h1" className="rjb-break">
             {titleOf(job)}
           </Text>
           <Stack direction="row" gap="px8" align="center">

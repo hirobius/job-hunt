@@ -8,7 +8,7 @@ import { DialogNotice } from './NoticeHost';
 import { noticeHost } from './saveNotice';
 import { JobsList } from './TrackerView';
 import { FILTER_LABEL, usePipelineView, visibleJobs } from './pipelineView';
-import { openJob } from './route';
+import { afterBack, openJob, popSheet } from './route';
 import { jobIdOf } from './store';
 import type { Job } from './types';
 
@@ -30,8 +30,10 @@ export default function AllJobsSheet({
     return () => noticeHost(-1);
   }, [open]);
   const jump = (j: Job) => {
+    // Pop the sheet's own entry first, then swap the page's: Back leaves the tab in one step.
+    popSheet('all-jobs'); // its useBackCloses id in JobPage
     onOpenChange(false);
-    openJob(jobIdOf(j.url), true);
+    afterBack(() => openJob(jobIdOf(j.url), true));
   };
   return (
     // HDS Dialog drawn as a bottom sheet below sm (.rjb-bottom-sheet): HDS Sheet would put ~0.7 kB

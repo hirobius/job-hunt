@@ -95,6 +95,12 @@ p {
   border-top: thin solid var(--semantic-color-border-default);
 }
 
+/* A long unbroken title (QA 2026-10-22) wraps on screen, never past it. */
+.rjb-break {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 /* Apply mode copy rows: keep a saved answer's line breaks. */
 .rjb-prewrap {
   white-space: pre-wrap;

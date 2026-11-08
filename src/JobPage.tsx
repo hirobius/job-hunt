@@ -117,6 +117,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
   const wide = useAtLeast('lg');
   const view = usePipelineView();
   const [all, setAll] = useState(false);
+  // The id AllJobsSheet pops on a jump.
   useBackCloses(all, () => setAll(false), 'all-jobs');
 
   // Not found yet: it may be about to sync in, so wait quietly. Once sync has settled the effect

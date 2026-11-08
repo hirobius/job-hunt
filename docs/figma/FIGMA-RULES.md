@@ -26,8 +26,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 - **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings, Apply, Follow up
   and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
-  list on the left, the selected job on the right. Below that, one column: the list, then a job's own
-  page. A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
+  list on the left, the selected job on the right. Below that, one job at a time: a filter bar
+  (Filters, Add job), a sticky "‹ 3 of 55 ›" pager with All jobs (a bottom sheet with the list), then the
+  job. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.

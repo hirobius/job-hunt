@@ -63,8 +63,23 @@ export async function go(page: Page, hash: string) {
 /** A job's Apply view gets its id from the sample data, so it is reached by click. */
 export async function openJob(page: Page) {
   await go(page, '#/apply');
-  await page.locator('a[href^="#/apply/"]').first().click();
+  // Below lg the list is the All jobs sheet (Proposal A); from lg the list column beside the job.
+  const scope =
+    (page.viewportSize()?.width ?? 0) < 1024
+      ? (await openAllJobs(page)).getByRole('region', { name: /^Jobs/ })
+      : page.getByRole('navigation', { name: 'Jobs' });
+  await scope.locator(JOB_LINK).first().click();
+  await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
   await page.waitForTimeout(500);
+}
+
+/** A link to a job's Apply view (not a Company page). */
+export const JOB_LINK = 'a[href^="#/apply/"]:not([href^="#/apply/company/"])';
+
+/** Open a job's Templates (closed by default on a new device, Proposal A). */
+export async function openTemplates(page: Page) {
+  const t = page.getByRole('button', { name: /^Templates \(/ });
+  if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
 }
 
 /** The first job in the Apply list, in its Apply view (#471: there is no Apply mode or Start
@@ -82,4 +97,19 @@ export async function visitAll(page: Page, check: (name: string) => Promise<void
   }
   await openJob(page);
   await check('job page');
+}
+
+/** Below lg the Apply tab is one job (Proposal A, Adrian 2026-11-08); its list is the All jobs
+ *  sheet. Opens it and returns it. */
+export async function openAllJobs(page: Page) {
+  await page.getByRole('button', { name: 'All jobs' }).click();
+  const sheet = page.getByRole('dialog', { name: 'All jobs' });
+  await expect(sheet.getByRole('region', { name: /^Jobs/ })).toBeVisible();
+  return sheet;
+}
+
+/** Below lg: open the Apply filter bar (search, Status, Sort, Check which are still open). */
+export async function openFilters(page: Page) {
+  const filters = page.getByRole('button', { name: 'Filters' });
+  if ((await filters.getAttribute('aria-expanded')) !== 'true') await filters.click();
 }

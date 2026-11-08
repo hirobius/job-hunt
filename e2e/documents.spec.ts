@@ -1,4 +1,4 @@
-import { openApply } from './routes';
+import { JOB_LINK, openApply, openTemplates } from './routes';
 import { test, expect } from '@playwright/test';
 
 // The Documents library end to end (#227, #230): it opens from the Menu, an edited Outreach message
@@ -50,15 +50,21 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await docs.getByRole('button', { name: 'Close' }).click();
   await expect(docs).toBeHidden();
   await openApply(page);
+  await openTemplates(page);
   const list = page.getByRole('list', { name: 'Your templates' });
-  // The row previews the start of the edited text (no chevron: Copy is its one action).
-  await expect(list.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
+  // The row opens a dialog with the edited message filled for the job (Proposal A).
+  await list.getByRole('button', { name: 'Open Follow-up after applying' }).click();
+  const view = page.getByRole('dialog', { name: 'Follow-up after applying' });
+  await expect(view.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
+  await expect(view.getByText(/See you soon\./)).toBeVisible();
   // A blank fills in place and saves on the job (rev-3 A).
-  // Every row shares the job's Contact blank; fill it on the follow-up's row.
-  const row = list.getByRole('listitem', { name: 'Follow-up after applying' });
-  await row.getByRole('button', { name: 'Fill Contact' }).click();
-  await row.getByRole('textbox', { name: 'Contact' }).fill('Dana');
-  await row.getByRole('button', { name: 'Fill', exact: true }).click();
+  await view.getByRole('button', { name: 'Fill Contact' }).click();
+  await view.getByRole('textbox', { name: 'Contact' }).fill('Dana');
+  await view.getByRole('button', { name: 'Fill', exact: true }).click();
+  await expect(view.getByText(/Hi Dana,/).first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(view).toBeHidden();
+  // The row's one-line preview now reads the filled name.
   await expect(list.getByText(/Hi Dana,/).first()).toBeVisible();
   // Documents opens as a dialog over this job (#471 slice 4), so closing it or a Save comes back here.
   await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
@@ -68,7 +74,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
 
   // The job page links its company to the Company page, which links back to the job.
   await page.evaluate(() => (location.hash = '#/apply'));
-  await page.locator('a[href^="#/apply/"]').first().click();
+  await page.getByRole('navigation', { name: 'Jobs' }).locator(JOB_LINK).first().click();
   await page.getByRole('link', { name: 'Acme Metals', exact: true }).click();
   await expect(page).toHaveURL(/#\/apply\/company\/acme-metals\?from=%2Fapply%2F/);
   await expect(page.getByRole('heading', { level: 1, name: 'Acme Metals' })).toBeVisible();

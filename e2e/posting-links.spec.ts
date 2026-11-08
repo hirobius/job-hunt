@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { openAllJobs, openFilters } from './routes';
 
 // Adrian 2026-10-22: "Anywhere a job is listed, we should be able to click on the URL to visit the
 // link, or there should be a visit jump link button near the URL or name of the job." With the
@@ -28,8 +29,9 @@ async function loadSample(page: Page) {
     );
   await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  // The Jobs panel, or from lg the list column beside the first job (#471).
-  await expect(page.getByRole('textbox', { name: /^Search (saved )?jobs$/ })).toBeVisible();
+  // The first job (Proposal A: the tab is the job), with the list column beside it from lg (#471).
+  await expect(page.getByRole('button', { name: 'Try with sample data' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('Apply');
 }
 
 /** A title with a long unbroken run (QA 2026-10-22): it has to wrap beside the posting link. */
@@ -76,7 +78,9 @@ async function loadBusy(page: Page, { long = false } = {}) {
     { board: BOARD, removed: REMOVED, long, title: LONG },
   );
   await page.reload();
-  await expect(page.getByRole('region', { name: /^Jobs/ })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  // Below lg it is in the filter bar (Proposal A); from lg in the list column.
+  if ((page.viewportSize()?.width ?? 0) < 1024) await openFilters(page);
   await page.getByRole('button', { name: 'Check which are still open' }).click();
   await expect(
     page.getByRole('list', { name: 'Closed on the board' }).getByRole('listitem'),
@@ -158,17 +162,22 @@ function longTitleOffences(root: Locator) {
     const links = [...rootEl.querySelectorAll('a[aria-label^="Open posting"]')];
     if (!links.some((a) => a.getAttribute('aria-label')!.includes(long)))
       out.push('no posting link for the long title');
-    const text: DOMRect[] = [];
-    const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT);
-    for (let n = walker.nextNode(); n; n = walker.nextNode())
-      if (n.textContent?.includes(long)) {
-        const range = document.createRange();
-        range.selectNodeContents(n);
-        text.push(...range.getClientRects());
-      }
-    if (text.length === 0) out.push('the long title is not shown');
+    // Read after each scroll: a link scrolled into view moves the text too.
+    const titleRects = () => {
+      const rects: DOMRect[] = [];
+      const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode())
+        if (n.textContent?.includes(long)) {
+          const range = document.createRange();
+          range.selectNodeContents(n);
+          rects.push(...range.getClientRects());
+        }
+      return rects;
+    };
+    if (titleRects().length === 0) out.push('the long title is not shown');
     for (const a of links) {
       a.scrollIntoView({ block: 'center' });
+      const text = titleRects();
       const b = a.getBoundingClientRect();
       const what = a.getAttribute('aria-label')!.slice(0, 40);
       if (b.left < -0.5 || b.right > document.documentElement.clientWidth + 0.5)
@@ -198,11 +207,15 @@ function longTitleOffences(root: Locator) {
 
 /** Open the job page of the first listed job whose title contains `text`. */
 async function openJobTitled(page: Page, text: string) {
-  const hash = await page
+  // Below lg the Jobs list is the All jobs sheet (Proposal A).
+  const phone = (page.viewportSize()?.width ?? 0) < 1024;
+  const scope = phone ? await openAllJobs(page) : page;
+  const hash = await scope
     .getByRole('region', { name: /^Jobs/ })
     .locator('a[href^="#/apply/"]', { hasText: text })
     .first()
     .getAttribute('href');
+  if (phone) await page.keyboard.press('Escape');
   await page.evaluate((h) => (location.hash = h!), hash);
   await expect(page.locator('header h1')).toContainText(text);
 }
@@ -236,11 +249,17 @@ for (const width of [390, 800] as const) {
     test.use({ viewport: { width, height: 900 } });
     const phone = width < 640;
 
-    test('every job the Pipeline lists opens its posting in one tap', async ({ page }) => {
+    test('the Apply list: agenda rows open their posting in one tap; job cards use their menu', async ({
+      page,
+    }) => {
       await loadSample(page);
-      // The Jobs panel: job cards at every width (Adrian 2026-10-24).
-      const jobRows = page.getByRole('region', { name: /^Jobs/ }).getByRole('article');
-      await expectPostingLinks(page, jobRows, phone);
+      const sheet = await openAllJobs(page);
+      // Job cards carry no glyph by the title (Adrian 2026-11-08): their menu has Open posting.
+      await expect(
+        sheet
+          .getByRole('region', { name: /^Jobs/ })
+          .getByRole('link', { name: /^Open posting for / }),
+      ).toHaveCount(0);
       // The agenda panels above it.
       await expectPostingLinks(
         page,
@@ -257,35 +276,32 @@ for (const width of [390, 800] as const) {
       }
     });
 
-    test('every job page header opens its posting; the link opens a new tab', async ({ page }) => {
+    test('every job page header: no glyph by the title, the menu opens the posting', async ({
+      page,
+    }) => {
       await loadSample(page);
       const jobs = await savedJobs(page);
-      const pages = await page
+      const sheet = await openAllJobs(page);
+      const pages = await sheet
         .getByRole('region', { name: /^Jobs/ })
         .locator('a[href^="#/apply/"]')
         .evaluateAll((as) => as.map((a) => [a.getAttribute('href')!, a.textContent!.trim()]));
       expect(pages.length).toBeGreaterThan(0);
-      let header: Locator | null = null;
-      for (const [hash, title] of pages) {
+      await page.keyboard.press('Escape');
+      for (const [hash, title] of pages.slice(0, 3)) {
         await page.evaluate((h) => (location.hash = h), hash);
         const heading = page.getByRole('heading', { level: 1, name: title, exact: true });
         await expect(heading).toBeVisible();
-        header = page.locator('header').filter({ has: heading });
+        const header = page.locator('header').filter({ has: heading });
+        await expect(postingFor(header, title)).toHaveCount(0);
         const job = jobs.find((j) => j.label === title)!;
-        const posting = postingFor(header, title);
-        await expect(posting).toHaveAttribute('href', job.url);
-        if (phone) {
-          const box = (await posting.boundingBox())!;
-          expect(Math.min(box.width, box.height), `${title}: 40px`).toBeGreaterThanOrEqual(39.5);
-        }
+        await header.getByRole('button', { name: `More actions: ${title}` }).click();
+        await expect(page.getByRole('menuitem', { name: 'Open posting' })).toHaveAttribute(
+          'href',
+          job.url,
+        );
+        await page.keyboard.press('Escape');
       }
-      // One tap: a new tab on the posting, and the app stays on the job's page.
-      const posting = header!.getByRole('link', { name: /^Open posting for / });
-      const href = (await posting.getAttribute('href'))!;
-      const [tab] = await Promise.all([page.context().waitForEvent('page'), posting.click()]);
-      await tab.waitForLoadState();
-      expect(tab.url()).toBe(href);
-      expect(page.url()).toContain('#/apply/');
     });
 
     test('every posting link takes the tap across its whole target and covers no other control', async ({
@@ -318,9 +334,12 @@ for (const width of [390, 800] as const) {
       expect(
         await longTitleOffences(page.getByRole('list', { name: 'Closed on the board' })),
       ).toEqual([]);
-      expect(await longTitleOffences(page.getByRole('region', { name: /^Jobs/ }))).toEqual([]);
       await openJobTitled(page, LONG.slice(0, 20));
-      expect(await longTitleOffences(page.getByRole('main').locator('header'))).toEqual([]);
+      // The job header has no posting link by the title (Adrian 2026-11-08): the title wraps on screen.
+      const h1 = page.getByRole('main').locator('header h1');
+      const box = (await h1.boundingBox())!;
+      expect(box.x + box.width).toBeLessThanOrEqual(width + 0.5);
+      expect(await h1.evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
       // The list column beside the job only shows from lg (#471).
       if (width >= 1024)
         expect(await longTitleOffences(page.getByRole('navigation', { name: 'Jobs' }))).toEqual([]);

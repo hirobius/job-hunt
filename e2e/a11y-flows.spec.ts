@@ -125,8 +125,18 @@ for (const theme of ['light', 'dark'] as const) {
         bad.push(...(await axe(page, 'add job')));
         await page.keyboard.press('Escape');
 
+        // Below lg the tab is one job (Proposal A): axe the All jobs sheet open.
+        const rail = page.getByRole('navigation', { name: 'Jobs', exact: true });
+        if (!(await rail.count())) {
+          await page.getByRole('button', { name: 'All jobs' }).click();
+          await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeVisible();
+          await page.waitForTimeout(300);
+          bad.push(...(await axe(page, 'all jobs sheet')));
+          await page.keyboard.press('Escape');
+          await expect(page.getByRole('dialog')).toBeHidden();
+        }
         // The job page is one page (#416, a11y.spec.ts scans it): axe its Add interview dialog.
-        await page.locator('a[href^="#/apply/"]').first().click();
+        if (await rail.count()) await rail.locator('a[href^="#/apply/"]').first().click();
         await page
           .getByRole('button', { name: /^More actions/ })
           .first()
@@ -265,33 +275,30 @@ for (const width of [390, 1440] as const) {
       await seed(page);
       await go(page, '#/apply');
       // From lg the Jobs tab is the list beside a job (#471): a pick there moves in place, so open
-      // the second row, and Back leaves the tab (return-paths.spec.ts covers it).
+      // the second row. Below lg the list is the All jobs sheet (Proposal A): a pick closes it.
       const wide = width > 1000;
-      const link = page.locator('a[href^="#/apply/"]:not([aria-current])').first();
+      if (!wide) await page.getByRole('button', { name: 'All jobs' }).click();
+      const scope = wide
+        ? page.getByRole('navigation', { name: 'Jobs' })
+        : page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Jobs' });
+      const link = scope.locator('a[href^="#/apply/"]:not([aria-current])').nth(wide ? 0 : 1);
       const title = wide
         ? (await link.locator('.rjb-semibold').textContent())!.trim()
         : (await link.textContent())!.trim();
       await link.focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/apply\/./);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
       await expect.poll(() => focused(page)).toBe(`H1 ${title}`);
       // The heading takes focus but is not a tab stop: no ring, nothing to press.
       const heading = page.getByRole('heading', { level: 1, name: title });
       expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
-      // The browser's Back is a page change too: it lands on the title that opened the job (#359).
-      if (!wide) {
-        await page.goBack();
-        await expect(page).toHaveURL(/#\/apply$/);
-        await expect.poll(() => focused(page)).toBe(`A ${title}`);
-      }
       // A page never seen before gets its heading.
       await go(page, '#/legal/terms');
       // Legal is a dialog now (#471 slice 4): focus goes into it.
       await expect(page.getByRole('dialog', { name: 'Privacy and terms' })).toBeVisible();
       await expect
-        .poll(() =>
-          page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]')),
-        )
+        .poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]')))
         .toBe(true);
       // Opened by a link, it has no opener: closing hands focus to the page's heading.
       await page.keyboard.press('Escape');
@@ -312,9 +319,8 @@ for (const width of [390, 1440] as const) {
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
       await page.waitForTimeout(300);
-      // From lg the Jobs tab turns into the list beside the first job (#471): its title is the h1.
-      if (width > 1000) await expect.poll(() => focused(page)).toMatch(/^H1 /);
-      else await expect.poll(() => focused(page)).toBe('H1 Apply');
+      // The Apply tab turns into the first job (#471, Proposal A): its title is the h1.
+      await expect.poll(() => focused(page)).toMatch(/^H1 /);
       await page.getByRole('button', { name: 'Clear sample data' }).focus();
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toHaveCount(0);

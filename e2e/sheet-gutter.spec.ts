@@ -1,13 +1,15 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openFilters } from './routes';
 
 // Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter,
-// and the Pipeline's tertiary "Check which are still open" starts on the Jobs panel's content edge.
+// and the Apply list's tertiary "Check which are still open" starts on its search field's edge.
 async function sample(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  // The Jobs panel, or from lg the list column beside the first job (#471).
-  await expect(page.getByRole('textbox', { name: /^Search (saved )?jobs$/ })).toBeVisible();
+  // The first job (Proposal A: the tab is the job), with the list column beside it from lg (#471).
+  await expect(page.getByRole('button', { name: 'Try with sample data' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('Apply');
 }
 
 async function expectGutter(page: Page) {
@@ -38,6 +40,8 @@ for (const width of [390, 1440]) {
     // A board job (Greenhouse) is what the liveness check reads.
     await page.goto('/?add=' + encodeURIComponent('https://boards.greenhouse.io/acme/jobs/123'));
     await page.evaluate(() => (location.hash = '#/apply'));
+    // Below lg it is in the Apply filter bar (Proposal A), under its search.
+    if (width < 1024) await openFilters(page);
     const check = page.getByRole('button', { name: 'Check which are still open' });
     await expect(check).toBeVisible();
     const textLeft = await check.evaluate((b) => {
