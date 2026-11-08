@@ -438,3 +438,34 @@ describe('Undo leaves what was there before', () => {
     expect(getAllDecided().muted).toEqual(['Acme']);
   });
 });
+
+describe('found companies carry who they are (New companies, Adrian 2026-11-08)', () => {
+  it('keeps a web website and a short one-liner from storage, drops anything else', () => {
+    resetScan();
+    localStorage.setItem(
+      'rjb_autoscan',
+      JSON.stringify({
+        found: [
+          {
+            name: 'Acme',
+            boardUrl: 'https://boards.greenhouse.io/acme',
+            via: 'yc',
+            website: 'https://acme.com',
+            about: 'A design system studio',
+          },
+          {
+            name: 'Evil',
+            boardUrl: 'https://boards.greenhouse.io/evil',
+            via: 'yc',
+            website: 'javascript:alert(1)',
+            about: 'x'.repeat(500),
+          },
+        ],
+      }),
+    );
+    const [acme, evil] = getScanState().found;
+    expect(acme).toMatchObject({ website: 'https://acme.com', about: 'A design system studio' });
+    expect(evil.website).toBeUndefined();
+    expect(evil.about).toHaveLength(200);
+  });
+});

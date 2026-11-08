@@ -118,8 +118,20 @@ for (const width of [390, 1440]) {
     // Remote only (Adrian 2026-10-28): Acme's on-site role is left out.
     await expect(list.getByText('Design Systems Lead')).toHaveCount(0);
     const companies = page.getByRole('list', { name: 'New companies' });
-    await expect(companies.getByText('Acme')).toBeVisible();
+    await expect(companies.getByText('Acme', { exact: true })).toBeVisible();
+    await expect(companies.getByText('acme.com', { exact: true })).toBeVisible();
     await expect(companies.getByText('1 matching job · from YC')).toBeVisible();
+    // Who they are and what the scan read (Adrian 2026-11-08): YC's one-liner, the website,
+    // the confirmed board and a Preview of the open roles.
+    await expect(companies.getByText('The design system platform for banks')).toBeVisible();
+    await expect(companies.getByRole('link', { name: "Visit Acme's website" })).toBeVisible();
+    await expect(companies.getByRole('link', { name: /^Acme job board/ })).toBeVisible();
+    await companies.getByRole('button', { name: 'Preview open roles (1)' }).click();
+    await expect(
+      page
+        .getByRole('list', { name: 'Open roles at Acme' })
+        .getByText('Senior Design Systems Engineer'),
+    ).toBeVisible();
 
     if (width === 390)
       for (const scheme of ['light', 'dark'] as const) {

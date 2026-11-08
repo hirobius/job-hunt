@@ -217,12 +217,36 @@ describe('Scan details (the Account menu)', () => {
 });
 
 describe('NewCompanies', () => {
-  it('lists what the scan found; an unconfirmed board says so', async () => {
+  it('lists what the scan found, with who they are and what it read (Adrian 2026-11-08)', async () => {
+    const user = userEvent.setup();
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
     renderViews();
     const list = screen.getByRole('list', { name: 'New companies' });
+    // Acme: YC's one-liner, the website's domain, its count, the confirmed board, the website.
+    expect(within(list).getByText('A design system studio')).toBeVisible();
+    expect(within(list).getByText('acme.com')).toBeVisible();
     expect(within(list).getByText('1 matching job · from YC')).toBeVisible();
-    expect(within(list).getByText(/^Board not confirmed/)).toBeVisible();
+    expect(within(list).getByRole('link', { name: /^Acme job board/ })).toHaveAttribute(
+      'href',
+      expect.stringContaining('greenhouse'),
+    );
+    expect(within(list).getByRole('link', { name: "Visit Acme's website" })).toHaveAttribute(
+      'href',
+      'https://acme.com',
+    );
+    // The open roles, titles only, from the postings the scan kept (no read).
+    await user.click(within(list).getByRole('button', { name: 'Preview open roles (1)' }));
+    expect(
+      within(screen.getByRole('list', { name: 'Open roles at Acme' })).getByText(
+        'Design Systems Engineer',
+      ),
+    ).toBeVisible();
+    // Forward has no matching job: folded under one disclosure, its board not confirmed.
+    expect(within(list).queryByText('Forward')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Show 1 with no matching jobs' }));
+    const empty = screen.getByRole('list', { name: 'New companies with no matching jobs' });
+    expect(within(empty).getByText('Forward')).toBeVisible();
+    expect(within(empty).getByText(/Board not confirmed/)).toBeVisible();
   });
 
   it('Follow adds the board to the Sources, with Undo', async () => {
@@ -239,6 +263,7 @@ describe('NewCompanies', () => {
   it('Ignore mutes the company', async () => {
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
     renderViews();
+    await userEvent.click(screen.getByRole('button', { name: 'Show 1 with no matching jobs' }));
     await userEvent.click(screen.getByRole('button', { name: 'Ignore Forward' }));
     expect(getAllDecided().muted).toEqual(['Forward']);
     expect(screen.queryByText('Forward')).toBeNull();

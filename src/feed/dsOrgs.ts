@@ -180,6 +180,8 @@ export interface OrgTarget {
   login: string;
   company: string;
   website?: string;
+  /** The org's own one-line description (GitHub), when it gives one. */
+  about?: string;
   repo: string;
   repoUrl: string;
   stars: number;
@@ -356,6 +358,7 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
         login: r.login,
         company,
         ...(website && { website }),
+        ...(info?.description?.trim() && { about: info.description.trim() }),
         repo: r.repo,
         repoUrl: r.repoUrl,
         stars: r.stars,

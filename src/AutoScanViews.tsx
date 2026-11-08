@@ -1,13 +1,25 @@
 // The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
 // (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
 // says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
-import { Button, Icon, Stack, Text } from '@hirobius/design-system';
-import { RefreshCw } from 'lucide-react';
-import { ItemList, ItemRow, Panel } from './PipelinePanel';
+import { useState } from 'react';
+import {
+  Box,
+  Button,
+  Disclosure,
+  Icon,
+  InlineLink,
+  Stack,
+  Text,
+  Tooltip as HdsTooltip,
+} from '@hirobius/design-system';
+import { ExternalLink, RefreshCw } from 'lucide-react';
+import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
+import { httpUrl } from './httpUrl';
 import { showNotice } from './saveNotice';
 import {
   cancelScan,
   followFound,
+  foundRoles,
   ignoreFound,
   newCompanies,
   scanNow,
@@ -53,6 +65,7 @@ function ScanButton() {
   );
 }
 
+/** "2 matching jobs · from YC", or why its board isn't read yet. */
 function companyLine(f: FoundCompany): string {
   const jobs = f.confirmed
     ? `${f.jobs} matching ${f.jobs === 1 ? 'job' : 'jobs'}`
@@ -60,10 +73,25 @@ function companyLine(f: FoundCompany): string {
   return `${jobs} · from ${VIA_LABEL[f.via]}`;
 }
 
-/** The companies the scan found, not yet followed or ignored. Renders nothing when there are none. */
+/** The website's host, "acme.com", for the row's meta line. */
+function domainOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+/** The companies the scan found, not yet followed or ignored (Adrian 2026-11-08). Each row says who
+ *  they are (the source's one-liner, the website's domain), what the scan read (matching jobs, a
+ *  Preview of their titles, the job board once confirmed) and one action row: Follow, Ignore and
+ *  Visit website. Companies with no matching job fold under one "Show N with no matching jobs".
+ *  Renders nothing when there are none. */
 export function NewCompanies() {
   const { state } = useScan();
   const list = newCompanies(state);
+  const [showEmpty, setShowEmpty] = useState(false);
   if (!list.length) return null;
   const follow = (f: FoundCompany) => {
     const undo = followFound(f.key);
@@ -82,6 +110,11 @@ export function NewCompanies() {
       actions: [{ label: 'Undo', run: undo }],
     });
   };
+  const matching = list.filter((f) => f.jobs > 0);
+  const empty = list.filter((f) => f.jobs === 0);
+  const row = (f: FoundCompany) => (
+    <CompanyRow key={f.key} f={f} onFollow={() => follow(f)} onIgnore={() => ignore(f)} />
+  );
   return (
     <Panel
       label="New companies"
@@ -90,40 +123,112 @@ export function NewCompanies() {
       countLabel={`${list.length} companies`}
       description="Found by the scan. A confirmed board’s matching jobs are already in Review new."
     >
-      <ItemList label="New companies">
-        {list.map((f) => (
-          <ItemRow key={f.key}>
-            <Stack gap="tight">
-              <Stack gap="px4">
-                <Text variant="body" as="p" className="rjb-semibold">
-                  {f.name}
-                </Text>
-                <Text variant="caption" as="p" tone="secondary">
-                  {companyLine(f)}
-                </Text>
-              </Stack>
-              <Stack direction="row" gap="tight" wrap="wrap">
+      {matching.length > 0 && <ItemList label="New companies">{matching.map(row)}</ItemList>}
+      {empty.length > 0 && (
+        <PanelBody>
+          <Disclosure
+            label={`${showEmpty ? 'Hide' : 'Show'} ${empty.length} with no matching jobs`}
+            open={showEmpty}
+            onOpenChange={setShowEmpty}
+          >
+            {showEmpty && (
+              <ItemList label="New companies with no matching jobs">{empty.map(row)}</ItemList>
+            )}
+          </Disclosure>
+        </PanelBody>
+      )}
+    </Panel>
+  );
+}
+
+function CompanyRow({
+  f,
+  onFollow,
+  onIgnore,
+}: {
+  f: FoundCompany;
+  onFollow: () => void;
+  onIgnore: () => void;
+}) {
+  const site = httpUrl(f.website);
+  const domain = domainOf(site);
+  const roles = f.jobs > 0 ? foundRoles(f) : [];
+  const [preview, setPreview] = useState(false);
+  return (
+    <ItemRow>
+      <Stack gap="tight">
+        <Stack gap="px4">
+          <Text variant="body" as="p" className="rjb-semibold">
+            {f.name}
+          </Text>
+          {f.about && (
+            <Text variant="caption" as="p" className="rjb-truncate">
+              {f.about}
+            </Text>
+          )}
+          {domain && (
+            <Text variant="caption" as="p" tone="secondary">
+              {domain}
+            </Text>
+          )}
+          <Text variant="caption" as="p" tone="secondary">
+            {companyLine(f)}
+          </Text>
+          {f.confirmed && (
+            <Text variant="caption" as="p">
+              <InlineLink href={f.boardUrl}>{`${f.name} job board`}</InlineLink>
+            </Text>
+          )}
+        </Stack>
+        {roles.length > 0 && (
+          <Disclosure
+            label={preview ? 'Hide open roles' : `Preview open roles (${roles.length})`}
+            open={preview}
+            onOpenChange={setPreview}
+          >
+            {preview && (
+              <Box as="ul" aria-label={`Open roles at ${f.name}`} sx={{ pl: 'md', m: 0 }}>
+                {roles.map((t) => (
+                  <Text key={t} variant="caption" as="li">
+                    {t}
+                  </Text>
+                ))}
+              </Box>
+            )}
+          </Disclosure>
+        )}
+        <Stack direction="row" gap="tight" wrap="wrap" align="center">
+          <Button size="md" variant="secondary" aria-label={`Follow ${f.name}`} onClick={onFollow}>
+            Follow
+          </Button>
+          <Button size="md" variant="tertiary" aria-label={`Ignore ${f.name}`} onClick={onIgnore}>
+            Ignore
+          </Button>
+          {site && (
+            <HdsTooltip>
+              <HdsTooltip.Trigger asChild>
                 <Button
                   size="md"
                   variant="secondary"
-                  aria-label={`Follow ${f.name}`}
-                  onClick={() => follow(f)}
+                  iconOnly
+                  label={`Visit ${f.name}'s website`}
+                  asChild
                 >
-                  Follow
+                  <a
+                    href={site}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Visit ${f.name}'s website`}
+                  >
+                    <Icon icon={ExternalLink} />
+                  </a>
                 </Button>
-                <Button
-                  size="md"
-                  variant="tertiary"
-                  aria-label={`Ignore ${f.name}`}
-                  onClick={() => ignore(f)}
-                >
-                  Ignore
-                </Button>
-              </Stack>
-            </Stack>
-          </ItemRow>
-        ))}
-      </ItemList>
-    </Panel>
+              </HdsTooltip.Trigger>
+              <HdsTooltip.Content>Visit website</HdsTooltip.Content>
+            </HdsTooltip>
+          )}
+        </Stack>
+      </Stack>
+    </ItemRow>
   );
 }
