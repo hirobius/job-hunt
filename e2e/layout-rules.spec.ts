@@ -1,7 +1,7 @@
 // Layout rules (redesign-mobile guardrail, docs/guardrails.md): every route at 390 and 1440,
 // light and dark, holds the mobile-first rules the rev-3 mock was approved on:
 //   - no horizontal page overflow
-//   - every interactive target at least 40px tall on a phone (stacked bare links too)
+//   - every interactive target at least 44px tall on a phone (stacked bare links too)
 //   - a segmented control fits the phone content box (no clipped options)
 //   - no text below the HDS caption size
 //   - one status rule: never two status badges beside a title
@@ -12,7 +12,7 @@
 //   - a back link's arrow sits on the page heading's left edge (no tertiary inset)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
 import { test, expect, type Page } from '@playwright/test';
-import { seed, visitAll, openFilters } from './routes';
+import { seed, visitAll, openFilters, topTab } from './routes';
 
 const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [390, 1440] as const;
@@ -70,7 +70,7 @@ function probe(page: Page) {
       const sw = document.documentElement.scrollWidth;
       if (sw > W + 1) out.push(`overflow: page is ${sw}px wide in a ${W}px viewport`);
 
-      // 2. Touch targets (phone): 40px tall; icon-only ones 40px wide too.
+      // 2. Touch targets (phone): 44px tall; icon-only ones 44px wide too (retro quick wins).
       if (isPhone)
         document
           .querySelectorAll(
@@ -83,15 +83,15 @@ function probe(page: Page) {
             // A chip input's text field (HDS creatable Combobox) is 28px, but its 40px field is the
             // target: a press anywhere on the field focuses it.
             const field = el.getAttribute('role') === 'combobox' && el.closest('[role="group"]');
-            if (field && field.getBoundingClientRect().height >= 39.5) return;
+            if (field && field.getBoundingClientRect().height >= 43.5) return;
             const r = el.getBoundingClientRect();
             const iconOnly = !(el.textContent || '').trim() && el.tagName !== 'INPUT';
-            if (r.height < 39.5 || (iconOnly && r.width < 39.5))
+            if (r.height < 43.5 || (iconOnly && r.width < 43.5))
               out.push(`target: ${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
           });
       // 2b. Stacked bare links are a tap list, not prose: WCAG's inline exemption covers a link
       // inside a sentence, not two or more lines that are each just a link ("More ways to find
-      // companies" once shipped two 18px links 5px apart). Each must be 40px tall on a phone. A
+      // companies" once shipped two 18px links 5px apart). Each must be 44px tall on a phone. A
       // lone title link (a job card's title, a fact) is left to its row's own targets.
       if (isPhone) {
         const loneLine = (a: Element): Element | null => {
@@ -113,7 +113,7 @@ function probe(page: Page) {
             (s) => s && lines.has(s),
           );
           const r = a.getBoundingClientRect();
-          if (stacked && r.height < 39.5)
+          if (stacked && r.height < 43.5)
             out.push(
               `target: ${label(a)} ${Math.round(r.width)}x${Math.round(r.height)} (stacked bare links)`,
             );
@@ -137,7 +137,7 @@ function probe(page: Page) {
 
       // 2d. Page rhythm (rev-3 .wrap): the shell owns the space under the tabs. The first thing on
       // every page (its back link or its title) sits 24 under the tab row, never a per-view gap.
-      const tabs = document.querySelector('[role="tablist"][aria-label="Sections"]');
+      const tabs = document.querySelector('nav[aria-label="Sections"]');
       if (tabs?.parentElement) {
         let top = Infinity;
         for (let page = tabs.parentElement.nextElementSibling; page; page = page.nextElementSibling)
@@ -273,7 +273,7 @@ for (const theme of THEMES) {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
         await page.goto('/#/find');
-        const tab = page.getByRole('tab', { name: 'Find' });
+        const tab = topTab(page, 'Find');
         await expect(tab).toBeVisible();
         await page.keyboard.press('Shift'); // a key press first, so focus shows as focus-visible
         await tab.focus();
@@ -291,13 +291,18 @@ for (const theme of THEMES) {
           const range = document.createRange();
           range.selectNodeContents(el);
           const text = range.getBoundingClientRect();
-          // The tab row scrolls on a phone, so it clips: the whole ring must fit inside it.
-          const list = el.closest('[role="tablist"]')!.getBoundingClientRect();
-          const out = parseFloat(cs.outlineOffset) + parseFloat(cs.outlineWidth);
+          // Nothing between the tab and the page clips the ring (the old tab row scrolled).
+          let clipped = false;
+          for (let n = el.parentElement; n && n !== document.body; n = n.parentElement)
+            if (
+              getComputedStyle(n).overflowX !== 'visible' ||
+              getComputedStyle(n).overflowY !== 'visible'
+            )
+              clipped = true;
           return {
             rings,
             inside: text.left >= box.left && text.right <= box.right + 0.5,
-            ringFits: box.left - out >= list.left - 0.5 && box.top - out >= list.top - 0.5,
+            ringFits: !clipped,
           };
         });
         expect(r).toEqual({ rings: 1, inside: true, ringFits: true });

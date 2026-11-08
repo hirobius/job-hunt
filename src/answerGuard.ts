@@ -16,3 +16,18 @@ export function tooSoon(): boolean {
   lastAnswer = now;
   return false;
 }
+
+/** The second tap of a double tap can also land on another control the next job (or posting) put
+ *  under the finger: its menu, a disclosure, a link. For the same window, presses inside the page
+ *  (`main`) are swallowed before any control sees them (capture phase); the Account menu, tabs and
+ *  notices outside `main` are left alone. */
+function swallow(e: Event) {
+  if (!lastAnswer || Date.now() - lastAnswer >= DOUBLE_TAP_MS) return;
+  const t = e.target as Element | null;
+  if (!t?.closest?.('main')) return;
+  e.preventDefault();
+  e.stopPropagation();
+}
+if (typeof document !== 'undefined')
+  for (const type of ['pointerdown', 'mousedown', 'click'])
+    document.addEventListener(type, swallow, true);

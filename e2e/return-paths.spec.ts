@@ -1,5 +1,14 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, JOB_LINK, openAllJobs, openApply, openFilters, openTemplates, seed } from './routes';
+import {
+  go,
+  JOB_LINK,
+  openAllJobs,
+  openApply,
+  openFilters,
+  openTemplates,
+  seed,
+  topTab,
+} from './routes';
 
 // Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
 // be able to get back easily enough / automatically." With the sample pipeline, Today behind it,
@@ -221,7 +230,7 @@ for (const width of [390, 800] as const) {
       await expect(page).toHaveURL(/#\/find$/);
       await page.waitForTimeout(600);
       await expect(page).toHaveURL(/#\/find$/);
-      await page.getByRole('tab', { name: 'Apply' }).click();
+      await topTab(page, 'Apply').click();
       await expect(page).toHaveURL(/#\/apply$/);
       await expect(h1(page)).toBeVisible();
       await expect(h1(page)).not.toHaveText(nextTitle);
@@ -288,7 +297,7 @@ for (const width of [390, 800] as const) {
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-      await page.getByRole('tab', { name: 'Apply' }).dblclick();
+      await topTab(page, 'Apply').dblclick();
       await stays(/#\/apply$/);
 
       // A job still to apply to (Saved), so Not a fit is there: a double Save in a new document
@@ -335,15 +344,15 @@ for (const width of [390, 800] as const) {
 
     test('each top tab reopens where it was left', async ({ page }) => {
       await go(page, '#/find');
-      await page.getByRole('tab', { name: 'Apply' }).click();
+      await topTab(page, 'Apply').click();
       await stepPager(page);
       const title = (await h1(page).textContent())!.trim();
-      await page.getByRole('tab', { name: 'Find' }).click();
+      await topTab(page, 'Find').click();
       await expect(page).toHaveURL(/#\/find$/);
-      await page.getByRole('tab', { name: 'Apply' }).click();
+      await topTab(page, 'Apply').click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       // The open tab, tapped again, goes to its root.
-      await page.getByRole('tab', { name: 'Apply' }).click();
+      await topTab(page, 'Apply').click();
       await expect(page).toHaveURL(/#\/apply$/);
     });
 
@@ -410,15 +419,15 @@ test.describe('return paths at 1440', () => {
     page,
   }) => {
     await go(page, '#/find');
-    await page.getByRole('tab', { name: 'Apply' }).click();
+    await topTab(page, 'Apply').click();
     const title = (await rows(page).nth(1).locator('.rjb-semibold').textContent())!.trim();
     await rows(page).nth(1).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-    await page.getByRole('tab', { name: 'Find' }).click();
+    await topTab(page, 'Find').click();
     await expect(page).toHaveURL(/#\/find$/);
-    await page.getByRole('tab', { name: 'Apply' }).click();
+    await topTab(page, 'Apply').click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-    await page.getByRole('tab', { name: 'Apply' }).click();
+    await topTab(page, 'Apply').click();
     await expect(page).toHaveURL(/#\/apply$/);
     await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
   });

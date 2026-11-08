@@ -29,6 +29,7 @@ import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
 import { backInFlight, resetHistoryRecord } from './route';
 import { CONTACT_EMAIL, LEGAL_DRAFT } from './legal';
+import { currentTab, topTab, topTabs } from './test/topTabs';
 
 const fake = () => h.fake!;
 
@@ -76,8 +77,7 @@ describe('app shell (#115 Phase 1)', () => {
   it('has a slim header: the product name, the top tabs and one account menu', () => {
     renderApp();
     expect(screen.getByRole('img', { name: BRAND.name })).toBeInTheDocument();
-    const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Find', 'Apply']);
+    expect(topTabs().map((t) => t.textContent)).toEqual(['Find', 'Apply']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -95,11 +95,10 @@ describe('app shell (#115 Phase 1)', () => {
     // is the one h1, inside main.
     expect(within(banner).getByRole('img', { name: BRAND.name })).toBeInTheDocument();
     expect(within(banner).queryByRole('heading')).toBeNull();
-    expect(within(banner).getByRole('tablist')).toBeInTheDocument();
+    expect(within(banner).getByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
     expect(within(banner).getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     const mains = screen.getAllByRole('main');
     expect(mains).toHaveLength(1);
-    expect(within(mains[0]).getByRole('tabpanel')).toBeInTheDocument();
     expect(within(mains[0]).getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
@@ -222,7 +221,7 @@ describe('app shell (#115 Phase 1)', () => {
   it('data controls left the Pipeline toolbar', () => {
     window.location.hash = '#/apply';
     renderApp();
-    const panel = screen.getByRole('tabpanel');
+    const panel = screen.getByRole('main');
     for (const name of ['Back up', 'Restore…', 'Export CSV'])
       expect(within(panel).queryByRole('button', { name })).toBeNull();
   });
@@ -363,15 +362,15 @@ describe('routes keep working (#115 Phase 1)', () => {
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(tab);
+    expect(currentTab()).toHaveAccessibleName(tab);
   });
 
   it('#/copy-deck opens the Documents dialog over Find, its tab selected (#240, #227, #471)', async () => {
     window.location.hash = '#/copy-deck';
     renderApp();
     expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Templates', hidden: true })).toBeNull();
-    expect(screen.getByRole('tab', { selected: true, hidden: true })).toHaveAccessibleName('Find');
+    expect(screen.queryByRole('link', { name: 'Templates', hidden: true })).toBeNull();
+    expect(currentTab(undefined, { hidden: true })).toHaveAccessibleName('Find');
     await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
   });
 
@@ -446,7 +445,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/apply');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
+    expect(currentTab()).toHaveAccessibleName('Apply');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 
@@ -558,7 +557,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(window.location.hash).toBe('#/find');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+    expect(currentTab()).toHaveAccessibleName('Find');
   });
 
   it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {
@@ -589,7 +588,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     // The menu's entry pops at once: the route knows the hash it is on, so it doesn't wait ~2 s
     // for a hashchange that never comes.
     await waitFor(() => expect(backInFlight()).toBe(false), { timeout: 500 });
-    await userEvent.click(screen.getByRole('tab', { name: 'Find' }));
+    await userEvent.click(topTab('Find'));
     await waitFor(() => expect(window.location.hash).toBe('#/find'), { timeout: 500 });
   });
 });

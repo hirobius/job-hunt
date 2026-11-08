@@ -14,10 +14,6 @@ import {
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
 import {
-  Tabs as HdsTabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
   Box,
   Stack,
   useToast,
@@ -161,30 +157,24 @@ export default function App() {
   );
 
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
-  // again, goes to its root, and at its root back to the top. Radix selects on mouse down, so
-  // whether the tab was already open is read before that, on pointer or key down.
+  // again, goes to its root, and at its root back to the top. They are links in a nav (the open one
+  // aria-current="page"), not ARIA tabs: each opens a page, there is no tab panel (top tabs PR).
   const viewRef = useRef<HTMLDivElement>(null);
   useViewEnter(viewRef, route.tab);
 
-  const tappedOpen = useRef<TopTab | null>(null);
-  const pressed = (slug: TopTab) => () => {
-    tappedOpen.current = !noTab && tabSlug === slug ? slug : null;
-  };
-  const tapped = (slug: TopTab) => () => {
-    if (tappedOpen.current !== slug) return;
-    tappedOpen.current = null;
-    if (pageKey(getRoute()) === `${slug}/`) window.scrollTo({ top: 0, behavior: 'smooth' });
-    else goBackTo(parseHash(`#/${slug}`));
-  };
-  const trigger = (slug: TopTab) => ({
-    onPointerDown: pressed(slug),
-    onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        pressed(slug)();
-        tapped(slug)();
-      }
+  const current = (slug: TopTab) => !noTab && tabSlug === slug;
+  const tabLink = (slug: TopTab) => ({
+    href: `#/${slug}`,
+    className: 'rjb-top-tab',
+    'aria-current': current(slug) ? ('page' as const) : undefined,
+    onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // A modified click (new tab or window) keeps the browser's own way.
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      if (!current(slug)) return openTab(slug);
+      if (pageKey(getRoute()) === `${slug}/`) window.scrollTo({ top: 0, behavior: 'smooth' });
+      else goBackTo(parseHash(`#/${slug}`));
     },
-    onClick: tapped(slug),
   });
 
   // No setup screen (Adrian 2026-10-29): a first run (no Search profile, no jobs, no old tracks)
@@ -278,15 +268,9 @@ export default function App() {
         {/* The portfolio's shell (Adrian 2026-10-22): 1048 in all (narrowed 2026-10-24), gutters that grow with the
             viewport, so content stops near 920. Header, tabs and every page share it. */}
         <PageShell>
-          <Box sx={{ py: 'md' }}>
-            {/* On the Documents, legal and not-found pages no tab is selected (and no tab panel mounts).
-                Manual activation there: Tab past the Account button focuses the first tab, which
-                would otherwise select it and leave the page before a keyboard user reaches it. */}
-            <HdsTabs
-              value={noTab ? '' : tabSlug}
-              activationMode={noTab ? 'manual' : 'automatic'}
-              onValueChange={(v) => openTab(v as TopTab)}
-            >
+          {/* 32 over the app bar, 24 under the page: the flame's embers rise ~21px over the logo,
+              and with 24 they ran off the top of a phone screen (retro quick wins, 2026-11-08). */}
+          <Box sx={{ pt: 'lg', pb: 'md' }}>
               {/* The shell owns the page rhythm (rev-3 .wrap): 24 from the tabs to the first thing on
                   every page (its back link or its title); views add no top margin of their own. */}
               <Stack gap="px24">
@@ -301,14 +285,10 @@ export default function App() {
                       <BrandLogo fontSize={19} />
                       <AccountMenu />
                     </Stack>
-                    <TabsList className="rjb-top-tabs" aria-label="Sections">
-                      <TabsTrigger value={FIND_TAB} {...trigger(FIND_TAB)}>
-                        Find
-                      </TabsTrigger>
-                      <TabsTrigger value={APPLY_TAB} {...trigger(APPLY_TAB)}>
-                        Apply
-                      </TabsTrigger>
-                    </TabsList>
+                    <Box as="nav" aria-label="Sections" className="rjb-top-tabs">
+                      <a {...tabLink(FIND_TAB)}>Find</a>
+                      <a {...tabLink(APPLY_TAB)}>Apply</a>
+                    </Box>
                   </Stack>
                 </Box>
                 <Box as="main">
@@ -318,14 +298,14 @@ export default function App() {
                     {/* Not keyed: remounting on pageKey drops focus and pager state on in-place
                         hops. useViewEnter replays the motion on a page-kind change instead. */}
                     <Stack gap="px24" ref={viewRef} className="rjb-view-enter">
-                      <TabsContent value={FIND_TAB} variant="bare" tabIndex={-1}>
+                      {current(FIND_TAB) && (
                         <Suspense fallback={<PipelineSkeleton />}>
                           <PageHold firstRun={firstRun}>
                             <Today />
                           </PageHold>
                         </Suspense>
-                      </TabsContent>
-                      <TabsContent value={APPLY_TAB} variant="bare" tabIndex={-1}>
+                      )}
+                      {current(APPLY_TAB) && (
                         <Suspense fallback={<PipelineSkeleton />}>
                           {company ? (
                             <CompanyPage slug={companySlug} />
@@ -341,7 +321,7 @@ export default function App() {
                             <TrackerView />
                           )}
                         </Suspense>
-                      </TabsContent>
+                      )}
                       {documents && (
                         <Suspense fallback={<DialogHold title="Documents" size="xl" />}>
                           <DocumentsView />
@@ -361,7 +341,6 @@ export default function App() {
                   </PageErrorBoundary>
                 </Box>
               </Stack>
-            </HdsTabs>
           </Box>
         </PageShell>
         <SignInHost />

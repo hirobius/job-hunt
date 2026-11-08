@@ -29,6 +29,7 @@ import { EMPTY_CURATION } from './curation/types';
 import { getProfile, replaceProfiles } from './profile';
 import { getSources, sourceKey, replaceSources } from './sources';
 import { linksNotice } from './v12Migration';
+import { findTopTabs } from './test/topTabs';
 
 const renderApp = () =>
   render(
@@ -81,7 +82,7 @@ describe('v12 move (simplify 4/9)', () => {
     expect(downloads[0].text).toContain('DS Slack\nhttps://ds-slack.example.org/');
     cleanup();
     renderApp();
-    await screen.findAllByRole('tab');
+    await findTopTabs();
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText(linksNotice(1))).toBeNull();
   });
@@ -93,7 +94,7 @@ describe('v12 move (simplify 4/9)', () => {
     addTile(g, { name: 'Oddco jobs', url: 'https://boards.greenhouse.io/oddco', meta: '' });
     addTile(g, { name: 'Union hall', url: 'https://hall.example.org/', meta: 'Union' });
     renderApp();
-    await screen.findAllByRole('tab');
+    await findTopTabs();
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(getProfile()?.label).not.toBe('Welding');
     expect(getProfile()?.titles).not.toContain('Welder');

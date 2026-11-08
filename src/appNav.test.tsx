@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 
 // CloudSync instantiates a Supabase client at module load; stub it so App can render in jsdom
 // without any network or real config. We only need the auth listener + a no-op query surface.
@@ -22,6 +22,7 @@ vi.mock('@supabase/supabase-js', () => ({
 import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { currentTab, queryCurrentTab, topTab, topTabs } from './test/topTabs';
 
 beforeEach(() => {
   window.location.hash = '';
@@ -41,34 +42,26 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders two tabs (Find · Apply), each associated with a tabpanel', () => {
+  it('renders the two top tabs (Find · Apply) as links in a nav, each to its page', () => {
     renderApp();
-    const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
-    expect(tabs).toHaveLength(2);
-    for (const tab of tabs) {
-      expect(tab.getAttribute('id')).toBeTruthy();
-      expect(tab.getAttribute('aria-controls')).toBeTruthy();
-    }
+    const tabs = topTabs();
+    expect(tabs.map((t) => t.textContent)).toEqual(['Find', 'Apply']);
+    expect(tabs.map((t) => t.getAttribute('href'))).toEqual(['#/find', '#/apply']);
+    // Links, not ARIA tabs: no tab list, no tab panel (each opens a page).
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('tabpanel')).toBeNull();
   });
 
-  it('the selected tab points at the visible tabpanel both ways', () => {
+  it('the open one is aria-current="page", the other is not', () => {
+    window.location.hash = '#/apply';
     renderApp();
-    const selected = screen.getByRole('tab', { selected: true });
-    const panel = screen.getByRole('tabpanel');
-    expect(selected.getAttribute('aria-controls')).toBe(panel.getAttribute('id'));
-    expect(panel.getAttribute('aria-labelledby')).toBe(selected.getAttribute('id'));
-  });
-
-  it('the visible tabpanel is not a Tab stop (#364)', () => {
-    renderApp();
-    // Radix defaults the panel to tabindex=0; every page starts with a control,
-    // so the panel stop is noise — the shell passes tabIndex={-1}.
-    expect(screen.getByRole('tabpanel').getAttribute('tabindex')).toBe('-1');
+    expect(topTab('Apply')).toHaveAttribute('aria-current', 'page');
+    expect(topTab('Find')).not.toHaveAttribute('aria-current');
   });
 
   it('defaults to the Today tab when the hash carries no route (#383)', () => {
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+    expect(currentTab()).toHaveAccessibleName('Find');
   });
 });
 
@@ -77,8 +70,8 @@ describe('an unknown route (review nit)', () => {
     window.location.hash = '#/nope';
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-    // No tab is selected and no tab panel mounts, like Documents.
-    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
+    // No top tab is current.
+    expect(queryCurrentTab()).toBeNull();
     expect(screen.queryByRole('tabpanel')).toBeNull();
     screen.getByRole('button', { name: 'Go to Find' }).click();
     await vi.waitFor(() => expect(window.location.hash).toBe('#/find'));
@@ -96,7 +89,7 @@ describe('an unknown route (review nit)', () => {
   ])('a sign-in callback (%s) lands on Today, not Page not found', (hash, kept) => {
     window.location.hash = hash;
     renderApp();
-    expect(screen.getByRole('tab', { name: 'Find', selected: true })).toBeInTheDocument();
+    expect(currentTab('Find')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
     expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/find');
   });
@@ -104,7 +97,7 @@ describe('an unknown route (review nit)', () => {
   it('the old Trades slug (#/apprenticeships) still lands on home', () => {
     window.location.hash = '#/apprenticeships';
     renderApp();
-    expect(screen.getByRole('tab', { name: 'Find', selected: true })).toBeInTheDocument();
+    expect(currentTab('Find')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
   });
 });

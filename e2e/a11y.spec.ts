@@ -120,7 +120,9 @@ test.describe('phone sweep', () => {
         const label = (el: Element) =>
           `${el.tagName.toLowerCase()}[${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 30)}]`;
         document
-          .querySelectorAll('button, [role="tab"], [role="menuitem"], [role="radio"], select')
+          .querySelectorAll(
+            'button, [role="tab"], [role="menuitem"], [role="radio"], select, input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), a.h-10, a.h-9, a.h-8',
+          )
           .forEach((el) => {
             const r = el.getBoundingClientRect();
             if (r.width === 0 || r.height === 0) return;
@@ -128,7 +130,8 @@ test.describe('phone sweep', () => {
             const iconOnly = !(el.textContent || '').trim();
             // HDS's own clear-input button is 30px wide (hds#750).
             if (el.getAttribute('aria-label') === 'Clear input') return;
-            if (r.height < 40 || (iconOnly && r.width < 40))
+            // 44px on a phone (retro quick wins, 2026-11-08; WCAG 2.5.5 / HDS touch size).
+            if (r.height < 43.5 || (iconOnly && r.width < 43.5))
               out.small.push(`${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
           });
         document.querySelectorAll('body *').forEach((el) => {
