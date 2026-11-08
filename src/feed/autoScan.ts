@@ -20,6 +20,7 @@
 // survive a reload: the next open finishes it), and never in the way: network is async and the
 // CPU work yields to the browser between chunks. Everything is per browser (a cache): Follow
 // adds the board to the synced Sources, Ignore mutes the company (decided.ts).
+import { httpUrl } from '../httpUrl';
 import { useSyncExternalStore } from 'react';
 import { loadPersisted, savePersisted } from '../persisted';
 import { ADELE, adeleNames } from './adele';
@@ -86,6 +87,8 @@ export interface Lead {
   name: string;
   /** The company's website: what the identity check confirms a board against. */
   website?: string;
+  /** A one-line description from the source (YC's one-liner, the GitHub org's description). */
+  about?: string;
   via: LeadSource;
   /** A board already found for it (GitHub orgs come probed). */
   board?: Board;
@@ -99,6 +102,10 @@ export interface FoundCompany {
   key: string;
   name: string;
   boardUrl: string;
+  /** The company's website, when the source named one (New companies shows its domain). */
+  website?: string;
+  /** A one-line description from the source, when it gave one. */
+  about?: string;
   via: LeadSource;
   /** The identity check trusted the board: its jobs are read into Review at once. */
   confirmed: boolean;
@@ -188,10 +195,14 @@ export function sanitizeScanState(raw: unknown): ScanState {
     const name = text(r.name).trim();
     const boardUrl = text(r.boardUrl);
     if (!name || !parseBoardUrl(boardUrl) || !VIA.has(r.via as LeadSource)) continue;
+    const website = httpUrl(r.website);
+    const about = text(r.about).trim().slice(0, 200);
     found.push({
       key: companyKey(name),
       name,
       boardUrl,
+      ...(website && { website }),
+      ...(about && { about }),
       via: r.via as LeadSource,
       confirmed: r.confirmed === true,
       status: STATUS.has(r.status as FoundStatus) ? (r.status as FoundStatus) : 'new',
@@ -405,7 +416,12 @@ export async function gatherLeads(
       const body = await deps.fetchJson(YC_HIRING_URL);
       const terms = ['design system', ...input.terms];
       for (const c of ycMatches(body, terms, MAX_YC_LEADS))
-        out.push({ name: c.name, via: 'yc', ...(c.website && { website: c.website }) });
+        out.push({
+          name: c.name,
+          via: 'yc',
+          ...(c.website && { website: c.website }),
+          ...(c.oneLiner && { about: c.oneLiner }),
+        });
     } catch {
       /* the YC mirror is down: no YC leads this run */
     }
@@ -425,6 +441,7 @@ export async function gatherLeads(
           name: t.company,
           via: 'github',
           ...(t.website && { website: t.website }),
+          ...(t.about && { about: t.about }),
           ...(t.board && { board: t.board, jobs: t.openRoles }),
         });
     } catch {
@@ -502,6 +519,8 @@ export async function runScan(
         key: k,
         name: lead.name,
         boardUrl: canonicalBoardUrl(board),
+        ...(httpUrl(lead.website) && { website: httpUrl(lead.website) }),
+        ...(lead.about && { about: lead.about.slice(0, 200) }),
         via: lead.via,
         confirmed,
         status: 'new' as const,
@@ -798,6 +817,14 @@ export function ignoreFound(key: string): () => void {
 }
 
 /** The companies to show under New companies: found and not yet followed or ignored. */
+/** The titles of the postings the last run kept from a found company's board (New companies'
+ *  Preview): the scan's stored postings, so it costs no read. */
+export function foundRoles(f: FoundCompany, postings: ScanPosting[] = getScanPostings()): string[] {
+  const k = boardKeyOfUrl(f.boardUrl);
+  if (!k) return [];
+  return [...new Set(postings.filter((p) => boardKeyOf(p.id) === k).map((p) => p.title))];
+}
+
 export const newCompanies = (s: ScanState): FoundCompany[] =>
   s.found.filter((f) => f.status === 'new');
 

@@ -259,6 +259,8 @@ describe('New companies', () => {
     window.location.hash = '#/find';
     renderApp();
     const panel = section(/^New companies/);
+    // No matching job yet: folded under one disclosure (Adrian 2026-11-08).
+    await user.click(within(panel).getByRole('button', { name: 'Show 1 with no matching jobs' }));
     await user.click(within(panel).getByRole('button', { name: 'Ignore Forward' }));
     expect(await screen.findByText('Ignored Forward')).toBeInTheDocument();
     expect(getAllDecided().muted).toContain('Forward');
