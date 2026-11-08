@@ -3,6 +3,7 @@
 // the Pipeline once sync has settled, and quick-add still lands on the Pipeline.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -25,6 +26,7 @@ import App from './App';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 
 const URL_A = 'https://acme.example/jobs/7';
+const URL_B = 'https://acme.example/jobs/2';
 
 const renderApp = () =>
   render(
@@ -80,21 +82,27 @@ describe('job route (#127)', () => {
     ).toBe(false);
   });
 
-  it('Back returns to the Pipeline list', async () => {
+  it('a job opened from elsewhere has Back; one opened in the tab has none (Proposal A)', async () => {
     addJob(URL_A, 'Design Engineer');
+    window.location.hash = `#/apply/${jobIdOf(URL_A)}?from=%2Ffind`;
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: /Back to Find/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    cleanup();
     window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     renderApp();
-    await userEvent.click(screen.getByRole('button', { name: /Back to Apply/ }));
-    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
+    await screen.findByRole('heading', { level: 1, name: 'Design Engineer' });
+    expect(screen.queryByRole('button', { name: /^Back to / })).toBeNull();
   });
 
-  it('a job in the list links to its page', async () => {
+  it('a job in the list (All jobs) links to its page', async () => {
     addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
     window.location.hash = '#/apply';
     renderApp();
-    await userEvent.click(screen.getByRole('link', { name: 'Design Engineer' }));
-    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_A)}`));
+    const sheet = await openAllJobs();
+    await userEvent.click(within(sheet).getByRole('link', { name: 'Welder' }));
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`));
   });
 
   it('an unknown job id falls back to the Pipeline once sync has settled', async () => {
@@ -129,8 +137,12 @@ describe('job route (#127)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
     ).toBeInTheDocument();
+    // The open tab again goes to its root: #/apply, which is the first job (Proposal A).
     await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
+    ).toBeInTheDocument();
   });
 
   it('a ?add= quick-add link still lands on the Pipeline, not a job page', () => {

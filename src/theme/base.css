@@ -95,6 +95,18 @@ p {
   border-top: thin solid var(--semantic-color-border-default);
 }
 
+/* The Apply job's swipe area (Proposal A): the page still scrolls up and down; a sideways move is
+   the swipe's, never the browser's own. */
+.rjb-swipe {
+  touch-action: pan-y;
+}
+
+/* A long unbroken title (QA 2026-10-22) wraps on screen, never past it. */
+.rjb-break {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 /* Apply mode copy rows: keep a saved answer's line breaks. */
 .rjb-prewrap {
   white-space: pre-wrap;
@@ -949,4 +961,71 @@ p {
   min-height: 0;
   overflow-y: auto;
   padding: calc(var(--primitive-space-1) / 2);
+}
+
+/* A template row on the Apply view (Adrian 2026-11-08): the whole row is one button that opens the
+ * filled text, its name, first line and blanks stacked and left-aligned (HDS Button is one centred
+ * nowrap line). */
+[data-hds] .rjb-template-row {
+  width: 100%;
+  height: auto;
+  min-height: var(--primitive-space-10);
+  justify-content: flex-start;
+  text-align: start;
+  white-space: normal;
+  padding-block: var(--primitive-space-2);
+}
+[data-hds] .rjb-template-row {
+  overflow: hidden;
+}
+[data-hds] .rjb-template-row > * {
+  min-width: 0;
+  width: 100%;
+}
+[data-hds] .rjb-template-row .rjb-truncate {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The Apply screen's pager on a phone (Proposal A, Adrian 2026-11-08): it stays at the top while
+ * the job scrolls under it, on the page's own surface. */
+.rjb-apply-pager {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--semantic-color-surface-page);
+  padding-block: var(--primitive-space-2);
+}
+
+/* A bottom sheet on a phone (the All jobs list; Proposal A): HDS Dialog anchored to the bottom
+ * edge below sm, full width, top corners rounded, a grab handle, its body scrolling (.rjb-dialog).
+ * From sm up it stays HDS's centred dialog. Upstream: HDS Sheet does this (hds#690), but it costs
+ * the startup chunk ~0.7 kB, which is at its budget. */
+.rjb-sheet-handle {
+  display: none;
+}
+@media (max-width: 639.98px) {
+  [data-hds] .rjb-bottom-sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    translate: 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: 85dvh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .rjb-sheet-handle {
+    display: block;
+    align-self: center;
+    margin-bottom: var(--primitive-space-2);
+    width: var(--primitive-space-10);
+    height: var(--primitive-space-1);
+    border-radius: var(--primitive-radius-full, 999px);
+    background: var(--semantic-color-border-default);
+  }
 }

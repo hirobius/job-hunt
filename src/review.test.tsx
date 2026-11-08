@@ -510,6 +510,16 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
     await waitFor(() => expect(seen.some((el) => el.contains(card))).toBe(true));
   });
 
+  it('after the last card, focus goes to the empty state’s title', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([BASIC[0]]));
+    renderPhoneFind();
+    const ul = await list();
+    await user.click(within(ul).getByRole('button', { name: /^Skip / }));
+    const title = await screen.findByText('You’re all caught up');
+    await waitFor(() => expect(document.activeElement).toBe(title));
+  });
+
   it('after Skip on a card, focus goes to the next card’s title', async () => {
     const user = userEvent.setup();
     renderPhoneFind();

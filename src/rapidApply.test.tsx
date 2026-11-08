@@ -1,8 +1,10 @@
 // Rapid apply: saves say where they went, the Apply tab walks the list (#471), and a job walks the
 // queue with the Application kit. Tested at the route seam through App, by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { openAllJobs } from './test/allJobs';
+import { setTemplatesOpenByDefault } from './templatesOpen';
 import { ToastProvider } from '@hirobius/design-system';
 
 const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
@@ -86,18 +88,28 @@ describe('save notice', () => {
 });
 
 describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', () => {
-  it('the list has no To apply panel or Start applying: a row opens the job, starred first', async () => {
+  it('the tab is the first job to apply to (Proposal A); All jobs lists them, starred first', async () => {
     const user = userEvent.setup();
     renderApp();
-    expect(await screen.findByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
+    // No list page on a phone (Adrian 2026-11-08): the tab opens on the job, starred first.
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Acme Designer' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', A);
     expect(screen.queryByRole('region', { name: /^To apply/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Start applying|Resume applying/ })).toBeNull();
-    const titles = screen.getAllByRole('link', { name: /Designer$/ }).map((l) => l.textContent);
+    const sheet = await openAllJobs();
+    const titles = within(sheet)
+      .getAllByRole('link', { name: /Designer$/ })
+      .map((l) => l.textContent);
     expect(titles[0]).toBe('Acme Designer');
-    await user.click(screen.getByRole('link', { name: 'Acme Designer' }));
-    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
-    expect(await screen.findByRole('heading', { name: 'Acme Designer' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', A);
+    // A jump opens the job in place and closes the sheet.
+    await user.click(within(sheet).getByRole('link', { name: 'Bolt Designer' }));
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
   });
 
   it('kit fields are entered once inline and copied with a Copied confirmation', async () => {
@@ -179,6 +191,44 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(findJobByUrl(B)?.applied).toBeFalsy();
   });
 
+  it('a sideways swipe on the job steps the pager, in place (Proposal A)', async () => {
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    const length = window.history.length;
+    const swipe = (dx: number, dy = 0) => {
+      const h1 = screen.getByRole('heading', { level: 1 });
+      fireEvent.touchStart(h1, { touches: [{ clientX: 200, clientY: 300 }] });
+      fireEvent.touchEnd(h1, { changedTouches: [{ clientX: 200 + dx, clientY: 300 + dy }] });
+    };
+    // Mostly up and down: a scroll, not a swipe.
+    swipe(-80, 120);
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
+    swipe(-100);
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(C)}`));
+    swipe(100);
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`));
+    expect(window.history.length).toBe(length);
+
+    // The page still scrolls up and down; the sideways move is the swipe's (#510 review).
+    expect(screen.getByRole('heading', { level: 1 }).closest('.rjb-swipe')).not.toBeNull();
+    // A drag that selects text is not a swipe.
+    const select = vi.spyOn(window, 'getSelection').mockReturnValue({
+      toString: () => 'Acme',
+    } as Selection);
+    swipe(-100);
+    select.mockRestore();
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
+    // Nor is one that starts inside something that scrolls sideways (it scrolls itself).
+    const h1 = screen.getByRole('heading', { level: 1 });
+    const box = h1.parentElement!;
+    box.style.overflowX = 'auto';
+    Object.defineProperty(box, 'scrollWidth', { configurable: true, value: 900 });
+    Object.defineProperty(box, 'clientWidth', { configurable: true, value: 300 });
+    swipe(-100);
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
+  });
+
   it('with one job left the pager still shows, as 1 of 1 with both arrows off (QA)', async () => {
     removeJob(B);
     removeJob(C);
@@ -190,13 +240,37 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(within(pager).getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
 
-  it('a job the list hides has Back but no place in the walk', async () => {
+  it('a job the list hides says so, live, and its arrows step to the nearest shown job', async () => {
     updateJob(B, { status: 'Rejected' });
     window.location.hash = `#/apply/${jobIdOf(B)}`;
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Bolt Designer' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Apply/ })).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: 'Jobs in the list' })).toBeNull();
+    const pager = screen.getByRole('navigation', { name: 'Jobs in the list' });
+    // A live region, so a screen reader hears it as it appears (#510 review).
+    expect(within(pager).getByRole('status')).toHaveTextContent('Not in this filter');
+    // No dead end: an arrow goes to a job the filter shows, in place.
+    const length = window.history.length;
+    const arrows = within(pager)
+      .getAllByRole('button')
+      .filter((b) => !(b as HTMLButtonElement).disabled);
+    expect(arrows.length).toBeGreaterThan(0);
+    fireEvent.click(arrows[0]);
+    await waitFor(() =>
+      expect([`#/apply/${jobIdOf(A)}`, `#/apply/${jobIdOf(C)}`]).toContain(window.location.hash),
+    );
+    expect(window.history.length).toBe(length);
+  });
+
+  it('a swipe on a job the list hides steps to the nearest shown job', async () => {
+    updateJob(B, { status: 'Rejected' });
+    window.location.hash = `#/apply/${jobIdOf(B)}`;
+    renderApp();
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
+    for (const dx of [-100, 100]) {
+      fireEvent.touchStart(h1, { touches: [{ clientX: 200, clientY: 300 }] });
+      fireEvent.touchEnd(h1, { changedTouches: [{ clientX: 200 + dx, clientY: 300 }] });
+    }
+    await waitFor(() => expect(window.location.hash).not.toBe(`#/apply/${jobIdOf(B)}`));
   });
 
   it('a double tap on Mark applied applies to one job, not the next one too', async () => {
@@ -230,19 +304,19 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await waitFor(() => expect(next).toHaveFocus());
   });
 
-  it('after the last job, focus moves to the list’s heading', async () => {
+  it('after the last job, the tab goes back to its first job, its heading focused', async () => {
     const user = userEvent.setup();
     removeJob(B);
     removeJob(C);
     updateJob(A, { priority: false });
-    window.location.hash = '#/apply';
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    await user.click(await screen.findByRole('link', { name: 'Acme Designer' }));
     await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
     await user.click(screen.getByRole('button', { name: /^Mark applied/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    const list = await screen.findByRole('heading', { level: 1, name: 'Apply' });
-    await waitFor(() => expect(list).toHaveFocus());
+    // Nothing left to apply to: the tab shows the first job there is (Acme, now Applied).
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await waitFor(() => expect(h1).toHaveFocus());
   });
 
   it('a double tap on Not a fit sets aside one job, not the next one too', async () => {
@@ -261,6 +335,7 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
   it('the row menu reaches every status', async () => {
     const user = userEvent.setup();
     renderApp();
+    await openAllJobs();
     await user.click(screen.getAllByRole('button', { name: /^More actions: Bolt Designer/ })[0]);
     await user.click(await screen.findByRole('menuitemradio', { name: 'Interviewing' }));
     expect(findJobByUrl(B)?.status).toBe('Interviewing');
@@ -305,7 +380,7 @@ describe("Apply sheet: templates in a job's Apply view (#239)", () => {
     ).not.toBeNull();
   });
 
-  it('a long template shows a short preview, Copy is its one action and copies all of it', async () => {
+  it('a row is its name, a one-line preview, the blanks left and Copy, which copies all of it', async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     const long = 'Dear [Company] team, ' + 'I build things that last. '.repeat(20) + 'The end.';
@@ -317,14 +392,60 @@ describe("Apply sheet: templates in a job's Apply view (#239)", () => {
     expect(within(list).getByText(/^Dear Acme team, I build things/)).toBeInTheDocument();
     await user.click(within(list).getByRole('button', { name: 'Copy Cover letter' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('The end.'));
-    // No chevron: the row has no disclosure, and its one blank (filled here) leaves none open.
     const row = within(list).getByRole('listitem', { name: 'Cover letter' });
-    expect(within(row).queryByRole('button', { expanded: false })).toBeNull();
     expect(
       within(row)
         .getAllByRole('button')
         .map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['Copied Cover letter']);
+    ).toEqual(['Open Cover letter', 'Copied Cover letter']);
+  });
+
+  it('tapping a row opens the whole filled text: blanks fill in place, Copy, Edit template', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    const row = within(list).getByRole('listitem', { name: 'Thank you' });
+    expect(within(row).getByText('1 blank left')).toBeInTheDocument();
+    await user.click(within(list).getByRole('button', { name: 'Open Thank you' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Thank you' });
+    await user.click(within(dialog).getByRole('button', { name: 'Fill Contact' }));
+    await user.type(within(dialog).getByRole('textbox', { name: 'Contact' }), 'Dana');
+    await user.click(within(dialog).getByRole('button', { name: 'Fill' }));
+    expect(findJobByUrl(A)?.contact).toBe('Dana');
+    expect(await within(dialog).findByText(/Thanks, Dana\./)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Copy Thank you' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Edit template' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/\?documents=/),
+    );
+  });
+
+  it('Templates is closed by default and stays as left on this device', async () => {
+    setTemplatesOpenByDefault(false);
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    const first = renderApp();
+    const toggle = await screen.findByRole('button', { name: 'Templates (2)' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('list', { name: 'Your templates' })).toBeNull();
+    await user.click(toggle);
+    expect(screen.getByRole('list', { name: 'Your templates' })).toBeInTheDocument();
+    first.unmount();
+    renderApp();
+    expect(await screen.findByRole('list', { name: 'Your templates' })).toBeInTheDocument();
+  });
+
+  it('a message with no blanks is a personal note, not a job template', async () => {
+    setOutreachMessages([
+      { id: 'plan', label: 'Study plan — 80/20', body: 'Read two chapters a day.' },
+      { id: 'ty', label: 'Thank you', body: 'Thanks, [Contact].' },
+    ]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    expect(within(list).queryByText('Study plan — 80/20')).toBeNull();
+    expect(within(list).getByText('Thank you')).toBeInTheDocument();
   });
 
   it('with no messages, opens a new one in Documents instead', async () => {
@@ -518,14 +639,15 @@ describe('Custom answers: Remove is soft (#212)', () => {
 
 describe('Apply sheet previews keep line breaks', () => {
   afterEach(() => setOutreachMessages([]));
-  it('the greeting stays on its own line, not run into the next sentence', async () => {
+  it('the dialog keeps the greeting on its own line, not run into the next sentence', async () => {
+    const user = userEvent.setup();
     setOutreachMessages([{ id: 'ty', label: 'Thanks', body: 'Hi [Contact],\n\nThank you.' }]);
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     const list = await screen.findByRole('list', { name: 'Your templates' });
-    const preview = within(list).getByText(/Thank you\./);
-    expect(preview.textContent).toBe('Hi Contact,\nThank you.');
-    expect(preview).toHaveClass('rjb-clamp-3');
+    await user.click(within(list).getByRole('button', { name: 'Open Thanks' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Thanks' });
+    expect(within(dialog).getByText(/Thank you\./).textContent).toMatch(/Contact,\n+Thank you\./);
   });
 });
 

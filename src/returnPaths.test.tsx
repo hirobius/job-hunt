@@ -5,6 +5,7 @@
 // the browser's Back closes a sheet instead of leaving the page.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -69,17 +70,16 @@ afterEach(() => {
 });
 
 describe('a job page goes back to where it was opened from', () => {
-  it('from the Pipeline: Back pops to the list instead of pushing it again', async () => {
+  it('a jump from the All jobs list moves in place: no history step (Proposal A)', async () => {
+    addJob(B, 'Welder');
     window.location.hash = '#/apply';
     renderApp();
-    const list = await screen.findByRole('region', { name: 'Jobs' });
-    await userEvent.click(within(list).getAllByRole('link', { name: 'Fabricator' })[0]);
-    await heading('Fabricator');
+    const sheet = await openAllJobs();
     const length = window.history.length;
-    await userEvent.click(screen.getByRole('button', { name: 'Back to Apply' }));
-    await at('#/apply');
+    await userEvent.click(within(sheet).getByRole('link', { name: 'Welder' }));
+    await at(`#/apply/${jobIdOf(B)}`);
+    expect(await heading('Welder')).toBeInTheDocument();
     expect(window.history.length).toBe(length);
-    expect(await heading('Apply')).toBeInTheDocument();
   });
 
   it('from its Company page and back: each Back names the page it returns to', async () => {
@@ -127,12 +127,10 @@ describe('a job page goes back to where it was opened from', () => {
     });
   });
 
-  it('retiring a job closed on the board goes back to the list it was opened from', async () => {
+  it('retiring a job closed on the board goes back to the tab', async () => {
     liveness.set({ [dedupKey(A)]: { state: 'closed', checkedAt: '2026-10-20T00:00:00Z' } });
-    window.location.hash = '#/apply';
+    window.location.hash = `#/apply/${idA}`;
     renderApp();
-    await heading('Apply');
-    await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Retire' }));
@@ -146,17 +144,18 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     addJob(C, 'Machinist');
   });
 
-  it('the pager moves in place: one Back leaves the job for the list', async () => {
+  it('the pager moves in place: no history step', async () => {
     window.location.hash = '#/apply';
     renderApp();
-    await userEvent.click(await screen.findByRole('link', { name: 'Machinist' }));
     const pager = await screen.findByRole('navigation', { name: 'Jobs in the list' });
     const length = window.history.length;
-    await userEvent.click(within(pager).getByRole('button', { name: 'Next page' }));
-    await waitFor(() => expect(within(pager).getByText('2 of 3')).toBeInTheDocument());
+    const before = window.location.hash;
+    const step = within(pager)
+      .getAllByRole('button', { name: /^(Next|Previous) page$/ })
+      .find((b) => !(b as HTMLButtonElement).disabled)!;
+    await userEvent.click(step);
+    await waitFor(() => expect(window.location.hash).not.toBe(before));
     expect(window.history.length).toBe(length);
-    await userEvent.click(screen.getByRole('button', { name: 'Back to Apply' }));
-    await at('#/apply');
   });
 
   it('Undo on Not a fit reopens that job', async () => {
@@ -225,10 +224,10 @@ describe('pages opened from the Account menu', () => {
     await heading('Fabricator');
   });
 
-  it('Privacy and terms over the Apply list closes back there, also after swapping to the Terms', async () => {
+  it('Privacy and terms over the Apply tab closes back there, also after swapping to the Terms', async () => {
     window.location.hash = '#/apply';
     renderApp();
-    await heading('Apply');
+    await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Privacy and terms' }));
     const legal =
@@ -254,14 +253,14 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(window.location.hash).toBe('#/apply');
-    expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Fabricator' })).toBeInTheDocument();
   });
 
   it('Follow up, over the page it was opened on', async () => {
     updateJob(A, { status: 'Applied', applied: '2026-01-01' });
     window.location.hash = '#/apply';
     renderApp();
-    await heading('Apply');
+    await heading('Fabricator');
     const followUp = await screen.findAllByRole('button', { name: /^Follow up/ });
     await userEvent.click(followUp[0]);
     await screen.findByRole('dialog');
@@ -375,7 +374,8 @@ describe('top tabs reopen where they were left', () => {
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
     await at('#/apply');
-    expect(await heading('Apply')).toBeInTheDocument();
+    // The root of the tab is its first job (Proposal A).
+    expect(await heading('Fabricator')).toBeInTheDocument();
   });
 });
 
@@ -393,10 +393,12 @@ describe('one navigation per Remove, Delete or double click', () => {
     window.location.hash = hash;
     await at(hash);
   }
+  // The All jobs sheet's jump: in place (Proposal A).
   const openFromList = async () => {
-    const list = await screen.findByRole('region', { name: 'Jobs' });
-    await userEvent.click(within(list).getAllByRole('link', { name: 'Fabricator' })[0]);
+    const sheet = await openAllJobs();
+    await userEvent.click(within(sheet).getAllByRole('link', { name: 'Fabricator' })[0]);
     await heading('Fabricator');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
   };
   const remove = async (title: string) => {
     await userEvent.click(screen.getByRole('button', { name: `More actions: ${title}` }));
@@ -477,12 +479,12 @@ describe('one navigation per Remove, Delete or double click', () => {
     expect(pops.count()).toBe(1);
   });
 
-  it('a double click on Back to Apply goes back once', async () => {
-    await startAt('#/discover/apply', '#/apply');
-    await openFromList();
+  it('a double click on Back to Find goes back once', async () => {
+    await startAt('#/find', `#/apply/${idA}?from=%2Ffind`);
+    await heading('Fabricator');
     const pops = countPops();
-    doubleClick(screen.getByRole('button', { name: 'Back to Apply' }));
-    await staysAt('#/apply');
+    doubleClick(screen.getByRole('button', { name: 'Back to Find' }));
+    await staysAt('#/find');
     pops.stop();
     expect(pops.count()).toBe(1);
   });
@@ -494,7 +496,9 @@ describe('one navigation per Remove, Delete or double click', () => {
     doubleClick(screen.getByRole('tab', { name: 'Apply' }));
     await staysAt('#/apply');
     pops.stop();
-    expect(pops.count()).toBe(1);
+    // A jump from All jobs replaced the tab's entry (Proposal A), so the root is a swap, not a pop:
+    // never two.
+    expect(pops.count()).toBeLessThanOrEqual(1);
   });
 
   it('a double click on Not a fit on the last job to apply to goes back once', async () => {

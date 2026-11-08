@@ -5,6 +5,7 @@
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { openListOnPhone } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -75,6 +76,7 @@ describe('#/find is home again (#383; was retired in #236)', () => {
     seedPack('consulting');
     window.location.hash = '#/find';
     renderApp();
+    await openListOnPhone();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
     expect(window.location.hash).toBe('#/find');
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
@@ -84,11 +86,12 @@ describe('#/find is home again (#383; was retired in #236)', () => {
     seedPack('consulting');
     window.location.hash = '';
     renderApp();
+    await openListOnPhone();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
   });
 
-  it('a ?add= quick-add link still lands on the Pipeline', () => {
+  it('a ?add= quick-add link still lands on the Pipeline', async () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
     expect(window.location.hash).toBe('#/apply');
@@ -103,8 +106,9 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     setOutreachMessages([...STARTER_SNIPPETS]);
   });
 
-  it('one Follow up section: the due ones first, marked Due, each with its own Follow up', () => {
+  it('one Follow up section: the due ones first, marked Due, each with its own Follow up', async () => {
     renderApp();
+    await openListOnPhone();
     const rows = within(followUps()).getAllByRole('listitem');
     const due = rows.filter((r) => within(r).queryByText('Follow-up due'));
     expect(due.map(titleOf)).toEqual(['Design Systems Designer', 'Design Systems Lead']);
@@ -137,6 +141,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
   it('Follow up opens the follow-up template, filled from the job', async () => {
     const user = userEvent.setup();
     renderApp();
+    await openListOnPhone();
     const dialog = await openFollowUp(user);
     expect(dialog).toHaveTextContent('the Design Systems Designer role at Bramble & Finch');
     // Its blanks are chips that fill in place (rev-3 A); Edit message opens the whole text.
@@ -154,6 +159,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     setOutreachMessages([]);
     const user = userEvent.setup();
     renderApp();
+    await openListOnPhone();
     const dialog = await openFollowUp(user);
     const box = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
     expect(box.value).toBe('');
@@ -168,11 +174,12 @@ describe('Follow-ups in the Pipeline (#236)', () => {
   it('Mark as sent takes it off the due list', async () => {
     const user = userEvent.setup();
     renderApp();
+    await openListOnPhone();
     const dialog = await openFollowUp(user);
     await user.click(within(dialog).getByRole('button', { name: 'Copy message' }));
     await user.click(within(dialog).getByRole('button', { name: 'Mark as sent' }));
     await user.click(within(dialog).getByRole('button', { name: 'Done' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Follow up' })).toBeNull());
     expect(getAllJobs().find((j) => j.url === UXR)?.followUp).toBeTruthy();
     expect(dueNames()).toEqual(['Design Systems Lead']);
   });
@@ -180,9 +187,10 @@ describe('Follow-ups in the Pipeline (#236)', () => {
   it('Snooze 3 days moves it off the due list without recording a follow-up', async () => {
     const user = userEvent.setup();
     renderApp();
+    await openListOnPhone();
     const dialog = await openFollowUp(user);
     await user.click(within(dialog).getByRole('button', { name: 'Snooze 3 days' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Follow up' })).toBeNull());
     expect(getAllJobs().find((j) => j.url === UXR)?.followUp).toBeUndefined();
     expect(dueNames()).toEqual(['Design Systems Lead']);
   });
@@ -190,9 +198,10 @@ describe('Follow-ups in the Pipeline (#236)', () => {
   it('Snooze says until when, and its Undo puts the follow-up back on the due list', async () => {
     const user = userEvent.setup();
     renderApp();
+    await openListOnPhone();
     const dialog = await openFollowUp(user);
     await user.click(within(dialog).getByRole('button', { name: 'Snooze 3 days' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Follow up' })).toBeNull());
     expect(await screen.findByText(/^Snoozed until /)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     await waitFor(() =>
@@ -203,6 +212,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
 
   it('lists the interviews and calls in the next 7 days; Open job opens its page', async () => {
     renderApp();
+    await openListOnPhone();
     const rows = within(region(/^Next 7 days/)).getAllByRole('listitem');
     expect(rows.map((r) => r.textContent)).toEqual([
       expect.stringMatching(/Interview · Principal Design Systems Engineer.*Hiring manager/),
@@ -222,8 +232,9 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     ).toBeVisible();
   });
 
-  it('every Follow up and Next 7 days row opens its posting in one tap (Adrian 2026-10-22)', () => {
+  it('every Follow up and Next 7 days row opens its posting in one tap (Adrian 2026-10-22)', async () => {
     renderApp();
+    await openListOnPhone();
     const urlOf = (label: string) => getAllJobs().find((j) => j.label === label)?.url;
     const rows = within(followUps()).getAllByRole('listitem');
     expect(rows.length).toBeGreaterThan(2); // due and waiting rows alike
@@ -246,8 +257,9 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     );
   });
 
-  it('no line in a row holds three or more " · " items (#192)', () => {
+  it('no line in a row holds three or more " · " items (#192)', async () => {
     renderApp();
+    await openListOnPhone();
     const lines = [followUps(), region(/^Next 7 days/)].flatMap((r) =>
       [...r.querySelectorAll('li *')]
         .filter((e) => e.children.length === 0)
@@ -259,18 +271,20 @@ describe('Follow-ups in the Pipeline (#236)', () => {
 });
 
 describe('empty sections render nothing (#236)', () => {
-  it('with jobs but nothing applied or scheduled, neither section shows', () => {
+  it('with jobs but nothing applied or scheduled, neither section shows', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderApp();
+    await openListOnPhone();
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
     expect(screen.getByRole('region', { name: /^Jobs$/ })).toBeInTheDocument();
   });
 
-  it('an applied job not yet due shows under Follow up with its date and no action', () => {
+  it('an applied job not yet due shows under Follow up with its date and no action', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     markAppliedByUrl('https://acme.example/jobs/1', 'Design Engineer');
     renderApp();
+    await openListOnPhone();
     const row = within(followUps()).getByRole('listitem');
     expect(row).toHaveTextContent(/Follow up /);
     expect(within(row).queryByText('Follow-up due')).toBeNull();
@@ -284,11 +298,12 @@ describe('a solicitation’s response deadline (#308)', () => {
     const d = new Date();
     return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
   };
-  it('a Saved job closing today, tomorrow or within the week is under Next 7 days with its day; day 8 is not (#419)', () => {
+  it('a Saved job closing today, tomorrow or within the week is under Next 7 days with its day; day 8 is not (#419)', async () => {
     addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(0) });
     addJobDetailed('https://sam.gov/opp/b/view', { label: 'Bid tomorrow', deadline: inDays(1) });
     addJobDetailed('https://sam.gov/opp/c/view', { label: 'Bid next week', deadline: inDays(7) });
     renderApp();
+    await openListOnPhone();
     const next = region(/^Next 7 days/);
     const rows = within(next).getAllByRole('listitem');
     expect(rows.map(titleOf)).toEqual([
@@ -302,10 +317,11 @@ describe('a solicitation’s response deadline (#308)', () => {
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
   });
 
-  it('a job gone from its board drops out of Next 7 days', () => {
+  it('a job gone from its board drops out of Next 7 days', async () => {
     addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(1) });
     updateJob(getAllJobs()[0].url, { closedAt: new Date().toISOString() });
     renderApp();
+    await openListOnPhone();
     expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
   });
 });
@@ -314,6 +330,7 @@ describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
   it('a first visit (no tracks, no jobs) opens on Today with the profile made', async () => {
     window.location.hash = '';
     renderApp();
+    await openListOnPhone();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();
@@ -323,6 +340,8 @@ describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
     window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
+    // The tab is now the first job; its list (All jobs) holds the follow-ups (Proposal A).
+    await openListOnPhone();
     expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
   });
 });

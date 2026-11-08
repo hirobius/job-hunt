@@ -5,6 +5,7 @@
 // their data stays; Add interview is one item in the job's menu. Tested at the route seam.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
@@ -66,6 +67,8 @@ describe('the Jobs page keeps only what Adrian listed', () => {
     updateJob(URL_B, { status: 'Applied', applied: '2026-01-01' });
     window.location.hash = '#/apply';
     renderApp();
+    // On a phone the list is the All jobs sheet (Proposal A, Adrian 2026-11-08).
+    await openAllJobs();
     expect(await screen.findByRole('region', { name: /Follow up/ })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /To apply/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Start applying/ })).toBeNull();
@@ -251,8 +254,8 @@ describe('Add interview is one item in the job menu', () => {
     expect(findJobByUrl(URL_A)?.events).toEqual([
       expect.objectContaining({ kind: 'interview', date: ymd(day) }),
     ]);
-    // Next 7 days on the Jobs page shows it.
-    window.location.hash = '#/apply';
+    // Next 7 days on the Apply list (the All jobs sheet) shows it.
+    await openAllJobs();
     expect(await screen.findByRole('region', { name: /Next 7 days/ })).toBeInTheDocument();
   });
 

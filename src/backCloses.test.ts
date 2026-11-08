@@ -24,6 +24,8 @@ const WIRED_ELSEWHERE: Record<string, number> = {
   'DocumentsView.tsx': 1,
   'LegalPage.tsx': 1,
   'DialogHold.tsx': 1,
+  // Its open state is JobPage's (useBackCloses 'all-jobs').
+  'AllJobsSheet.tsx': 1,
 };
 
 /** An overlay root's opening tag: `<Dialog`, `<AlertDialog`, `<Menu`, `<HdsMenu`, `<Popover`. */
