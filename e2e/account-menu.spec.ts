@@ -25,7 +25,12 @@ test('on a phone it is a bottom sheet with a handle and its own scroll', async (
     })
     .toEqual([0, 390, 700]);
   expect((await menu.boundingBox())!.height).toBeLessThanOrEqual(700 * 0.85 + 1);
-  await expect(menu.locator('.rjb-sheet-handle')).toBeVisible();
+  const handle = menu.locator('.rjb-sheet-handle');
+  await expect(handle).toBeVisible();
+  // A real 36x4 pill, centred (not a 0x0 span).
+  const h = (await handle.boundingBox())!;
+  expect([Math.round(h.width), Math.round(h.height)]).toEqual([36, 4]);
+  expect(Math.abs(h.x + h.width / 2 - 195)).toBeLessThanOrEqual(1);
   // Every item is reachable: the sheet scrolls to its last one.
   const last = menu.getByRole('menuitem', { name: 'Reset local data…' });
   await last.scrollIntoViewIfNeeded();

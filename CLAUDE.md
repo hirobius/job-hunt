@@ -206,7 +206,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Documents, Search profile, Companies, Scan details | "Data": Back up, Restore…, Export CSV, Export links). Pillars and tracks are gone from the UI (ADR 0009).
+  data = Documents, Search profile, Companies, Scan details | "Data": Back up, Restore…, Export CSV, Export links, Recently removed (N) when the trash has some). Pillars and tracks are gone from the UI (ADR 0009).
 - **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local; update baselines with `npm run test:visual -- --update-snapshots`). **Baselines are drawn only in the pinned Playwright image** (`e2e/visual-env.json`: image digest + its Chromium, #485): `test:visual` runs the spec there through Docker (`scripts/visual-docker.mjs`); elsewhere the spec skips and an update fails (`src/visualEnv.test.ts`). Bump the digest with `@playwright/test` and re-take every baseline in the same PR.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`

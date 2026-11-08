@@ -33,8 +33,9 @@
     max-height: 85dvh;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: var(--primitive-space-2) var(--primitive-space-2)
-      calc(var(--primitive-space-4) + env(safe-area-inset-bottom));
+    padding: var(--primitive-space-2) calc(var(--primitive-space-2) + env(safe-area-inset-right))
+      calc(var(--primitive-space-4) + env(safe-area-inset-bottom))
+      calc(var(--primitive-space-2) + env(safe-area-inset-left));
     border-radius: var(--semantic-radius-scale-lg) var(--semantic-radius-scale-lg) 0 0;
     border-inline: 0;
     border-bottom: 0;
@@ -44,7 +45,15 @@
       color-mix(in srgb, var(--semantic-color-surface-scrim) 60%, transparent);
   }
 
-  .rjb-account-menu > .rjb-sheet-handle {
+  /* The grab handle: 36x4, a pill in the strong border colour, centred on top. Its own box here,
+   * not base.css's (that one is the All jobs sheet's, inside an HDS Dialog header). */
+  [data-hds] .rjb-account-menu > .rjb-sheet-handle {
+    display: block;
+    flex: none;
+    width: calc(var(--primitive-space-8) + var(--primitive-space-1));
+    height: var(--primitive-space-1);
     margin: 0 auto var(--primitive-space-2);
+    border-radius: var(--semantic-radius-scale-pill);
+    background: var(--semantic-color-border-strong);
   }
 }

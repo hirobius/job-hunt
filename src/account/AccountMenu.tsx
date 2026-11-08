@@ -34,7 +34,6 @@ import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
-
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
 export default function AccountMenu() {
@@ -137,11 +136,6 @@ export default function AccountMenu() {
           <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setDetails(true))}>Scan details</Menu.Item>
-          {removed > 0 && (
-            <Menu.Item onSelect={opensDialog(openRecentlyRemoved)}>
-              {`Recently removed (${removed})`}
-            </Menu.Item>
-          )}
           <Menu.Separator />
           {/* Data (account menu PR): everything that copies your data in or out, together. */}
           <Menu.Label>Data</Menu.Label>
@@ -153,6 +147,12 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => openExportLinks('all')} disabled={!data.canExport}>
             Export links
           </Menu.Item>
+          {/* Removed jobs come back from here: data, so it sits with the Data group. */}
+          {removed > 0 && (
+            <Menu.Item onSelect={opensDialog(openRecentlyRemoved)}>
+              {`Recently removed (${removed})`}
+            </Menu.Item>
+          )}
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
