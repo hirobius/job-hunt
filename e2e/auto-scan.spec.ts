@@ -81,7 +81,7 @@ for (const width of [390, 1440]) {
     await page.goto('/#/find');
     // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
-    await expect(page.getByText('Not scanned yet. Scan now to look.')).toBeVisible();
+    await expect(page.getByText('Sign in for automatic updates.')).toBeVisible();
     await page.waitForTimeout(3000);
     expect(asked.filter((u) => u.includes('yc-oss.github.io'))).toEqual([]);
     await page.getByRole('button', { name: 'Scan now' }).click();

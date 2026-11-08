@@ -142,12 +142,10 @@ describe('the shell: Today and Jobs', () => {
 });
 
 describe('the auto-scan', () => {
-  it('says it has not scanned yet, with Scan now at the top of Today', async () => {
+  it('signed out: Scan now at the top of Find, with a hint to sign in for automatic updates', async () => {
     window.location.hash = '#/find';
     renderApp();
-    expect(
-      screen.getByText('Not scanned yet. Scan now to look.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Sign in for automatic updates.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
   });
 

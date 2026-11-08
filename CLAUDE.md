@@ -510,7 +510,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Migrations `20261029100000` and `20261029100200` widen the `postings.source` check.
 - **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
   buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles, **signed in only and never while the sign-in screen is open**: it waits, and a run in flight stops
-  when the screen opens or the person signs out; signed out, the line says "Not scanned yet. Scan now to look.";
+  when the screen opens or the person signs out; signed out, the line says "Sign in for automatic updates." beside Scan now;
   2026-11-07, `feed/autoScanOnOpen.test.tsx`. **Load caps (same day, `feed/scanLoad.test.ts`):** the shared fetcher
   (`createFetchJson`) keeps at most `MAX_FETCHES_IN_FLIGHT` = 6 reads on the network, a run's end calls
   `liveFetchJson.clear()` (the parsed-JSON cache goes), and the probe asks a lead only the kind the board set
@@ -525,7 +525,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   stated"). Kept per browser: `rjb_autoscan` (last run, lead queue, probed, found companies) and
   `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
-  `AutoScanViews.tsx`: `ScanStatus` ("Last scanned hh:mm · N new from M sources", Scan now / Stop scan) and
+  `AutoScanViews.tsx`: `ScanStatus` (**Adrian 2026-11-08:** signed in only one quiet "Updated N min ago" from the
+  last `sync_log` run, "Updates every 15 minutes" before the first, no Scan now and no scan or "Read N of M boards"
+  progress (`ReviewView` hides it signed in); signed out one compact Scan now / Stop scan with "Last scanned hh:mm ·
+  N new from M sources" or the sign-in hint; pinned in `autoScanViews.test.tsx`, `review.test.tsx`,
+  `e2e/find-signed-in.spec.ts`) and
   `NewCompanies` (Follow → the board joins the Sources, Ignore → `muteCompany`, each with Undo), both on Today. With
   no Search profile yet the scan searches the design-system titles (`searchDefaults.ts`). Pinned in `feed/autoScan.test.ts`, `feed/identity.test.ts`, `autoScanViews.test.tsx`,
   `review.test.tsx`; E2E `e2e/auto-scan.spec.ts` (signed out: no scan on open, Scan now finds the postings).

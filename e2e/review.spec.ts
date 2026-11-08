@@ -60,7 +60,7 @@ async function setUp(page: Page) {
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
   await expect(page.getByRole('radio', { name: 'Browse' })).toBeVisible();
   await page.getByRole('button', { name: 'Scan now' }).click();
-  await expect(page.getByText(/^Not scanned yet/)).toHaveCount(0);
+  await expect(page.getByText('Sign in for automatic updates.')).toHaveCount(0);
 }
 
 for (const width of [390, 1440]) {

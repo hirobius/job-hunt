@@ -1,5 +1,5 @@
-// The auto-scan's only UI (#415): "Scan now" with "Scanning N sources · Last scanned hh:mm, K new", and
-// New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
+// The auto-scan's only UI (#415): signed out "Scan now" with "Scanning N sources · Last scanned hh:mm,
+// K new"; signed in only "Updated N min ago" (the server syncs). And New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
 // end. Every action says so with an Undo.
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';
 import { RefreshCw } from 'lucide-react';
@@ -22,8 +22,6 @@ import { useScanningCount } from './feed/scanningCount';
 import { useServerUpdated } from './feed/serverUpdated';
 import { useScanInput } from './feed/useAutoScan';
 import { useCloudSync } from './account/accountContext';
-import { useProfile } from './profile';
-import { designSystemsTrack } from './tracks/track-config';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -45,48 +43,43 @@ function progressLine(p: ScanProgress | undefined): string {
   }
 }
 
-/** "Scan now" and the last scan's line (or why it failed). */
+/** Find's scan line (Adrian 2026-11-08). Signed in, the server syncs every 15 minutes, so there is
+ *  no button and no progress: one quiet "Updated 4 min ago" from its last run (#448). Signed out,
+ *  nothing scans on its own: one compact Scan now, the last scan's line (or why it failed), and a
+ *  hint that signing in keeps it updated. */
 export function ScanStatus({
   counts,
 }: {
   /** Review new's own new and source counts, once it has read (one number on the page). */
   counts?: { newToday: number; sources: number };
 }) {
+  const { user } = useCloudSync();
+  return user ? <ServerUpdated /> : <ManualScan counts={counts} />;
+}
+
+function ServerUpdated() {
+  const updated = useServerUpdated(true);
+  // Outside a live region: its minutes tick, and a screen reader must not announce it every minute.
+  return (
+    <Text variant="caption" as="p" tone="secondary">
+      {updated ?? 'Updates every 15 minutes'}
+    </Text>
+  );
+}
+
+function ManualScan({ counts }: { counts?: { newToday: number; sources: number } }) {
   const { state, running, progress } = useScan();
   const input = useScanInput();
-  const { user } = useCloudSync();
-  const profile = useProfile();
-  // The server's rotation scans the whole board set only for a signed-in design systems profile
-  // (sync-postings, plan.ts compileProfile); anyone else is scanned by this browser alone.
-  const serverScans = !!user && profile?.scorer === designSystemsTrack.slug;
-  const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), serverScans);
-  // #448: the server sync runs every 15 minutes for a signed-in user; say how fresh it is.
-  const updated = useServerUpdated(!!user);
+  // Signed out, this browser alone scans (sync-postings' rotation is for a signed-in profile).
+  const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), false);
   const line = running
     ? progressLine(progress)
-    : (state.error ??
-      lastScannedLine(state, undefined, counts, scanning) ??
-      (updated
-        ? null
-        : user
-          ? 'Not scanned yet. The first scan runs on its own.'
-          : // Signed out, nothing scans on open (2026-11-07): Scan now does.
-            'Not scanned yet. Scan now to look.'));
+    : (state.error ?? lastScannedLine(state, undefined, counts, scanning));
   return (
     <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-      {/* Its own line (the meta-line rule, #192: at most two items on a " · " line). The server's
-          "Updated N min ago" sits outside the live region: its minutes tick, and a screen reader
-          must not announce it every minute. */}
-      <Stack gap="px4">
-        {updated && (
-          <Text variant="caption" as="p" tone="secondary">
-            {updated}
-          </Text>
-        )}
-        <Text variant="caption" as="p" tone="secondary" role="status">
-          {line}
-        </Text>
-      </Stack>
+      <Text variant="caption" as="p" tone="secondary" role="status">
+        {line ?? 'Sign in for automatic updates.'}
+      </Text>
       {running ? (
         <Button size="sm" variant="tertiary" onClick={cancelScan}>
           Stop scan

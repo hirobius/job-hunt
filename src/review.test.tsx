@@ -34,6 +34,7 @@ import { addSources, getSources, replaceSources } from './sources';
 import { SEEN_KEY, getAllDecided, postingFingerprint, unmuteCompany } from './feed/decided';
 import { resetScan, runScan } from './feed/autoScan';
 import { resetViewMemory } from './viewMemory';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -105,6 +106,39 @@ const titles = (ul: HTMLElement) =>
   within(ul)
     .getAllByRole('heading', { level: 3 })
     .map((h) => h.textContent?.replace(/\s*\(opens in new tab\)$/, ''));
+
+describe('Review new: board progress (Adrian 2026-11-08)', () => {
+  const reading = () => {
+    // A read in flight: no board has answered yet.
+    feed.fetchFeed.mockReset().mockImplementation(
+      (req: { onProgress?: (p: object) => void }) =>
+        new Promise<FeedResult>(() => {
+          req.onProgress?.({ ...result([]), boardsDone: 0, boardsTotal: 250 });
+        }),
+    );
+  };
+  it('signed out, says how many boards it has read', async () => {
+    reading();
+    renderReview();
+    expect(await screen.findByText(/^Read \d+ of \d+ boards$/)).toBeInTheDocument();
+  });
+  it('signed in, never: the server syncs every 15 minutes', async () => {
+    reading();
+    render(
+      <CloudSyncContext.Provider
+        value={{ user: { id: 'u1', email: 'a@b.c' }, settled: true } as CloudSyncApi}
+      >
+        <ToastProvider>
+          <ReviewView />
+        </ToastProvider>
+      </CloudSyncContext.Provider>,
+    );
+    await screen.findByText('Browse');
+    // Past the 1 s repaint that shows the progress signed out.
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(screen.queryByText(/^Read \d+ of \d+ boards$/)).toBeNull();
+  });
+});
 
 describe('Review new: Browse', () => {
   it('shows the last read straight away after a reload, then refreshes behind it (#448)', async () => {

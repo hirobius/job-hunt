@@ -23,10 +23,15 @@ import { getSources } from './sources';
 import { getAllDecided } from './feed/decided';
 import type { PostingReader } from './feed/reader';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
-import raw from './feed/data/boards.json';
-import { boardSetKeys, parseBoardSet } from './feed/boardSet';
 import { feedKeys, resetBoardSetKeys } from './feed/scanningCount';
 import { replaceProfiles, type Profile } from './profile';
+
+// The server's last sync run (#448), as sync_log would answer it.
+const server = vi.hoisted(() => ({ at: null as string | null }));
+vi.mock('./tracks/postings', async (orig) => ({
+  ...(await orig<typeof import('./tracks/postings')>()),
+  loadServerUpdatedAt: async () => server.at,
+}));
 
 const ACME = 'https://boards.greenhouse.io/acme';
 const fetchJson = (async (url: string) => {
@@ -83,6 +88,7 @@ beforeEach(() => {
   dismissNotice();
   resetBoardSetKeys();
   replaceProfiles([]);
+  server.at = null;
 });
 afterEach(cleanup);
 
@@ -102,7 +108,8 @@ const renderViews = ({ signedIn = false } = {}) =>
 describe('ScanStatus', () => {
   it('says when nothing was scanned yet, then the last scan’s time and counts', async () => {
     renderViews();
-    expect(screen.getByRole('status')).toHaveTextContent('Not scanned yet');
+    // Signed out nothing scans on its own (Adrian 2026-11-08): Scan now, and a hint to sign in.
+    expect(screen.getByRole('status')).toHaveTextContent('Sign in for automatic updates.');
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
     // Signed out: only what this browser reads, the feeds and Acme's confirmed board (Forward's
     // unconfirmed board is never read).
@@ -115,33 +122,24 @@ describe('ScanStatus', () => {
     expect(screen.getByRole('button', { name: 'Scan now' })).toBeEnabled();
   });
 
-  it('signed in with a design systems profile, counts the server’s board set too, each board once', async () => {
+  it('signed in: no Scan now and no scan line, only when the server last updated (2026-11-08)', async () => {
     replaceProfiles([dsProfile]);
+    // A scan this browser ran earlier says nothing signed in: the server's sync is the news.
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+    server.at = new Date(Date.now() - 4 * 60_000).toISOString();
     renderViews({ signedIn: true });
-    const all = new Set([...boardSetKeys(parseBoardSet(raw)), ...feedKeys(), 'greenhouse:acme'])
-      .size;
-    expect(all).toBeGreaterThan(feedKeys().length + 1);
-    expect(
-      await screen.findByText(
-        new RegExp(
-          `^Scanning ${all.toLocaleString('en-US')} sources · Last scanned \\d\\d:\\d\\d, 1 new$`,
-        ),
-      ),
-    ).toBeVisible();
+    expect(await screen.findByText('Updated 4 min ago')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
+    expect(screen.queryByText(/^Scanning |^Last scanned|^Not scanned/)).toBeNull();
+    // Its minutes tick: never a live region a screen reader reads out every minute.
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('signed in without a design systems profile, counts only what this browser reads', async () => {
-    replaceProfiles([{ ...dsProfile, scorer: undefined }]);
-    await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+  it('signed in before the server’s first run: says how often it updates', async () => {
+    server.at = null;
     renderViews({ signedIn: true });
-    expect(
-      await screen.findByText(
-        new RegExp(
-          `^Scanning ${feedKeys().length + 1} sources · Last scanned \\d\\d:\\d\\d, 1 new$`,
-        ),
-      ),
-    ).toBeVisible();
+    expect(await screen.findByText('Updates every 15 minutes')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
   });
 });
 

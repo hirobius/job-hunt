@@ -7,7 +7,8 @@
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useContext, useMemo, useState, type ReactNode } from 'react';
+import { CloudSyncContext } from './account/accountContext';
 import {
   Badge,
   Box,
@@ -102,6 +103,9 @@ export default function ReviewView({
 }) {
   const feed = useFeed();
   const { view } = feed;
+  // Signed in, the server syncs every 15 minutes: no board-by-board progress (Adrian 2026-11-08).
+  // Read directly: this view also renders in tests outside the provider.
+  const signedIn = !!useContext(CloudSyncContext)?.user;
   const kept = (k: string) => `review:${k}`;
   const [mode, setMode] = useRemembered<Mode>(kept('mode'), 'browse');
   const [sort, setSort] = useRemembered<FeedSort>(kept('sort'), 'newest');
@@ -198,7 +202,7 @@ export default function ReviewView({
             <Text variant="body" as="p" role="status" className="rjb-semibold">
               {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
             </Text>
-            {feed.progress && (
+            {feed.progress && !signedIn && (
               <Text variant="caption" as="p" tone="secondary">
                 {`Read ${feed.progress.done} of ${feed.progress.total} boards`}
               </Text>
