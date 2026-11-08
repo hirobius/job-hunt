@@ -28,6 +28,7 @@ import { seedPack } from './curation/starterPacks';
 import { replaceSnippets, restoreStarterSnippets } from './copyDeckStore';
 import { addFinalCopy, createDocument, getAllDocuments, replaceDocuments } from './documents';
 import { openFollowUp } from './followUpFlow';
+import { currentTab } from './test/topTabs';
 
 const JOB = 'https://acme.example/jobs/1';
 
@@ -77,10 +78,7 @@ describe('the Documents page', () => {
     await renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
     const dialog = await screen.findByRole('dialog', { name: 'Documents' });
-    expect(screen.getByRole('tab', { name: 'Find', hidden: true })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    expect(currentTab('Find', { hidden: true })).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: /Close/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -317,7 +315,7 @@ describe('the Company page (#230)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
+    expect(currentTab()).toHaveAccessibleName('Apply');
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',

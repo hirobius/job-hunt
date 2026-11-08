@@ -30,6 +30,7 @@ import { viewport } from './test/viewport';
 import { getProfile, replaceProfiles, saveProfile } from './profile';
 import { resetScan } from './feed/autoScan';
 import { getAllDecided } from './feed/decided';
+import { topTab, topTabs, currentTab } from './test/topTabs';
 
 const renderApp = () =>
   render(
@@ -94,8 +95,8 @@ describe('the shell: Today and Jobs', () => {
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Find', 'Apply']);
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+    expect(topTabs().map((t) => t.textContent)).toEqual(['Find', 'Apply']);
+    expect(currentTab()).toHaveAccessibleName('Find');
     expect(document.title).toMatch(/^Find/);
   });
 
@@ -106,7 +107,7 @@ describe('the shell: Today and Jobs', () => {
       const before = window.history.length;
       renderApp();
       await waitFor(() => expect(window.location.hash).toBe('#/find'));
-      expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Find');
+      expect(currentTab()).toHaveAccessibleName('Find');
       expect(window.history.length).toBe(before);
     },
   );
@@ -135,7 +136,7 @@ describe('the shell: Today and Jobs', () => {
   it('the Jobs tab opens the Pipeline, unchanged inside', async () => {
     window.location.hash = '#/find';
     renderApp();
-    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    await userEvent.click(topTab('Apply'));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
   });
@@ -245,7 +246,7 @@ describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
     await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Apply/ })).toBeNull();
-    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    await userEvent.click(topTab('Apply'));
     // On a phone, in the Apply list (the All jobs sheet, Proposal A).
     await openAllJobs();
     expect(await screen.findByRole('region', { name: /^Follow up/ })).toBeInTheDocument();

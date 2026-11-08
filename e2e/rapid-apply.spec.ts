@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { topTab } from './routes';
 
 // The rapid-apply loop end to end: save from Review new on Today, see where the saves went,
 // then walk the Apply list until nothing is left to apply to and everything waits on a follow-up.
@@ -64,7 +65,7 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   // A single save's Open opens that job's page; the Jobs tab has all three in To apply.
   await notice.getByRole('button', { name: 'Open' }).click();
   await expect(page).toHaveURL(/#\/apply\/[^/?]+/);
-  await page.getByRole('tab', { name: 'Apply' }).click();
+  await topTab(page, 'Apply').click();
 
   // Below lg the tab is one job (Proposal A); its list is the All jobs sheet.
   await page.getByRole('button', { name: 'All jobs' }).click();
@@ -150,7 +151,7 @@ test('at 1440 the Jobs tab is the list beside the job, and Mark applied walks it
     [2, 'Bolt Designer'],
   ] as const)
     await page.goto(`/?add=${encodeURIComponent(`https://acme.example/jobs/${n}`)}&t=${t}`);
-  await page.getByRole('tab', { name: 'Apply' }).click();
+  await topTab(page, 'Apply').click();
   await page.evaluate(() => (location.hash = '#/apply'));
   const rail = page.getByRole('navigation', { name: 'Jobs' });
   await expect(rail.locator('a[href^="#/apply/"]')).toHaveCount(2);

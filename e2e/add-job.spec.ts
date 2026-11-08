@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { topTab, currentTab } from './routes';
 
 // Core happy path: paste a job URL → it lands in the queue. The Pipeline is `#/apply`; the empty
 // hash is Companies (Calm list).
@@ -50,7 +51,7 @@ test('opens on Today with no setup; the sample pipeline lists due follow-ups', a
   await expect(page).toHaveURL(/#\/find$/);
   await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
   await expect(page.getByText('Set up your search')).toHaveCount(0);
-  await page.getByRole('tab', { name: 'Apply' }).click();
+  await topTab(page, 'Apply').click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page).toHaveURL(/#\/apply$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
@@ -70,7 +71,7 @@ test('#/find opens Today', async ({ page }) => {
   await page.goto('/#/apply');
   await page.goto('/#/find');
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(page.getByRole('tab', { name: 'Find', selected: true })).toBeVisible();
+  await expect(currentTab(page).filter({ hasText: 'Find' })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/#\/apply$/);
 });

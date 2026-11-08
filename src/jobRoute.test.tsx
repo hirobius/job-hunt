@@ -24,6 +24,7 @@ import { loadSupabase } from './supabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
+import { currentTab, topTab } from './test/topTabs';
 
 const URL_A = 'https://acme.example/jobs/7';
 const URL_B = 'https://acme.example/jobs/2';
@@ -59,12 +60,8 @@ describe('job route (#127)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Design Engineer');
-    // The shell's own tab list: the job page has its own tabs now.
-    expect(
-      within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
-        selected: true,
-      }),
-    ).toHaveAccessibleName('Apply');
+    // The shell's own top tabs: Apply is the open one.
+    expect(currentTab()).toHaveAccessibleName('Apply');
   });
 
   it('a retired job says so on its page, without fading its text', () => {
@@ -131,14 +128,14 @@ describe('job route (#127)', () => {
     window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Design Engineer' });
-    await userEvent.click(screen.getByRole('tab', { name: 'Find' }));
+    await userEvent.click(topTab('Find'));
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
-    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    await userEvent.click(topTab('Apply'));
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
     ).toBeInTheDocument();
     // The open tab again goes to its root: #/apply, which is the first job (Proposal A).
-    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    await userEvent.click(topTab('Apply'));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),

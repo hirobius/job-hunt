@@ -4,6 +4,7 @@
 // walkthroughs of the new flows. Local only (no Actions): `npm run test:e2e`.
 import { test, expect, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
+import { topTab, currentTab } from './routes';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
@@ -153,7 +154,7 @@ for (const theme of ['light', 'dark'] as const) {
   }
 }
 
-test.describe('the open top tab panel is not a Tab stop (#364)', () => {
+test.describe('Tab from the open top tab goes on into the page (#364)', () => {
   for (const width of [390, 1440]) {
     test(`Tab from the active top tab lands on the page's first control at ${width}`, async ({
       page,
@@ -161,9 +162,10 @@ test.describe('the open top tab panel is not a Tab stop (#364)', () => {
       await page.setViewportSize({ width, height: 900 });
       await seed(page);
       await go(page, '#/apply');
-      const panel = page.getByRole('tabpanel');
-      await expect(panel).toHaveAttribute('tabindex', '-1');
-      await page.getByRole('tab', { selected: true }).focus();
+      // Links in a nav (top tabs PR): no tab panel; the next stop is the page's first control.
+      await expect(page.getByRole('tabpanel')).toHaveCount(0);
+      const panel = page.getByRole('main');
+      await currentTab(page).focus();
       await page.keyboard.press('Tab');
       const landed = await panel.evaluate(
         (p) =>
@@ -305,10 +307,10 @@ for (const width of [390, 1440] as const) {
       await expect(page.getByRole('dialog')).toHaveCount(0);
       await expect.poll(() => focused(page)).toBe('H1 Find');
       // A top tab keeps focus on the tab (it is still there).
-      await page.getByRole('tab', { name: 'Find' }).focus();
+      await topTab(page, 'Find').focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/find$/);
-      await expect.poll(() => focused(page)).toBe('BUTTON Find');
+      await expect.poll(() => focused(page)).toBe('A Find');
     });
 
     // #345: the pressed control leaves with what it changed (the empty state, the banner).

@@ -12,6 +12,7 @@ import { ErrorBoundary, PageErrorBoundary } from './ErrorBoundary';
 import { createReporter } from './errorReport';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { topTab, currentTab } from './test/topTabs';
 
 // The Privacy and terms page's chunk is gone after a deploy (#331): its lazy view throws the
 // browser's chunk error, as React.lazy does once the import has failed.
@@ -127,9 +128,9 @@ describe('stale tab after a deploy', () => {
     expect(within(main).getByRole('button', { name: 'Reload' })).toBeInTheDocument();
     // The shell is still there: the header, the tabs, the Account button.
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Apply' }));
+    await userEvent.click(topTab('Apply'));
     await waitFor(() => expect(within(screen.getByRole('main')).queryByText(STALE_MSG)).toBeNull());
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Apply');
+    expect(currentTab()).toHaveAccessibleName('Apply');
     spy.mockRestore();
   });
 
