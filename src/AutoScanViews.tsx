@@ -104,7 +104,7 @@ export function NewCompanies() {
               </Stack>
               <Stack direction="row" gap="tight" wrap="wrap">
                 <Button
-                  size="sm"
+                  size="md"
                   variant="secondary"
                   aria-label={`Follow ${f.name}`}
                   onClick={() => follow(f)}
@@ -112,7 +112,7 @@ export function NewCompanies() {
                   Follow
                 </Button>
                 <Button
-                  size="sm"
+                  size="md"
                   variant="tertiary"
                   aria-label={`Ignore ${f.name}`}
                   onClick={() => ignore(f)}
