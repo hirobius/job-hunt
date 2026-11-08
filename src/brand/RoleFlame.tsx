@@ -8,6 +8,8 @@
 // pauses while the tab is hidden and stops after 5 s on screen (WCAG 2.2.2).
 import { CSSProperties, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { BRAND } from '../brand';
+// Late shell styles ride this chunk: it always loads just after first paint (the app bar's logo).
+import '../theme/late.css';
 
 /* ------------------------------------------------------------------ settings */
 

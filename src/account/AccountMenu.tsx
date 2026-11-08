@@ -34,6 +34,7 @@ import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
+
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
 export default function AccountMenu() {
@@ -62,6 +63,7 @@ export default function AccountMenu() {
   const detailsReady = useLoadedWhen(ScanDetailsDialog, details, () => setDetails(false));
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
+
   useBackCloses(open, () => setOpen(false), 'account-menu');
   // Fetch the two lazy dialogs' chunks as the menu opens, so Companies and Search profile answer
   // within 300 ms of the press (#212) instead of waiting on the fetch. A failure is retried on
@@ -111,7 +113,9 @@ export default function AccountMenu() {
             className="rjb-account"
           />
         </Menu.Trigger>
-        <Menu.Content align="end">
+        <Menu.Content align="end" className="rjb-account-menu">
+          {/* The phone sheet's grab handle (theme/late.css); nothing on a wider screen. */}
+          <span className="rjb-sheet-handle" aria-hidden="true" />
           {sync.user ? (
             <>
               <Menu.Label data-account-line>Signed in as {sync.user.email}</Menu.Label>
@@ -133,6 +137,14 @@ export default function AccountMenu() {
           <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setDetails(true))}>Scan details</Menu.Item>
+          {removed > 0 && (
+            <Menu.Item onSelect={opensDialog(openRecentlyRemoved)}>
+              {`Recently removed (${removed})`}
+            </Menu.Item>
+          )}
+          <Menu.Separator />
+          {/* Data (account menu PR): everything that copies your data in or out, together. */}
+          <Menu.Label>Data</Menu.Label>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
           <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
           <Menu.Item onSelect={data.exportCsv} disabled={!data.canExport}>
@@ -141,11 +153,6 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => openExportLinks('all')} disabled={!data.canExport}>
             Export links
           </Menu.Item>
-          {removed > 0 && (
-            <Menu.Item onSelect={opensDialog(openRecentlyRemoved)}>
-              {`Recently removed (${removed})`}
-            </Menu.Item>
-          )}
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>

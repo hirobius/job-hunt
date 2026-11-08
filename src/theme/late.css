@@ -1,0 +1,50 @@
+/* Late shell styles: loaded after first paint with the animated logo's chunk (brand/RoleFlame.tsx
+ * imports this file), because first-load CSS is at its budget (sizeBudget.ts). Only polish goes
+ * here: if the chunk never lands, what it styles still works, plainer.
+ *
+ * The Account menu's own look (account menu PR, 2026-11-08).
+ *
+ * Desktop: a dropdown at least 16rem wide, so "Signed in as <email>" and the longest item sit on one
+ * line. Separators are the subtle border, lighter than HDS Menu's default.
+ *
+ * Phone (below sm): the same HDS Menu, drawn as a bottom sheet: full width from the bottom edge,
+ * a grab handle on top, at most 85% of the screen with its own scroll, over the scrim. Still a
+ * menu (role, arrow keys, Escape, Back), so nothing about its use changes. HDS Sheet would add its
+ * chunk to the first load. Upstream ask: docs/hds-upstream-asks-0.9.md, "Menu as a phone sheet". */
+.rjb-account-menu {
+  min-width: 16rem;
+}
+
+.rjb-account-menu [role='separator'] {
+  background: var(--semantic-color-border-subtle);
+}
+
+@media (max-width: 639.98px) {
+  [data-radix-popper-content-wrapper]:has(> .rjb-account-menu) {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    transform: none !important;
+    min-width: 0 !important;
+  }
+
+  [data-hds] .rjb-account-menu {
+    width: 100%;
+    min-width: 0;
+    max-height: 85dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--primitive-space-2) var(--primitive-space-2)
+      calc(var(--primitive-space-4) + env(safe-area-inset-bottom));
+    border-radius: var(--semantic-radius-scale-lg) var(--semantic-radius-scale-lg) 0 0;
+    border-inline: 0;
+    border-bottom: 0;
+    /* The scrim, at HDS Dialog's 60%: the page under the sheet dims, and a tap on it closes the
+     * menu (an outside press). */
+    box-shadow: 0 0 0 100vmax
+      color-mix(in srgb, var(--semantic-color-surface-scrim) 60%, transparent);
+  }
+
+  .rjb-account-menu > .rjb-sheet-handle {
+    margin: 0 auto var(--primitive-space-2);
+  }
+}

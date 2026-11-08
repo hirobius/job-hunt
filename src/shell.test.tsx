@@ -156,6 +156,8 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Search profile',
       'item:Companies',
       'item:Scan details',
+      // Data (account menu PR): what copies your data in or out, under its own label.
+      '---',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -168,6 +170,9 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Reload app',
       'item:Reset local data…',
     ]);
+    // The two groups are named (account menu PR).
+    expect(within(menu).getByText('Data')).toBeInTheDocument();
+    expect(within(menu).getByText('Troubleshooting')).toBeInTheDocument();
   });
 
   it('Reset local data asks first and says what goes; Cancel keeps everything (rev-3 O)', async () => {
@@ -321,6 +326,8 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'item:Search profile',
       'item:Companies',
       'item:Scan details',
+      // Data (account menu PR): what copies your data in or out, under its own label.
+      '---',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
