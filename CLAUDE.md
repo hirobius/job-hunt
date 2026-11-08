@@ -688,8 +688,7 @@ trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run si
   import) takes `#access_token=…` and strips it with `replaceState` before the router, analytics or a
   crash report can see it (`errorReport` also scrubs `*_token=`). `account/authLink.ts`: a link signs
   in on its own only when this browser asked for one to the same email within 1 hour
-  (`rjb_signin_request`, written by `sendLink`); any other link shows "Sign in as x@y.com?" (Cancel
-  drops it). Then the merge guard: an account this device has no `rjb_sync_base` for, while the
+  (`rjb_signin_request`, written by `sendLink`); any other link shows "Sign in as x@y.com?" (Cancel drops it; a full-screen step of the sign-in layout since 2026-11-08: `LinkConfirmScreen.tsx`, lazy, in `SignInShell.tsx` with the same brand at the same place as the form and "Check your email"; Sign in takes the link up at once, shows "Signed in", then the flame and wordmark move onto the app bar's logo in 350 ms, a fade under reduced motion). Then the merge guard: an account this device has no `rjb_sync_base` for, while the <!-- pii-allow -->
   device holds data (`account/deviceData.ts`), asks "Add this device's N jobs to x@y.com?" before any
   pull or push; Don't add (the default, also Escape/Back) signs out locally and keeps the data.
   Nothing pulls or pushes for a user until that path has run for them (`handled` ref in

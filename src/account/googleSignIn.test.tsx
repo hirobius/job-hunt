@@ -162,7 +162,7 @@ describe('coming back from Google', () => {
     const link = `#access_token=${fakeAccessToken(ATTACKER, { amr: 'oauth' })}&refresh_token=r&expires_in=3600&token_type=bearer`;
     await boot(link, { job: true });
     expect(
-      await screen.findByRole('alertdialog', { name: `Sign in as ${ATTACKER}?` }),
+      await screen.findByRole('dialog', { name: `Sign in as ${ATTACKER}?` }),
     ).toBeInTheDocument();
     expect(screen.getByText('out')).toBeInTheDocument();
     expect(exchanges).toEqual([]);
