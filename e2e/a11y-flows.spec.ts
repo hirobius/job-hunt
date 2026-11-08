@@ -176,6 +176,35 @@ test.describe('the open top tab panel is not a Tab stop (#364)', () => {
   }
 });
 
+// Retro quick wins (2026-11-08): a ring shows for the keyboard only (:focus-visible), never after a
+// tap or click on a button, tab or radio.
+test('a click or tap leaves no focus ring', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seed(page);
+  const ring = () =>
+    page.evaluate(() => {
+      const e = document.activeElement as HTMLElement | null;
+      if (!e || e === document.body) return 'none';
+      const cs = getComputedStyle(e);
+      const shadow =
+        cs.boxShadow !== 'none' && !/^(rgba\(0, 0, 0, 0\)[^,]*,?\s*)+$/.test(cs.boxShadow);
+      return cs.outlineStyle !== 'none' || shadow
+        ? `${e.tagName} ${e.textContent?.trim()}`
+        : 'none';
+    });
+  for (const [role, name] of [
+    ['radio', 'Deck'],
+    ['radio', 'Browse'],
+    ['tab', 'Apply'],
+    ['tab', 'Find'],
+    ['button', 'Scan now'],
+  ] as const) {
+    await page.getByRole(role, { name, exact: true }).first().click();
+    await page.waitForTimeout(200);
+    expect(await ring(), `${role} ${name}`).toBe('none');
+  }
+});
+
 test.describe('keyboard only', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -208,6 +237,8 @@ test.describe('keyboard only', () => {
     await expect(page).toHaveURL(/#\/apply\?legal=privacy$/);
     const legal = page.getByRole('dialog', { name: 'Privacy and terms' });
     await expect(legal.getByRole('tab', { name: 'Privacy policy', selected: true })).toBeVisible();
+    // It opens on Close, not on the first tab or link in the text (retro quick wins).
+    await expect.poll(() => focused(page)).toBe('BUTTON Close');
     // The tabs swap in place with the arrow keys.
     await legal.getByRole('tab', { name: 'Privacy policy' }).focus();
     await page.keyboard.press('ArrowRight');
