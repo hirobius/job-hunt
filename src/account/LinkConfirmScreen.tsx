@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { useBackCloses } from '../useBackCloses';
 import { SignInShell } from './SignInShell';
-import { focusAsHeading, pageHeading } from '../focusRescue';
+import { focusAsHeading, pageHeading, pageHeadingNow } from '../focusRescue';
 
 /** How long "Signed in" shows before the brand moves to the app bar. */
 export const SIGNED_IN_HOLD_MS = 600;
@@ -105,7 +105,14 @@ export default function LinkConfirmScreen({
     holdTimer.current = setTimeout(() => {
       holdTimer.current = undefined;
       void moveBrand(brandRef.current, screenRef.current).then(() => {
-        if (mounted.current) onDone();
+        if (!mounted.current) return;
+        onDone();
+        // The host unmounts the screen with onDone, so no close-focus runs: once it has gone,
+        // focus goes to the page's own h1 (#516 review).
+        setTimeout(() => {
+          const h = pageHeadingNow();
+          if (h) focusAsHeading(h);
+        });
       });
     }, SIGNED_IN_HOLD_MS);
   };

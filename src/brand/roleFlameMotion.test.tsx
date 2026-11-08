@@ -67,13 +67,11 @@ describe('RoleFlameLogo motion', () => {
 
   it('continuous (the app bar, Adrian 2026-11-08): still moving well past 5 s', () => {
     const { d } = mount({ continuous: true });
-    const still = d();
     advance(FLAME_MOTION_LIMIT_MS + 3000);
     const later = d();
     advance(300);
     expect(d()).not.toBe(later);
     expect(later).not.toBeNull();
-    void still;
   });
 
   it('continuous still holds frame 0 under reduced motion', () => {
@@ -92,6 +90,18 @@ describe('RoleFlameLogo motion', () => {
     act(() => setMotionPaused(true));
     expect(d()).toBe(still);
     advance(2000);
+    expect(d()).toBe(still);
+    act(() => setMotionPaused(false));
+    advance(300);
+    expect(d()).not.toBe(still);
+  });
+
+  it('Play wins over the system setting: an explicit choice runs the flame under reduced motion', () => {
+    reduce = true;
+    const { d } = mount({ continuous: true });
+    const still = d();
+    advance(1000);
+    // No choice yet: it follows the system and holds still.
     expect(d()).toBe(still);
     act(() => setMotionPaused(false));
     advance(300);

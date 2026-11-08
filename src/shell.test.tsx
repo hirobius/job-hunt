@@ -155,6 +155,8 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Search profile',
       'item:Companies',
       'item:Scan details',
+      // Data (account menu PR): what copies your data in or out, under its own label.
+      '---',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -169,6 +171,9 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Reload app',
       'item:Reset local data…',
     ]);
+    // The two groups are named (account menu PR).
+    expect(within(menu).getByText('Data')).toBeInTheDocument();
+    expect(within(menu).getByText('Troubleshooting')).toBeInTheDocument();
   });
 
   it('Reset local data asks first and says what goes; Cancel keeps everything (rev-3 O)', async () => {
@@ -237,6 +242,18 @@ describe('app shell (#115 Phase 1)', () => {
     menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Play animations' }));
     expect(localStorage.getItem('rjb_ui_pause_motion')).toBe('0');
+  });
+
+  it('the Pause/Play label follows a choice made in another tab (read as the menu opens)', async () => {
+    localStorage.removeItem('rjb_ui_pause_motion');
+    renderApp();
+    let menu = await openAccount();
+    expect(within(menu).getByRole('menuitem', { name: 'Pause animations' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    // Another tab paused them.
+    localStorage.setItem('rjb_ui_pause_motion', '1');
+    menu = await openAccount();
+    expect(within(menu).getByRole('menuitem', { name: 'Play animations' })).toBeInTheDocument();
   });
 
   it('the theme item flips the colour mode', async () => {
@@ -333,6 +350,8 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'item:Search profile',
       'item:Companies',
       'item:Scan details',
+      // Data (account menu PR): what copies your data in or out, under its own label.
+      '---',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',

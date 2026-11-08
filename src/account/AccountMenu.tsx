@@ -42,7 +42,6 @@ export default function AccountMenu() {
   const { accountTrigger, setAccountTrigger } = sync;
   const data = useDataTools();
   const { mode, toggle } = useColorMode();
-  const [paused, setPaused] = useState(motionPaused);
   const [resetting, setResetting] = useState(false);
   // Followed and Ignored companies (simplify Q6: the Companies tab's place).
   const [companies, setCompanies] = useState(false);
@@ -64,6 +63,7 @@ export default function AccountMenu() {
   const detailsReady = useLoadedWhen(ScanDetailsDialog, details, () => setDetails(false));
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
+
   useBackCloses(open, () => setOpen(false), 'account-menu');
   // Fetch the two lazy dialogs' chunks as the menu opens, so Companies and Search profile answer
   // within 300 ms of the press (#212) instead of waiting on the fetch. A failure is retried on
@@ -113,7 +113,9 @@ export default function AccountMenu() {
             className="rjb-account"
           />
         </Menu.Trigger>
-        <Menu.Content align="end">
+        <Menu.Content align="end" className="rjb-account-menu">
+          {/* The phone sheet's grab handle (theme/late.css); nothing on a wider screen. */}
+          <span className="rjb-sheet-handle" aria-hidden="true" />
           {sync.user ? (
             <>
               <Menu.Label data-account-line>Signed in as {sync.user.email}</Menu.Label>
@@ -135,6 +137,9 @@ export default function AccountMenu() {
           <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setDetails(true))}>Scan details</Menu.Item>
+          <Menu.Separator />
+          {/* Data (account menu PR): everything that copies your data in or out, together. */}
+          <Menu.Label>Data</Menu.Label>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
           <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
           <Menu.Item onSelect={data.exportCsv} disabled={!data.canExport}>
@@ -143,6 +148,7 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => openExportLinks('all')} disabled={!data.canExport}>
             Export links
           </Menu.Item>
+          {/* Removed jobs come back from here: data, so it sits with the Data group. */}
           {removed > 0 && (
             <Menu.Item onSelect={opensDialog(openRecentlyRemoved)}>
               {`Recently removed (${removed})`}
@@ -151,13 +157,10 @@ export default function AccountMenu() {
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
           {/* WCAG 2.2.2: the app bar's flame loops on; this stops it (motionPref.ts). */}
-          <Menu.Item
-            onSelect={() => {
-              setPaused(!paused);
-              setMotionPaused(!paused);
-            }}
-          >
-            {paused ? 'Play animations' : 'Pause animations'}
+          {/* Read fresh each time the menu opens (its content renders only then), so another
+              tab's choice or a system change shows here too (#516 review). */}
+          <Menu.Item onSelect={() => setMotionPaused(!motionPaused())}>
+            {motionPaused() ? 'Play animations' : 'Pause animations'}
           </Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
             Send feedback

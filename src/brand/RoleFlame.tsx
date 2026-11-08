@@ -16,7 +16,9 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { BRAND } from '../brand';
-import { MOTION_EVENT, motionPaused } from '../motionPref';
+import { MOTION_EVENT, REDUCE, motionPaused } from '../motionPref';
+// Late shell styles ride this chunk: it always loads just after first paint (the app bar's logo).
+import '../theme/late.css';
 
 /* ------------------------------------------------------------------ settings */
 
@@ -527,26 +529,17 @@ function createEndless(
 
 /* ------------------------------------------------------------------ React */
 
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    if (!mq) return;
-    const update = () => setReduced(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  return reduced;
-}
-
-/** Pause animations (motionPref.ts) changed: in this tab, or in another one (storage). */
+/** Every change of motionPaused(): the choice here or in another tab (storage), and the system's
+ *  reduced-motion setting (which the default follows). */
 function onMotionPref(cb: () => void): () => void {
+  const mq = window.matchMedia?.(REDUCE);
   window.addEventListener(MOTION_EVENT, cb);
   window.addEventListener('storage', cb);
+  mq?.addEventListener?.('change', cb);
   return () => {
     window.removeEventListener(MOTION_EVENT, cb);
     window.removeEventListener('storage', cb);
+    mq?.removeEventListener?.('change', cb);
   };
 }
 
@@ -578,9 +571,9 @@ function useFlame(
   continuous = false,
 ) {
   // Reduced motion, or Pause animations in the Account menu (motionPref.ts, WCAG 2.2.2).
-  const reducedSystem = usePrefersReducedMotion();
-  const paused = useSyncExternalStore(onMotionPref, motionPaused, () => false);
-  const reduced = reducedSystem || paused;
+  // Paused: the Account menu's choice when made (an explicit Play wins over the system), else the
+  // system's reduced-motion setting (motionPref.ts).
+  const reduced = useSyncExternalStore(onMotionPref, motionPaused, () => false);
   const visible = usePageVisible();
   const [done, setDone] = useState(false);
   const on = animated && !reduced && !done;
