@@ -12,23 +12,12 @@ import { Alert, Button, Dialog, Input, Stack, Text, VisuallyHidden } from '@hiro
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
-import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import { useBackCloses } from '../useBackCloses';
-import { RoleFlameLogo } from '../brand/RoleFlame';
 import { GoogleMark } from './GoogleMark';
 import { googleSignInEnabled } from './googleSignInFlag';
-import './SignInDialog.css';
+import { SignInShell } from './SignInShell';
 
 export const RESEND_COOLDOWN_S = 30;
-
-/** The animated logo, stacked: the flame above the name. Not a heading: the screen's title is Sign in. */
-function SignInBrand() {
-  return (
-    <div className="rjb-signin-screen__brand">
-      <RoleFlameLogo layout="stacked" fontSize={40} />
-    </div>
-  );
-}
 
 export default function SignInDialog() {
   const { signInOpen, setSignInOpen, sendLink, signInWithGoogle, accountTrigger } = useCloudSync();
@@ -43,7 +32,6 @@ export default function SignInDialog() {
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
-  const viewportRef = useVisualViewportVars<HTMLDivElement>();
 
   // Seconds left before Resend; one tick a second while the cooldown runs.
   const cooldown = Math.max(0, Math.ceil((resendAt - now) / 1000));
@@ -121,111 +109,105 @@ export default function SignInDialog() {
 
   return (
     <Dialog open={signInOpen} onOpenChange={onOpenChange}>
-      <Dialog.Content
-        ref={viewportRef}
-        className="rjb-signin-screen"
-        hideClose
+      <SignInShell
         onCloseAutoFocus={refocusAccount(accountTrigger)}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           inputRef.current?.focus();
         }}
       >
-        <div className="rjb-signin-screen__column">
-          <SignInBrand />
-          {sentTo ? (
-            <>
-              <Dialog.Header>
-                <Dialog.Title>Check your email</Dialog.Title>
-                <Dialog.Description>We sent a sign-in link to {sentTo}.</Dialog.Description>
-              </Dialog.Header>
-              {sendError && <Alert tone="danger">{sendError}</Alert>}
-              <Text variant="caption" as="p" role="status" tone="secondary">
-                {resent ? 'Sent again.' : ''}
-              </Text>
+        {sentTo ? (
+          <>
+            <Dialog.Header>
+              <Dialog.Title>Check your email</Dialog.Title>
+              <Dialog.Description>We sent a sign-in link to {sentTo}.</Dialog.Description>
+            </Dialog.Header>
+            {sendError && <Alert tone="danger">{sendError}</Alert>}
+            <Text variant="caption" as="p" role="status" tone="secondary">
+              {resent ? 'Sent again.' : ''}
+            </Text>
+            <Stack gap="tight">
+              <Button
+                className="sign-in-dialog__primary"
+                disabled={cooldown > 0}
+                loading={sending}
+                onClick={() => void resend()}
+              >
+                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
+              </Button>
+              <Button
+                className="sign-in-dialog__primary"
+                variant="tertiary"
+                onClick={differentEmail}
+              >
+                Use a different email
+              </Button>
+            </Stack>
+          </>
+        ) : (
+          <>
+            {/* No words beyond the controls (Adrian 2026-10-29): the title names the screen
+                  for screen readers only. */}
+            <VisuallyHidden as="div">
+              <Dialog.Title>Sign in</Dialog.Title>
+            </VisuallyHidden>
+            {/* Off until the Google provider is on in Supabase (googleSignInFlag.ts). */}
+            {googleSignInEnabled() && (
               <Stack gap="tight">
                 <Button
+                  variant="secondary"
                   className="sign-in-dialog__primary"
-                  disabled={cooldown > 0}
-                  loading={sending}
-                  onClick={() => void resend()}
+                  iconLeft={<GoogleMark />}
+                  loading={leaving}
+                  onClick={() => void google()}
                 >
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
+                  Continue with Google
                 </Button>
+                {googleError && <Alert tone="danger">{googleError}</Alert>}
+              </Stack>
+            )}
+            <Form noValidate onSubmit={(e) => void submit(e)}>
+              <Stack gap="normal">
+                <Input
+                  ref={inputRef}
+                  type="email"
+                  label="Email"
+                  placeholder="Email"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
+                  value={email}
+                  error={!!fieldError}
+                  errorMessage={fieldError ?? undefined}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldError) setFieldError(null);
+                  }}
+                />
+                {sendError && <Alert tone="danger">{sendError}</Alert>}
                 <Button
+                  type="submit"
+                  variant="primary"
                   className="sign-in-dialog__primary"
-                  variant="tertiary"
-                  onClick={differentEmail}
+                  loading={sending}
                 >
-                  Use a different email
+                  Send link
                 </Button>
               </Stack>
-            </>
-          ) : (
-            <>
-              {/* No words beyond the controls (Adrian 2026-10-29): the title names the screen
-                  for screen readers only. */}
-              <VisuallyHidden as="div">
-                <Dialog.Title>Sign in</Dialog.Title>
-              </VisuallyHidden>
-              {/* Off until the Google provider is on in Supabase (googleSignInFlag.ts). */}
-              {googleSignInEnabled() && (
-                <Stack gap="tight">
-                  <Button
-                    variant="secondary"
-                    className="sign-in-dialog__primary"
-                    iconLeft={<GoogleMark />}
-                    loading={leaving}
-                    onClick={() => void google()}
-                  >
-                    Continue with Google
-                  </Button>
-                  {googleError && <Alert tone="danger">{googleError}</Alert>}
-                </Stack>
-              )}
-              <Form noValidate onSubmit={(e) => void submit(e)}>
-                <Stack gap="normal">
-                  <Input
-                    ref={inputRef}
-                    type="email"
-                    label="Email"
-                    placeholder="Email"
-                    autoComplete="email"
-                    inputMode="email"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    enterKeyHint="go"
-                    value={email}
-                    error={!!fieldError}
-                    errorMessage={fieldError ?? undefined}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (fieldError) setFieldError(null);
-                    }}
-                  />
-                  {sendError && <Alert tone="danger">{sendError}</Alert>}
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="sign-in-dialog__primary"
-                    loading={sending}
-                  >
-                    Send link
-                  </Button>
-                </Stack>
-              </Form>
-            </>
-          )}
-          <Button
-            className="sign-in-dialog__primary"
-            variant="tertiary"
-            onClick={() => onOpenChange(false)}
-          >
-            Continue without an account
-          </Button>
-        </div>
-      </Dialog.Content>
+            </Form>
+          </>
+        )}
+        <Button
+          className="sign-in-dialog__primary"
+          variant="tertiary"
+          onClick={() => onOpenChange(false)}
+        >
+          Continue without an account
+        </Button>
+      </SignInShell>
     </Dialog>
   );
 }
