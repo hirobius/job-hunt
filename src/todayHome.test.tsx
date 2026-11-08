@@ -174,37 +174,22 @@ describe('Review new on Today', () => {
     expect(titles).toEqual(['Design Systems Engineer', 'Design Systems Designer']);
   });
 
-  it('below lg a title opens the posting as its own view, with Back and the pager', async () => {
+  it('below lg there is no posting page: the title is no link, the card shows its description', async () => {
     const user = userEvent.setup();
     window.location.hash = '#/find';
     renderApp();
     const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
-    const link = within(ul).getByRole('link', { name: 'Design Systems Engineer' });
-    expect(link).toHaveAttribute('href', '#/find/beta%3A%3Adesign%20systems%20engineer');
-    await user.click(link);
-    await waitFor(() =>
-      expect(window.location.hash).toBe('#/find/beta%3A%3Adesign%20systems%20engineer'),
-    );
-    // The posting's title is the page's h1; the list is gone.
+    const card = within(ul)
+      .getAllByRole('article')
+      .find((a) => within(a).queryByText('Beta'))!;
+    expect(within(card).queryByRole('link', { name: 'Design Systems Engineer' })).toBeNull();
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Design Systems Engineer' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('list', { name: 'New postings' })).toBeNull();
-    expect(screen.getByRole('link', { name: /Open posting/ })).toHaveAttribute(
-      'href',
-      'https://news.ycombinator.com/item?id=hn2',
-    );
-    const pager = screen.getByRole('navigation', { name: 'Postings in the list' });
-    // Both posted now: Acme's comes first.
-    expect(within(pager).getByText('2 of 2')).toBeInTheDocument();
-    await user.click(within(pager).getByRole('button', { name: 'Previous page' }));
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Design Systems Designer' }),
-    ).toBeInTheDocument();
-    // Back returns to the list, in one step.
-    await user.click(screen.getByRole('button', { name: 'Back to Find' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
-    expect(await screen.findByRole('list', { name: 'New postings' })).toBeInTheDocument();
+      within(card).getByRole('link', { name: 'Open posting for Design Systems Engineer at Beta' }),
+    ).toHaveAttribute('href', 'https://news.ycombinator.com/item?id=hn2');
+    await user.click(within(card).getByRole('button', { name: 'Show description' }));
+    expect(within(card).getByRole('button', { name: 'Hide description' })).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/find');
+    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
 
   it('at lg nothing is selected when the tab opens; a pick shows beside the list, in place', async () => {

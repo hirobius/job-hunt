@@ -108,22 +108,29 @@ for (const width of [390, 1440]) {
     }
     await page.emulateMedia({ colorScheme: 'light' });
 
-    // A title selects the posting (#471 slice 3), with Open posting one tap away: beside the list
-    // at lg (in place), its own view below lg (Back returns to the list).
-    await list.getByRole('link', { name: 'Design Systems Designer', exact: true }).click();
-    await expect(page).toHaveURL(/#\/find\/.+/);
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Design Systems Designer' }),
-    ).toBeVisible();
-    // The posting's own Open posting (each list card has an icon link of its own beside its title).
-    await expect(page.getByRole('link', { name: 'Open posting', exact: true })).toBeVisible();
-    await page.screenshot({ path: `test-results/review-selected-${width}.png` });
-    if (width < 1024) {
-      await page.goBack();
-      await expect(page).toHaveURL(/#\/find$/);
-    } else {
+    if (width >= 1024) {
+      // At lg a title selects the posting for the detail column (#471 slice 3), in place.
+      await list.getByRole('link', { name: 'Design Systems Designer', exact: true }).click();
+      await expect(page).toHaveURL(/#\/find\/.+/);
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Design Systems Designer' }),
+      ).toBeVisible();
+      // Its action row has the posting's own Open posting icon link (Adrian 2026-11-08).
+      const detail = page.locator('section[aria-labelledby="rjb-posting-title"]');
+      await expect(detail.getByRole('link', { name: /^Open posting for / })).toBeVisible();
+      await page.screenshot({ path: `test-results/review-selected-${width}.png` });
       await expect(list).toBeVisible();
       await page.evaluate(() => (location.hash = '#/find'));
+    } else {
+      // Below lg there is no posting page (Adrian 2026-11-08): the card shows its description.
+      const card = list.getByRole('article').filter({ hasText: 'Design Systems Designer' }).first();
+      await expect(
+        card.getByRole('link', { name: 'Design Systems Designer', exact: true }),
+      ).toHaveCount(0);
+      await card.getByRole('button', { name: 'Show description' }).click();
+      await expect(card.getByRole('button', { name: 'Hide description' })).toBeVisible();
+      await expect(page).toHaveURL(/#\/find$/);
+      await page.screenshot({ path: `test-results/review-selected-${width}.png` });
     }
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
 
@@ -131,7 +138,7 @@ for (const width of [390, 1440]) {
     await list.getByRole('button', { name: 'Skip Design Systems Engineer at Orbit' }).click();
     await expect(list.getByRole('listitem')).toHaveCount(2);
     await expect(
-      list.getByRole('link', { name: 'Design Systems Designer', exact: true }),
+      list.getByRole('heading', { name: 'Design Systems Designer', exact: true }),
     ).toBeVisible();
 
     // Past the double-tap guard (answerGuard.ts), so the next decision is a new one.

@@ -7,15 +7,15 @@
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import {
   Badge,
   Box,
   Button,
   Card,
+  Disclosure,
   Icon,
-  InlineLink,
   Menu,
   Pagination,
   SegmentedControl,
@@ -24,6 +24,7 @@ import {
   Stack,
   Tag,
   Text,
+  Tooltip as HdsTooltip,
   useAtLeast,
   VisuallyHidden,
 } from '@hirobius/design-system';
@@ -31,6 +32,7 @@ import {
   Briefcase,
   Calendar,
   ChevronDown,
+  Ellipsis,
   ExternalLink,
   MapPin,
   MousePointerClick,
@@ -38,13 +40,11 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
-import { PostingTitle } from './PostingLink';
 import { useBackSheet } from './useBackCloses';
-import { findHash, postingOf, selectPosting, useRoute, type Route } from './route';
+import { findHash, postingOf, selectPosting, useRoute } from './route';
 import { inPlaceClick } from './back';
 import { tooSoon } from './answerGuard';
-import { focusNewHeading, pageHeadingNow } from './focusRescue';
-import BackLink from './BackLink';
+import { focusAsHeading, focusNewHeading, pageHeadingNow } from './focusRescue';
 import { usePageTitle } from './pageTitle';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
@@ -72,6 +72,7 @@ import { notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
 import { usePostingText } from './feed/postingText';
+import { httpUrl } from './httpUrl';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -79,8 +80,6 @@ export const REVIEW_PAGE = 25;
 const FILTERS: FeedFilter[] = ['new', 'remote'];
 const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
-
-const FIND: Route = { tab: 'find', sub: null, pillar: null, jobId: null };
 
 export default function ReviewView({
   label = 'New postings',
@@ -131,6 +130,13 @@ export default function ReviewView({
     ? (view?.rows.find((r) => r.fingerprint === selectedFp) ?? null)
     : null;
   const wide = useAtLeast('lg');
+  // Below lg there is no posting page (Adrian 2026-11-08): an old #/find/<fingerprint> link opens
+  // Find with that card scrolled into view and its description open, and the route drops it.
+  const [linked, setLinked] = useState<string | null>(null);
+  if (!wide && selectedFp && linked !== selectedFp) setLinked(selectedFp);
+  useEffect(() => {
+    if (!wide && selectedFp) selectPosting(null, true);
+  }, [wide, selectedFp]);
   const sortSheet = useBackSheet('review-sort');
 
   const toggle = (f: FeedFilter) => {
@@ -163,6 +169,7 @@ export default function ReviewView({
     (row: FeedRow, from: Element | null) => {
       if (tooSoon()) return;
       if (selectedFp) next(row, mute);
+      focusNextTitle(from);
       run(row, from);
     };
   const actions: RowActions = {
@@ -183,8 +190,8 @@ export default function ReviewView({
     skip: onSelected(rowActions.skip),
     mute: onSelected(rowActions.mute),
   };
-  // At lg a pick replaces the history entry; below lg the list opens the posting (Back returns).
-  const open = (r: FeedRow) => selectPosting(r.fingerprint, wide || !!selectedFp);
+  // At lg a pick in the list column replaces the history entry.
+  const open = (r: FeedRow) => selectPosting(r.fingerprint, true);
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
   const caughtUp =
@@ -310,7 +317,8 @@ export default function ReviewView({
           onMore={() => setShown((n) => n + REVIEW_PAGE)}
           now={feed.at}
           actions={actions}
-          onOpen={open}
+          onOpen={wide ? open : undefined}
+          linked={wide ? null : linked}
           selected={selectedFp}
         />
       ) : (
@@ -359,7 +367,6 @@ export default function ReviewView({
       r={selected}
       waiting={!!selectedFp && !selected && (feed.loading || !view)}
       wide={wide}
-      list={listed}
       now={feed.at}
       actions={detailActions}
     />
@@ -373,8 +380,27 @@ export default function ReviewView({
         <Box className="rjb-find-detail">{detail}</Box>
       </Sidebar>
     );
-  // Below lg: the list is the tab; a selected posting is its own view, with Back and the pager.
-  return selectedFp ? detail : list;
+  // Below lg: the list is the tab; each card holds its description (no posting page).
+  return list;
+}
+
+/** After a decision on a Browse card, focus goes to the title of the card that takes its place
+ *  (the next one, else the one before), once the decided card has left the list. */
+function focusNextTitle(from: Element | null) {
+  const li = from?.closest('li');
+  const target = (li?.nextElementSibling ?? li?.previousElementSibling)?.querySelector<HTMLElement>(
+    'h3',
+  );
+  if (!li || !target) return;
+  let frames = 120;
+  const tick = () => {
+    if (!li.isConnected) {
+      if (target.isConnected) focusAsHeading(target);
+      return;
+    }
+    if (frames-- > 0) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 /** Review new's empty states (Adrian 2026-11-08): their own section under the toolbar, a hairline
@@ -442,6 +468,7 @@ function RowList({
   actions,
   onOpen,
   selected,
+  linked = null,
 }: {
   label: string;
   rows: FeedRow[];
@@ -449,10 +476,17 @@ function RowList({
   onMore: () => void;
   now: number;
   actions: RowActions;
-  onOpen: (r: FeedRow) => void;
+  /** At lg: a title selects the posting for the detail column. Below lg: none (no posting page). */
+  onOpen?: (r: FeedRow) => void;
   /** The selected posting's fingerprint: its card is marked current. */
   selected: string | null;
+  /** Below lg, an old #/find/<fingerprint> link's posting: scrolled into view, description open. */
+  linked?: string | null;
 }) {
+  const linkedRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    linkedRef.current?.scrollIntoView({ block: 'start' });
+  }, [linked]);
   const left = rows.length - shown;
   return (
     <>
@@ -469,7 +503,7 @@ function RowList({
         }}
       >
         {rows.slice(0, shown).map((r) => (
-          <Box as="li" key={r.fingerprint}>
+          <Box as="li" key={r.fingerprint} ref={r.fingerprint === linked ? linkedRef : undefined}>
             <Card
               as="article"
               padding="none"
@@ -477,7 +511,14 @@ function RowList({
               className={r.fingerprint === selected ? 'rjb-selected' : undefined}
             >
               <Box sx={{ p: 'md' }}>
-                <PostingCard r={r} now={now} onOpen={onOpen} actions={actions} />
+                <PostingCard
+                  r={r}
+                  now={now}
+                  onOpen={onOpen}
+                  describe={!onOpen}
+                  describeOpen={r.fingerprint === linked}
+                  actions={actions}
+                />
               </Box>
             </Card>
           </Box>
@@ -526,65 +567,138 @@ const placeOf = (r: FeedRow) => {
     : where || (r.mode ? modeLabel(r.mode) : 'Location not stated');
 };
 
-/** A posting card's primary action (the reference footer's solid button): Save. */
-function SaveAction({ r, actions }: { r: FeedRow; actions: RowActions }) {
-  return (
-    <Button
-      size="md"
-      variant="primary"
-      aria-label={`Save ${rowName(r)}`}
-      onClick={(e) => actions.save(r, e.currentTarget)}
-    >
-      Save
-    </Button>
-  );
-}
-
 const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
 
-/** The decisions that stay quiet under a card's footer: Skip hides this posting, Not this company
- *  mutes the company. Tertiary, so the footer's Save is the one loud action. */
-function QuietActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
+/** A posting's one action row (Adrian 2026-11-08): left-aligned, one HDS size, Save primary, Skip
+ *  secondary, Open posting as an icon button, and More (…) holding Not this company. The same row
+ *  on a Browse card, the Deck and the selected posting. */
+function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  // Not this company is picked in the menu (a portal): its feedback anchors on the row's trigger.
+  const more = useRef<HTMLButtonElement>(null);
+  const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center">
       <Button
         size="md"
-        variant="tertiary"
+        variant="primary"
+        aria-label={`Save ${rowName(r)}`}
+        onClick={(e) => actions.save(r, e.currentTarget)}
+      >
+        Save
+      </Button>
+      <Button
+        size="md"
+        variant="secondary"
         aria-label={`Skip ${rowName(r)}`}
         onClick={(e) => actions.skip(r, e.currentTarget)}
       >
         Skip
       </Button>
+      {httpUrl(r.url) && (
+        <HdsTooltip>
+          <HdsTooltip.Trigger asChild>
+            <Button
+              size="md"
+              variant="secondary"
+              iconOnly
+              label={`Open posting for ${rowName(r)}`}
+              asChild
+            >
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open posting for ${rowName(r)}`}
+              >
+                <Icon icon={ExternalLink} />
+              </a>
+            </Button>
+          </HdsTooltip.Trigger>
+          <HdsTooltip.Content>Open posting</HdsTooltip.Content>
+        </HdsTooltip>
+      )}
       {r.company.trim() && (
-        <Button
-          size="md"
-          variant="tertiary"
-          aria-label={`Not this company: ${r.company}`}
-          onClick={(e) => actions.mute(r, e.currentTarget)}
-        >
-          Not this company
-        </Button>
+        <Menu modal={false} {...sheet}>
+          <Menu.Trigger asChild>
+            <Button
+              ref={more}
+              size="md"
+              variant="secondary"
+              iconOnly
+              iconLeft={<Icon icon={Ellipsis} />}
+              label={`More actions: ${rowName(r)}`}
+            />
+          </Menu.Trigger>
+          <Menu.Content align="start">
+            <Menu.Item onSelect={() => actions.mute(r, more.current)}>
+              {`Not this company: ${r.company}`}
+            </Menu.Item>
+          </Menu.Content>
+        </Menu>
       )}
     </Stack>
   );
 }
 
-/** The Deck and preview card (#458, Adrian 2026-11-02): a badge row (the source; New only when
- *  the posting is new), the title on the ramp's title step, the company as a subline, the meta
- *  lines with their icons, and a footer with the pay at the left (empty when the source states
- *  none, never invented) and Save at the right. Skip and Not this company sit under it. */
+/** A Browse card's description, below lg (Adrian 2026-11-08: no separate posting page on a phone):
+ *  Show description opens it in the card, read on open (usePostingText) with a Skeleton. */
+function CardDescription({ r, initialOpen = false }: { r: FeedRow; initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
+  return (
+    <Disclosure
+      label={open ? 'Hide description' : 'Show description'}
+      open={open}
+      onOpenChange={setOpen}
+    >
+      {open && <DescriptionText r={r} />}
+    </Disclosure>
+  );
+}
+
+function DescriptionText({ r }: { r: FeedRow }) {
+  const { text, loading } = usePostingText(r);
+  if (text.trim())
+    return (
+      <Text variant="body" as="p" tone="secondary" className="rjb-prewrap">
+        {excerpt(text, 2000)}
+      </Text>
+    );
+  return loading ? (
+    <Stack gap="px8" aria-busy="true">
+      <Skeleton variant="text" width="90%" />
+      <Skeleton variant="text" width="80%" />
+      <Skeleton variant="text" width="60%" />
+    </Stack>
+  ) : (
+    <Text variant="caption" as="p" tone="secondary">
+      This source gives no description. Open the posting to read it.
+    </Text>
+  );
+}
+
+/** A posting card (#458, Adrian 2026-11-02; actions 2026-11-08): a badge row (the source; New only
+ *  when the posting is new), the title on the ramp's title step, the company as a subline, the
+ *  meta lines with their icons, the pay when the source states it (never invented), then one
+ *  left-aligned action row (PostingActions). Below lg a Browse card holds its description behind
+ *  Show description; nothing on the card navigates there. */
 function PostingCard({
   r,
   now,
   onOpen,
   noTitle = false,
+  describe = false,
+  describeOpen = false,
   actions,
   children,
 }: {
   r: FeedRow;
   now: number;
-  /** Browse: the title selects the posting (#/find/<fingerprint>), with Open posting beside it. */
+  /** At lg, Browse: the title selects the posting (#/find/<fingerprint>) for the detail column. */
   onOpen?: (r: FeedRow) => void;
+  /** Below lg, Browse: Show description opens the posting's text in the card. */
+  describe?: boolean;
+  /** Opened by an old #/find/<fingerprint> link on a phone. */
+  describeOpen?: boolean;
   /** The selected posting's view names it in its own header. */
   noTitle?: boolean;
   actions: RowActions;
@@ -610,18 +724,17 @@ function PostingCard({
           {r.isNew && <Badge tone="info">New</Badge>}
         </Stack>
         {noTitle ? null : onOpen ? (
-          <PostingTitle url={r.url} title={r.title} company={r.company}>
-            <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
-              <Button variant="tertiary" size="sm" className="rjb-preview-title" asChild>
-                <a href={findHash(r.fingerprint)} onClick={inPlaceClick(() => onOpen(r))}>
-                  {r.title}
-                </a>
-              </Button>
-            </Text>
-          </PostingTitle>
+          <Text variant="title" as="h3" weight="bold" className="rjb-card-title" tabIndex={-1}>
+            <Button variant="tertiary" size="sm" className="rjb-preview-title" asChild>
+              <a href={findHash(r.fingerprint)} onClick={inPlaceClick(() => onOpen(r))}>
+                {r.title}
+              </a>
+            </Button>
+          </Text>
         ) : (
-          <Text variant="title" as="h3" weight="bold" className="rjb-card-title">
-            <InlineLink href={r.url}>{r.title}</InlineLink>
+          // Takes focus after a decision on the card before it (no ring: focusAsHeading).
+          <Text variant="title" as="h3" weight="bold" className="rjb-card-title" tabIndex={-1}>
+            {r.title}
           </Text>
         )}
         {r.company && !noTitle && (
@@ -638,23 +751,16 @@ function PostingCard({
             </Stack>
           )}
         </Stack>
-        <Text variant="caption" as="p">
-          {r.why}
-        </Text>
+        {pay && (
+          <Text variant="body" as="p" weight="bold">
+            {pay}
+          </Text>
+        )}
         {children}
+        {describe && <CardDescription r={r} initialOpen={describeOpen} />}
         <Box sx={{ pt: 'xs' }}>
-          <Stack direction="row" gap="tight" align="center" justify="space-between">
-            {pay ? (
-              <Text variant="title" as="span" weight="bold">
-                {pay}
-              </Text>
-            ) : (
-              <span />
-            )}
-            <SaveAction r={r} actions={actions} />
-          </Stack>
+          <PostingActions r={r} actions={actions} />
         </Box>
-        <QuietActions r={r} actions={actions} />
       </Stack>
     </Box>
   );
@@ -751,7 +857,6 @@ function PostingDetail({
   r,
   waiting,
   wide,
-  list,
   now,
   actions,
 }: {
@@ -759,34 +864,15 @@ function PostingDetail({
   /** A posting is named in the route but the Feed is still reading. */
   waiting: boolean;
   wide: boolean;
-  list: FeedRow[];
   now: number;
   actions: RowActions;
 }) {
   usePageTitle(r ? r.title : wide ? 'Find' : null);
   // Fetched on open when the list was read without it (a phone, or the server's rows).
   const { text, loading } = usePostingText(r);
-  const at = r ? list.findIndex((x) => x.fingerprint === r.fingerprint) : -1;
-  const top = !wide && (
-    <Stack direction="row" gap="tight" align="center" justify="space-between">
-      <BackLink as="button" className="rjb-back" fallback={FIND} fallbackLabel="Find" />
-      {at >= 0 && list.length > 1 && (
-        <Box sx={{ flex: '0 0 auto' }}>
-          <Pagination
-            variant="compact"
-            label="Postings in the list"
-            page={at + 1}
-            count={list.length}
-            onPageChange={(p) => selectPosting(list[p - 1].fingerprint, true)}
-          />
-        </Box>
-      )}
-    </Stack>
-  );
   if (!r)
     return (
       <Stack gap="normal">
-        {top}
         {waiting ? (
           <Box aria-busy="true">
             <Text variant="ui" as="p" role="status" tone="secondary">
@@ -814,7 +900,6 @@ function PostingDetail({
   return (
     <Box as="section" aria-labelledby="rjb-posting-title" sx={{ minWidth: 0 }}>
       <Stack gap="normal">
-        {top}
         <Stack gap="px4">
           <Text as="h1" variant="title" id="rjb-posting-title">
             {r.title}
@@ -836,13 +921,6 @@ function PostingDetail({
             </PostingCard>
           </DeckBody>
         </Card>
-        <Box>
-          <Button variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
-            <a href={r.url} target="_blank" rel="noopener noreferrer">
-              Open posting
-            </a>
-          </Button>
-        </Box>
       </Stack>
     </Box>
   );
