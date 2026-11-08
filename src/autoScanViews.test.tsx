@@ -14,6 +14,7 @@ import {
   getScanState,
   resetScan,
   runScan,
+  scanNow,
   scanOnOpen,
   setScanOnOpen,
   type ScanDeps,
@@ -161,6 +162,26 @@ describe('Scan details (the Account menu)', () => {
     expect(await screen.findByText('Updates every 15 minutes.')).toBeInTheDocument();
   });
 
+  it('signed in, the browser’s discovery progress shows here (not on Find)', async () => {
+    server.at = new Date(Date.now() - 4 * 60_000).toISOString();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const slow = (async (url: string) => {
+      await gate;
+      return fetchJson(url);
+    }) as FetchJson;
+    const run = scanNow(
+      { terms: ['Design Systems Engineer'], boardUrls: [] },
+      { ...deps(), fetchJson: slow },
+      { force: true },
+    );
+    renderDetails({ signedIn: true });
+    expect(await screen.findByText('Updated 4 min ago')).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/…$/);
+    release();
+    await run;
+  });
+
   it('lists what Review new left out and each source that didn’t answer, with why', () => {
     setScanDetails({
       failed: [
@@ -194,7 +215,6 @@ describe('Scan details (the Account menu)', () => {
     expect(screen.getByText(/^Open Find to read your sources/)).toBeInTheDocument();
   });
 });
-
 
 describe('NewCompanies', () => {
   it('lists what the scan found; an unconfirmed board says so', async () => {

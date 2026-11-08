@@ -314,9 +314,9 @@ export default function ReviewView({
           selected={selectedFp}
         />
       ) : (
-        <PanelBody>
+        <EmptySection>
           <EmptyState
-            centered
+            framed
             icon={SearchX}
             title={
               on.length
@@ -340,7 +340,7 @@ export default function ReviewView({
               ) : undefined
             }
           />
-        </PanelBody>
+        </EmptySection>
       )}
     </Panel>
   );
@@ -375,6 +375,22 @@ export default function ReviewView({
     );
   // Below lg: the list is the tab; a selected posting is its own view, with Back and the pager.
   return selectedFp ? detail : list;
+}
+
+/** Review new's empty states (Adrian 2026-11-08): their own section under the toolbar, a hairline
+ *  above and room around it, like the Apply list's (TrackerView), with the framed teaching empty
+ *  (icon tile, centred text) of Apply's "Track your first job". */
+function EmptySection({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      as="section"
+      aria-label="No postings"
+      data-empty-section=""
+      sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}
+    >
+      <PanelBody>{children}</PanelBody>
+    </Box>
+  );
 }
 
 const decidedAny = (h: { decided: number; muted: number; saved: number }) =>
@@ -662,7 +678,11 @@ function Deck({
   empty: string;
 }) {
   if (!rows.length)
-    return <EmptyState centered icon={SearchX} title="You’re all caught up" description={empty} />;
+    return (
+      <EmptySection>
+        <EmptyState framed icon={SearchX} title="You’re all caught up" description={empty} />
+      </EmptySection>
+    );
   const r = rows[at];
   return (
     <Stack gap="tight">

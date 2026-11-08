@@ -32,6 +32,8 @@ function useScanLine(counts?: { newToday: number; sources: number }): string {
   const input = useScanInput();
   const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), false);
   const updated = useServerUpdated(!!user);
+  // Signed in, the server's sync is the news; the browser's company discovery runs silently on
+  // Find, and its progress shows under it here (useScanProgress).
   if (user) return updated ?? 'Updates every 15 minutes.';
   if (running) return progressLine(progress);
   return (
@@ -44,6 +46,10 @@ function useScanLine(counts?: { newToday: number; sources: number }): string {
 export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFocus?: () => void }) {
   const d = useScanDetails();
   const line = useScanLine(d ? { newToday: d.newToday, sources: d.sourcesRead } : undefined);
+  // Signed in, the browser's discovery still runs (silently on Find): its progress shows here.
+  const { user } = useCloudSync();
+  const { running, progress } = useScan();
+  const discovering = !!user && running ? progressLine(progress) : null;
   const n = d?.failed.length ?? 0;
   return (
     <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
@@ -55,6 +61,11 @@ export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFoc
           </Text>
         </Dialog.Description>
       </Dialog.Header>
+      {discovering && (
+        <Text variant="caption" as="p" tone="secondary" role="status">
+          {discovering}
+        </Text>
+      )}
       <Stack gap="spacious" className="rjb-dialog-body">
         {!d ? (
           <Text variant="body" as="p" tone="secondary">
@@ -62,16 +73,16 @@ export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFoc
           </Text>
         ) : (
           <>
-            <Stack gap="tight" as="section" aria-label="Not shown">
-              <Text variant="body" as="h3" className="rjb-semibold">
+            <Stack gap="tight" as="section" aria-labelledby="rjb-scan-hidden">
+              <Text variant="body" as="h3" className="rjb-semibold" id="rjb-scan-hidden">
                 Not shown in Review new
               </Text>
               <Text variant="body" as="p" tone="secondary">
                 {d.hidden.length ? d.hidden.join(', ') : 'Nothing: every posting read is listed.'}
               </Text>
             </Stack>
-            <Stack gap="tight" as="section" aria-label="Sources unavailable">
-              <Text variant="body" as="h3" className="rjb-semibold">
+            <Stack gap="tight" as="section" aria-labelledby="rjb-scan-unavailable">
+              <Text variant="body" as="h3" className="rjb-semibold" id="rjb-scan-unavailable">
                 {n ? `${n} ${n === 1 ? 'source' : 'sources'} unavailable` : 'Every source answered'}
               </Text>
               {n > 0 && (
