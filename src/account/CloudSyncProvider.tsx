@@ -2,7 +2,7 @@
 // push, the focus re-pull and sign-out/delete, and exposes them through CloudSyncContext. The UI
 // lives elsewhere — the account menu, the one-time sync nudge and the sign-in dialog — and
 // failures surface as toasts instead of a banner on every page.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
 import { loadedSupabase, loadSupabase, needsClientAtBoot, onSupabaseLoaded } from '../supabase';
@@ -83,7 +83,8 @@ import {
 import { deviceData, mergeQuestion } from './deviceData';
 import { dropSampleTrack } from '../demo/sampleTrack';
 import { dropAutoSetup } from '../autoSetup';
-import { LinkConfirmDialog, MergeConfirmDialog } from './AuthGuards';
+import { MergeConfirmDialog } from './AuthGuards';
+import { LinkConfirmScreen } from '../lazyDialogs';
 
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
 const loadPkce = importFresh(() => import('./oauthPkce'));
@@ -540,13 +541,23 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       linkEmail.current = null;
     }
   }
+  // Sign in on the confirm screen: the link is taken up at once; the screen stays for its short
+  // "Signed in" hand-over and closes itself (closeLink). A second press does nothing.
+  const linkTaken = useRef(false);
   const confirmLink = () => {
     const ask = linkAsk;
+    if (!ask || linkTaken.current) return;
+    linkTaken.current = true;
+    void acceptLink(ask.tokens, ask.email);
+  };
+  const closeLink = () => {
+    linkTaken.current = false;
     setLinkAsk(null);
-    if (ask) void acceptLink(ask.tokens, ask.email);
   };
   // Cancel drops the tokens (the URL never kept them).
-  const cancelLink = () => setLinkAsk(null);
+  const cancelLink = () => {
+    if (!linkTaken.current) setLinkAsk(null);
+  };
 
   const addDeviceData = () => {
     const ask = mergeAsk;
@@ -834,11 +845,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   return (
     <CloudSyncContext.Provider value={api}>
       {children}
-      <LinkConfirmDialog
-        email={linkAsk?.email ?? null}
-        onSignIn={confirmLink}
-        onCancel={cancelLink}
-      />
+      {/* "Sign in as …?" is a full-screen step in the sign-in layout, in its own chunk (most
+          visits never see it). Until the chunk is in, nothing is taken up. */}
+      {linkAsk && (
+        <Suspense fallback={null}>
+          <LinkConfirmScreen
+            email={linkAsk.email}
+            onSignIn={confirmLink}
+            onDone={closeLink}
+            onCancel={cancelLink}
+          />
+        </Suspense>
+      )}
       <MergeConfirmDialog
         question={mergeAsk?.question ?? null}
         onAdd={addDeviceData}

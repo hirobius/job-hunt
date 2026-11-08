@@ -10,6 +10,7 @@ import { importFresh } from './staleBuild';
 const named = <P extends object>(c: ComponentType<P>) => ({ default: c });
 
 export const SignInDialog = lazyView(importFresh(() => import('./account/SignInDialog')));
+export const LinkConfirmScreen = lazyView(importFresh(() => import('./account/LinkConfirmScreen')));
 export const ExportLinksDialog = lazyView(importFresh(() => import('./ExportLinksDialog')));
 export const CompaniesDialog = lazyView(importFresh(() => import('./CompaniesDialog')));
 export const SearchProfileDialog = lazyView(importFresh(() => import('./SearchProfileDialog')));
@@ -32,6 +33,7 @@ export const preloadDialogs = () =>
   Promise.all(
     [
       SignInDialog,
+      LinkConfirmScreen,
       ExportLinksDialog,
       CompaniesDialog,
       SearchProfileDialog,

@@ -3,7 +3,7 @@
 // into an account it has not synced with unless the person says so. A magic link this browser
 // asked for still signs in without a question; one opened on another device asks first.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { fakeAccessToken } from '../test/fakeSupabase';
@@ -79,11 +79,11 @@ describe('an unsolicited sign-in link (no request from this browser)', () => {
     expect(location.hash).toBe('');
     expect(location.href).not.toContain('access_token');
     expect(
-      await screen.findByRole('alertdialog', { name: `Sign in as ${ATTACKER}?` }),
+      await screen.findByRole('dialog', { name: `Sign in as ${ATTACKER}?` }),
     ).toBeInTheDocument();
     expect(screen.getByText('out')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByText('out')).toBeInTheDocument();
     // Never signed in, nothing sent anywhere, this device's job untouched.
     expect((await h.fake?.client.auth.getSession())?.data.session ?? null).toBeNull();
@@ -104,6 +104,20 @@ describe('an unsolicited sign-in link (no request from this browser)', () => {
     await waitFor(() => expect(screen.getByText('out')).toBeInTheDocument());
     expect(h.fake!.tables.tracker ?? []).toEqual([]);
     expect(store.getAllJobs().map((j) => j.label)).toEqual(['Secret role']);
+  });
+
+  it('the ask is a step of the sign-in screen: Sign in shows "Signed in", then the screen goes', async () => {
+    await boot(linkFor(ME));
+    const screenEl = await screen.findByRole('dialog', { name: `Sign in as ${ME}?` });
+    // The sign-in layout: the brand on top, the security copy, Sign in and Cancel.
+    expect(screenEl).toHaveClass('rjb-signin-screen');
+    expect(screenEl).toHaveTextContent('Only continue if you asked for it.');
+    expect(within(screenEl).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    await userEvent.click(within(screenEl).getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByRole('heading', { name: 'Signed in' })).toBeInTheDocument();
+    // Then it hands over to the app (the brand moves to the app bar) and closes.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: 3000 });
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
   });
 
   it('a link opened on another device (empty here) asks, then signs in and syncs', async () => {
@@ -217,7 +231,7 @@ describe('a link this browser asked for', () => {
     rememberSignInRequest(ME);
     await boot(linkFor(ATTACKER));
     expect(
-      await screen.findByRole('alertdialog', { name: `Sign in as ${ATTACKER}?` }),
+      await screen.findByRole('dialog', { name: `Sign in as ${ATTACKER}?` }),
     ).toBeInTheDocument();
   });
 
