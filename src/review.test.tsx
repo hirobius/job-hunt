@@ -522,6 +522,28 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
   });
 });
 
+describe('Review new: the caught-up empty state (Adrian 2026-11-08)', () => {
+  it('sits in its own section with room around it, framed like Apply’s first-job empty', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([BASIC[0]]));
+    renderReview();
+    const ul = await list();
+    await user.click(within(ul).getByRole('button', { name: /^Skip / }));
+    const title = await screen.findByText('You’re all caught up');
+    const section = title.closest('[data-empty-section]') as HTMLElement;
+    expect(section).not.toBeNull();
+    expect(section.tagName).toBe('SECTION');
+    // The framed teaching empty: its icon tile and centred column inside one panel.
+    expect(within(section).getByText(/saved or skipped/)).toBeInTheDocument();
+    expect(section.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
+    // The Deck's caught-up state is the same section.
+    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    expect(
+      (await screen.findByText('You’re all caught up')).closest('[data-empty-section]'),
+    ).not.toBeNull();
+  });
+});
+
 describe('Review new: every design-system posting, no tiers', () => {
   it('lists each one that passes the inclusion check, newest first, and counts the rest', async () => {
     feed.fetchFeed.mockResolvedValue(

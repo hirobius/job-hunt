@@ -145,6 +145,8 @@ for (const width of [390, 1440]) {
     await page.getByRole('radio', { name: 'Deck' }).click();
     await expect(page.getByRole('article')).toHaveCount(1);
     await page.screenshot({ path: `test-results/review-deck-${width}.png`, fullPage: true });
+    // Past the double-tap guard again.
+    await page.waitForTimeout(800);
     await page
       .getByRole('article')
       .getByRole('button', { name: /^Skip / })
