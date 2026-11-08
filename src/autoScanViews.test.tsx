@@ -210,6 +210,19 @@ describe('Scan details (the Account menu)', () => {
     ).toBeInTheDocument();
   });
 
+  it('lists the companies the scan skips for an unsupported board', () => {
+    localStorage.setItem(
+      'rjb_autoscan',
+      JSON.stringify({ unsupported: [{ name: 'Salesforce', ats: 'Workday' }] }),
+    );
+    renderDetails();
+    expect(
+      screen.getByRole('heading', { name: '1 company with an unsupported board' }),
+    ).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Unsupported boards' });
+    expect(within(list).getByText('Salesforce · unsupported board (Workday)')).toBeInTheDocument();
+  });
+
   it('before Find has read: says to open Find', () => {
     renderDetails();
     expect(screen.getByText(/^Open Find to read your sources/)).toBeInTheDocument();
