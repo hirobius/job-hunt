@@ -161,6 +161,8 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Export links',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
+      // WCAG 2.2.2 (#516): the app bar's flame loops on; this stops it.
+      expect.stringMatching(/^item:(Pause|Play) animations$/),
       'item:Send feedback',
       'item:Privacy and terms',
       '---',
@@ -224,6 +226,17 @@ describe('app shell (#115 Phase 1)', () => {
     const panel = screen.getByRole('main');
     for (const name of ['Back up', 'Restore…', 'Export CSV'])
       expect(within(panel).queryByRole('button', { name })).toBeNull();
+  });
+
+  it('Pause animations (WCAG 2.2.2) is kept on this device and the item says Play after', async () => {
+    localStorage.removeItem('rjb_ui_pause_motion');
+    renderApp();
+    let menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Pause animations' }));
+    expect(localStorage.getItem('rjb_ui_pause_motion')).toBe('1');
+    menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Play animations' }));
+    expect(localStorage.getItem('rjb_ui_pause_motion')).toBe('0');
   });
 
   it('the theme item flips the colour mode', async () => {
@@ -326,6 +339,8 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'item:Export links',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
+      // WCAG 2.2.2 (#516): the app bar's flame loops on; this stops it.
+      expect.stringMatching(/^item:(Pause|Play) animations$/),
       'item:Send feedback',
       'item:Privacy and terms',
       '---',

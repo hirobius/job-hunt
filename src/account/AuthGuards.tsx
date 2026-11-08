@@ -6,7 +6,7 @@
 import { AlertDialog, Button } from '@hirobius/design-system';
 import { useBackCloses } from '../useBackCloses';
 
-export function MergeConfirmDialog({
+export default function MergeConfirmDialog({
   question,
   onAdd,
   onKeep,

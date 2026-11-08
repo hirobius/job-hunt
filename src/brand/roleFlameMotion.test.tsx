@@ -4,6 +4,7 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FLAME_MOTION_LIMIT_MS, RoleFlameLogo } from './RoleFlame';
+import { setMotionPaused } from '../motionPref';
 
 let reduce = false;
 let hidden = false;
@@ -11,6 +12,7 @@ let mqListeners: (() => void)[] = [];
 
 beforeEach(() => {
   reduce = false;
+  localStorage.removeItem('rjb_ui_pause_motion');
   hidden = false;
   mqListeners = [];
   vi.useFakeTimers();
@@ -80,6 +82,20 @@ describe('RoleFlameLogo motion', () => {
     const still = d();
     advance(FLAME_MOTION_LIMIT_MS + 3000);
     expect(d()).toBe(still);
+  });
+
+  it('Pause animations (Account menu, WCAG 2.2.2) stops even the continuous flame, at once', () => {
+    const { d } = mount({ continuous: true });
+    const still = d();
+    advance(300);
+    expect(d()).not.toBe(still);
+    act(() => setMotionPaused(true));
+    expect(d()).toBe(still);
+    advance(2000);
+    expect(d()).toBe(still);
+    act(() => setMotionPaused(false));
+    advance(300);
+    expect(d()).not.toBe(still);
   });
 
   it('pauses while the tab is hidden, and hidden time does not count', () => {

@@ -6,10 +6,11 @@
 // logo (under 400 ms; a crossfade under reduced motion). A failure stays here, said in place,
 // with Cancel or another try. After that the guard goes on (the merge ask if this device has data).
 // Its own chunk (lazyDialogs.ts): most visits never see it.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { useBackCloses } from '../useBackCloses';
 import { SignInShell } from './SignInShell';
+import { focusAsHeading, pageHeading } from '../focusRescue';
 
 /** How long "Signed in" shows before the brand moves to the app bar. */
 export const SIGNED_IN_HOLD_MS = 600;
@@ -74,6 +75,17 @@ export default function LinkConfirmScreen({
   const [error, setError] = useState<string | null>(null);
   const brandRef = useRef<HTMLDivElement>(null);
   const screenRef = useRef<HTMLDivElement | null>(null);
+  // The "Signed in" hold is cleared if the screen goes first (#516 review); nothing runs after.
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mounted = useRef(true);
+  useEffect(() => {
+    // Set on mount too: StrictMode runs the cleanup once and mounts again.
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(holdTimer.current);
+    };
+  }, []);
   // Back is Cancel, while it still asks.
   useBackCloses(!done, onCancel, 'auth-link-confirm');
 
@@ -90,8 +102,11 @@ export default function LinkConfirmScreen({
       return;
     }
     setDone(true);
-    setTimeout(() => {
-      void moveBrand(brandRef.current, screenRef.current).then(onDone);
+    holdTimer.current = setTimeout(() => {
+      holdTimer.current = undefined;
+      void moveBrand(brandRef.current, screenRef.current).then(() => {
+        if (mounted.current) onDone();
+      });
     }, SIGNED_IN_HOLD_MS);
   };
 
@@ -99,6 +114,15 @@ export default function LinkConfirmScreen({
     <Dialog open={!!email} onOpenChange={(o) => !o && !done && !pending && onCancel()}>
       <SignInShell
         brandRef={brandRef}
+        // After the hand-over, focus lands on the page's own h1 (#516 review), never on <body>.
+        // Cancelled, Radix gives it back to whatever had it.
+        onCloseAutoFocus={(e) => {
+          if (!done) return;
+          const h = pageHeading();
+          if (!h) return;
+          e.preventDefault();
+          focusAsHeading(h);
+        }}
         onOpenAutoFocus={(e) => {
           // Start on the title's words, not on Sign in: an answer here must be a choice.
           e.preventDefault();

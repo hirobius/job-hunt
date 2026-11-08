@@ -6,8 +6,17 @@
 // stays out of the entry chunk. Colours are HDS tokens (base.css `.rjb-rf`, light and dark), the font is
 // HDS's display type token (Sora 700, loaded by HDS's fonts.css), the name is brand.ts. Stops under prefers-reduced-motion,
 // pauses while the tab is hidden and stops after 5 s on screen (WCAG 2.2.2).
-import { CSSProperties, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  CSSProperties,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { BRAND } from '../brand';
+import { MOTION_EVENT, motionPaused } from '../motionPref';
 
 /* ------------------------------------------------------------------ settings */
 
@@ -531,6 +540,16 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
+/** Pause animations (motionPref.ts) changed: in this tab, or in another one (storage). */
+function onMotionPref(cb: () => void): () => void {
+  window.addEventListener(MOTION_EVENT, cb);
+  window.addEventListener('storage', cb);
+  return () => {
+    window.removeEventListener(MOTION_EVENT, cb);
+    window.removeEventListener('storage', cb);
+  };
+}
+
 /** True while the tab is on screen (document.hidden false). */
 function usePageVisible() {
   const [visible, setVisible] = useState(() => typeof document === 'undefined' || !document.hidden);
@@ -558,7 +577,10 @@ function useFlame(
   settings: FlameSettings = FLAME_SETTINGS,
   continuous = false,
 ) {
-  const reduced = usePrefersReducedMotion();
+  // Reduced motion, or Pause animations in the Account menu (motionPref.ts, WCAG 2.2.2).
+  const reducedSystem = usePrefersReducedMotion();
+  const paused = useSyncExternalStore(onMotionPref, motionPaused, () => false);
+  const reduced = reducedSystem || paused;
   const visible = usePageVisible();
   const [done, setDone] = useState(false);
   const on = animated && !reduced && !done;

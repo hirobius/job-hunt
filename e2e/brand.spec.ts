@@ -156,3 +156,24 @@ for (const width of [390, 1440]) {
     expect(top).toBeGreaterThanOrEqual(0);
   });
 }
+
+// WCAG 2.2.2 (#516): Pause animations in the Account menu stops the looping flame, and the choice
+// is kept on this device.
+test('Pause animations stops the app bar flame and is kept after a reload', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#/find');
+  const path = page.locator('header .rjb-rf > svg path').first();
+  await expect(path).toBeAttached();
+  await page.getByRole('button', { name: 'Account' }).click();
+  await page.getByRole('menuitem', { name: 'Pause animations' }).click();
+  const still = await path.getAttribute('d');
+  await page.waitForTimeout(800);
+  expect(await path.getAttribute('d')).toBe(still);
+  await page.reload();
+  await expect(path).toBeAttached();
+  const after = await path.getAttribute('d');
+  await page.waitForTimeout(800);
+  expect(await path.getAttribute('d')).toBe(after);
+  await page.getByRole('button', { name: 'Account' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Play animations' })).toBeVisible();
+});

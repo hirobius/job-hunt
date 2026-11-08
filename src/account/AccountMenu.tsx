@@ -33,6 +33,7 @@ import { openRecentlyRemoved } from '../jobDialogs';
 import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
+import { motionPaused, setMotionPaused } from '../motionPref';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -41,6 +42,7 @@ export default function AccountMenu() {
   const { accountTrigger, setAccountTrigger } = sync;
   const data = useDataTools();
   const { mode, toggle } = useColorMode();
+  const [paused, setPaused] = useState(motionPaused);
   const [resetting, setResetting] = useState(false);
   // Followed and Ignored companies (simplify Q6: the Companies tab's place).
   const [companies, setCompanies] = useState(false);
@@ -148,6 +150,15 @@ export default function AccountMenu() {
           )}
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
+          {/* WCAG 2.2.2: the app bar's flame loops on; this stops it (motionPref.ts). */}
+          <Menu.Item
+            onSelect={() => {
+              setPaused(!paused);
+              setMotionPaused(!paused);
+            }}
+          >
+            {paused ? 'Play animations' : 'Pause animations'}
+          </Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
             Send feedback
           </Menu.Item>
