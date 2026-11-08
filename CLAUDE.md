@@ -276,7 +276,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   answer as one quiet "N sources unavailable · details" disclosure, Browse | Deck, Sort as a menu, two filter chips
   (New today, Remote) and the Browse list; a row's title selects the posting, Open posting beside it) and **New
   companies** (`NewCompanies`, Follow / Ignore). **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
-  Find out: at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, status, Review new, New companies) beside
+  Find out (**below lg there is no posting page since 2026-11-08:** the card's title is plain text, an old
+  `#/find/<fingerprint>` link scrolls to its card with the description open and drops the fingerprint, and after a
+  decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, status, Review new, New companies) beside
   `PostingDetail` (the old preview dialog's body: title as the page's h1, company, the card with its excerpt, Save /
   Skip / Not this company, Open posting; "Pick a posting" until one is picked); below lg the list is the tab and a
   selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
@@ -307,7 +309,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
   `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
   source + New badges, the title on the `title` step, company, MapPin / Briefcase / Calendar facts, the mode only
-  when the place line doesn't say it, pay left and Save right in the footer, Skip / Not this company under it);
+  when the place line doesn't say it, the pay line, then **one left-aligned action row (Adrian 2026-11-08,
+  `PostingActions`): Save primary, Skip secondary, Open posting as an icon link, More (…) holding Not this company**,
+  all `md`; no match-reason line; below lg a Browse card's Show description (HDS Disclosure) reads the text on open,
+  `usePostingText`, with a Skeleton);
   `calmLayout.test.tsx` fails on any Card inside a Card.
   Pinned in `src/calmLayout.test.tsx`.
 - **Documents library (#227; replaced Templates #132; a dialog since #471 slice 4):** one HDS `Dialog`

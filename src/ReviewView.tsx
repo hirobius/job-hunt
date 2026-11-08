@@ -599,7 +599,7 @@ function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
           <HdsTooltip.Trigger asChild>
             <Button
               size="md"
-              variant="tertiary"
+              variant="secondary"
               iconOnly
               label={`Open posting for ${rowName(r)}`}
               asChild
@@ -623,7 +623,7 @@ function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
             <Button
               ref={more}
               size="md"
-              variant="tertiary"
+              variant="secondary"
               iconOnly
               iconLeft={<Icon icon={Ellipsis} />}
               label={`More actions: ${rowName(r)}`}
