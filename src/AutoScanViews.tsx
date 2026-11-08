@@ -1,6 +1,6 @@
-// The auto-scan's only UI (#415): signed out "Scan now" with "Scanning N sources · Last scanned hh:mm,
-// K new"; signed in only "Updated N min ago" (the server syncs). And New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
-// end. Every action says so with an Undo.
+// The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
+// (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
+// says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';
 import { RefreshCw } from 'lucide-react';
 import { ItemList, ItemRow, Panel } from './PipelinePanel';
@@ -9,17 +9,12 @@ import {
   cancelScan,
   followFound,
   ignoreFound,
-  lastScannedLine,
   newCompanies,
-  scanBoardUrls,
   scanNow,
   useScan,
   type FoundCompany,
   type LeadSource,
-  type ScanProgress,
 } from './feed/autoScan';
-import { useScanningCount } from './feed/scanningCount';
-import { useServerUpdated } from './feed/serverUpdated';
 import { useScanInput } from './feed/useAutoScan';
 import { useCloudSync } from './account/accountContext';
 
@@ -30,71 +25,31 @@ const VIA_LABEL: Record<LeadSource, string> = {
   seed: 'the seed list',
 };
 
-function progressLine(p: ScanProgress | undefined): string {
-  switch (p?.phase) {
-    case 'probe':
-      return p.total ? `Checking boards (${p.done ?? 0} of ${p.total})…` : 'Checking boards…';
-    case 'read':
-      return 'Reading boards and feeds…';
-    case 'filter':
-      return 'Sorting postings…';
-    default:
-      return 'Finding companies…';
-  }
-}
-
-/** Find's scan line (Adrian 2026-11-08). Signed in, the server syncs every 15 minutes, so there is
- *  no button and no progress: one quiet "Updated 4 min ago" from its last run (#448). Signed out,
- *  nothing scans on its own: one compact Scan now, the last scan's line (or why it failed), and a
- *  hint that signing in keeps it updated. */
-export function ScanStatus({
-  counts,
-}: {
-  /** Review new's own new and source counts, once it has read (one number on the page). */
-  counts?: { newToday: number; sources: number };
-}) {
+/** Find's scan control (Adrian 2026-11-08): no status text on the page. Signed in, the server syncs
+ *  every 15 minutes, so nothing shows. Signed out, nothing scans on its own: one compact Scan now
+ *  (Stop scan while it runs) beside the Review new heading. When it last scanned, the sources that
+ *  didn't answer and what was left out are the Account menu's Scan details (ScanDetailsDialog). */
+export function ScanStatus() {
   const { user } = useCloudSync();
-  return user ? <ServerUpdated /> : <ManualScan counts={counts} />;
+  return user ? null : <ScanButton />;
 }
 
-function ServerUpdated() {
-  const updated = useServerUpdated(true);
-  // Outside a live region: its minutes tick, and a screen reader must not announce it every minute.
-  return (
-    <Text variant="caption" as="p" tone="secondary">
-      {updated ?? 'Updates every 15 minutes'}
-    </Text>
-  );
-}
-
-function ManualScan({ counts }: { counts?: { newToday: number; sources: number } }) {
-  const { state, running, progress } = useScan();
+function ScanButton() {
+  const { running } = useScan();
   const input = useScanInput();
-  // Signed out, this browser alone scans (sync-postings' rotation is for a signed-in profile).
-  const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), false);
-  const line = running
-    ? progressLine(progress)
-    : (state.error ?? lastScannedLine(state, undefined, counts, scanning));
-  return (
-    <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-      <Text variant="caption" as="p" tone="secondary" role="status">
-        {line ?? 'Sign in for automatic updates.'}
-      </Text>
-      {running ? (
-        <Button size="sm" variant="tertiary" onClick={cancelScan}>
-          Stop scan
-        </Button>
-      ) : (
-        <Button
-          size="sm"
-          variant="secondary"
-          iconLeft={<Icon icon={RefreshCw} />}
-          onClick={() => void scanNow(input, undefined, { force: true })}
-        >
-          Scan now
-        </Button>
-      )}
-    </Stack>
+  return running ? (
+    <Button size="sm" variant="tertiary" onClick={cancelScan}>
+      Stop scan
+    </Button>
+  ) : (
+    <Button
+      size="sm"
+      variant="secondary"
+      iconLeft={<Icon icon={RefreshCw} />}
+      onClick={() => void scanNow(input, undefined, { force: true })}
+    >
+      Scan now
+    </Button>
   );
 }
 

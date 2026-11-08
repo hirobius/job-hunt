@@ -70,6 +70,22 @@ async function seedTrack() {
   });
 }
 
+/** A scan run since `since` has finished (Find shows no scan line since 2026-11-08: the run's end
+ *  is in its stored state). */
+async function scanFinished(page: Page, since: number, timeout = 60_000) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (JSON.parse(localStorage.getItem('rjb_autoscan') || '{}') as { finishedAt?: number })
+              .finishedAt ?? 0,
+        ),
+      { timeout },
+    )
+    .toBeGreaterThan(since);
+}
+
 for (const width of [390, 1440]) {
   test(`signed out nothing scans on open; Scan now finds the postings (${width})`, async ({
     page,
@@ -81,16 +97,22 @@ for (const width of [390, 1440]) {
     await page.goto('/#/find');
     // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
-    await expect(page.getByText('Sign in for automatic updates.')).toBeVisible();
+    // No status text on Find (Adrian 2026-11-08): only the compact Scan now.
+    await expect(page.getByRole('button', { name: 'Scan now' })).toBeVisible();
     await page.waitForTimeout(3000);
     expect(asked.filter((u) => u.includes('yc-oss.github.io'))).toEqual([]);
+    const since = await page.evaluate(() => Date.now());
     await page.getByRole('button', { name: 'Scan now' }).click();
-
+    await scanFinished(page, since);
+    // The scan's line is the Account menu's Scan details.
+    await page.getByRole('button', { name: 'Account' }).click();
+    await page.getByRole('menuitem', { name: 'Scan details' }).click();
+    const details = page.getByRole('dialog', { name: 'Scan details' });
     await expect(
-      page.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d, \d+ new$/),
-    ).toBeVisible({
-      timeout: 60_000,
-    });
+      details.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d, \d+ new$/),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(details).toBeHidden();
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(list.getByText('Senior Design Systems Engineer')).toBeVisible();
     // Remote only (Adrian 2026-10-28): Acme's on-site role is left out.
@@ -115,9 +137,9 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await network(page);
   await page.goto('/#/find');
   await page.evaluate(seedTrack);
+  const since = await page.evaluate(() => Date.now());
   await page.getByRole('button', { name: 'Scan now' }).click();
-  const status = page.getByText(/^Scanning [\d,]+ sources? · Last scanned /);
-  await expect(status).toBeVisible({ timeout: 60_000 });
+  await scanFinished(page, since);
 
   await page.getByRole('button', { name: 'Follow Acme' }).click();
   const notice = page.getByRole('region', { name: /^Notifications/ }).getByRole('listitem');
@@ -136,8 +158,9 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
 
+  const again = await page.evaluate(() => Date.now());
   await page.getByRole('button', { name: 'Scan now' }).click();
   await expect(page.getByRole('button', { name: 'Stop scan' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Scan now' })).toBeVisible({ timeout: 60_000 });
-  await expect(status).toBeVisible();
+  await scanFinished(page, again);
 });

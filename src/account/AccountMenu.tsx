@@ -23,7 +23,12 @@ import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
 import { openDocuments, openLegal } from '../route';
 import { useBackCloses } from '../useBackCloses';
 import { openExportLinks } from '../exportLinks';
-import { CompaniesDialog, SearchProfileDialog, useLoadedWhen } from '../lazyDialogs';
+import {
+  CompaniesDialog,
+  ScanDetailsDialog,
+  SearchProfileDialog,
+  useLoadedWhen,
+} from '../lazyDialogs';
 import { openRecentlyRemoved } from '../jobDialogs';
 import { useTrash } from '../trash';
 import './sheet.css';
@@ -51,6 +56,10 @@ export default function AccountMenu() {
   const [profile, setProfile] = useState(false);
   useBackCloses(profile, () => setProfile(false), 'search-profile');
   const profileReady = useLoadedWhen(SearchProfileDialog, profile, () => setProfile(false));
+  // Scan details (Adrian 2026-11-08): Find's freshness, source health and "not shown" counts.
+  const [details, setDetails] = useState(false);
+  useBackCloses(details, () => setDetails(false), 'scan-details');
+  const detailsReady = useLoadedWhen(ScanDetailsDialog, details, () => setDetails(false));
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
   useBackCloses(open, () => setOpen(false), 'account-menu');
@@ -120,11 +129,10 @@ export default function AccountMenu() {
           <Menu.Separator />
           {/* Documents (was Templates, #227) is a dialog over the page (#471 slice 4); it opens from
               here and the Apply sheet, and Back or Close returns to the page under it. */}
-          <Menu.Item onSelect={() => openDocuments('')}>
-            Documents
-          </Menu.Item>
+          <Menu.Item onSelect={() => openDocuments('')}>Documents</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
+          <Menu.Item onSelect={opensDialog(() => setDetails(true))}>Scan details</Menu.Item>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
           <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
           <Menu.Item onSelect={data.exportCsv} disabled={!data.canExport}>
@@ -143,11 +151,7 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
             Send feedback
           </Menu.Item>
-          <Menu.Item
-            onSelect={() => openLegal('privacy')}
-          >
-            Privacy and terms
-          </Menu.Item>
+          <Menu.Item onSelect={() => openLegal('privacy')}>Privacy and terms</Menu.Item>
           <Menu.Separator />
           <Menu.Label>Troubleshooting</Menu.Label>
           <Menu.Item onSelect={() => window.location.reload()}>Reload app</Menu.Item>
@@ -167,6 +171,11 @@ export default function AccountMenu() {
       </Menu>
       <Dialog open={companies && companiesReady} onOpenChange={setCompanies}>
         {companies && companiesReady && companiesDialog}
+      </Dialog>
+      <Dialog open={details && detailsReady} onOpenChange={setDetails}>
+        {details && detailsReady && (
+          <ScanDetailsDialog onCloseAutoFocus={refocusAccount(accountTrigger)} />
+        )}
       </Dialog>
       <Dialog open={profile && profileReady} onOpenChange={setProfile}>
         {profile && profileReady && (

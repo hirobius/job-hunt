@@ -195,7 +195,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Documents, Search profile, Companies, Back up, Restore…, Export CSV). Pillars and tracks are gone from the UI (ADR 0009).
+  data = Documents, Search profile, Companies, Scan details, Back up, Restore…, Export CSV). Pillars and tracks are gone from the UI (ADR 0009).
 - **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local; update baselines with `npm run test:visual -- --update-snapshots`). **Baselines are drawn only in the pinned Playwright image** (`e2e/visual-env.json`: image digest + its Chromium, #485): `test:visual` runs the spec there through Docker (`scripts/visual-docker.mjs`); elsewhere the spec skips and an update fails (`src/visualEnv.test.ts`). Bump the digest with `@playwright/test` and re-take every baseline in the same PR.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
@@ -525,10 +525,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   stated"). Kept per browser: `rjb_autoscan` (last run, lead queue, probed, found companies) and
   `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
-  `AutoScanViews.tsx`: `ScanStatus` (**Adrian 2026-11-08:** signed in only one quiet "Updated N min ago" from the
-  last `sync_log` run, "Updates every 15 minutes" before the first, no Scan now and no scan or "Read N of M boards"
-  progress (`ReviewView` hides it signed in); signed out one compact Scan now / Stop scan with "Last scanned hh:mm ·
-  N new from M sources" or the sign-in hint; pinned in `autoScanViews.test.tsx`, `review.test.tsx`,
+  `AutoScanViews.tsx`: `ScanStatus` (**Adrian 2026-11-08: no status text above Browse / Deck.** Signed in nothing (the
+  server syncs every 15 minutes); signed out one compact Scan now / Stop scan in Review new's heading row (`Panel
+  trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
+  signed out), the sources that didn't answer and the "not shown" counts are the Account menu's **Scan details**
+  (`ScanDetailsDialog.tsx`, lazy; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears
+  Review new's status. Pinned in `autoScanViews.test.tsx`, `review.test.tsx`, `todayHome.test.tsx`,
   `e2e/find-signed-in.spec.ts`) and
   `NewCompanies` (Follow → the board joins the Sources, Ignore → `muteCompany`, each with Undo), both on Today. With
   no Search profile yet the scan searches the design-system titles (`searchDefaults.ts`). Pinned in `feed/autoScan.test.ts`, `feed/identity.test.ts`, `autoScanViews.test.tsx`,

@@ -51,8 +51,7 @@ export default function Today() {
       {header}
       {picks}
       <Stack gap="normal">
-        <ScanStatus />
-        <Panel label="Review new" title="Review new" flat>
+        <Panel label="Review new" title="Review new" trailing={<ScanStatus />} flat>
           <PanelBody>
             {offline ? (
               <Text variant="caption" as="p" tone="secondary">

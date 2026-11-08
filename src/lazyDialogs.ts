@@ -1,5 +1,5 @@
 // Dialogs most visits never open, each in its own chunk (#371): the sign-in form (SignInHost) and
-// Export links (ExportLinksHost) and the Account menu's Companies list and Search profile. Their hosts stay in the shell and fetch them on the first open.
+// Export links (ExportLinksHost) and the Account menu's Companies list, Search profile and Scan details. Their hosts stay in the shell and fetch them on the first open.
 // Follow up, Add interview and Recently removed (#368 pass) load whole on their first open
 // (lazyHosts.tsx), and the job page's liveness note with the job page.
 import { useEffect, useRef, useState, type ComponentType } from 'react';
@@ -13,6 +13,7 @@ export const SignInDialog = lazyView(importFresh(() => import('./account/SignInD
 export const ExportLinksDialog = lazyView(importFresh(() => import('./ExportLinksDialog')));
 export const CompaniesDialog = lazyView(importFresh(() => import('./CompaniesDialog')));
 export const SearchProfileDialog = lazyView(importFresh(() => import('./SearchProfileDialog')));
+export const ScanDetailsDialog = lazyView(importFresh(() => import('./ScanDetailsDialog')));
 export const FollowUpHost = lazyView(
   importFresh(async () => named((await import('./FollowUp')).FollowUpHost)),
 );
@@ -34,6 +35,7 @@ export const preloadDialogs = () =>
       ExportLinksDialog,
       CompaniesDialog,
       SearchProfileDialog,
+      ScanDetailsDialog,
       FollowUpHost,
       AddInterviewHost,
       RecentlyRemovedHost,

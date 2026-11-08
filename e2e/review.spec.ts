@@ -59,8 +59,25 @@ async function setUp(page: Page) {
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
   await expect(page.getByRole('radio', { name: 'Browse' })).toBeVisible();
+  const since = await page.evaluate(() => Date.now());
   await page.getByRole('button', { name: 'Scan now' }).click();
-  await expect(page.getByText('Sign in for automatic updates.')).toHaveCount(0);
+  await scanFinished(page, since);
+}
+
+/** A scan run since `since` has finished (Find shows no scan line since 2026-11-08: the run's end
+ *  is in its stored state). */
+async function scanFinished(page: Page, since: number, timeout = 60_000) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (JSON.parse(localStorage.getItem('rjb_autoscan') || '{}') as { finishedAt?: number })
+              .finishedAt ?? 0,
+        ),
+      { timeout },
+    )
+    .toBeGreaterThan(since);
 }
 
 for (const width of [390, 1440]) {
@@ -68,20 +85,23 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await setUp(page);
     await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
-    // One count on the page: the scan's line says the sources scanned and the Feed's new count.
+    // No status text above Browse / Deck (Adrian 2026-11-08): no scan line, counts or progress.
     await expect(
-      page.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d, \d+ new$/),
-    ).toBeVisible({
-      timeout: 60_000,
-    });
-    await expect(page.getByText(/new today from/)).toHaveCount(0);
-    // Every board has answered.
-    await expect(page.getByText(/^Read \d+ of \d+ boards$/)).toHaveCount(0, { timeout: 15_000 });
+      page.getByText(
+        /^Scanning |^Last scanned|^Read \d+ of \d+ boards$|unavailable · details|^Not shown/,
+      ),
+    ).toHaveCount(0);
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(list.getByRole('listitem')).toHaveCount(3);
     // No fit tiers: every design-system posting is in the one list; the rest are counted. (The
     // HN source keeps a post only when it says a searched title, so Nimbus's is never read.)
-    await expect(page.getByText(/1 not design-system roles/)).toBeVisible();
+    // The count is in the Account menu's Scan details (Adrian 2026-11-08), not on the page.
+    await page.getByRole('button', { name: 'Account' }).click();
+    await page.getByRole('menuitem', { name: 'Scan details' }).click();
+    const details = page.getByRole('dialog', { name: 'Scan details' });
+    await expect(details.getByText(/1 not design-system roles/)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(details).toBeHidden();
     for (const scheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.screenshot({ path: `test-results/review-${width}-${scheme}.png`, fullPage: true });

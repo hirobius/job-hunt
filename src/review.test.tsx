@@ -34,7 +34,7 @@ import { addSources, getSources, replaceSources } from './sources';
 import { SEEN_KEY, getAllDecided, postingFingerprint, unmuteCompany } from './feed/decided';
 import { resetScan, runScan } from './feed/autoScan';
 import { resetViewMemory } from './viewMemory';
-import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
+import { getScanDetails } from './feed/scanDetails';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -107,8 +107,8 @@ const titles = (ul: HTMLElement) =>
     .getAllByRole('heading', { level: 3 })
     .map((h) => h.textContent?.replace(/\s*\(opens in new tab\)$/, ''));
 
-describe('Review new: board progress (Adrian 2026-11-08)', () => {
-  const reading = () => {
+describe('Review new: no board progress on the page (Adrian 2026-11-08)', () => {
+  it('never says "Read N of M boards", signed in or out', async () => {
     // A read in flight: no board has answered yet.
     feed.fetchFeed.mockReset().mockImplementation(
       (req: { onProgress?: (p: object) => void }) =>
@@ -116,25 +116,9 @@ describe('Review new: board progress (Adrian 2026-11-08)', () => {
           req.onProgress?.({ ...result([]), boardsDone: 0, boardsTotal: 250 });
         }),
     );
-  };
-  it('signed out, says how many boards it has read', async () => {
-    reading();
     renderReview();
-    expect(await screen.findByText(/^Read \d+ of \d+ boards$/)).toBeInTheDocument();
-  });
-  it('signed in, never: the server syncs every 15 minutes', async () => {
-    reading();
-    render(
-      <CloudSyncContext.Provider
-        value={{ user: { id: 'u1', email: 'a@b.c' }, settled: true } as CloudSyncApi}
-      >
-        <ToastProvider>
-          <ReviewView />
-        </ToastProvider>
-      </CloudSyncContext.Provider>,
-    );
     await screen.findByText('Browse');
-    // Past the 1 s repaint that shows the progress signed out.
+    // Past the 1 s repaint that would show progress.
     await new Promise((r) => setTimeout(r, 1500));
     expect(screen.queryByText(/^Read \d+ of \d+ boards$/)).toBeNull();
   });
@@ -161,11 +145,13 @@ describe('Review new: Browse', () => {
     const { container } = renderReview();
     const ul = await list();
     expect(titles(ul)).toHaveLength(3);
-    expect(screen.getByText('3 new today from 2 sources')).toBeInTheDocument();
-    // Sources that didn't answer are one quiet line; the reasons wait behind it.
-    expect(screen.queryByText(/^Jobicy: timed out/)).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /^1 source unavailable/ }));
-    expect(screen.getByText(/^Jobicy: timed out/)).toBeInTheDocument();
+    // Said to a screen reader only: no status text above Browse / Deck (Adrian 2026-11-08).
+    expect(screen.getByRole('status')).toHaveTextContent('3 new today from 2 sources');
+    // Sources that didn't answer are the Account menu's Scan details, not a line on the page.
+    expect(screen.queryByText(/source unavailable/)).toBeNull();
+    expect(getScanDetails()?.failed.map((f) => f.label)).toEqual([
+      expect.stringMatching(/^Jobicy/),
+    ]);
     // The posting is one tap away beside each title.
     expect(
       within(ul).getByRole('link', { name: 'Open posting for Design Systems Designer at Beta' }),
@@ -483,7 +469,9 @@ describe('Review new: every design-system posting, no tiers', () => {
     const ul = await list();
     expect(titles(ul)).toEqual(['Design Technologist', 'Design Systems Engineer']);
     expect(screen.queryByRole('region', { name: 'Review' })).toBeNull();
-    expect(screen.getByText(/2 not design-system roles/)).toBeInTheDocument();
+    // Counted for Scan details (the Account menu), not shown on the page (Adrian 2026-11-08).
+    expect(screen.queryByText(/not design-system roles/)).toBeNull();
+    expect(getScanDetails()?.hidden).toContain('2 not design-system roles');
     expect(within(ul).getByText('Related title')).toBeInTheDocument();
   });
 

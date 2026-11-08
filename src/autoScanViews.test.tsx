@@ -3,8 +3,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ToastProvider } from '@hirobius/design-system';
+import { Dialog, ToastProvider } from '@hirobius/design-system';
 import { NewCompanies, ScanStatus } from './AutoScanViews';
+import ScanDetailsDialog from './ScanDetailsDialog';
+import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import NoticeHost from './NoticeHost';
 import { dismissNotice } from './saveNotice';
 import {
@@ -24,7 +26,7 @@ import { getAllDecided } from './feed/decided';
 import type { PostingReader } from './feed/reader';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import { feedKeys, resetBoardSetKeys } from './feed/scanningCount';
-import { replaceProfiles, type Profile } from './profile';
+import { replaceProfiles } from './profile';
 
 // The server's last sync run (#448), as sync_log would answer it.
 const server = vi.hoisted(() => ({ at: null as string | null }));
@@ -105,59 +107,94 @@ const renderViews = ({ signedIn = false } = {}) =>
     </CloudSyncContext.Provider>,
   );
 
-describe('ScanStatus', () => {
-  it('says when nothing was scanned yet, then the last scan’s time and counts', async () => {
+describe('ScanStatus (Adrian 2026-11-08: no status text on Find)', () => {
+  it('signed out: one compact Scan now and no line on the page', async () => {
     renderViews();
-    // Signed out nothing scans on its own (Adrian 2026-11-08): Scan now, and a hint to sign in.
-    expect(screen.getByRole('status')).toHaveTextContent('Sign in for automatic updates.');
+    expect(screen.getByRole('button', { name: 'Scan now' })).toBeEnabled();
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
-    // Signed out: only what this browser reads, the feeds and Acme's confirmed board (Forward's
-    // unconfirmed board is never read).
+    expect(screen.queryByText(/^Scanning |^Last scanned|^Not scanned|^Updated /)).toBeNull();
+  });
+
+  it('signed in: nothing at all (the server syncs every 15 minutes)', async () => {
+    server.at = new Date(Date.now() - 4 * 60_000).toISOString();
+    const { container } = renderViews({ signedIn: true });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
+    expect(container.textContent).not.toMatch(/Updated|Scanning|scanned/);
+  });
+});
+
+describe('Scan details (the Account menu)', () => {
+  const renderDetails = ({ signedIn = false } = {}) =>
+    render(
+      <CloudSyncContext.Provider
+        value={{ user: signedIn ? { id: 'u1', email: 'a@b.c' } : null } as CloudSyncApi}
+      >
+        <Dialog open>
+          <ScanDetailsDialog />
+        </Dialog>
+      </CloudSyncContext.Provider>,
+    );
+  afterEach(() => setScanDetails(null));
+
+  it('signed out: not scanned yet, then the last scan’s time and counts', async () => {
+    renderDetails();
+    expect(screen.getByText(/^Not scanned yet/)).toBeInTheDocument();
+    await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+    // Only what this browser reads: the feeds and Acme's confirmed board (Forward's unconfirmed
+    // board is never read).
     const browser = feedKeys().length + 1;
     expect(
       await screen.findByText(
         new RegExp(`^Scanning ${browser} sources · Last scanned \\d\\d:\\d\\d, 1 new$`),
       ),
-    ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Scan now' })).toBeEnabled();
+    ).toBeInTheDocument();
   });
 
-  it('signed in: no Scan now and no scan line, only when the server last updated (2026-11-08)', async () => {
-    replaceProfiles([dsProfile]);
-    // A scan this browser ran earlier says nothing signed in: the server's sync is the news.
-    await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+  it('signed in: when the server last updated, or how often before its first run', async () => {
     server.at = new Date(Date.now() - 4 * 60_000).toISOString();
-    renderViews({ signedIn: true });
-    expect(await screen.findByText('Updated 4 min ago')).toBeVisible();
-    expect(screen.queryByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
-    expect(screen.queryByText(/^Scanning |^Last scanned|^Not scanned/)).toBeNull();
-    // Its minutes tick: never a live region a screen reader reads out every minute.
-    expect(screen.queryByRole('status')).toBeNull();
+    renderDetails({ signedIn: true });
+    expect(await screen.findByText('Updated 4 min ago')).toBeInTheDocument();
+    cleanup();
+    server.at = null;
+    renderDetails({ signedIn: true });
+    expect(await screen.findByText('Updates every 15 minutes.')).toBeInTheDocument();
   });
 
-  it('signed in before the server’s first run: says how often it updates', async () => {
-    server.at = null;
-    renderViews({ signedIn: true });
-    expect(await screen.findByText('Updates every 15 minutes')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
+  it('lists what Review new left out and each source that didn’t answer, with why', () => {
+    setScanDetails({
+      failed: [
+        { label: 'Acme · Greenhouse', error: 'Acme — no answer' },
+        { label: 'Remotive · design system', error: 'daily limit reached' },
+      ],
+      hidden: hiddenParts({
+        saved: 1,
+        decided: 2,
+        muted: 0,
+        include: 12,
+        exclude: 0,
+        seniority: 0,
+        salary: 0,
+      }),
+      newToday: 3,
+      sourcesRead: 9,
+    });
+    renderDetails();
+    expect(screen.getByText('1 saved, 2 skipped, 12 not design-system roles')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '2 sources unavailable' })).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Sources unavailable' });
+    expect(within(list).getByText('Acme: no answer')).toBeInTheDocument();
+    expect(
+      within(list).getByText("Remotive: today's free searches are used up, more tomorrow."),
+    ).toBeInTheDocument();
+  });
+
+  it('before Find has read: says to open Find', () => {
+    renderDetails();
+    expect(screen.getByText(/^Open Find to read your sources/)).toBeInTheDocument();
   });
 });
 
-const dsProfile: Profile = {
-  id: 'main',
-  label: 'Design Systems',
-  titles: ['Design Systems Designer'],
-  titlesOff: [],
-  atsRoles: [],
-  atsOff: [],
-  include: { terms: ['design system'] },
-  leaveOut: [],
-  level: 'any',
-  location: '',
-  mode: 'any',
-  scorer: 'design-systems',
-  createdAt: '2026-10-28T00:00:00.000Z',
-};
 
 describe('NewCompanies', () => {
   it('lists what the scan found; an unconfirmed board says so', async () => {
