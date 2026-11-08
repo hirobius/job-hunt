@@ -113,20 +113,26 @@ p {
   overflow-wrap: anywhere;
 }
 
+/* The phone touch size: 44px (retro quick wins, 2026-11-08; HDS's own touch minimum under 640). */
+:root {
+  --rjb-touch: calc(var(--primitive-space-10) + var(--primitive-space-1));
+}
+
 /* Phone touch targets (#133): HDS's sm controls (segmented tool strip, tabs, chips, disclosure
- * triggers) are 18-39px tall. Raise every button to 40px on a phone; the e2e probe holds it.
- * Upstream ask: a touch size for these controls (hds#750). */
+ * triggers) are 18-39px tall. Raise every control to 44px on a phone, HDS's touch minimum; the e2e
+ * probe holds it. Upstream ask: a touch size for these controls (hds#750). */
 @media (max-width: 639px) {
-  /* HDS raises .h-10/.h-9/.h-8 to 44px under 639px: button-styled links (Button asChild) and
-   * inputs come down to 40 with the buttons, so a row of actions or a field + Fill line up. */
   [data-hds] button,
   [data-hds] a.h-10,
   [data-hds] a.h-9,
   [data-hds] a.h-8,
   [data-hds] input,
+  [data-hds] select,
   [data-hds] [role='tab'],
-  [data-hds] [role='radio'] {
-    min-height: var(--primitive-space-10);
+  [data-hds] [role='radio'],
+  [data-hds] [role='menuitem'],
+  [data-hds] [role='menuitemradio'] {
+    min-height: var(--rjb-touch);
   } /* That rule widens HDS's 'Clear input' button to 44px, but the input keeps 28px of end padding,
    * so typed text ran under the ×. Pad the text clear of the wider button. Upstream ask: the
    * input's end padding should follow the clear button's width (docs/hds-upstream-asks-0.9.md). */
@@ -336,10 +342,7 @@ p {
  * (`.h-8 { min-height }`, `.w-8[class*=h-8] { min-width }` below 640) also hits the Avatar span,
  * which is not a control, inflating it to 44px inside its 40px button and pushing the badge off
  * the circle. Upstream ask: the touch-size rule must not target Avatar (docs/hds-upstream-asks-0.9.md). */
-/* The same rule widens the 40px icon button to 44: hold it at the app's 40px phone target. */
-[data-hds] .rjb-account {
-  min-width: var(--primitive-space-10);
-}
+/* The same rule widens the icon button to 44 on a phone: the app's phone target since 2026-11-08. */
 
 [data-hds] .rjb-avatar {
   min-width: 0;
@@ -395,6 +398,12 @@ p {
   border-bottom-color: var(--semantic-color-content-primary);
 }
 
+@media (max-width: 639px) {
+  .rjb-top-tab {
+    min-height: var(--rjb-touch);
+  }
+}
+
 [data-hds] .rjb-top-tab:focus-visible {
   outline: var(--semantic-focus-ring-width) solid var(--semantic-focus-ring-color);
   outline-offset: var(--semantic-focus-gap-width);
@@ -442,10 +451,10 @@ p {
   text-underline-offset: 3px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 639px) {
   [data-hds] .rjb-inline-link {
-    min-height: var(--primitive-space-10);
-    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+    min-height: var(--rjb-touch);
+    margin-block: calc((1lh - var(--rjb-touch)) / 2);
     vertical-align: middle;
   }
 }
@@ -471,11 +480,11 @@ p {
 
 @media (max-width: 639px) {
   [data-hds] .rjb-posting-link {
-    min-width: var(--primitive-space-10);
-    min-height: var(--primitive-space-10);
-    width: var(--primitive-space-10);
-    height: var(--primitive-space-10);
-    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+    min-width: var(--rjb-touch);
+    min-height: var(--rjb-touch);
+    width: var(--rjb-touch);
+    height: var(--rjb-touch);
+    margin-block: calc((1lh - var(--rjb-touch)) / 2);
   }
 }
 
@@ -503,7 +512,7 @@ p {
 
 @media (max-width: 639px) {
   [data-hds] .rjb-posting-rows > li {
-    min-height: var(--primitive-space-10);
+    min-height: var(--rjb-touch);
   }
 }
 
@@ -531,8 +540,8 @@ p {
  * line instead of pushing the source label and the title apart. */
 @media (max-width: 639px) {
   [data-hds] button.rjb-badge-button {
-    min-height: var(--primitive-space-10);
-    margin-block: calc((var(--primitive-space-5) - var(--primitive-space-10)) / 2);
+    min-height: var(--rjb-touch);
+    margin-block: calc((var(--primitive-space-5) - var(--rjb-touch)) / 2);
   }
 }
 
@@ -598,7 +607,7 @@ p {
 
 /* Select trigger text (HDS gap, registry: "Select trigger text centred and wrapping"): HDS Select
  * centres its value and lets it wrap, so a long job label in "Fill for" on a phone breaks onto two
- * centred lines and the trigger grows past the 40px fields under it. One start-aligned line with an
+ * centred lines and the trigger grows past the 44px fields under it. One start-aligned line with an
  * ellipsis, like a native select. */
 [data-hds] button[role='combobox'] > span:first-child {
   flex: 1 1 auto;

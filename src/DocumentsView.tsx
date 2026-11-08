@@ -108,6 +108,8 @@ export default function DocumentsView() {
     />
   );
   const isOpen = route.documents !== null && route.documents !== undefined;
+  // The library's "No documents yet" (retro quick wins, 2026-11-08: the subtitle repeated it).
+  const empty = !editing && !docs.some((d) => d.base);
   const onCloseAutoFocus = useDialogFocus(isOpen);
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && closeDialog()}>
@@ -115,14 +117,18 @@ export default function DocumentsView() {
         size="xl"
         className="rjb-dialog rjb-docs-dialog"
         onCloseAutoFocus={onCloseAutoFocus}
+        // With no documents the empty state says what goes here: no subtitle repeating it.
+        {...(empty && { 'aria-describedby': undefined })}
       >
         <Dialog.Header>
           <Dialog.Title>Documents</Dialog.Title>
-          <Dialog.Description>
-            <Text variant="caption" as="span" tone="secondary">
-              Résumés, cover letters, outreach messages and notes.
-            </Text>
-          </Dialog.Description>
+          {!empty && (
+            <Dialog.Description>
+              <Text variant="caption" as="span" tone="secondary">
+                Résumés, cover letters, outreach messages and notes.
+              </Text>
+            </Dialog.Description>
+          )}
         </Dialog.Header>
         <Box
           className={wide ? 'rjb-dialog-body rjb-docs-body' : 'rjb-dialog-body'}

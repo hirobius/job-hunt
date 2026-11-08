@@ -84,6 +84,17 @@ describe('the Documents page', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('with no documents, no subtitle repeats the empty state; with some, it says what goes here', async () => {
+    replaceSnippets([]);
+    await renderApp();
+    const dialog = await screen.findByRole('dialog', { name: 'Documents' });
+    expect(await within(dialog).findByText('No documents yet')).toBeInTheDocument();
+    const subtitle = /^Résumés, cover letters, outreach messages and notes\.$/;
+    expect(within(dialog).queryByText(subtitle)).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add starter messages' }));
+    expect(await within(dialog).findByText(subtitle)).toBeInTheDocument();
+  });
+
   it('the Menu opens Documents', async () => {
     window.location.hash = '#/apply';
     await renderApp();
