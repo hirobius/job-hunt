@@ -521,34 +521,46 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }, []);
 
   // Set the session a link brought, then check it is the account the link named.
-  async function acceptLink(tokens: AuthTokens, email: string, failMsg = BAD_LINK_MSG) {
+  /** Take a link's session up. True once this browser holds a real session for `email`; on any
+   *  failure false, and (unless `quiet`, when the caller says it in place) a toast says so. */
+  async function acceptLink(
+    tokens: AuthTokens,
+    email: string,
+    failMsg = BAD_LINK_MSG,
+    quiet = false,
+  ): Promise<boolean> {
     clearSignInRequest();
     linkEmail.current = email;
+    const fail = () => {
+      if (!quiet) toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
+      return false;
+    };
     try {
       const supa = await loadSupabase();
       const r = await supa.auth.setSession(tokens);
-      if (r.error || !r.data.user) {
-        toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
-        return;
-      }
+      if (r.error || !r.data.user) return fail();
       if (!sameEmail(r.data.user.email, email)) {
         await supa.auth.signOut({ scope: 'local' });
-        toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
+        return fail();
       }
+      return true;
     } catch {
-      toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
+      return fail();
     } finally {
       linkEmail.current = null;
     }
   }
-  // Sign in on the confirm screen: the link is taken up at once; the screen stays for its short
-  // "Signed in" hand-over and closes itself (closeLink). A second press does nothing.
+  // Sign in on the confirm screen: the screen says "Signing in…" until the session is real, then
+  // "Signed in" and its hand-over, and closes itself (closeLink). On a failure it stays, with the
+  // reason in place (no toast behind it). A second press while one runs does nothing.
   const linkTaken = useRef(false);
-  const confirmLink = () => {
+  const confirmLink = async (): Promise<boolean> => {
     const ask = linkAsk;
-    if (!ask || linkTaken.current) return;
+    if (!ask || linkTaken.current) return false;
     linkTaken.current = true;
-    void acceptLink(ask.tokens, ask.email);
+    const ok = await acceptLink(ask.tokens, ask.email, BAD_LINK_MSG, true);
+    if (!ok) linkTaken.current = false;
+    return ok;
   };
   const closeLink = () => {
     linkTaken.current = false;

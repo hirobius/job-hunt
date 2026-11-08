@@ -120,6 +120,26 @@ describe('an unsolicited sign-in link (no request from this browser)', () => {
     expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
   });
 
+  it('Sign in says "Signing in…" until the session is real; a failure stays with the reason in place', async () => {
+    // The server answers for another account than the link named: no session is kept.
+    h.opts = { linkUser: () => 'someone.else@example.com' }; // pii-allow
+    await boot(linkFor(ME));
+    const screenEl = await screen.findByRole('dialog', { name: `Sign in as ${ME}?` });
+    await userEvent.click(within(screenEl).getByRole('button', { name: 'Sign in' }));
+    // Never "Signed in" for a session that isn't real (#515 review).
+    expect(await within(screenEl).findByRole('alert')).toHaveTextContent(
+      'That sign-in link could not be used.',
+    );
+    expect(screen.queryByRole('heading', { name: 'Signed in' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: `Sign in as ${ME}?` })).toBeInTheDocument();
+    expect(screen.getByText('out')).toBeInTheDocument();
+    // Said in place, not in a toast behind the screen.
+    expect(screen.queryByText("Couldn't sign in")).toBeNull();
+    // Cancel still drops it.
+    await userEvent.click(within(screenEl).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('a link opened on another device (empty here) asks, then signs in and syncs', async () => {
     await boot(linkFor(ME));
     await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));

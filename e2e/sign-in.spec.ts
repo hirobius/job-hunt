@@ -127,7 +127,18 @@ for (const [width, height] of [
     ).toBeVisible();
     expect(await at()).toEqual(form);
     await page.screenshot({ path: `test-results/signin-confirm-${width}.png` });
-    // Sign in: a short "Signed in", then the brand moves to the app bar and the screen goes.
+    // Sign in: "Signing in…" until the session is real (the auth server answers for this user
+    // here), then a short "Signed in", the brand moves to the app bar and the screen goes.
+    await page.route(/supabase\.co\/auth\/v1\/user/, (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'x', aud: 'authenticated', email: 'someone@example.test' }), // pii-allow
+      }),
+    );
+    await page.route(/supabase\.co\/rest\//, (r) =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+    );
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible();
     await page.screenshot({ path: `test-results/signin-done-${width}.png` });
@@ -136,3 +147,22 @@ for (const [width, height] of [
     await expect(page.locator('.rjb-signin-screen')).toHaveCount(0, { timeout: 3000 });
   });
 }
+
+// #515 review: "Signed in" only for a real session. A link the auth server refuses stays on the
+// confirm step with the reason in place.
+test('a refused link stays on the confirm step with the reason, never "Signed in"', async ({
+  page,
+}) => {
+  await page.route(/supabase\.co\/auth\/v1\/user/, (r) =>
+    r.fulfill({ status: 401, contentType: 'application/json', body: '{"message":"bad jwt"}' }),
+  );
+  await page.goto(
+    `/#access_token=${tokenFor('someone@example.test')}&refresh_token=r&token_type=bearer&type=magiclink`, // pii-allow
+  );
+  const ask = page.getByRole('dialog', { name: 'Sign in as someone@example.test?' }); // pii-allow
+  await expect(ask).toBeVisible();
+  await ask.getByRole('button', { name: 'Sign in' }).click();
+  await expect(ask.getByRole('alert')).toContainText('That sign-in link could not be used.');
+  await expect(page.getByRole('heading', { name: 'Signed in' })).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/signin-refused-390.png' });
+});

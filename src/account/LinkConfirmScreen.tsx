@@ -1,13 +1,13 @@
 // "Sign in as x@y.com?" (the login-injection guard, security audit 2026-10-22) as a full-screen pii-allow
 // step in the sign-in layout (sign-in layout PR, 2026-11-08): the same brand at the same place,
 // the security copy, Sign in (primary) and Cancel (quiet). Closing it any way (Cancel, Escape,
-// Back) is the safe answer: the link is dropped. After Sign in a short "Signed in" state shows,
-// then the flame and wordmark move up to the app bar's logo (under 400 ms; a crossfade under
-// reduced motion). The link is taken up on the press (acceptLink, then the merge ask if this
-// device has data); the screen only stays for the hand-over.
+// Back) is the safe answer: the link is dropped. Sign in says "Signing in…" until the session is
+// real; then a short "Signed in" state shows and the flame and wordmark move up to the app bar's
+// logo (under 400 ms; a crossfade under reduced motion). A failure stays here, said in place,
+// with Cancel or another try. After that the guard goes on (the merge ask if this device has data).
 // Its own chunk (lazyDialogs.ts): most visits never see it.
 import { useRef, useState } from 'react';
-import { Button, Dialog, Stack, Text } from '@hirobius/design-system';
+import { Alert, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { useBackCloses } from '../useBackCloses';
 import { SignInShell } from './SignInShell';
 
@@ -63,29 +63,40 @@ export default function LinkConfirmScreen({
   onCancel,
 }: {
   email: string;
-  /** Sign in was pressed: take the link up now (the screen stays for its "Signed in" state). */
-  onSignIn: () => void;
+  /** Sign in was pressed: take the link up. Resolves true once the session is real. */
+  onSignIn: () => Promise<boolean>;
   /** The brand has reached the app bar: close the screen. */
   onDone: () => void;
   onCancel: () => void;
 }) {
   const [done, setDone] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const brandRef = useRef<HTMLDivElement>(null);
   const screenRef = useRef<HTMLDivElement | null>(null);
   // Back is Cancel, while it still asks.
   useBackCloses(!done, onCancel, 'auth-link-confirm');
 
-  const signIn = () => {
-    if (done) return;
+  // "Signed in" only once the session is real (#515 review): "Signing in…" on the button until
+  // then; a failure stays here with the reason in place, and Cancel or another try.
+  const signIn = async () => {
+    if (done || pending) return;
+    setPending(true);
+    setError(null);
+    const ok = await onSignIn();
+    setPending(false);
+    if (!ok) {
+      setError('That sign-in link could not be used. Send a new one from Account.');
+      return;
+    }
     setDone(true);
-    onSignIn();
     setTimeout(() => {
       void moveBrand(brandRef.current, screenRef.current).then(onDone);
     }, SIGNED_IN_HOLD_MS);
   };
 
   return (
-    <Dialog open={!!email} onOpenChange={(o) => !o && !done && onCancel()}>
+    <Dialog open={!!email} onOpenChange={(o) => !o && !done && !pending && onCancel()}>
       <SignInShell
         brandRef={brandRef}
         onOpenAutoFocus={(e) => {
@@ -115,11 +126,22 @@ export default function LinkConfirmScreen({
                 This link signs this browser in to that account. Only continue if you asked for it.
               </Dialog.Description>
             </Dialog.Header>
+            {error && <Alert tone="danger">{error}</Alert>}
             <Stack gap="tight">
-              <Button variant="primary" className="sign-in-dialog__primary" onClick={signIn}>
-                Sign in
+              <Button
+                variant="primary"
+                className="sign-in-dialog__primary"
+                loading={pending}
+                onClick={() => void signIn()}
+              >
+                {pending ? 'Signing in…' : 'Sign in'}
               </Button>
-              <Button variant="tertiary" className="sign-in-dialog__primary" onClick={onCancel}>
+              <Button
+                variant="tertiary"
+                className="sign-in-dialog__primary"
+                disabled={pending}
+                onClick={onCancel}
+              >
                 Cancel
               </Button>
             </Stack>
