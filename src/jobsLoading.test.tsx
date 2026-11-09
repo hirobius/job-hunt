@@ -12,8 +12,9 @@ vi.mock('./supabase', async (orig) => ({
   needsClientAtBoot: () => true,
 }));
 
+const retry = vi.fn();
 const sync = (settled: boolean, offline = false) =>
-  ({ settled, offline }) as unknown as CloudSyncApi;
+  ({ settled, offline, retry }) as unknown as CloudSyncApi;
 const at = (value: CloudSyncApi) =>
   render(
     <ToastProvider>
@@ -36,8 +37,13 @@ describe('Jobs tab while the cloud copy loads (#478)', () => {
     expect(screen.getByText('Track your first job')).toBeInTheDocument();
   });
 
-  it('offline, there is nothing to wait for', () => {
+  it('offline, there is nothing to wait for: it says the jobs could not load, with Try again (never 0)', () => {
     at(sync(false, true));
     expect(screen.queryByText('Loading your jobs…')).toBeNull();
+    expect(screen.queryByText('Track your first job')).toBeNull();
+    expect(screen.getByText("Your jobs couldn't load")).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
+    screen.getByRole('button', { name: 'Try again' }).click();
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 });

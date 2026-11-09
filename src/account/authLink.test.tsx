@@ -22,12 +22,17 @@ import { buildReport } from '../errorReport';
 const h = vi.hoisted(() => ({
   fake: null as null | ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>,
   opts: {} as Parameters<typeof import('../test/fakeSupabase').createFakeSupabase>[0],
+  /** Runs as the client is made (before any read), to park a call. */
+  onCreate: null as
+    | null
+    | ((f: ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>) => void),
 }));
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('../test/fakeSupabase');
   return {
     createClient: () => {
       h.fake = createFakeSupabase(h.opts);
+      h.onCreate?.(h.fake);
       return h.fake.client;
     },
   };
@@ -41,6 +46,7 @@ const linkFor = (email: string) =>
 beforeEach(() => {
   h.fake = null;
   h.opts = {};
+  h.onCreate = null;
   localStorage.clear();
   vi.resetModules(); // authFragment reads the URL once per load: each test boots a fresh app
 });
@@ -59,12 +65,13 @@ async function boot(hash: string, opts: { job?: boolean } = {}) {
   const { default: CloudSyncProvider } = await import('./CloudSyncProvider');
   const { useCloudSync } = await import('./accountContext');
   function Probe() {
-    const { user } = useCloudSync();
+    const { user, settled } = useCloudSync();
     // A page with its own h1, where focus lands after a confirm closes (#516 review).
     return (
       <main>
         <h1>Page</h1>
         <span>{user ? `in:${user.email}` : 'out'}</span>
+        <span>{settled ? 'settled' : 'waiting'}</span>
       </main>
     );
   }
@@ -223,6 +230,20 @@ describe('a link whose token was refreshed (TOKEN_REFRESHED, not SIGNED_IN)', ()
     expect(screen.getByText(`in:${ME}`)).toBeInTheDocument();
     store.addJob('https://jobs.example.org/another', 'Another role');
     await waitFor(() => expect(h.fake!.tables.tracker[0].data.jobs).toHaveLength(2));
+  });
+});
+
+describe('settled waits for the first cloud read (#478 follow-up)', () => {
+  it('signed in, it is not settled until the first pull has landed, even before it starts', async () => {
+    rememberSignInRequest(ME);
+    // Hold the account's first read of its cloud copy.
+    let release = () => {};
+    h.onCreate = (f) => (release = f.holdNext('tracker', 'select'));
+    await boot(linkFor(ME));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(screen.getByText('waiting')).toBeInTheDocument();
+    release();
+    expect(await screen.findByText('settled')).toBeInTheDocument();
   });
 });
 

@@ -47,6 +47,27 @@ export default function TrackerView() {
   // Decided once, as the page opens: only a stored session has a cloud copy on its way.
   const [signedIn] = useState(() => needsClientAtBoot());
   const waiting = jobs.length === 0 && signedIn && !!sync && !sync.settled && !sync.offline;
+  // The cloud read failed with nothing here: say so, with Retry, never "Track your first job" (a
+  // false 0 for an account that has jobs).
+  if (jobs.length === 0 && signedIn && sync?.offline)
+    return (
+      <Stack gap="px24">
+        <Text as="h1" variant="title">
+          Apply
+        </Text>
+        <EmptyState
+          framed
+          icon={Briefcase}
+          title="Your jobs couldn't load"
+          description="This device can't reach your account right now. Check the connection, then try again."
+          action={
+            <UiButton variant="primary" onClick={sync.retry}>
+              Try again
+            </UiButton>
+          }
+        />
+      </Stack>
+    );
   if (waiting)
     return (
       <Stack gap="normal">

@@ -143,6 +143,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const [accountTrigger, setAccountTrigger] = useState<HTMLButtonElement | null>(null);
   // True while a pull (adopt) is running: "settled" means none is, and the last one didn't fail.
   const [pulling, setPulling] = useState(false);
+  // The user whose first cloud read has finished (landed or failed) in this tab. Until then a
+  // signed-in device is not settled, even before that read starts (#478 follow-up: between the
+  // session answering and the pull starting, the Jobs tab read as "no jobs").
+  // A ref: it is set just before `pulling` turns false, which re-renders the context.
+  const pulledFor = useRef<string | null>(null);
   // False until Supabase reports the stored session (or its absence), so signed-in users don't
   // see the signed-out nudge flash on load. With no session stored (and no magic link returning)
   // the client isn't loaded at all (supabase.ts): signed out, answered a tick later as before.
@@ -392,6 +397,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       setCurationSyncStatus('error');
       if (!tabFrozen()) setMsg(OFFLINE_MSG);
     } finally {
+      pulledFor.current = u.id;
       setPulling(false);
     }
   }
@@ -835,7 +841,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       // Signed out: settled once the session check answers. Signed in: no pull running and the
       // last one didn't fail — an offline device can't know a job is gone, so it doesn't decide.
       // Track write failures don't count: they don't make a job's absence uncertain.
-      settled: authResolved && (!user || (!pulling && msg !== OFFLINE_MSG)),
+      settled:
+        authResolved &&
+        (!user || (pulledFor.current === user.id && !pulling && msg !== OFFLINE_MSG)),
       status: msg,
       offline,
       sendLink,
