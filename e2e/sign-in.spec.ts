@@ -48,7 +48,12 @@ test('the keyboard opening: the brand stays centred and stacked, and shrinks smo
       page.evaluate(() => window.visualViewport!.height),
       logo.locator('> svg').boundingBox(),
       logo.locator('> span').boundingBox(),
-      logo.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+      // The logo scales with transform (2026-11-09): its drawn size, as type px of a 40px logo.
+      logo.evaluate(
+        (el) =>
+          parseFloat(getComputedStyle(el).fontSize) *
+          (el.getBoundingClientRect().height / (el as HTMLElement).offsetHeight),
+      ),
     ]);
     return { vv, flame: flame!, name: name!, size };
   };
@@ -65,11 +70,11 @@ test('the keyboard opening: the brand stays centred and stacked, and shrinks smo
     expect(Math.abs(s.flame.x + s.flame.width / 2 - 195)).toBeLessThanOrEqual(2);
     expect(Math.abs(s.name.x + s.name.width / 2 - 195)).toBeLessThanOrEqual(2);
   }
-  expect(steps[0].size).toBe(40);
-  expect(steps.at(-1)!.size).toBe(20);
+  expect(steps[0].size).toBeCloseTo(40, 0);
+  expect(steps.at(-1)!.size).toBeCloseTo(20, 0);
   // Down with the height, never a jump: at most 5px of type for each 80px of screen.
   for (let i = 1; i < steps.length; i++) {
-    expect(steps[i].size).toBeLessThanOrEqual(steps[i - 1].size);
+    expect(steps[i].size).toBeLessThanOrEqual(steps[i - 1].size + 0.01);
     expect(steps[i - 1].size - steps[i].size).toBeLessThanOrEqual(5);
   }
   // Still in view with the keyboard up: the field and Send link.
@@ -248,4 +253,29 @@ test('focusing the email field at 390px: no layout shift at the top', async ({ p
   }
   const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
   expect(cls).toBeLessThan(0.001);
+});
+
+// Review of #520: the sign-in screen opens over a page with unsaved work ("Sign in to sync…" from
+// the header). The page stays mounted, inert and hidden under it, so the work is still there after
+// Continue without an account.
+test('unsaved work under the sign-in screen survives opening and closing it', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+  await page.goto(
+    '/?add=' + encodeURIComponent('https://acme.example/jobs/1') + '&t=Acme+Designer',
+  );
+  await expect(page.getByRole('heading', { level: 1, name: 'Acme Designer' })).toBeVisible();
+  // The job page's first field (its notes / to-dos): typed and not yet saved anywhere else.
+  const url = page.locator('main').getByRole('textbox').first();
+  await url.fill('unsaved note');
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: /^Sign in/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Sign in' });
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('main')).toHaveAttribute('aria-hidden', 'true');
+  expect(await page.locator('main').evaluate((m) => (m as HTMLElement).inert)).toBe(true);
+  await dialog.getByRole('button', { name: 'Continue without an account' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('main')).not.toHaveAttribute('aria-hidden', 'true');
+  await expect(url).toHaveValue('unsaved note');
 });

@@ -90,14 +90,6 @@ function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNo
   );
 }
 
-/** The page under the full-screen sign-in screen is not mounted while it is open (2026-11-09: on a
- *  phone, the feed read, its build and liveness reads ran behind it and made typing slow). The
- *  screen covers the whole page, so nothing shows; closing it (Continue without an account, or a
- *  sign-in) mounts the page again, and its remembered state brings it back as it was. */
-export function HoldBehindSignIn({ children }: { children: ReactNode }) {
-  return useCloudSync().signInOpen ? null : children;
-}
-
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
  *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
 function SnippetMigration() {
@@ -300,7 +292,6 @@ export default function App() {
                   {/* Not keyed: remounting on pageKey drops focus and pager state on in-place
                         hops. useViewEnter replays the motion on a page-kind change instead. */}
                   <Stack gap="px24" ref={viewRef} className="rjb-view-enter">
-                    <HoldBehindSignIn>
                     {current(FIND_TAB) && (
                       <Suspense fallback={<PipelineSkeleton />}>
                         <PageHold firstRun={firstRun}>
@@ -340,7 +331,6 @@ export default function App() {
                         <NotFoundPage />
                       </Suspense>
                     )}
-                    </HoldBehindSignIn>
                   </Stack>
                 </PageErrorBoundary>
               </Box>

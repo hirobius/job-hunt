@@ -2,7 +2,7 @@
 // and Sources (blob v12; since #388, in place of the active track's stores), one read through the
 // reader, and the view built from it. What was read is kept for this page load (viewMemory), so
 // opening a posting and coming Back shows the same rows with no new read; Refresh reads again.
-import { useContext, useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { CloudSyncContext } from '../account/accountContext';
 import { serverFirstReader } from './serverFeed';
 import { dedupKey, useJobs } from '../store';
@@ -86,7 +86,11 @@ export function useFeed(given?: PostingReader): FeedState {
   // Signed in, Review new reads the server's rows (serverFeed.ts; the browser sweep only when the
   // server has none). Either way it adds what the auto-scan kept (feed/autoScan.ts). Read from the
   // context directly: Review new also renders outside the provider in tests.
-  const signedIn = !!useContext(CloudSyncContext)?.user;
+  const sync = useContext(CloudSyncContext);
+  const signedIn = !!sync?.user;
+  // Held behind the sign-in screen (2026-11-09): no read starts and the rows are not rebuilt
+  // while it is open; a read in flight stops, and the same read resumes once it closes.
+  const held = !!sync?.signInOpen;
   const reader = useMemo(
     () => given ?? scanReader(signedIn ? serverFirstReader(liveReader) : liveReader),
     [given, signedIn],
@@ -108,7 +112,7 @@ export function useFeed(given?: PostingReader): FeedState {
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
 
   useEffect(() => {
-    if (!hasQuery) return;
+    if (!hasQuery || held) return;
     if (read && read.key === key && read.attempt === attempt && !read.progress && !read.error)
       return;
     let alive = true;
@@ -183,24 +187,32 @@ export function useFeed(given?: PostingReader): FeedState {
     };
     // req derives from key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, attempt, hasQuery, reader, signedIn]);
+  }, [key, attempt, hasQuery, reader, signedIn, held]);
 
   // The rows of the last read stay up while a changed request is read (never a blank list).
   const current = read?.result || read?.key === key ? read : null;
   const updating = !!current && (current.key !== key || !!current.progress);
   const saved = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
-  const view = useMemo(
+  // Behind the sign-in screen the rows on screen stay as they were (no rebuild); see `held`.
+  const [shown, setShown] = useState<FeedView | null>(null);
+  const built = useMemo(
     () =>
-      current?.result
-        ? buildFeed(current.result, profile, sources, {
-            now: current.at,
-            decided,
-            seen: current.seen ?? {},
-            saved,
-          })
-        : null,
-    [current, profile, sources, decided, saved],
+      held
+        ? shown
+        : current?.result
+          ? buildFeed(current.result, profile, sources, {
+              now: current.at,
+              decided,
+              seen: current.seen ?? {},
+              saved,
+            })
+          : null,
+    // `shown` is read only while held, and never changes then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [held, current, profile, sources, decided, saved],
   );
+  if (!held && built !== shown) setShown(built);
+  const view = built;
   // A fresh, fully answered read is kept for the next page load.
   useEffect(() => {
     if (view && current?.result && !current.stored && !current.progress && !current.error)
