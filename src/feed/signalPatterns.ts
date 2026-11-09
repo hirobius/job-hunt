@@ -15,4 +15,3 @@ export const FOUNDING_RE = new RegExp(
   ].join('|'),
   'i',
 );
-

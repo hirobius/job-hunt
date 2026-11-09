@@ -171,12 +171,32 @@ export function normalizeForPhrase(text: string): string {
   const hit = normalizedCache.get(text);
   if (hit !== undefined) return hit;
   const out = normalizeUncached(text);
-  if (normalizedCache.size >= NORMALIZED_CACHE_MAX) normalizedCache.clear();
-  normalizedCache.set(text, out);
+  // Capped by entries and by characters kept (key + value), so long descriptions cannot hold
+  // more than about NORMALIZED_CACHE_MAX_CHARS of strings. Full: it starts again empty.
+  const size = text.length + out.length;
+  if (
+    normalizedCache.size >= NORMALIZED_CACHE_MAX ||
+    normalizedChars + size > NORMALIZED_CACHE_MAX_CHARS
+  ) {
+    normalizedCache.clear();
+    normalizedChars = 0;
+  }
+  if (size <= NORMALIZED_CACHE_MAX_CHARS) {
+    normalizedCache.set(text, out);
+    normalizedChars += size;
+  }
   return out;
 }
-const NORMALIZED_CACHE_MAX = 20000;
+export const NORMALIZED_CACHE_MAX = 20000;
+/** About 5 MB of UTF-16 strings. */
+export const NORMALIZED_CACHE_MAX_CHARS = 2_500_000;
 const normalizedCache = new Map<string, string>();
+let normalizedChars = 0;
+/** For tests: entries and characters the cache holds. */
+export const normalizedCacheStats = () => ({
+  entries: normalizedCache.size,
+  chars: normalizedChars,
+});
 
 function normalizeUncached(text: string): string {
   const plain = /<[a-z!/]/i.test(text) ? htmlToText(text) : text;
