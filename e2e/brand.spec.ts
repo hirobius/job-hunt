@@ -142,6 +142,34 @@ test('the sign-in flame keeps burning after 5 s too (Adrian 2026-11-09)', async 
   await expect.poll(() => path.getAttribute('d'), { timeout: 2000 }).not.toBe(a);
 });
 
+// #519 review (WCAG 2.2.2): the sign-in screen has its own Pause / Play, the Account menu's choice.
+test('the sign-in screen pauses the flame and its size easing, and plays it again', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/find');
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: /^Sign in/ }).click();
+  const screenEl = page.locator('.rjb-signin-screen');
+  const path = screenEl.locator('.rjb-rf > svg path').first();
+  const toggle = screenEl.getByRole('button', { name: 'Pause animations' });
+  // At the top right corner.
+  const box = (await toggle.boundingBox())!;
+  expect(box.x + box.width).toBeGreaterThan(390 - 24);
+  expect(box.y).toBeLessThan(24);
+  await toggle.click();
+  await expect(screenEl.getByRole('button', { name: 'Play animations' })).toBeVisible();
+  const still = await path.getAttribute('d');
+  await page.waitForTimeout(800);
+  expect(await path.getAttribute('d')).toBe(still);
+  const transition = await screenEl
+    .locator('.rjb-signin-screen__brand .rjb-rf')
+    .evaluate((el) => getComputedStyle(el).transitionDuration);
+  expect(transition).toBe('0s');
+  await screenEl.getByRole('button', { name: 'Play animations' }).click();
+  await expect.poll(() => path.getAttribute('d'), { timeout: 2000 }).not.toBe(still);
+});
+
 // Retro quick wins (2026-11-08): the app bar's flame throws embers ~21px over the logo; they stay on
 // screen (with 24px over the bar they ran off the top of a phone).
 for (const width of [390, 1440]) {

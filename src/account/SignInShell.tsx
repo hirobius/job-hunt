@@ -4,8 +4,10 @@
 // brand sits in normal flow above the steps and is never re-mounted as they change, so it never
 // moves; its embers float above it without taking room (overflow visible).
 import { forwardRef, type ComponentProps, type ReactNode } from 'react';
-import { Dialog } from '@hirobius/design-system';
-import { RoleFlameLogo } from '../brand/RoleFlame';
+import { Button, Dialog, Icon } from '@hirobius/design-system';
+import { Pause, Play } from 'lucide-react';
+import { RoleFlameLogo, useMotionPaused } from '../brand/RoleFlame';
+import { setMotionPaused } from '../motionPref';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import './SignInDialog.css';
 
@@ -26,11 +28,25 @@ export function SignInShell({
   ...content
 }: ContentProps & { children: ReactNode; brandRef?: React.Ref<HTMLDivElement> }) {
   const viewportRef = useVisualViewportVars<HTMLDivElement>();
+  // The flame burns on (Adrian 2026-11-09), so the screen has its own Pause / Play (WCAG 2.2.2,
+  // #519 review): the same per-device choice as the Account menu's item (motionPref.ts). After the
+  // step in the DOM (focus starts on the step's field), at the top right on screen.
+  const paused = useMotionPaused();
   return (
     <Dialog.Content ref={viewportRef} className="rjb-signin-screen" hideClose {...content}>
-      <div className="rjb-signin-screen__column">
+      <div className="rjb-signin-screen__column" data-paused={paused || undefined}>
         <SignInBrand ref={brandRef} />
         <div className="rjb-signin-screen__step">{children}</div>
+      </div>
+      <div className="rjb-signin-screen__motion">
+        <Button
+          size="sm"
+          variant="tertiary"
+          iconOnly
+          iconLeft={<Icon icon={paused ? Play : Pause} />}
+          label={paused ? 'Play animations' : 'Pause animations'}
+          onClick={() => setMotionPaused(!paused)}
+        />
       </div>
     </Dialog.Content>
   );

@@ -5,7 +5,7 @@
 // In the app (App bar, sign-in) it loads lazily (LazyRoleFlameLogo.tsx) behind the still wordmark, so it
 // stays out of the entry chunk. Colours are HDS tokens (base.css `.rjb-rf`, light and dark), the font is
 // HDS's display type token (Sora 700, loaded by HDS's fonts.css), the name is brand.ts. Stops under prefers-reduced-motion,
-// pauses while the tab is hidden and stops after 5 s on screen (WCAG 2.2.2).
+// pauses while the tab is hidden; Pause animations and reduced motion stop it (WCAG 2.2.2).
 import {
   CSSProperties,
   useEffect,
@@ -543,6 +543,13 @@ function onMotionPref(cb: () => void): () => void {
   };
 }
 
+/** Pause animations (or reduced motion) as state: the flame and the sign-in screen's toggle. */
+// The sign-in screen's toggle reads it too; kept in this chunk so the first load stays as it is
+// (its own module was hoisted into the entry chunk).
+// eslint-disable-next-line react-refresh/only-export-components
+export const useMotionPaused = (): boolean =>
+  useSyncExternalStore(onMotionPref, motionPaused, () => false);
+
 /** True while the tab is on screen (document.hidden false). */
 function usePageVisible() {
   const [visible, setVisible] = useState(() => typeof document === 'undefined' || !document.hidden);
@@ -569,7 +576,7 @@ function useFlame(
   // Reduced motion, or Pause animations in the Account menu (motionPref.ts, WCAG 2.2.2).
   // Paused: the Account menu's choice when made (an explicit Play wins over the system), else the
   // system's reduced-motion setting (motionPref.ts).
-  const reduced = useSyncExternalStore(onMotionPref, motionPaused, () => false);
+  const reduced = useMotionPaused();
   const visible = usePageVisible();
   const on = animated && !reduced;
   const loop = useMemo(() => buildLoop(settings), [settings]);

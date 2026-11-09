@@ -81,6 +81,18 @@
   transition: padding-top var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
 }
 
+/* Pause animations also stops the size easing (#519 review). */
+.rjb-signin-screen__column[data-paused],
+.rjb-signin-screen__column[data-paused] .rjb-rf {
+  transition: none;
+}
+/* The screen's Pause / Play toggle: the top right corner, over the page surface. */
+.rjb-signin-screen__motion {
+  position: absolute;
+  top: var(--semantic-space-fixed-xs);
+  right: var(--semantic-space-fixed-xs);
+}
+
 /* Its buttons fill the column. */
 .sign-in-dialog__primary {
   width: 100%;
