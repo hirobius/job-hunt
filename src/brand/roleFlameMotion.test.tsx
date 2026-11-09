@@ -3,7 +3,10 @@
 // Under prefers-reduced-motion it holds frame 0 from the start.
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FLAME_MOTION_LIMIT_MS, RoleFlameLogo } from './RoleFlame';
+import { RoleFlameLogo } from './RoleFlame';
+
+/** The old limit (WCAG 2.2.2 auto-stop): gone since Adrian 2026-11-09, the flame never stops. */
+const OLD_LIMIT_MS = 5000;
 import { setMotionPaused } from '../motionPref';
 
 let reduce = false;
@@ -40,7 +43,7 @@ function setHidden(h: boolean) {
   });
 }
 
-function mount(props: { continuous?: boolean } = {}) {
+function mount(props: { layout?: 'inline' | 'stacked' } = {}) {
   const { container } = render(<RoleFlameLogo {...props} />);
   const d = () => container.querySelector('path')!.getAttribute('d');
   const letterTransform = () =>
@@ -54,36 +57,29 @@ const advance = (ms: number) =>
   });
 
 describe('RoleFlameLogo motion', () => {
-  it('moves, then stops on frame 0 after 5 s on screen', () => {
+  for (const layout of ['inline', 'stacked'] as const)
+    it(`never stops on its own (${layout === 'stacked' ? 'sign-in' : 'app bar'}, Adrian 2026-11-09)`, () => {
+      const { d } = mount({ layout });
+      const still = d();
+      advance(300);
+      expect(d()).not.toBe(still);
+      advance(OLD_LIMIT_MS * 4);
+      const later = d();
+      advance(300);
+      expect(d()).not.toBe(later);
+      expect(later).not.toBeNull();
+    });
+
+  it('holds frame 0 under reduced motion', () => {
+    reduce = true;
     const { d } = mount();
     const still = d();
-    advance(300);
-    expect(d()).not.toBe(still);
-    advance(FLAME_MOTION_LIMIT_MS);
-    expect(d()).toBe(still);
-    advance(2000);
+    advance(OLD_LIMIT_MS + 3000);
     expect(d()).toBe(still);
   });
 
-  it('continuous (the app bar, Adrian 2026-11-08): still moving well past 5 s', () => {
-    const { d } = mount({ continuous: true });
-    advance(FLAME_MOTION_LIMIT_MS + 3000);
-    const later = d();
-    advance(300);
-    expect(d()).not.toBe(later);
-    expect(later).not.toBeNull();
-  });
-
-  it('continuous still holds frame 0 under reduced motion', () => {
-    reduce = true;
-    const { d } = mount({ continuous: true });
-    const still = d();
-    advance(FLAME_MOTION_LIMIT_MS + 3000);
-    expect(d()).toBe(still);
-  });
-
-  it('Pause animations (Account menu, WCAG 2.2.2) stops even the continuous flame, at once', () => {
-    const { d } = mount({ continuous: true });
+  it('Pause animations (Account menu, WCAG 2.2.2) stops the flame at once', () => {
+    const { d } = mount();
     const still = d();
     advance(300);
     expect(d()).not.toBe(still);
@@ -98,7 +94,7 @@ describe('RoleFlameLogo motion', () => {
 
   it('Play wins over the system setting: an explicit choice runs the flame under reduced motion', () => {
     reduce = true;
-    const { d } = mount({ continuous: true });
+    const { d } = mount();
     const still = d();
     advance(1000);
     // No choice yet: it follows the system and holds still.

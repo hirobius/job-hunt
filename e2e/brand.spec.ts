@@ -84,7 +84,6 @@ test('the logo names the product and flickers: header and sign-in', async ({ pag
           .evaluateAll((ls) =>
             ls.some((l) => !/skewX\(0(\.0+)?deg\)/.test((l as HTMLElement).style.cssText)),
           ),
-      // Well under the 5 s motion limit (FLAME_MOTION_LIMIT_MS): after it, the letters are at rest.
       { timeout: 2000 },
     )
     .toBe(true);
@@ -106,8 +105,8 @@ test('the logo names the product and flickers: header and sign-in', async ({ pag
   expect(Math.abs(name!.x + name!.width / 2 - mid)).toBeLessThanOrEqual(2);
 });
 
-// Adrian 2026-11-08: the app bar's flame loops on (past the 5 s limit the sign-in screen keeps);
-// under reduced motion it is still from the start.
+// Adrian 2026-11-08: the app bar's flame loops on; under reduced motion it is still from the start.
+// Since 2026-11-09 no flame stops on its own (the sign-in screen's had a 5 s limit).
 test('the app bar flame keeps burning after 5 s, and is still under reduced motion', async ({
   page,
 }) => {
@@ -129,6 +128,18 @@ test('the app bar flame keeps burning after 5 s, and is still under reduced moti
   const still = await any.getAttribute('d');
   await page.waitForTimeout(800);
   expect(await any.getAttribute('d')).toBe(still);
+});
+
+test('the sign-in flame keeps burning after 5 s too (Adrian 2026-11-09)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/find');
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: /^Sign in/ }).click();
+  const path = page.locator('.rjb-signin-screen .rjb-rf > svg path').first();
+  await expect(path).toBeAttached();
+  await page.waitForTimeout(5600);
+  const a = await path.getAttribute('d');
+  await expect.poll(() => path.getAttribute('d'), { timeout: 2000 }).not.toBe(a);
 });
 
 // Retro quick wins (2026-11-08): the app bar's flame throws embers ~21px over the logo; they stay on

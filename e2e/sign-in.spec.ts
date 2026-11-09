@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 // Sign-in on a phone (2026-10-17): with the iOS keyboard up only ~400px of a 390px-wide phone is
 // visible. The sign-in screen (full screen since 2026-10-29) is sized to the visual viewport and
-// its brand shrinks on a short one, so the field and the button stay in view. At desktop it fills
+// its brand shrinks smoothly with it, so the field and the button stay in view. At desktop it fills
 // the viewport with one centred column.
 const openSignIn = async (page: Page) => {
   await page.goto('/#/apply');
@@ -31,6 +31,52 @@ test('phone with the keyboard up: field and button sit above it', async ({ page 
   expect(button.width).toBeGreaterThan(box.width - 64);
 });
 
+// Adrian 2026-11-09: when the keyboard opens the brand must not jump (it flipped from large and
+// centred to a small row at the top left). The visual viewport shrinks step by step, as a keyboard
+// sliding up: the brand stays stacked and centred, and its size eases down with the height.
+test('the keyboard opening: the brand stays centred and stacked, and shrinks smoothly', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dialog = await openSignIn(page);
+  const brand = dialog.locator('.rjb-signin-screen__brand');
+  const logo = brand.locator('.rjb-rf');
+  const read = async () => {
+    // Let the size's transition finish (HDS spatial motion) before measuring.
+    await page.waitForTimeout(600);
+    const [vv, flame, name, size] = await Promise.all([
+      page.evaluate(() => window.visualViewport!.height),
+      logo.locator('> svg').boundingBox(),
+      logo.locator('> span').boundingBox(),
+      logo.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+    ]);
+    return { vv, flame: flame!, name: name!, size };
+  };
+  const steps: Awaited<ReturnType<typeof read>>[] = [];
+  for (const h of [844, 760, 680, 600, 520, 440, 400]) {
+    await page.setViewportSize({ width: 390, height: h });
+    steps.push(await read());
+  }
+  expect(steps[0].vv).toBe(844);
+  expect(steps.at(-1)!.vv).toBe(400);
+  for (const s of steps) {
+    // Stacked: the flame above the name; both centred on the screen.
+    expect(s.flame.y + s.flame.height).toBeLessThanOrEqual(s.name.y + 1);
+    expect(Math.abs(s.flame.x + s.flame.width / 2 - 195)).toBeLessThanOrEqual(2);
+    expect(Math.abs(s.name.x + s.name.width / 2 - 195)).toBeLessThanOrEqual(2);
+  }
+  expect(steps[0].size).toBe(40);
+  expect(steps.at(-1)!.size).toBe(20);
+  // Down with the height, never a jump: at most 5px of type for each 80px of screen.
+  for (let i = 1; i < steps.length; i++) {
+    expect(steps[i].size).toBeLessThanOrEqual(steps[i - 1].size);
+    expect(steps[i - 1].size - steps[i].size).toBeLessThanOrEqual(5);
+  }
+  // Still in view with the keyboard up: the field and Send link.
+  const button = (await dialog.getByRole('button', { name: 'Send link' }).boundingBox())!;
+  expect(button.y + button.height).toBeLessThanOrEqual(400);
+});
+
 test('desktop: a full screen with one centred column', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const dialog = await openSignIn(page);
@@ -39,7 +85,7 @@ test('desktop: a full screen with one centred column', async ({ page }) => {
   const column = (await dialog.locator('.rjb-signin-screen__column').boundingBox())!;
   expect(column.width).toBeLessThanOrEqual(440);
   expect(Math.abs(column.x + column.width / 2 - 720)).toBeLessThanOrEqual(2);
-  // The brand sits a fixed share of the screen down (12dvh, clamped), not centred on the step
+  // The brand sits a fixed share of the screen down (12% of the visible height, clamped), not centred on the step
   // under it, so it never moves between steps (sign-in layout PR).
   const brand = (await dialog.locator('.rjb-signin-screen__brand').boundingBox())!;
   expect(Math.round(brand.y - column.y)).toBeGreaterThanOrEqual(0);

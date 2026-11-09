@@ -31,7 +31,6 @@
    * centred on its height (a taller step moved the brand up); it starts a fixed share of the
    * screen down, and the step's content follows in flow, centred on the column. */
   margin: 0 auto;
-  padding-top: clamp(var(--primitive-space-4), 12dvh, var(--primitive-space-32));
   width: 100%;
   max-width: calc(var(--primitive-space-32) * 3 + var(--primitive-space-4));
   display: flex;
@@ -60,33 +59,26 @@
   gap: var(--semantic-space-fixed-xs);
   margin-bottom: var(--semantic-space-fixed-sm);
 }
-/* A short screen (a phone with the keyboard up): the lockup goes to one small row, so the field
-   and Send link stay in view. */
-@media (max-height: 560px) {
-  .rjb-signin-screen {
-    padding-block: var(--semantic-space-fixed-sm);
-  }
-  .rjb-signin-screen__column,
-  .rjb-signin-screen__step {
-    gap: var(--semantic-space-fixed-xs);
-  }
-  .rjb-signin-screen__column {
-    padding-top: 0;
-  }
-  /* The animated logo follows the font size: one small row. */
-  .rjb-signin-screen__brand .rjb-rf {
-    font-size: var(--primitive-space-4);
-  }
-  .rjb-signin-screen__brand .rjb-rf[data-layout='stacked'] {
-    flex-direction: row;
-  }
-  .rjb-signin-screen__brand {
-    --rjb-logo-size: var(--primitive-space-4);
-    flex-direction: row;
-    align-items: center;
-    gap: var(--semantic-space-fixed-2xs);
-    margin-bottom: 0;
-  }
+/* The keyboard (Adrian 2026-11-09): the brand never jumps. It stays stacked and centred and its
+   size follows the visible height (--rjb-vv-height, the visual viewport) on a smooth curve, 40px
+   on a full phone screen down to 20px on a short one, so the field and Send link stay in view.
+   The column's top space follows the same height. Both ease as the keyboard slides (HDS spatial
+   motion; none under reduced motion). Was a 560px media query that flipped it to a small row. */
+.rjb-signin-screen__brand .rjb-rf {
+  font-size: clamp(
+    var(--primitive-space-5),
+    calc(var(--rjb-vv-height, 100dvh) * 0.05),
+    var(--primitive-space-10)
+  );
+  transition: font-size var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
+}
+.rjb-signin-screen__column {
+  padding-top: clamp(
+    var(--primitive-space-4),
+    calc(var(--rjb-vv-height, 100dvh) * 0.12),
+    var(--primitive-space-32)
+  );
+  transition: padding-top var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
 }
 
 /* Its buttons fill the column. */

@@ -555,28 +555,23 @@ function usePageVisible() {
   return visible;
 }
 
-/**
- * WCAG 2.2.2 (Pause, Stop, Hide): motion that starts on its own stops within 5 s. Only time on
- * screen counts: a hidden tab pauses the clock and the flame.
- */
-export const FLAME_MOTION_LIMIT_MS = 5000;
-
 export type FlameMode = 'endless' | 'loop';
 
 /** Current flame frame plus a tick counter, advancing at settings.fps. Pass a stable `settings` object. */
+// It burns on everywhere, the sign-in screen too (Adrian 2026-11-09: never stops; was a 5 s limit).
+// WCAG 2.2.2 (Pause, Stop, Hide) is met by Pause animations and reduced motion, and a hidden tab
+// pauses it.
 function useFlame(
   mode: FlameMode = 'endless',
   animated = true,
   settings: FlameSettings = FLAME_SETTINGS,
-  continuous = false,
 ) {
   // Reduced motion, or Pause animations in the Account menu (motionPref.ts, WCAG 2.2.2).
   // Paused: the Account menu's choice when made (an explicit Play wins over the system), else the
   // system's reduced-motion setting (motionPref.ts).
   const reduced = useSyncExternalStore(onMotionPref, motionPaused, () => false);
   const visible = usePageVisible();
-  const [done, setDone] = useState(false);
-  const on = animated && !reduced && !done;
+  const on = animated && !reduced;
   const loop = useMemo(() => buildLoop(settings), [settings]);
   // One generator per mode/settings, kept across a pause so a hidden tab resumes where it was.
   const next = useMemo(
@@ -590,19 +585,13 @@ function useFlame(
   }));
   useEffect(() => {
     if (!on || !visible) return;
-    const limit = continuous ? Infinity : Math.round((FLAME_MOTION_LIMIT_MS * settings.fps) / 1000);
     const id = window.setInterval(() => {
       const i = ++ticks.current;
-      if (i >= limit) {
-        window.clearInterval(id);
-        setDone(true);
-        return;
-      }
       setState({ frame: next ? next() : loop[i % loop.length], tick: i });
     }, 1000 / settings.fps);
     return () => window.clearInterval(id);
-  }, [on, visible, next, loop, settings, continuous]);
-  // Stopped (reduced motion, not animated, or after the 5 s limit): the first frame, held.
+  }, [on, visible, next, loop, settings]);
+  // Stopped (reduced motion, Pause animations, or not animated): the first frame, held.
   return on ? { ...state, running: true } : { frame: loop[0], tick: 0, running: false };
 }
 
@@ -727,9 +716,6 @@ type LogoProps = {
   text?: Partial<TextSettings>;
   /** "inline" = flame beside the name (app bar). "stacked" = flame centred above the name (sign-in screen). */
   layout?: 'inline' | 'stacked';
-  /** Burn on past the 5 s limit (the app bar, Adrian 2026-11-08). Still under reduced motion and
-   *  paused while the tab is hidden, as always. */
-  continuous?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -743,12 +729,11 @@ export function RoleFlameLogo({
   settings = FLAME_SETTINGS,
   text,
   layout = 'inline',
-  continuous = false,
   className,
   style,
 }: LogoProps) {
   const T = { ...TEXT_SETTINGS, ...text };
-  const { frame, tick, running } = useFlame(mode, animated, settings, continuous);
+  const { frame, tick, running } = useFlame(mode, animated, settings);
   const [salt] = useState(() => (Math.random() * 1e6) | 0);
   const step = Math.floor(tick / Math.max(1, T.every));
   return (
