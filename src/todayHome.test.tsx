@@ -149,7 +149,7 @@ describe('the auto-scan', () => {
     renderApp();
     const review = await screen.findByRole('region', { name: /^Review new/ });
     expect(within(review).getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
-    await within(review).findByText('Browse');
+    await within(review).findByRole('button', { name: 'Browse' });
     // Adrian 2026-11-08: the scan's line, the sources unavailable and the "not shown" counts are the
     // Account menu's Scan details.
     expect(

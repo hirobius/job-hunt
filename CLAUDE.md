@@ -304,6 +304,15 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   time, Ignore = `muteCompany`, Follow again = `unmuteCompany`, plus `followCompany` for one with no Source). Merges #426
   (Jobs keep list, one-page job page, no fit badge); "Find more like this" left the job menu with the ATS search. Pinned in `todayHome.test.tsx`, `review.test.tsx`,
   `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
+- **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
+  in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
+  radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`); full width under the logo below md, inline in the
+  app bar from md (`useAtLeast('md')`). Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
+  `aria-pressed` in a `role="group"` "Review view", each with an HDS Tooltip. Apply's **Remote only** HDS `Toggle`
+  (`RemoteOnlySwitch`, phone filter bar outside Filters and the lg job rail) sets `PipelineView.remoteOnly`, kept per
+  device (`rjb_apply_remote_only`); `visibleJobs` keeps `mode === 'remote'` only (no mode = not remote), so the list,
+  pager and All jobs follow. Pinned in `appNav.test.tsx`, `review.test.tsx`, `remoteOnly.test.tsx`,
+  `e2e/shell-controls.spec.ts`.
 - **Calm list shell (PR #208) and "Today is gone" (#236)** are history: the final shell above brought Today
   back as home and removed Companies.
 - **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**

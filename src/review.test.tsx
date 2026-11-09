@@ -117,7 +117,7 @@ describe('Review new: no board progress on the page (Adrian 2026-11-08)', () => 
         }),
     );
     renderReview();
-    await screen.findByText('Browse');
+    await screen.findByRole('button', { name: 'Browse' });
     // Past the 1 s repaint that would show progress.
     await new Promise((r) => setTimeout(r, 1500));
     expect(screen.queryByText(/^Read \d+ of \d+ boards$/)).toBeNull();
@@ -314,11 +314,28 @@ describe('Review new: Browse', () => {
 });
 
 describe('Review new: Deck', () => {
+  it('Browse | Deck is two icon-only toggle buttons, named, one pressed (Adrian 2026-11-09)', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    await list();
+    const group = screen.getByRole('group', { name: 'Review view' });
+    const browse = within(group).getByRole('button', { name: 'Browse' });
+    const deck = within(group).getByRole('button', { name: 'Deck' });
+    expect(browse).toHaveAttribute('aria-pressed', 'true');
+    expect(deck).toHaveAttribute('aria-pressed', 'false');
+    // Icon only: no visible text in the button.
+    expect(browse.textContent).toBe('');
+    await user.click(deck);
+    expect(deck).toHaveAttribute('aria-pressed', 'true');
+    expect(browse).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('radio', { name: 'Deck' })).toBeNull();
+  });
+
   it('shows one card at a time; a decided card makes way for the next', async () => {
     const user = userEvent.setup();
     renderReview();
     await list();
-    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
     const first = screen.getByRole('article');
     const name = first.getAttribute('aria-label');
     await user.click(within(first).getByRole('button', { name: /^Skip / }));
@@ -341,7 +358,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
     const user = userEvent.setup();
     renderReview();
     await list();
-    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
     return screen.getByRole('article', { name: 'Design Systems Designer at Acme' });
   };
   const before = (a: Node, b: Node) =>
@@ -442,7 +459,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
     renderReview();
     const ul = await list();
     expect(within(ul).getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
-    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
     expect(screen.getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
   });
 
@@ -547,7 +564,7 @@ describe('Review new: the caught-up empty state (Adrian 2026-11-08)', () => {
     expect(within(section).getByText(/saved or skipped/)).toBeInTheDocument();
     expect(section.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
     // The Deck's caught-up state is the same section.
-    await user.click(screen.getByRole('radio', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
     expect(
       (await screen.findByText('You’re all caught up')).closest('[data-empty-section]'),
     ).not.toBeNull();

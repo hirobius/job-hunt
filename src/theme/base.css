@@ -360,55 +360,48 @@ p {
   box-shadow: 0 0 0 2px var(--semantic-color-surface-page);
 }
 
-/* The shell's top tabs (rev-3 .tabs; top tabs PR, 2026-11-08): a nav of links, the open one
- * aria-current="page". HDS Tabs is ARIA tabs (a tab panel, arrow keys), which these are not: each
- * opens a page. So they take HDS's tab look by its tokens: the ui type, muted text, a 2px underline
- * as wide as the label in the primary content colour on the current one, and HDS's focus ring
- * (outline, offset out) with no box shadow. Upstream ask: a link/nav form of HDS Tabs
- * (docs/hds-upstream-asks-0.9.md, "Tabs as navigation links"). */
-.rjb-top-tabs {
+/* The shell's top tabs, Find / Apply (Adrian 2026-11-09): HDS SegmentedControl's look (muted rail,
+ * the open one the accent fill with its 3px edge) by its tokens, as a nav of links with
+ * aria-current="page": HDS SegmentedControl is a radio group (docs/hds-upstream-asks/segmented-nav.md). */
+.rjb-segs {
   display: flex;
-  align-items: stretch;
-  gap: var(--semantic-space-fixed-md);
+  gap: var(--semantic-space-subgrid-gap);
+  padding: 4px;
+  border-radius: calc(var(--role-radius) + min(var(--role-radius), 4px));
+  background: var(--semantic-color-surface-muted);
 }
-
-.rjb-top-tab {
-  display: inline-flex;
+.rjb-segs-full .rjb-seg {
+  flex: 1;
+}
+.rjb-seg {
+  display: flex;
   align-items: center;
-  min-height: var(--primitive-space-10);
-  padding-block: var(--primitive-space-2);
-  font-family: var(--semantic-typography-ui-font-family);
-  font-size: var(--semantic-typography-ui-font-size);
-  font-weight: var(--semantic-typography-ui-font-weight);
-  line-height: var(--semantic-typography-ui-line-height);
+  justify-content: center;
+  min-height: 30px;
+  padding-inline: var(--semantic-space-layout-gap);
+  border-radius: var(--role-radius);
+  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-ui-font-size) /
+    var(--semantic-typography-ui-line-height) var(--semantic-typography-ui-font-family);
   color: var(--semantic-color-content-secondary);
   text-decoration: none;
-  border-bottom: var(--primitive-space-px2) solid transparent;
-  transition:
-    color var(--hds-motion-productive-duration) var(--hds-motion-productive-easing),
-    border-color var(--hds-motion-productive-duration) var(--hds-motion-productive-easing);
 }
-
-.rjb-top-tab:hover {
+.rjb-seg:hover {
   color: var(--semantic-color-content-primary);
+  background: var(--semantic-color-surface-accentSubtle);
 }
-
-.rjb-top-tab[aria-current='page'] {
-  color: var(--semantic-color-content-primary);
-  border-bottom-color: var(--semantic-color-content-primary);
+.rjb-seg[aria-current='page'] {
+  color: var(--semantic-color-content-onAccent);
+  /* The 3px edge as a gradient, not a box shadow: the focus ring stays the one ring. */
+  background: linear-gradient(to top, var(--hds-edge-primary) 3px, var(--semantic-accent-rest) 0);
 }
-
 @media (max-width: 639px) {
-  .rjb-top-tab {
+  .rjb-seg {
     min-height: var(--rjb-touch);
   }
 }
-
-[data-hds] .rjb-top-tab:focus-visible {
+[data-hds] .rjb-seg:focus-visible {
   outline: var(--semantic-focus-ring-width) solid var(--semantic-focus-ring-color);
   outline-offset: var(--semantic-focus-gap-width);
-  border-radius: var(--semantic-focus-radius-sm-ring);
-  box-shadow: none;
 }
 
 /* Other tabs (Privacy and terms): one focus ring, the outline; HDS's inset box-shadow ring drew a

@@ -146,7 +146,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // "‹ 3 of 55 ›" over the jobs the filter shows (a swipe steps it too), then the job in full.
   // All jobs opens a sheet to jump to any job. A job opened from elsewhere keeps its Back.
   const list = visibleJobs(jobs, view);
-  const order = visibleJobs(jobs, { ...view, filter: 'all', q: '' });
+  const order = visibleJobs(jobs, { ...view, filter: 'all', q: '', remoteOnly: false });
   const at = list.findIndex((j) => j.url === job.url);
   const step = (d: -1 | 1) => {
     // A job the filter hides steps to the nearest shown one, as its pager does.

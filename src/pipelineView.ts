@@ -14,6 +14,9 @@ export interface PipelineView {
   filter: Filter;
   sort: SortKey;
   q: string;
+  /** Apply's "Remote only" switch (Adrian 2026-11-09): only jobs whose mode is remote; an unknown
+   *  mode counts as not remote. Kept per device (`rjb_apply_remote_only`), unlike the rest. */
+  remoteOnly?: boolean;
 }
 
 export const DEFAULT_VIEW: PipelineView = { filter: 'active', sort: 'recent', q: '' };
@@ -65,7 +68,10 @@ export function visibleJobs(jobs: Job[], view: PipelineView): Job[] {
     [j.label, j.company, j.location, j.note, j.notes, j.contact, j.url].some((f) =>
       (f || '').toLowerCase().includes(needle),
     );
-  return sortJobs(jobs, view.sort).filter((j) => matchesFilter(j, view.filter) && textMatch(j));
+  return sortJobs(jobs, view.sort).filter(
+    (j) =>
+      matchesFilter(j, view.filter) && textMatch(j) && (!view.remoteOnly || j.mode === 'remote'),
+  );
 }
 
 /** How many jobs each filter would show. */
@@ -78,13 +84,34 @@ export function filterCounts(jobs: Job[]): Record<Filter, number> {
   ) as Record<Filter, number>;
 }
 
-const store = createStore<PipelineView>(DEFAULT_VIEW);
+const REMOTE_KEY = 'rjb_apply_remote_only';
+/** The stored Remote only choice; false when none or storage is blocked. */
+export function storedRemoteOnly(): boolean {
+  try {
+    return localStorage.getItem(REMOTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+const withRemote = (): PipelineView =>
+  storedRemoteOnly() ? { ...DEFAULT_VIEW, remoteOnly: true } : DEFAULT_VIEW;
+
+const store = createStore<PipelineView>(withRemote(), {
+  onSet: (next) => {
+    try {
+      if (next.remoteOnly) localStorage.setItem(REMOTE_KEY, '1');
+      else localStorage.removeItem(REMOTE_KEY);
+    } catch {
+      // Blocked storage: the switch lasts this page load.
+    }
+  },
+});
 
 export const usePipelineView = store.use;
 export const getPipelineView = store.get;
 export const setPipelineView = (patch: Partial<PipelineView>) =>
   store.set({ ...store.get(), ...patch });
-export const resetPipelineView = () => store.set(DEFAULT_VIEW);
+export const resetPipelineView = () => store.set(withRemote());
 
 /** The nearest job the filter shows before and after `job`, by its place in `order` (every job in
  *  the same sort): where the Apply pager steps from a job the filter hides (#510 review). */

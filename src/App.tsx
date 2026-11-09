@@ -13,7 +13,7 @@ import {
   postingOf,
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
-import { Box, Stack, useToast } from '@hirobius/design-system';
+import { Box, Stack, useAtLeast, useToast } from '@hirobius/design-system';
 import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
 import { CompanyPage, JobPage, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './lazyDialogs';
@@ -159,7 +159,7 @@ export default function App() {
   const current = (slug: TopTab) => !notFound && tabSlug === slug;
   const tabLink = (slug: TopTab) => ({
     href: `#/${slug}`,
-    className: 'rjb-top-tab',
+    className: 'rjb-seg',
     'aria-current': current(slug) ? ('page' as const) : undefined,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       // A modified click (new tab or window) keeps the browser's own way.
@@ -170,6 +170,19 @@ export default function App() {
       else goBackTo(parseHash(`#/${slug}`));
     },
   });
+
+  // Find / Apply look like an HDS SegmentedControl (Adrian 2026-11-09): full width under the logo on
+  // a phone, inline in the app bar from md. HDS SegmentedControl is a radio group (Radix toggle
+  // group; arrow keys select), so it cannot be a nav: these stay links in a nav, the open one
+  // aria-current="page", drawn with its tokens (base.css .rjb-segs). Upstream ask:
+  // docs/hds-upstream-asks/segmented-nav.md.
+  const wideBar = useAtLeast('md');
+  const sections = (
+    <Box as="nav" aria-label="Sections" className={wideBar ? 'rjb-segs' : 'rjb-segs rjb-segs-full'}>
+      <a {...tabLink(FIND_TAB)}>Find</a>
+      <a {...tabLink(APPLY_TAB)}>Apply</a>
+    </Box>
+  );
 
   // No setup screen (Adrian 2026-10-29): a first run (no Search profile, no jobs, no old tracks)
   // gets the design-systems profile on its own once sync settles (V12Migration → ensureProfile)
@@ -277,12 +290,10 @@ export default function App() {
                       Account avatar. */}
                   <Stack direction="row" gap="gap" align="center" justify="space-between">
                     <BrandLogo fontSize={19} />
+                    {wideBar && sections}
                     <AccountMenu />
                   </Stack>
-                  <Box as="nav" aria-label="Sections" className="rjb-top-tabs">
-                    <a {...tabLink(FIND_TAB)}>Find</a>
-                    <a {...tabLink(APPLY_TAB)}>Apply</a>
-                  </Box>
+                  {!wideBar && sections}
                 </Stack>
               </Box>
               <Box as="main">
