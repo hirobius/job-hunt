@@ -166,6 +166,19 @@ export const activeAtsRoles = (atsRoles: string[], m: MustInclude): string[] => 
  *  space ("Design-Systems" → "design systems"). A separator breaks a phrase: a spaced hyphen, an
  *  en or em dash, , | / : ; & · • become " | ", so "Design - Systems" is not "design systems". */
 export function normalizeForPhrase(text: string): string {
+  // Kept per text (2026-11-09 phone profile: while a signed-out sweep ran, the Feed's rebuilds
+  // normalized every posting's title and description again each time, the top self time).
+  const hit = normalizedCache.get(text);
+  if (hit !== undefined) return hit;
+  const out = normalizeUncached(text);
+  if (normalizedCache.size >= NORMALIZED_CACHE_MAX) normalizedCache.clear();
+  normalizedCache.set(text, out);
+  return out;
+}
+const NORMALIZED_CACHE_MAX = 20000;
+const normalizedCache = new Map<string, string>();
+
+function normalizeUncached(text: string): string {
   const plain = /<[a-z!/]/i.test(text) ? htmlToText(text) : text;
   return ` ${plain
     .toLowerCase()

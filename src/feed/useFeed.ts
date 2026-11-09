@@ -21,7 +21,7 @@ import {
 } from './feed';
 import { browserReader, type PostingReader } from './reader';
 import { scanReader, useScan } from './autoScan';
-import type { FeedResult } from './fetchFeed';
+import type { FeedProgress, FeedResult } from './fetchFeed';
 
 /** The Search profile and Sources, as the Feed reads them. */
 export function useFeedInputs(): { profile: SearchProfile; sources: Source[] } {
@@ -67,8 +67,22 @@ function storedRead(): Read | null {
 }
 
 // Once a second while boards answer (was 250 ms: each repaint re-ranks every posting read so far,
-// which held a phone's main thread for most of a minute; 2026-11-07).
-const REPAINT_MS = 1000;
+// which held a phone's main thread for most of a minute; 2026-11-07). Each repaint costs more as
+// the read grows, so the wait doubles after each one, up to REPAINT_MAX_MS, and the rebuild runs
+// when the main thread is idle (2026-11-09 phone profile: a signed-out sweep of ~300 boards kept a
+// 4x-throttled phone busy for over half of every minute).
+export const REPAINT_MS = 1000;
+export const REPAINT_MAX_MS = 8000;
+
+/** Runs `fn` when the main thread is idle (at most `ms` later); returns a cancel. */
+function whenIdle(fn: () => void, ms: number): () => void {
+  if (typeof requestIdleCallback === 'function') {
+    const id = requestIdleCallback(fn, { timeout: ms });
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 0);
+  return () => clearTimeout(id);
+}
 
 export interface FeedState {
   view: FeedView | null;
@@ -117,6 +131,10 @@ export function useFeed(given?: PostingReader): FeedState {
       return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelIdle: (() => void) | undefined;
+    let wait = REPAINT_MS;
+    // The newest progress: a repaint shows what has answered by then, not when it was scheduled.
+    let latest: FeedProgress | undefined;
     const startedAt = Date.now();
     // First-seen days as they stood before this read (noted again once it fully answers).
     const seenBefore = readSeen();
@@ -154,23 +172,31 @@ export function useFeed(given?: PostingReader): FeedState {
     // has not read it yet (its sync runs every 15 minutes), and its jobs show at once.
     const by = onlyAdded && signedIn ? browserFirst : reader;
     by.read(ask, (p) => {
+      latest = p;
       if (!alive || timer) return;
       timer = setTimeout(() => {
-        timer = undefined;
-        if (alive)
-          done(fold({ postings: p.postings, sources: p.sources }), startedAt, {
-            done: p.boardsDone,
-            total: p.boardsTotal,
-          });
-      }, REPAINT_MS);
+        cancelIdle = whenIdle(() => {
+          timer = undefined;
+          cancelIdle = undefined;
+          const q = latest ?? p;
+          if (alive)
+            done(fold({ postings: q.postings, sources: q.sources }), startedAt, {
+              done: q.boardsDone,
+              total: q.boardsTotal,
+            });
+        }, REPAINT_MS);
+      }, wait);
+      wait = Math.min(wait * 2, REPAINT_MAX_MS);
     })
       .then((result) => {
         clearTimeout(timer);
+        cancelIdle?.();
         timer = undefined;
         if (alive) done(fold(result), Date.now());
       })
       .catch(() => {
         clearTimeout(timer);
+        cancelIdle?.();
         if (alive)
           setRead({
             key,
@@ -184,6 +210,7 @@ export function useFeed(given?: PostingReader): FeedState {
     return () => {
       alive = false;
       clearTimeout(timer);
+      cancelIdle?.();
     };
     // req derives from key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
