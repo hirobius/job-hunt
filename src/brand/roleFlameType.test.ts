@@ -16,6 +16,8 @@ describe('RoleFlame logo type', () => {
     const files = readdirSync('src', { recursive: true }) as string[];
     const own = files.filter((f) => /sora/i.test(f) && /\.(woff2?|ttf|otf|css)$/.test(f));
     expect(own).toEqual([]);
-    expect(readFileSync('src/brand/RoleFlame.tsx', 'utf8')).not.toMatch(/font-family|fontFamily|Sora,/);
+    expect(readFileSync('src/brand/RoleFlame.tsx', 'utf8')).not.toMatch(
+      /font-family|fontFamily|Sora,/,
+    );
   });
 });

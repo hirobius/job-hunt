@@ -45,11 +45,12 @@ by `aria-label`, its parts aria-hidden. **BootHold:** App's main, only while a s
 copy, max 4 s.
 **Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (the lab's procedural flame + flickering name, kept as
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
-`Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, fontSize 40, centred;
-one small row on a short screen). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
+`Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; its size follows the visible height
+(`--rjb-vv-height`), 40px down to 20px, easing as the keyboard opens, never a jump to another layout, 2026-11-09). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in the HDS display family at 700 (Sora 700, loaded by HDS's fonts.css), its dynamic styles come from helpers (no
-inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and stops on frame 0
-after 5 s on screen (`FLAME_MOTION_LIMIT_MS`, WCAG 2.2.2; `roleFlameMotion.test.tsx`), except the **app bar's**, which loops on (`continuous`, Adrian 2026-11-08), still under reduced motion and under the Account menu's **Pause animations** / Play animations (WCAG 2.2.2; `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion). The boot splash, icons, og-image and BootHold still use
+inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
+limit is gone), still under reduced motion and under the Account menu's **Pause animations** / Play animations (WCAG 2.2.2;
+`src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
 flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
 
 ## Stack & conventions

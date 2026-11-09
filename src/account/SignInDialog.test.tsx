@@ -90,7 +90,7 @@ describe('SignInDialog', () => {
       within(dialog)
         .getAllByRole('button')
         .map((b) => b.textContent),
-    ).toEqual(['Send link', 'Continue without an account']);
+    ).toEqual(['Send link', 'Continue without an account', '']);
     expect(dialog.textContent).toBe(
       `${BRAND.name}Sign inEmailSend linkContinue without an account`,
     );
@@ -110,10 +110,28 @@ describe('SignInDialog', () => {
       within(dialog)
         .getAllByRole('button')
         .map((b) => b.textContent),
-    ).toEqual(['Continue with Google', 'Send link', 'Continue without an account']);
+    ).toEqual(['Continue with Google', 'Send link', 'Continue without an account', '']);
     expect(dialog.textContent).toBe(
       `${BRAND.name}Sign inContinue with GoogleEmailSend linkContinue without an account`,
     );
+  });
+
+  it('has its own Pause / Play animations toggle, last in the tab order (WCAG 2.2.2, #519 review)', async () => {
+    localStorage.removeItem('rjb_ui_pause_motion');
+    const { dialog } = setup();
+    const buttons = within(dialog).getAllByRole('button');
+    const pause = within(dialog).getByRole('button', { name: 'Pause animations' });
+    expect(buttons[buttons.length - 1]).toBe(pause);
+    const column = dialog.querySelector('.rjb-signin-screen__column')!;
+    expect(column).not.toHaveAttribute('data-paused');
+    await userEvent.click(pause);
+    // The same per-device choice as the Account menu's item.
+    expect(localStorage.getItem('rjb_ui_pause_motion')).toBe('1');
+    expect(column).toHaveAttribute('data-paused', 'true');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Play animations' }));
+    expect(localStorage.getItem('rjb_ui_pause_motion')).toBe('0');
+    expect(within(dialog).getByRole('button', { name: 'Pause animations' })).toBeInTheDocument();
+    localStorage.removeItem('rjb_ui_pause_motion');
   });
 
   it('Continue without an account closes the screen', async () => {
