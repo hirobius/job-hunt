@@ -8,10 +8,10 @@ import type { Posting, RankedPosting, Signal, SignalId } from './types';
 
 export { inflect, matchTerm, termRegex } from './term';
 import { matchTerm, termRegex } from './term';
+import { CONTRACT_RE, FOUNDING_RE } from './signalPatterns';
 
 // ---- signals: why an opening is worth a closer look (beyond matching the term) ----
 
-const CONTRACT_RE = /\b(contract|1099|freelance(?:rs?)?|fractional|part[- ]time)\b/gi;
 /** A negation earlier in the same clause: "no contract", "W2 only, not part-time". */
 const NEGATED_RE = /\b(?:no|not|non|never|without|nor)\b|\bw-?2\s+only\b/i;
 /** "contract" naming a document or a job function, not an engagement. */
@@ -36,17 +36,6 @@ function contractEvidence(text: string): string | null {
   }
   return null;
 }
-
-/** Building it from zero — the team needs the thing made, not a maintainer of one. Role words, not
- *  a company's age: "founding engineer" counts, "since our founding in 2015" does not. */
-const FOUNDING_RE = new RegExp(
-  [
-    String.raw`\bfounding\s+(?:[a-z-]+\s+){0,2}?(?:engineer|designer|developer|hire|member|team|role|lead)s?\b`,
-    String.raw`\bfirst(?:-ever)?\s+(?:dedicated\s+|full[- ]time\s+|in[- ]house\s+)?(?:[a-z-]+\s+){0,2}?(?:engineer|designer|developer|hire|owner|lead|person|role)\b`,
-    String.raw`\bbuild\s+(?:our|the|a)\s+(?:[a-z-]+\s+){0,2}?(?:design[- ]system|component[- ]library)\s+from\s+scratch\b`,
-  ].join('|'),
-  'i',
-);
 
 const SIGNALS: { id: SignalId; label: string; evidence: (text: string) => string | null }[] = [
   { id: 'contract', label: 'Contract-friendly', evidence: contractEvidence },

@@ -14,11 +14,18 @@ export function greenhouseRef(id: string): { slug: string; job: string } | null 
 }
 
 /** One Greenhouse job's text, '' when it is not a Greenhouse posting or can't be read. */
-export async function greenhouseText(id: string, fetchJson: FetchJson): Promise<string> {
+export async function greenhouseText(
+  id: string,
+  fetchJson: FetchJson,
+  signal?: AbortSignal,
+): Promise<string> {
   const ref = greenhouseRef(id);
   if (!ref) return '';
   try {
-    const body = (await fetchJson(greenhouseJobUrl(ref.slug, ref.job))) as { content?: unknown };
+    const url = greenhouseJobUrl(ref.slug, ref.job);
+    const body = (await (signal ? fetchJson(url, { signal }) : fetchJson(url))) as {
+      content?: unknown;
+    };
     return typeof body?.content === 'string' ? htmlToText(decodeEntities(body.content)) : '';
   } catch {
     return '';
@@ -50,18 +57,22 @@ export async function fillTexts(
       .map((p) => p.id),
   );
   if (!todo.size) return postings;
-  // Each text lands in the map as it answers, so a deadline keeps the ones read so far.
+  // Each text lands in the map as it answers, so a deadline keeps the ones read so far. At the
+  // deadline the reads still queued are given up (#499): they would only hold slots other reads
+  // need, and their texts load on open.
   const texts = new Map<string, string>();
+  const stop = deadlineMs === undefined ? undefined : new AbortController();
   const all = Promise.all(
     [...todo].map(async (id) => {
-      const text = await greenhouseText(id, fetchJson);
-      if (text) texts.set(id, text);
+      const text = await greenhouseText(id, fetchJson, stop?.signal);
+      if (text && !stop?.signal.aborted) texts.set(id, text);
     }),
   );
   let timer: ReturnType<typeof setTimeout> | undefined;
-  await (deadlineMs === undefined
-    ? all
-    : Promise.race([all, new Promise<void>((done) => (timer = setTimeout(done, deadlineMs)))]));
+  await (stop
+    ? Promise.race([all, new Promise<void>((done) => (timer = setTimeout(done, deadlineMs)))])
+    : all);
   clearTimeout(timer);
+  stop?.abort();
   return postings.map((p) => (texts.get(p.id) ? { ...p, text: texts.get(p.id)! } : p));
 }

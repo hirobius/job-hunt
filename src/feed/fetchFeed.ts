@@ -172,12 +172,25 @@ export function createFetchJson({
   let active = 0;
   const waiting: (() => void)[] = [];
   // Null when a slot is free now (taken at once, so the request starts in this same tick).
-  const slot = (): Promise<void> | null => {
+  // An aborted wait leaves the queue (it never takes a slot) and rejects.
+  const slot = (signal?: AbortSignal): Promise<void> | null => {
     if (active < maxInFlight) {
       active++;
       return null;
     }
-    return new Promise<void>((go) => waiting.push(go));
+    return new Promise<void>((go, stop) => {
+      const take = () => {
+        signal?.removeEventListener('abort', give);
+        go();
+      };
+      const give = () => {
+        const i = waiting.indexOf(take);
+        if (i >= 0) waiting.splice(i, 1);
+        stop(new FetchError(0, '', true));
+      };
+      waiting.push(take);
+      signal?.addEventListener('abort', give, { once: true });
+    });
   };
   const release = () => {
     const next = waiting.shift();
@@ -196,29 +209,36 @@ export function createFetchJson({
   // A read still in flight is shared (Today's Feed and the auto-scan read the same boards on open),
   // so a url is asked once; a fresh read (liveness) never waits on one.
   const pending = new Map<string, Promise<unknown>>();
-  const fetchJson = (url: string, opts?: { fresh?: boolean }): Promise<unknown> => {
+  const fetchJson = (
+    url: string,
+    opts?: { fresh?: boolean; signal?: AbortSignal },
+  ): Promise<unknown> => {
+    if (opts?.signal?.aborted) return Promise.reject(new FetchError(0, url, true));
     const hit = cache.get(url);
     if (hit && !opts?.fresh && now() - hit.at < ttlMs) {
       cache.delete(url);
       cache.set(url, hit);
       return Promise.resolve(hit.body);
     }
-    if (opts?.fresh) return read(url);
+    if (opts?.fresh) return read(url, opts.signal);
     const inFlight = pending.get(url);
     if (inFlight) return inFlight;
+    // A read that can be given up is not shared: another caller must not lose it.
+    if (opts?.signal) return read(url, opts.signal);
     const p = read(url).finally(() => pending.delete(url));
     pending.set(url, p);
     return p;
   };
-  const read = async (url: string): Promise<unknown> => {
+  const read = async (url: string, given?: AbortSignal): Promise<unknown> => {
     drop(url);
     let res: Response;
     let text: string;
-    const wait = slot();
-    if (wait) await wait;
+    const wait = slot(given);
+    if (wait) await wait.catch(() => Promise.reject(new FetchError(0, url, true)));
     try {
       try {
-        const signal = AbortSignal.timeout(timeoutMs);
+        const timeout = AbortSignal.timeout(timeoutMs);
+        const signal = given ? AbortSignal.any([timeout, given]) : timeout;
         res = await fetchImpl(url, { headers: { Accept: 'application/json' }, signal });
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'TimeoutError') {

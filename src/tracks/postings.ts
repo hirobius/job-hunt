@@ -86,10 +86,14 @@ export function splitQueue(
   };
 }
 
-/** The user's open queued and review postings, best first. Throws on an error (the table not
- *  there yet reads as one). */
+/** The user's open queued and review postings, best first, through `feed_rows` (trimmed text),
+ *  else the table. Throws on an error (the table not there yet reads as one). */
 export async function loadServerRows(): Promise<StoredPosting[]> {
   const db = await loadSupabase();
+  // The trimmed read (#499): each row's text cut to what ranking reads. Before its migration
+  // runs the RPC is missing: read the table as before.
+  const trimmed = await db.rpc('feed_rows', { p_limit: LIMIT });
+  if (!trimmed.error) return ((trimmed.data ?? []) as Row[]).map(fromRow);
   const { data, error } = await db
     .from('postings')
     .select(

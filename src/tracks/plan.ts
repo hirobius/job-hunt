@@ -51,6 +51,9 @@ export interface SyncPlan {
   terms: string[];
   /** Feeds on (a muted feed Source turns one off). */
   feeds: Set<Feed>;
+  /** Every term the browser tests on a posting's text for this person (include, leave out,
+   *  titles): the stored match text keeps a window around each hit (matchText.ts, #499). */
+  textTerms: string[];
 }
 
 /** A curation tile under a "Watched companies" section (v11). */
@@ -221,7 +224,8 @@ function planV12(o: O): SyncPlan | null | undefined {
     config.slug === designSystemsTrack.slug
       ? titles.filter(saysDesignSystem).concat('design systems')
       : titles;
-  return { from: 'v12', config, boards: boards.list, terms: cleanTerms(terms), feeds };
+  const textTerms = cleanTerms([...p.include.terms, ...p.leaveOut, ...titles]);
+  return { from: 'v12', config, boards: boards.list, terms: cleanTerms(terms), feeds, textTerms };
 }
 
 function planV11(o: O, tiles: WatchedTile[]): SyncPlan | null {
@@ -252,7 +256,16 @@ function planV11(o: O, tiles: WatchedTile[]): SyncPlan | null {
     ? sweepTitles.filter(saysDesignSystem).concat('design systems')
     : sweepTitles;
   const feeds = new Set<Feed>(scored ? FEEDS : TERM_FEEDS);
-  return { from: 'v11', config, boards: boards.list, terms: cleanTerms(titles), feeds };
+  // v11 kept its include terms per track: every one counts (a superset only keeps more text).
+  const includeTerms = includes.flatMap((r) => strs(r.terms));
+  return {
+    from: 'v11',
+    config,
+    boards: boards.list,
+    terms: cleanTerms(titles),
+    feeds,
+    textTerms: cleanTerms([...includeTerms, ...titles]),
+  };
 }
 
 /** The feed reads that are this user's: a feed they have on, for one of their titles (RSS: any). */
