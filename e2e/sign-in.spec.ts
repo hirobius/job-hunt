@@ -216,3 +216,36 @@ test('a refused link stays on the confirm step with the reason, never "Signed in
   await expect(page.getByRole('heading', { name: 'Signed in' })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/signin-refused-390.png' });
 });
+
+// Adrian 2026-11-09 (phone recording): tapping into the email field made the top of the screen
+// flicker. Focus the field at 390px and compare the top of the screen, frame by frame: no layout
+// shift (CLS ≈ 0), and the brand box does not move or resize.
+test('focusing the email field at 390px: no layout shift at the top', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dialog = await openSignIn(page);
+  const email = dialog.getByRole('textbox', { name: 'Email' });
+  await email.blur();
+  await page.waitForTimeout(600);
+  await page.evaluate(() => {
+    const w = window as unknown as { __cls: number };
+    w.__cls = 0;
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries() as unknown as { value: number }[]) w.__cls += e.value;
+    }).observe({ type: 'layout-shift', buffered: false });
+  });
+  const brand = dialog.locator('.rjb-signin-screen__brand');
+  const before = (await brand.boundingBox())!;
+  await email.focus();
+  const frames: { x: number; y: number; width: number; height: number }[] = [];
+  for (let i = 0; i < 10; i++) {
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))));
+    frames.push((await brand.boundingBox())!);
+  }
+  await page.waitForTimeout(400);
+  for (const f of frames) {
+    expect(Math.abs(f.y - before.y)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(f.height - before.height)).toBeLessThanOrEqual(0.5);
+  }
+  const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+  expect(cls).toBeLessThan(0.001);
+});

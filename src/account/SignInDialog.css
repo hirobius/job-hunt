@@ -67,7 +67,7 @@
 .rjb-signin-screen__brand .rjb-rf {
   font-size: clamp(
     var(--primitive-space-5),
-    calc(var(--rjb-vv-height, 100dvh) * 0.05),
+    calc(var(--rjb-vv-sized-height, 100dvh) * 0.05),
     var(--primitive-space-10)
   );
   transition: font-size var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
@@ -75,7 +75,7 @@
 .rjb-signin-screen__column {
   padding-top: clamp(
     var(--primitive-space-4),
-    calc(var(--rjb-vv-height, 100dvh) * 0.12),
+    calc(var(--rjb-vv-sized-height, 100dvh) * 0.12),
     var(--primitive-space-32)
   );
   transition: padding-top var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
