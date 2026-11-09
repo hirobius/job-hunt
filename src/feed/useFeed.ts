@@ -97,9 +97,16 @@ export function useFeed(given?: PostingReader): FeedState {
   const { profile, sources } = useFeedInputs();
   const decided = useDecided();
   const jobs = useJobs();
-  const req = useMemo(() => feedRequest(profile, sources), [profile, sources]);
-  // A finished scan, or a New company followed or ignored, changes what the scan reader adds.
   const scan = useScan().state;
+  const [attempt, setAttempt] = useRemembered('review:attempt', 0);
+  // Signed out, the browser reads every board itself: the term feeds (HN, Remotive, …) wait until
+  // the boards have answered (2026-11-09 phone profile: HN's ~57 searches, ~1.3 MB, took the
+  // bandwidth the boards needed, and on Fast 3G the first job card, the page's LCP, came ~4 s later).
+  const req = useMemo(
+    () => ({ ...feedRequest(profile, sources), ...(!signedIn && { feedsLast: true }) }),
+    [profile, sources, signedIn],
+  );
+  // A finished scan, or a New company followed or ignored, changes what the scan reader adds.
   // Not the companies a run in progress adds: only a finished run or a Follow / Ignore re-reads.
   const scanKey = `${scan.finishedAt ?? 0}:${scan.found
     .filter((f) => f.status !== 'new')
@@ -107,7 +114,6 @@ export function useFeed(given?: PostingReader): FeedState {
     .join(',')}`;
   const key = `${signedIn ? 'server' : 'browser'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}`;
   const [read, setRead] = useRemembered<Read | null>('review:read', storedRead);
-  const [attempt, setAttempt] = useRemembered('review:attempt', 0);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
 
   useEffect(() => {

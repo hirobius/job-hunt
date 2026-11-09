@@ -21,6 +21,9 @@ export interface FeedRequest {
   boardUrls: string[];
   /** The profile's inclusion check (a phone's light board read uses it; fetchFeed `include`). */
   include?: IncludeRule;
+  /** Read the term feeds (HN, Remotive, …) after the boards, not beside them: the signed-out
+   *  signed-out read (useFeed.ts), so on a slow link the boards' rows show first. */
+  feedsLast?: boolean;
 }
 
 export interface PostingReader {
@@ -35,7 +38,13 @@ export function browserReader(
   return {
     read: (req, onProgress) =>
       fetchFeed(
-        { terms: req.terms, boardUrls: req.boardUrls, include: req.include, onProgress },
+        {
+          terms: req.terms,
+          boardUrls: req.boardUrls,
+          include: req.include,
+          feedsLast: req.feedsLast,
+          onProgress,
+        },
         fetchJson,
         opts,
       ),
