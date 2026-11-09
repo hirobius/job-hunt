@@ -95,24 +95,15 @@
 .rjb-signin-screen[data-keyboard='open'] .rjb-signin-screen__step {
   transform: translateY(calc(var(--primitive-space-10) * -3.525 / 2));
 }
-/* Pause and reduced motion: the state still changes, with no transition. */
+/* Pause and reduced motion: the state still changes, with no transition (the logo's scale too).
+   HDS 0.39 switches themes instantly (hds#1399), so the old fade-off for the logo's colours is gone. */
+.rjb-signin-screen__column[data-paused] .rjb-signin-screen__brand .rjb-rf,
 .rjb-signin-screen__column[data-paused] .rjb-signin-screen__step {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .rjb-signin-screen__step {
-    transition: none;
-  }
-}
-/* HDS's theme fade (:where([data-hds]) * { transition: colors 0.3s }) also reaches the logo. Pause
-   (data-paused) and reduced motion stop all its motion, so the fade goes too (WCAG 2.2.2). */
-.rjb-signin-screen__column[data-paused] .rjb-rf,
-.rjb-signin-screen__column[data-paused] .rjb-rf * {
-  transition: none;
-}
-@media (prefers-reduced-motion: reduce) {
   .rjb-signin-screen__brand .rjb-rf,
-  .rjb-signin-screen__brand .rjb-rf * {
+  .rjb-signin-screen__step {
     transition: none;
   }
 }

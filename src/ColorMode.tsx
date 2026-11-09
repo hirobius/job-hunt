@@ -36,9 +36,23 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
   const [os, setOs] = useState<ColorMode>(osMode);
   const mode = picked ?? os;
 
+  // HDS 0.39 (hds#1399): `data-hds-theme-switching` on <html> turns every transition off while the
+  // theme flips, so colours switch at once instead of fading. Held two frames, as ThemeProvider does.
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', mode);
-    document.documentElement.classList.toggle('dark', mode === 'dark');
+    const root = document.documentElement;
+    root.setAttribute('data-hds-theme-switching', '');
+    root.setAttribute('data-theme', mode);
+    root.classList.toggle('dark', mode === 'dark');
+    void root.offsetHeight;
+    const done = () => root.removeAttribute('data-hds-theme-switching');
+    if (typeof requestAnimationFrame !== 'function') return done();
+    let id = requestAnimationFrame(() => {
+      id = requestAnimationFrame(done);
+    });
+    return () => {
+      cancelAnimationFrame(id);
+      done();
+    };
   }, [mode]);
 
   // No pick yet: follow the OS live, so switching it at sunset switches the app too.
