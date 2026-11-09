@@ -12,6 +12,8 @@
 // scores the trimmed rows exactly as the full ones. Pure, `.ts` specifiers: the edge function loads it.
 import { CONTRACT_RE, FOUNDING_RE } from '../feed/signalPatterns.ts';
 import { termRegex } from '../feed/term.ts';
+import type { Profile } from '../profileModel.ts';
+import { designSystemsTrack } from './track-config.ts';
 
 /** Shorter than this, a description is sent whole. */
 export const MATCH_TEXT_PLAIN_MAX = 2000;
@@ -62,4 +64,33 @@ export function trimForMatch(text: string, patterns: readonly RegExp[]): string 
   }
   const out = merged.map(([s, e]) => text.slice(s, e)).join(JOIN);
   return out.length < text.length ? out : text;
+}
+
+/** Change when the trim rules change: every stored match text then reads as stale. */
+const MATCH_RULES = 1;
+/** Related titles the Feed can add to a profile's titles (feed/mustInclude.ts RELATED_TITLES). */
+const RELATED = ['design technologist'];
+
+/** Every term the Feed can test on a posting's text for this profile: include, leave out, every
+ *  title and ATS role (on or off: a superset only keeps more text), the related titles. */
+export function textTermsOf(p: Profile): string[] {
+  const all = [...p.include.terms, ...p.leaveOut, ...p.titles, ...p.atsRoles, ...RELATED];
+  return [...new Set(all.map((t) => t.trim().toLowerCase()).filter(Boolean))].sort();
+}
+
+/** What a match text was cut for: the rules, the profile's text terms and what picks its scorer.
+ *  The sync stores it beside the text; `feed_rows` sends the full text when the browser's key
+ *  differs (a term added since the sync). The same on both sides: pure, FNV-1a over JSON. */
+export function matchKey(p: Profile): string {
+  const json = JSON.stringify([
+    MATCH_RULES,
+    textTermsOf(p),
+    p.scorer ?? '',
+    p.include.related === false,
+    [...(p.include.relatedOff ?? [])].sort(),
+    designSystemsTrack.descriptionSignals.map((d) => d.pattern),
+  ]);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < json.length; i++) h = Math.imul(h ^ json.charCodeAt(i), 0x01000193);
+  return `${MATCH_RULES}:${(h >>> 0).toString(16)}`;
 }

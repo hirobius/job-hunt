@@ -500,8 +500,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
   `serverFirstReader`, in `useFeed`):** reads the server's rows through the `feed_rows` RPC (#499, migration `20261109100000`: each row's
   `match_text`, the description cut by `tracks/matchText.ts` to its head plus a window around every hit of the
-  scorer's signals, contract / founding and the profile's terms; `matchText.test.ts` holds the rank parity; the
-  table read is the fallback until the RPC exists; and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
+  scorer's signals, contract / founding and the profile's terms, stored with its `match_key`; the browser
+  sends its profile's `matchKey` and gets the full text for a row cut for other terms or with no match text;
+  `matchText.test.ts` holds the rank parity; the table read is the fallback only while the RPC is missing; and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
   only the request's rows (its boards; feeds when it searches a title), with one progress call. No rows yet (a new
   account before its first sync) or a failed read falls back to the browser read, and a company or title added
   since the last read is read in the browser (the server has not read it yet). **Phones** (`feed/lightBoards.ts`,

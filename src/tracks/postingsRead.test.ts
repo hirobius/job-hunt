@@ -55,7 +55,7 @@ describe('loadServerRows', () => {
   it('reads feed_rows (trimmed text) and never the table', async () => {
     db.rpc.mockResolvedValue({ data: [row(1, 'trimmed')], error: null });
     const rows = await loadServerRows();
-    expect(db.rpc).toHaveBeenCalledWith('feed_rows', { p_limit: 1000 });
+    expect(db.rpc).toHaveBeenCalledWith('feed_rows', { p_limit: 1000, p_match_key: null });
     expect(rows.map((r) => r.descriptionText)).toEqual(['trimmed']);
     expect(db.tableReads).toBe(0);
   });
@@ -69,5 +69,26 @@ describe('loadServerRows', () => {
     const rows = await loadServerRows();
     expect(rows.map((r) => r.descriptionText)).toEqual(['full text']);
     expect(db.tableReads).toBe(1);
+  });
+
+  it('any other error is an error, not a table read', async () => {
+    db.rpc.mockResolvedValue({ data: null, error: { message: 'timeout', code: '57014' } });
+    await expect(loadServerRows()).rejects.toThrow('timeout');
+    expect(db.tableReads).toBe(0);
+  });
+
+  it('sends the profile’s match key', async () => {
+    const { saveProfile, getProfile } = await import('../profile');
+    const { matchKey } = await import('./matchText');
+    saveProfile({
+      titles: ['Design Systems Designer'],
+      include: { terms: ['design system'] },
+    } as never);
+    db.rpc.mockResolvedValue({ data: [], error: null });
+    await loadServerRows();
+    expect(db.rpc).toHaveBeenCalledWith('feed_rows', {
+      p_limit: 1000,
+      p_match_key: matchKey(getProfile()!),
+    });
   });
 });

@@ -260,18 +260,24 @@ async function readPaged<R>(page: Page<R>, size: number) {
   }
 }
 
-/** The patterns the browser tests on a posting's text for this plan (matchText.ts, #499). */
-const patternsOf = (plan: Pick<SyncPlan, 'config' | 'textTerms'>) =>
-  matchPatterns(
-    plan.config.descriptionSignals.map((d) => d.pattern),
-    plan.textTerms,
-  );
+/** The patterns the browser tests on a posting's text for this plan, and the key they were made
+ *  for (matchText.ts, #499). Null for a v11 plan: its rows keep no match text. */
+const matchOf = (plan: Pick<SyncPlan, 'config' | 'textTerms' | 'matchKey'>) =>
+  plan.matchKey
+    ? {
+        key: plan.matchKey,
+        patterns: matchPatterns(
+          plan.config.descriptionSignals.map((d) => d.pattern),
+          plan.textTerms,
+        ),
+      }
+    : null;
 
 /** A kept row's match text: null when its text is short (the RPC sends that whole) or it is a
  *  rejected row (no text is kept). */
-function matchTextOf(s: ScoredPosting, patterns: RegExp[]): string | null {
+function matchTextOf(s: ScoredPosting, patterns: RegExp[] | undefined): string | null {
   const text = (s.posting.descriptionText ?? '').slice(0, MAX_TEXT);
-  if (s.verdict === 'reject') return null;
+  if (s.verdict === 'reject' || !patterns) return null;
   const trimmed = trimForMatch(text, patterns);
   return trimmed === text ? null : trimmed;
 }
@@ -286,11 +292,11 @@ const writeGroup = (
   totals: Totals,
 ) =>
   writeScored(db, userId, plan.config.slug, scoreBatch(answered, plan.config), logs, totals, {
-    patterns: patternsOf(plan),
+    match: matchOf(plan),
   });
 
 /** Dedupe and upsert one user's scored postings. `extra` columns ride on every row (the scan's
- *  `via_scan`); `patterns` cut each row's match text (matchText.ts). */
+ *  `via_scan`); `match` cuts each row's match text (matchText.ts). */
 async function writeScored(
   db: SupabaseClient,
   userId: string,
@@ -298,7 +304,10 @@ async function writeScored(
   scoredIn: ScoredPosting[],
   logs: Log[],
   totals: Totals,
-  { patterns, extra = {} }: { patterns: RegExp[]; extra?: Record<string, unknown> },
+  {
+    match,
+    extra = {},
+  }: { match: { key: string; patterns: RegExp[] } | null; extra?: Record<string, unknown> },
 ) {
   let scored = scoredIn;
   // One row per key in a batch (an upsert can't touch a row twice).
@@ -358,7 +367,9 @@ async function writeScored(
       s.verdict === 'reject' ? '' : (s.posting.descriptionText ?? '').slice(0, MAX_TEXT),
     // What the browser's Feed reads (the feed_rows RPC, #499): the head and a window around every
     // pattern it tests, so a phone never pulls 20 KB a row. Null when the text is short.
-    match_text: matchTextOf(s, patterns),
+    // Cut for this profile's terms (match_key): a term added since makes feed_rows send it whole.
+    match_text: matchTextOf(s, match?.patterns),
+    match_key: match?.key ?? null,
     posted_at: iso(s.posting.postedAt),
     // The source's last-changed stamp, so the next run's delta read can tell an unchanged
     // Greenhouse job from a changed one (#448; the 20261102 migration adds the column).
@@ -697,7 +708,7 @@ async function rotate(db: SupabaseClient): Promise<Response> {
         const t: Totals = { queue: 0, review: 0, reject: 0, failed: 0 };
         if (mine.length)
           await writeScored(db, userId, designSystemsTrack.slug, mine, logs, t, {
-            patterns: patternsOf(plan),
+            match: matchOf(plan),
             extra: { via_scan: true },
           });
         stored += t.queue + t.review;
