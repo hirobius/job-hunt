@@ -16,6 +16,7 @@ import { useBackCloses } from '../useBackCloses';
 import { GoogleMark } from './GoogleMark';
 import { googleSignInEnabled } from './googleSignInFlag';
 import { SignInShell } from './SignInShell';
+import { holdPage } from './holdPage';
 
 export const RESEND_COOLDOWN_S = 30;
 
@@ -105,6 +106,10 @@ export default function SignInDialog() {
     }
   };
   // The browser's Back closes it and stays on the page (return paths).
+  // While open, the page under the screen stays mounted (an unsaved draft or a typed URL
+  // survives) but is inert and hidden from assistive tech; its heavy work (the feed read and
+  // build, liveness checks, the scan) holds on `signInOpen` and resumes on close (2026-11-09).
+  useEffect(() => holdPage(signInOpen), [signInOpen]);
   useBackCloses(signInOpen, () => onOpenChange(false), 'sign-in');
 
   return (

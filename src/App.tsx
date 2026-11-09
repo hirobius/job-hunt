@@ -136,11 +136,9 @@ export default function App() {
   // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
   // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
   const slugs: string[] = [...TAB_SLUGS];
-  const known: string[] = [...slugs];
-  const notFound = route.tab !== '' && !isAuthCallback(route) && !known.includes(route.tab);
-  const noTab = notFound;
-  const slugIndex = slugs.indexOf(route.tab);
-  const tabSlug = slugIndex >= 0 ? slugs[slugIndex] : slugs[defaultTabIndex];
+  const known = slugs.includes(route.tab);
+  const notFound = route.tab !== '' && !isAuthCallback(route) && !known;
+  const tabSlug = known ? route.tab : slugs[defaultTabIndex];
   // The section pages' titles; a job, a Company and the legal pages set their own.
   usePageTitle(
     notFound
@@ -158,7 +156,7 @@ export default function App() {
   const viewRef = useRef<HTMLDivElement>(null);
   useViewEnter(viewRef, route.tab);
 
-  const current = (slug: TopTab) => !noTab && tabSlug === slug;
+  const current = (slug: TopTab) => !notFound && tabSlug === slug;
   const tabLink = (slug: TopTab) => ({
     href: `#/${slug}`,
     className: 'rjb-top-tab',

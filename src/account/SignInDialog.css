@@ -60,17 +60,17 @@
   margin-bottom: var(--semantic-space-fixed-sm);
 }
 /* The keyboard (Adrian 2026-11-09): the brand never jumps. It stays stacked and centred and its
-   size follows the visible height (--rjb-vv-height, the visual viewport) on a smooth curve, 40px
-   on a full phone screen down to 20px on a short one, so the field and Send link stay in view.
-   The column's top space follows the same height. Both ease as the keyboard slides (HDS spatial
-   motion; none under reduced motion). Was a 560px media query that flipped it to a small row. */
+   size follows the visible height, 1 on a full phone screen down to 0.5 on a short one
+   (--rjb-vv-scale, written once per frame by useVisualViewportVars), so the field and Send link
+   stay in view. It scales with transform (no layout of the logo, no transition: the keyboard's
+   own motion is the ease, and a mid-way update never restarts one, which flickered). The space
+   the logo gives up is taken back under it; the column's top space follows the visible height. */
 .rjb-signin-screen__brand .rjb-rf {
-  font-size: clamp(
-    var(--primitive-space-5),
-    calc(var(--rjb-vv-height, 100dvh) * 0.05),
-    var(--primitive-space-10)
-  );
-  transition: font-size var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
+  font-size: var(--primitive-space-10);
+  transform: scale(var(--rjb-vv-scale, 1));
+  transform-origin: top center;
+  /* 3.525em: the stacked logo's height at its full size (141px at 40px). */
+  margin-bottom: calc((var(--rjb-vv-scale, 1) - 1) * 3.525em);
 }
 .rjb-signin-screen__column {
   padding-top: clamp(
@@ -78,14 +78,8 @@
     calc(var(--rjb-vv-height, 100dvh) * 0.12),
     var(--primitive-space-32)
   );
-  transition: padding-top var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
 }
 
-/* Pause animations also stops the size easing (#519 review). */
-.rjb-signin-screen__column[data-paused],
-.rjb-signin-screen__column[data-paused] .rjb-rf {
-  transition: none;
-}
 /* The screen's Pause / Play toggle: the top right corner, over the page surface. */
 .rjb-signin-screen__motion {
   position: absolute;

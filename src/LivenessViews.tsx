@@ -1,7 +1,8 @@
 // Where liveness shows: a bar on the Pipeline (check button, last-checked line, the closed jobs) and
 // a note on a job's page. Closed means the company's board no longer lists the posting; nothing here
 // changes a job's status.
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { CloudSyncContext } from './account/accountContext';
 import { Box, Button, InlineLink, Spinner, Stack, Text } from '@hirobius/design-system';
 import { eligibleJobs, type LiveCheck } from './feed/liveness';
 import { autoLivenessCheck, checkFor, runLivenessCheck, useLiveness } from './livenessStore';
@@ -26,11 +27,13 @@ export function PipelineLiveness({ jobs }: { jobs: Job[] }) {
   const [note, setNote] = useState('');
 
   const hasEligible = eligible.length > 0;
+  // Held behind the sign-in screen (2026-11-09); runs once it closes.
+  const held = !!useContext(CloudSyncContext)?.signInOpen;
   useEffect(() => {
-    if (hasEligible) void autoLivenessCheck(eligible);
+    if (hasEligible && !held) void autoLivenessCheck(eligible);
     // Once per session: the first Pipeline open with something to check.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEligible]);
+  }, [hasEligible, held]);
 
   if (!hasEligible) return null;
 
