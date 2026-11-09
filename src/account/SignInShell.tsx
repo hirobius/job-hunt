@@ -34,19 +34,23 @@ export function SignInShell({
   const paused = useMotionPaused();
   return (
     <Dialog.Content ref={viewportRef} className="rjb-signin-screen" hideClose {...content}>
-      <div className="rjb-signin-screen__column" data-paused={paused || undefined}>
-        <SignInBrand ref={brandRef} />
-        <div className="rjb-signin-screen__step">{children}</div>
-      </div>
-      <div className="rjb-signin-screen__motion">
-        <Button
-          size="sm"
-          variant="tertiary"
-          iconOnly
-          iconLeft={<Icon icon={paused ? Play : Pause} />}
-          label={paused ? 'Play animations' : 'Pause animations'}
-          onClick={() => setMotionPaused(!paused)}
-        />
+      {/* The panel is opaque and covers the whole layout viewport; only this box follows the
+          visual viewport, so nothing behind ever shows while the iOS keyboard moves (2026-11-09). */}
+      <div className="rjb-signin-screen__viewport">
+        <div className="rjb-signin-screen__column" data-paused={paused || undefined}>
+          <SignInBrand ref={brandRef} />
+          <div className="rjb-signin-screen__step">{children}</div>
+        </div>
+        <div className="rjb-signin-screen__motion">
+          <Button
+            size="sm"
+            variant="tertiary"
+            iconOnly
+            iconLeft={<Icon icon={paused ? Play : Pause} />}
+            label={paused ? 'Play animations' : 'Pause animations'}
+            onClick={() => setMotionPaused(!paused)}
+          />
+        </div>
       </div>
     </Dialog.Content>
   );

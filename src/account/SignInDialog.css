@@ -5,26 +5,41 @@
    keyboard-aware Dialog variant (related: hds#690). The doubled class outranks HDS's centring
    utilities (-translate-x/y-1/2) whatever order the production CSS chunks load in. */
 .rjb-signin-screen.rjb-signin-screen {
-  top: var(--rjb-vv-top, 0px);
-  left: 0;
+  /* The opaque page surface covers the whole layout viewport, whatever the visual viewport does
+     (2026-11-09: on iOS the panel shrank with the keyboard and the app showed through below). */
+  position: fixed;
+  inset: 0;
   /* HDS centres with Tailwind's translate vars; zero them (the build's minifier drops a bare
      `translate: none` beside `transform: none`, so the vars are what holds in production). */
   --tw-translate-x: 0px;
   --tw-translate-y: 0px;
   translate: none;
   transform: none;
-  width: 100%;
+  width: auto;
   max-width: none;
-  height: var(--rjb-vv-height, 100dvh);
+  height: auto;
   max-height: none;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: var(--semantic-space-fixed-md) var(--semantic-space-fixed-sm);
+  overflow: hidden;
+  padding: 0;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   background: var(--semantic-color-surface-page);
+}
+/* Only this box follows the visual viewport (vars from hds-gaps/useVisualViewportVars; without
+   them, the whole screen), so the iOS keyboard never covers the field or the button. It scrolls
+   when its content doesn't fit. */
+.rjb-signin-screen__viewport {
+  position: absolute;
+  top: var(--rjb-vv-top, 0px);
+  left: 0;
+  right: 0;
+  height: var(--rjb-vv-height, 100%);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--semantic-space-fixed-md) var(--semantic-space-fixed-sm);
+  box-sizing: border-box;
 }
 .rjb-signin-screen__column {
   /* Sign-in layout PR (2026-11-08): the brand stays at one place on every step. The column is not
@@ -59,18 +74,35 @@
   gap: var(--semantic-space-fixed-xs);
   margin-bottom: var(--semantic-space-fixed-sm);
 }
-/* The keyboard (Adrian 2026-11-09): the brand never jumps. It stays stacked and centred and its
-   size follows the visible height, 1 on a full phone screen down to 0.5 on a short one
-   (--rjb-vv-scale, written once per frame by useVisualViewportVars), so the field and Send link
-   stay in view. It scales with transform (no layout of the logo, no transition: the keyboard's
-   own motion is the ease, and a mid-way update never restarts one, which flickered). The space
-   the logo gives up is taken back under it; the column's top space follows the visible height. */
+/* The keyboard (Adrian 2026-11-09, iPhone recording): two states, never a live size. Closed, the
+   logo is 40px; open (data-keyboard="open", visible height < 80% of innerHeight), it is half
+   that, so the field and Send link stay in view. One eased transform transition runs between
+   them, started only when the state changes (iOS resize events come in bursts, so live tracking
+   jumped). The step moves up by the height the logo gives up (3.525em of a 40px logo = 141px,
+   half of it 70.5px), also by transform: no layout moves. */
 .rjb-signin-screen__brand .rjb-rf {
   font-size: var(--primitive-space-10);
-  transform: scale(var(--rjb-vv-scale, 1));
   transform-origin: top center;
-  /* 3.525em: the stacked logo's height at its full size (141px at 40px). */
-  margin-bottom: calc((var(--rjb-vv-scale, 1) - 1) * 3.525em);
+}
+.rjb-signin-screen__brand .rjb-rf,
+.rjb-signin-screen__step {
+  transform: none;
+  transition: transform 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+.rjb-signin-screen[data-keyboard='open'] .rjb-signin-screen__brand .rjb-rf {
+  transform: scale(0.5);
+}
+.rjb-signin-screen[data-keyboard='open'] .rjb-signin-screen__step {
+  transform: translateY(calc(var(--primitive-space-10) * -3.525 / 2));
+}
+/* Pause and reduced motion: the state still changes, with no transition. */
+.rjb-signin-screen__column[data-paused] .rjb-signin-screen__step {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rjb-signin-screen__step {
+    transition: none;
+  }
 }
 /* HDS's theme fade (:where([data-hds]) * { transition: colors 0.3s }) also reaches the logo. Pause
    (data-paused) and reduced motion stop all its motion, so the fade goes too (WCAG 2.2.2). */
@@ -85,11 +117,7 @@
   }
 }
 .rjb-signin-screen__column {
-  padding-top: clamp(
-    var(--primitive-space-4),
-    calc(var(--rjb-vv-height, 100dvh) * 0.12),
-    var(--primitive-space-32)
-  );
+  padding-top: clamp(var(--primitive-space-4), 12lvh, var(--primitive-space-32));
 }
 
 /* The screen's Pause / Play toggle: the top right corner, over the page surface. */

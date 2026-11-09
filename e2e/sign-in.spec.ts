@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // Sign-in on a phone (2026-10-17): with the iOS keyboard up only ~400px of a 390px-wide phone is
-// visible. The sign-in screen (full screen since 2026-10-29) is sized to the visual viewport and
-// its brand shrinks smoothly with it, so the field and the button stay in view. At desktop it fills
+// visible. The sign-in screen (full screen since 2026-10-29) covers the layout viewport, its
+// content box follows the visual viewport and its brand eases to half size with the keyboard, so the field and the button stay in view. At desktop it fills
 // the viewport with one centred column.
 const openSignIn = async (page: Page) => {
   await page.goto('/#/apply');
@@ -31,55 +31,67 @@ test('phone with the keyboard up: field and button sit above it', async ({ page 
   expect(button.width).toBeGreaterThan(box.width - 64);
 });
 
-// Adrian 2026-11-09: when the keyboard opens the brand must not jump (it flipped from large and
-// centred to a small row at the top left). The visual viewport shrinks step by step, as a keyboard
-// sliding up: the brand stays stacked and centred, and its size eases down with the height.
-test('the keyboard opening: the brand stays centred and stacked, and shrinks smoothly', async ({
+// Adrian 2026-11-09 (iPhone recording, twice): when the keyboard opens the brand must not jump,
+// and nothing behind the screen may show. iOS sends visualViewport resizes in bursts, so the
+// visual viewport is stubbed here as a keyboard sliding up in uneven steps: the panel still covers
+// the whole layout viewport, the logo goes 40px -> 20px in one eased transition that starts once
+// (on the state change) and shrinks monotonically, and the field and Send link stay in view.
+const stubViewport = (page: Page, height: number) =>
+  page.evaluate((h) => {
+    const vv = window.visualViewport!;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => h });
+    vv.dispatchEvent(new Event('resize'));
+  }, height);
+
+test('the keyboard opening: an opaque full screen, one smooth logo transition', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const dialog = await openSignIn(page);
-  const brand = dialog.locator('.rjb-signin-screen__brand');
-  const logo = brand.locator('.rjb-rf');
-  const read = async () => {
-    // Let the size's transition finish (HDS spatial motion) before measuring.
-    await page.waitForTimeout(600);
-    const [vv, flame, name, size] = await Promise.all([
-      page.evaluate(() => window.visualViewport!.height),
-      logo.locator('> svg').boundingBox(),
-      logo.locator('> span').boundingBox(),
-      // The logo scales with transform (2026-11-09): its drawn size, as type px of a 40px logo.
-      logo.evaluate(
-        (el) =>
-          parseFloat(getComputedStyle(el).fontSize) *
-          (el.getBoundingClientRect().height / (el as HTMLElement).offsetHeight),
-      ),
-    ]);
-    return { vv, flame: flame!, name: name!, size };
-  };
-  const steps: Awaited<ReturnType<typeof read>>[] = [];
-  for (const h of [844, 760, 680, 600, 520, 440, 400]) {
-    await page.setViewportSize({ width: 390, height: h });
-    steps.push(await read());
+  const logo = dialog.locator('.rjb-signin-screen__brand .rjb-rf');
+  const size = () =>
+    logo.evaluate(
+      (el) =>
+        parseFloat(getComputedStyle(el).fontSize) *
+        (el.getBoundingClientRect().height / (el as HTMLElement).offsetHeight),
+    );
+  await page.waitForTimeout(400);
+  expect(await size()).toBeCloseTo(40, 0);
+  await page.evaluate(() => {
+    const w = window as unknown as { __starts: number };
+    w.__starts = 0;
+    document.addEventListener('transitionstart', (e) => {
+      if ((e.target as Element).classList.contains('rjb-rf')) w.__starts++;
+    });
+  });
+  const sizes: number[] = [];
+  // A burst of resizes, as iOS sends them: all of them below 80%, so one state change.
+  for (const h of [660, 640, 520, 515, 460, 440, 420]) {
+    await stubViewport(page, h);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))));
+    sizes.push(await size());
+    // The opaque panel covers the whole layout viewport at every step.
+    expect(await dialog.boundingBox()).toEqual({ x: 0, y: 0, width: 390, height: 844 });
   }
-  expect(steps[0].vv).toBe(844);
-  expect(steps.at(-1)!.vv).toBe(400);
-  for (const s of steps) {
-    // Stacked: the flame above the name; both centred on the screen.
-    expect(s.flame.y + s.flame.height).toBeLessThanOrEqual(s.name.y + 1);
-    expect(Math.abs(s.flame.x + s.flame.width / 2 - 195)).toBeLessThanOrEqual(2);
-    expect(Math.abs(s.name.x + s.name.width / 2 - 195)).toBeLessThanOrEqual(2);
-  }
-  expect(steps[0].size).toBeCloseTo(40, 0);
-  expect(steps.at(-1)!.size).toBeCloseTo(20, 0);
-  // Down with the height, never a jump: at most 5px of type for each 80px of screen.
-  for (let i = 1; i < steps.length; i++) {
-    expect(steps[i].size).toBeLessThanOrEqual(steps[i - 1].size + 0.01);
-    expect(steps[i - 1].size - steps[i].size).toBeLessThanOrEqual(5);
-  }
-  // Still in view with the keyboard up: the field and Send link.
+  await page.waitForTimeout(500);
+  sizes.push(await size());
+  for (let i = 1; i < sizes.length; i++) expect(sizes[i]).toBeLessThanOrEqual(sizes[i - 1] + 0.01);
+  expect(sizes.at(-1)).toBeCloseTo(20, 0);
+  expect(await page.evaluate(() => (window as unknown as { __starts: number }).__starts)).toBe(1);
+  // The content box follows the visible part; the field and Send link sit in it.
   const button = (await dialog.getByRole('button', { name: 'Send link' }).boundingBox())!;
-  expect(button.y + button.height).toBeLessThanOrEqual(400);
+  expect(button.y + button.height).toBeLessThanOrEqual(420);
+  // Stacked and centred.
+  const [flame, name] = await Promise.all([
+    logo.locator('> svg').boundingBox(),
+    logo.locator('> span').boundingBox(),
+  ]);
+  expect(flame!.y + flame!.height).toBeLessThanOrEqual(name!.y + 1);
+  expect(Math.abs(flame!.x + flame!.width / 2 - 195)).toBeLessThanOrEqual(2);
+  // The keyboard closing: back to 40px.
+  await stubViewport(page, 844);
+  await page.waitForTimeout(500);
+  expect(await size()).toBeCloseTo(40, 0);
 });
 
 test('desktop: a full screen with one centred column', async ({ page }) => {
