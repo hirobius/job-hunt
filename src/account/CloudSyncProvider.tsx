@@ -66,7 +66,7 @@ import {
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
-import { CloudSyncContext, type CloudSyncApi } from './accountContext';
+import { CloudSyncContext, PULL_LIMIT, type CloudSyncApi } from './accountContext';
 import { magicLinkRedirect } from './authRedirect';
 import { GOOGLE_FAILED_MSG } from './authLinkError';
 import { rememberSignInReturn, returnAfterSignIn } from './signInReturn';
@@ -86,7 +86,6 @@ import { dropAutoSetup } from '../autoSetup';
 import { LinkConfirmScreen, MergeConfirmDialog } from '../lazyDialogs';
 
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
-import { PULL_LIMIT } from './pullTimeout';
 
 const loadPkce = importFresh(() => import('./oauthPkce'));
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
@@ -382,9 +381,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     };
     // A read that hangs says so after PULL_LIMIT.ms ("couldn't load", Try again); if it lands
     // later it still counts, and the sync line says Synced.
-    let late = false;
     const timer = setTimeout(() => {
-      late = true;
       if (!tabFrozen()) setMsg(OFFLINE_MSG);
       done();
     }, PULL_LIMIT.ms);
@@ -410,7 +407,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (merged || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (tabFrozen()) return; // the notice stays in the menu (#288)
       if (!curationOk) setMsg(OFFLINE_MSG);
-      else if (!seed || late) setMsg(`Synced · ${u.email}`);
+      else setMsg(`Synced · ${u.email}`);
     } catch {
       setCurationSyncStatus('error');
       if (!tabFrozen()) setMsg(OFFLINE_MSG);
@@ -853,32 +850,35 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // Stable unless what consumers read changes — the provider re-renders on every store change.
   const api: CloudSyncApi = useMemo(
-    () => ({
-      user,
-      authResolved,
-      // Signed out: settled once the session check answers. Signed in: no pull running and the
-      // last one didn't fail — an offline device can't know a job is gone, so it doesn't decide.
-      // Track write failures don't count: they don't make a job's absence uncertain.
-      // A tab stopped by another tab (#288) reads nothing more: settled, so nothing waits forever.
-      settled:
+    () => {
+      // Signed out: read once the session check answers. Signed in: no pull running and the last
+      // one didn't fail — an offline device can't know a job is gone, so it doesn't decide. Track
+      // write failures don't count: they don't make a job's absence uncertain.
+      const read =
         authResolved &&
-        (!user ||
-          !!tabFrozen() ||
-          (pulledFor.current === user.id && !pulling && msg !== OFFLINE_MSG)),
-      stopped: !!tabFrozen(),
-      status: msg,
-      offline,
-      sendLink,
-      signInWithGoogle,
-      retry: () =>
-        tabFrozen() ? location.reload() : user && void adopt(seedPending.current, user),
-      signOut: () => void signOut(),
-      deleteMyData: () => void deleteMyData(),
-      signInOpen,
-      accountTrigger,
-      setAccountTrigger,
-      setSignInOpen,
-    }),
+        (!user || (pulledFor.current === user.id && !pulling && msg !== OFFLINE_MSG));
+      // A tab stopped by another tab (#288) reads nothing more: settled for the UI, so nothing
+      // waits forever, but never read (canWrite: no migration runs there).
+      const stopped = !!tabFrozen();
+      return {
+        user,
+        authResolved,
+        settled: read || (authResolved && stopped),
+        cloudRead: read && !stopped,
+        status: msg,
+        offline,
+        sendLink,
+        signInWithGoogle,
+        retry: () =>
+          tabFrozen() ? location.reload() : user && void adopt(seedPending.current, user),
+        signOut: () => void signOut(),
+        deleteMyData: () => void deleteMyData(),
+        signInOpen,
+        accountTrigger,
+        setAccountTrigger,
+        setSignInOpen,
+      };
+    },
     // The handlers only close over `user` (and stable module state).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, authResolved, pulling, msg, offline, signInOpen, accountTrigger],

@@ -13,11 +13,7 @@ import {
   postingOf,
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
-import {
-  Box,
-  Stack,
-  useToast,
-} from '@hirobius/design-system';
+import { Box, Stack, useToast } from '@hirobius/design-system';
 import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
 import { CompanyPage, JobPage, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './lazyDialogs';
@@ -35,7 +31,7 @@ import { useProfile } from './profile';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
 import { scanOnOpenEnabled } from './feed/scanOnOpenFlag';
-import { useCloudSync } from './account/accountContext';
+import { canWrite, useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { AUTH_ERROR_PARAMS, authLinkErrorMessage } from './account/authLinkError';
@@ -97,7 +93,7 @@ function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNo
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
  *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
 function SnippetMigration() {
-  const { settled } = useCloudSync();
+  const settled = canWrite(useCloudSync());
   const snippets = useSnippets();
   useEffect(() => {
     if (settled) migrateSnippetStore();
@@ -108,7 +104,7 @@ function SnippetMigration() {
 /** The one-time move of a Design Systems track to systems-only (feed/systemsOnly.ts), after sync
  *  settles so a track moved on another device is left alone. Says so once, the time it moves one. */
 function SystemsOnlyMigration() {
-  const { settled } = useCloudSync();
+  const settled = canWrite(useCloudSync());
   const categories = useCategories();
   const { toast } = useToast();
   useEffect(() => {
@@ -271,76 +267,76 @@ export default function App() {
           {/* 32 over the app bar, 24 under the page: the flame's embers rise ~21px over the logo,
               and with 24 they ran off the top of a phone screen (retro quick wins, 2026-11-08). */}
           <Box sx={{ pt: 'lg', pb: 'md' }}>
-              {/* The shell owns the page rhythm (rev-3 .wrap): 24 from the tabs to the first thing on
+            {/* The shell owns the page rhythm (rev-3 .wrap): 24 from the tabs to the first thing on
                   every page (its back link or its title); views add no top margin of their own. */}
-              <Stack gap="px24">
-                {/* Landmarks: the app bar is the banner, the page is the one main (axe
+            <Stack gap="px24">
+              {/* Landmarks: the app bar is the banner, the page is the one main (axe
                     landmark-one-main / region). */}
-                <Box as="header">
-                  <Stack gap="normal">
-                    {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
+              <Box as="header">
+                <Stack gap="normal">
+                  {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
                       wordmark, named for the product; the page's own name is its h1, #363) · the
                       Account avatar. */}
-                    <Stack direction="row" gap="gap" align="center" justify="space-between">
-                      <BrandLogo fontSize={19} />
-                      <AccountMenu />
-                    </Stack>
-                    <Box as="nav" aria-label="Sections" className="rjb-top-tabs">
-                      <a {...tabLink(FIND_TAB)}>Find</a>
-                      <a {...tabLink(APPLY_TAB)}>Apply</a>
-                    </Box>
+                  <Stack direction="row" gap="gap" align="center" justify="space-between">
+                    <BrandLogo fontSize={19} />
+                    <AccountMenu />
                   </Stack>
-                </Box>
-                <Box as="main">
-                  {/* A page whose chunk is gone after a deploy says so here, not over the shell
+                  <Box as="nav" aria-label="Sections" className="rjb-top-tabs">
+                    <a {...tabLink(FIND_TAB)}>Find</a>
+                    <a {...tabLink(APPLY_TAB)}>Apply</a>
+                  </Box>
+                </Stack>
+              </Box>
+              <Box as="main">
+                {/* A page whose chunk is gone after a deploy says so here, not over the shell
                       (#331); a move to another page clears it. */}
-                  <PageErrorBoundary resetKey={pageKey(route)}>
-                    {/* Not keyed: remounting on pageKey drops focus and pager state on in-place
+                <PageErrorBoundary resetKey={pageKey(route)}>
+                  {/* Not keyed: remounting on pageKey drops focus and pager state on in-place
                         hops. useViewEnter replays the motion on a page-kind change instead. */}
-                    <Stack gap="px24" ref={viewRef} className="rjb-view-enter">
-                      {current(FIND_TAB) && (
-                        <Suspense fallback={<PipelineSkeleton />}>
-                          <PageHold firstRun={firstRun}>
-                            <Today />
-                          </PageHold>
-                        </Suspense>
-                      )}
-                      {current(APPLY_TAB) && (
-                        <Suspense fallback={<PipelineSkeleton />}>
-                          {company ? (
-                            <CompanyPage slug={companySlug} />
-                          ) : route.jobId ? (
-                            <>
-                              <Suspense fallback={null}>
-                                <JobPageLiveness jobId={route.jobId} />
-                              </Suspense>
-                              <JobPage jobId={route.jobId} />
-                            </>
-                          ) : (
-                            // No sync banner: the Account menu's sync line says where data lives.
-                            <TrackerView />
-                          )}
-                        </Suspense>
-                      )}
-                      {documents && (
-                        <Suspense fallback={<DialogHold title="Documents" size="xl" />}>
-                          <DocumentsView />
-                        </Suspense>
-                      )}
-                      {legal && (
-                        <Suspense fallback={<DialogHold title="Privacy and terms" size="lg" />}>
-                          <LegalPage />
-                        </Suspense>
-                      )}
-                      {notFound && (
-                        <Suspense fallback={null}>
-                          <NotFoundPage />
-                        </Suspense>
-                      )}
-                    </Stack>
-                  </PageErrorBoundary>
-                </Box>
-              </Stack>
+                  <Stack gap="px24" ref={viewRef} className="rjb-view-enter">
+                    {current(FIND_TAB) && (
+                      <Suspense fallback={<PipelineSkeleton />}>
+                        <PageHold firstRun={firstRun}>
+                          <Today />
+                        </PageHold>
+                      </Suspense>
+                    )}
+                    {current(APPLY_TAB) && (
+                      <Suspense fallback={<PipelineSkeleton />}>
+                        {company ? (
+                          <CompanyPage slug={companySlug} />
+                        ) : route.jobId ? (
+                          <>
+                            <Suspense fallback={null}>
+                              <JobPageLiveness jobId={route.jobId} />
+                            </Suspense>
+                            <JobPage jobId={route.jobId} />
+                          </>
+                        ) : (
+                          // No sync banner: the Account menu's sync line says where data lives.
+                          <TrackerView />
+                        )}
+                      </Suspense>
+                    )}
+                    {documents && (
+                      <Suspense fallback={<DialogHold title="Documents" size="xl" />}>
+                        <DocumentsView />
+                      </Suspense>
+                    )}
+                    {legal && (
+                      <Suspense fallback={<DialogHold title="Privacy and terms" size="lg" />}>
+                        <LegalPage />
+                      </Suspense>
+                    )}
+                    {notFound && (
+                      <Suspense fallback={null}>
+                        <NotFoundPage />
+                      </Suspense>
+                    )}
+                  </Stack>
+                </PageErrorBoundary>
+              </Box>
+            </Stack>
           </Box>
         </PageShell>
         <SignInHost />

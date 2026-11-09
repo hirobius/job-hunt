@@ -32,6 +32,7 @@ import AddJobButton from './AddJob';
 import PipelineMenus from './PipelineMenus';
 import { CloudSyncContext } from './account/accountContext';
 import { needsClientAtBoot } from './supabase';
+import { tabFrozen } from './tabAccount';
 import { PipelineSkeleton } from './Skeletons';
 
 /** The Jobs tab (#/apply). A signed-in device with no jobs on it yet (a first visit, a new address,
@@ -46,11 +47,13 @@ export default function TrackerView() {
   const sync = useContext(CloudSyncContext);
   // Decided once, as the page opens: only a stored session has a cloud copy on its way.
   const [signedIn] = useState(() => needsClientAtBoot());
+  // Stopped by another tab (#288): it reads nothing more (the provider re-renders on the freeze).
+  const stopped = !!tabFrozen();
   const waiting = jobs.length === 0 && signedIn && !!sync && !sync.settled && !sync.offline;
   // The cloud read failed with nothing here: say so, with Retry, never "Track your first job" (a
   // false 0 for an account that has jobs).
   // Stopped by another tab (#288), it reads nothing more: the same state, with Reload.
-  if (jobs.length === 0 && signedIn && (sync?.offline || sync?.stopped))
+  if (jobs.length === 0 && signedIn && (sync?.offline || stopped))
     return (
       <Stack gap="px24">
         <Text as="h1" variant="title">
@@ -61,13 +64,13 @@ export default function TrackerView() {
           icon={Briefcase}
           title="Your jobs couldn't load"
           description={
-            sync.stopped
+            stopped
               ? 'Another tab changed the account. Reload to continue.'
               : "This device can't reach your account right now. Check the connection, then try again."
           }
           action={
-            <UiButton variant="primary" onClick={sync.retry}>
-              {sync.stopped ? 'Reload' : 'Try again'}
+            <UiButton variant="primary" onClick={() => sync?.retry()}>
+              {stopped ? 'Reload' : 'Try again'}
             </UiButton>
           }
         />
