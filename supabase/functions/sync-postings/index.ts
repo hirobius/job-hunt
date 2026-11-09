@@ -50,6 +50,7 @@ import {
   type DeadBoard,
 } from '../../../src/tracks/rotation.ts';
 import { designSystemsTrack } from '../../../src/tracks/track-config.ts';
+import { matchPatterns, trimForMatch } from '../../../src/tracks/matchText.ts';
 import { SOURCE_ENABLED } from '../../../src/feed/sourceEnabled.ts';
 import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
 import {
@@ -60,7 +61,6 @@ import {
 } from '../../../src/tracks/feeds/serverFeeds.ts';
 import type { NormalizedPosting } from '../../../src/tracks/score.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
-import type { TrackConfig } from '../../../src/tracks/track-config.ts';
 
 declare const Deno: {
   env: { get(name: string): string | undefined };
@@ -260,18 +260,43 @@ async function readPaged<R>(page: Page<R>, size: number) {
   }
 }
 
+/** The patterns the browser tests on a posting's text for this plan, and the key they were made
+ *  for (matchText.ts, #499). Null for a v11 plan: its rows keep no match text. */
+const matchOf = (plan: Pick<SyncPlan, 'config' | 'textTerms' | 'matchKey'>) =>
+  plan.matchKey
+    ? {
+        key: plan.matchKey,
+        patterns: matchPatterns(
+          plan.config.descriptionSignals.map((d) => d.pattern),
+          plan.textTerms,
+        ),
+      }
+    : null;
+
+/** A kept row's match text: null when its text is short (the RPC sends that whole) or it is a
+ *  rejected row (no text is kept). */
+function matchTextOf(s: ScoredPosting, patterns: RegExp[] | undefined): string | null {
+  const text = (s.posting.descriptionText ?? '').slice(0, MAX_TEXT);
+  if (s.verdict === 'reject' || !patterns) return null;
+  const trimmed = trimForMatch(text, patterns);
+  return trimmed === text ? null : trimmed;
+}
+
 /** Score, dedupe and upsert one user's postings from this pass's answered reads. */
 const writeGroup = (
   db: SupabaseClient,
   userId: string,
-  config: TrackConfig,
+  plan: SyncPlan,
   answered: ReadOutcome[],
   logs: Log[],
   totals: Totals,
-) => writeScored(db, userId, config.slug, scoreBatch(answered, config), logs, totals);
+) =>
+  writeScored(db, userId, plan.config.slug, scoreBatch(answered, plan.config), logs, totals, {
+    match: matchOf(plan),
+  });
 
 /** Dedupe and upsert one user's scored postings. `extra` columns ride on every row (the scan's
- *  `via_scan`). */
+ *  `via_scan`); `match` cuts each row's match text (matchText.ts). */
 async function writeScored(
   db: SupabaseClient,
   userId: string,
@@ -279,7 +304,10 @@ async function writeScored(
   scoredIn: ScoredPosting[],
   logs: Log[],
   totals: Totals,
-  extra: Record<string, unknown> = {},
+  {
+    match,
+    extra = {},
+  }: { match: { key: string; patterns: RegExp[] } | null; extra?: Record<string, unknown> },
 ) {
   let scored = scoredIn;
   // One row per key in a batch (an upsert can't touch a row twice).
@@ -337,6 +365,11 @@ async function writeScored(
     // A rejected posting keeps no description: it is kept for the counts and the closing rule.
     description_text:
       s.verdict === 'reject' ? '' : (s.posting.descriptionText ?? '').slice(0, MAX_TEXT),
+    // What the browser's Feed reads (the feed_rows RPC, #499): the head and a window around every
+    // pattern it tests, so a phone never pulls 20 KB a row. Null when the text is short.
+    // Cut for this profile's terms (match_key): a term added since makes feed_rows send it whole.
+    match_text: matchTextOf(s, match?.patterns),
+    match_key: match?.key ?? null,
     posted_at: iso(s.posting.postedAt),
     // The source's last-changed stamp, so the next run's delta read can tell an unchanged
     // Greenhouse job from a changed one (#448; the 20261102 migration adds the column).
@@ -662,7 +695,7 @@ async function rotate(db: SupabaseClient): Promise<Response> {
     let cutShort = false;
     writes: for (const group of byConfig.values()) {
       const scored = answered.length ? scoreBatch(answered, group[0].plan.config) : [];
-      for (const { userId, follows } of group) {
+      for (const { userId, follows, plan } of group) {
         // Past the deadline: the users left are not written, so the cursor stays and the batch is
         // read again next run (an upsert: the users written already lose nothing).
         if (pastDeadline()) {
@@ -674,7 +707,10 @@ async function rotate(db: SupabaseClient): Promise<Response> {
         const mine = scored.filter((s) => !follows.has(s.board) && keepForScan(s));
         const t: Totals = { queue: 0, review: 0, reject: 0, failed: 0 };
         if (mine.length)
-          await writeScored(db, userId, designSystemsTrack.slug, mine, logs, t, { via_scan: true });
+          await writeScored(db, userId, designSystemsTrack.slug, mine, logs, t, {
+            match: matchOf(plan),
+            extra: { via_scan: true },
+          });
         stored += t.queue + t.review;
         // Not after a failed write (a posting that did not land would read as missing).
         if (!t.failed) toMark.push({ userId, boards });
@@ -916,7 +952,7 @@ Deno.serve(async (req) => {
         }
       }
       for (const [userId, answered] of perUser)
-        await writeGroup(db, userId, plans.get(userId)!.config, answered, logs, totalsOf(userId));
+        await writeGroup(db, userId, plans.get(userId)!, answered, logs, totalsOf(userId));
     }
 
     // The feeds, once a day (the morning run), on the last slice: each title once across users.
@@ -960,7 +996,7 @@ Deno.serve(async (req) => {
         for (const feed of answeredFeeds(plan, mine))
           answeredBy.set(userId, [...(answeredBy.get(userId) ?? []), feed]);
         const ok = mine.filter((r) => r.ok);
-        if (ok.length) await writeGroup(db, userId, plan.config, ok, logs, totalsOf(userId));
+        if (ok.length) await writeGroup(db, userId, plan, ok, logs, totalsOf(userId));
       }
     }
 

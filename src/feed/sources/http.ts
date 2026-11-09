@@ -1,7 +1,11 @@
 // The one network seam every source goes through. Sources take a `FetchJson` so tests inject canned
 // payloads and the app injects the cached, error-mapping implementation (src/feed/fetchFeed.ts).
-/** `fresh` skips any cache (a liveness check must see the board as it is now). */
-export type FetchJson = (url: string, opts?: { fresh?: boolean }) => Promise<unknown>;
+/** `fresh` skips any cache (a liveness check must see the board as it is now). `signal` gives up a
+ *  read the caller no longer wants: one still waiting for a slot never starts (#499). */
+export type FetchJson = (
+  url: string,
+  opts?: { fresh?: boolean; signal?: AbortSignal },
+) => Promise<unknown>;
 
 /** A fetch failure carrying the HTTP status (0 = never reached the server). */
 export class FetchError extends Error {

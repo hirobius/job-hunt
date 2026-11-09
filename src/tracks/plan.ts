@@ -15,6 +15,7 @@ import { SERVER_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import { designSystemsTrack, type TrackConfig } from './track-config.ts';
 import { VERIFIED_COMPANIES } from './verified.ts';
+import { matchKey, textTermsOf } from './matchText.ts';
 
 /** Boards read per user in one run (security review, 2026-10-27). Each one is an outbound read
  *  the sync makes on the user's behalf, and the blob is theirs to write; past this the rest wait.
@@ -51,6 +52,12 @@ export interface SyncPlan {
   terms: string[];
   /** Feeds on (a muted feed Source turns one off). */
   feeds: Set<Feed>;
+  /** Every term the browser tests on a posting's text for this person (include, leave out,
+   *  titles): the stored match text keeps a window around each hit (matchText.ts, #499). */
+  textTerms: string[];
+  /** The profile's match key (matchText.ts): stored with each match text. Null for a v11 plan
+   *  (no profile the browser could key on): its rows keep no match text. */
+  matchKey: string | null;
 }
 
 /** A curation tile under a "Watched companies" section (v11). */
@@ -221,7 +228,15 @@ function planV12(o: O): SyncPlan | null | undefined {
     config.slug === designSystemsTrack.slug
       ? titles.filter(saysDesignSystem).concat('design systems')
       : titles;
-  return { from: 'v12', config, boards: boards.list, terms: cleanTerms(terms), feeds };
+  return {
+    from: 'v12',
+    config,
+    boards: boards.list,
+    terms: cleanTerms(terms),
+    feeds,
+    textTerms: textTermsOf(p),
+    matchKey: matchKey(p),
+  };
 }
 
 function planV11(o: O, tiles: WatchedTile[]): SyncPlan | null {
@@ -252,7 +267,17 @@ function planV11(o: O, tiles: WatchedTile[]): SyncPlan | null {
     ? sweepTitles.filter(saysDesignSystem).concat('design systems')
     : sweepTitles;
   const feeds = new Set<Feed>(scored ? FEEDS : TERM_FEEDS);
-  return { from: 'v11', config, boards: boards.list, terms: cleanTerms(titles), feeds };
+  // v11 kept its include terms per track: every one counts (a superset only keeps more text).
+  const includeTerms = includes.flatMap((r) => strs(r.terms));
+  return {
+    from: 'v11',
+    config,
+    boards: boards.list,
+    terms: cleanTerms(titles),
+    feeds,
+    textTerms: [...includeTerms, ...titles],
+    matchKey: null,
+  };
 }
 
 /** The feed reads that are this user's: a feed they have on, for one of their titles (RSS: any). */

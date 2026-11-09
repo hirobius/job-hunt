@@ -4,6 +4,8 @@
 // posting fingerprint (src/decided.ts), never a server write. The same rows feed the Feed's
 // server adapter (feed/postingReader.ts). Signed out there is nothing to read.
 import { loadSupabase } from '../supabase';
+import { getProfile } from '../profile';
+import { matchKey } from './matchText.ts';
 import type { Verdict } from './score.ts';
 import { byScoreThenNewest } from './scoreForTrack.ts';
 
@@ -52,6 +54,8 @@ interface Row {
 
 /** PostgREST's most rows to one request. */
 const LIMIT = 1000;
+/** No such function: PostgREST's schema cache, or Postgres itself. */
+const RPC_MISSING = new Set(['PGRST202', '42883']);
 
 export function fromRow(r: Row): StoredPosting {
   return {
@@ -86,10 +90,21 @@ export function splitQueue(
   };
 }
 
-/** The user's open queued and review postings, best first. Throws on an error (the table not
- *  there yet reads as one). */
+/** The user's open queued and review postings, best first, through `feed_rows` (trimmed text),
+ *  else the table. Throws on an error (the table not there yet reads as one). */
 export async function loadServerRows(): Promise<StoredPosting[]> {
   const db = await loadSupabase();
+  // The trimmed read (#499): each row's text cut to what ranking reads, for this profile's terms
+  // (a row cut for other terms comes whole). Before its migration runs the RPC is missing: read
+  // the table as before. Any other error is an error.
+  const profile = getProfile();
+  const trimmed = await db.rpc('feed_rows', {
+    p_limit: LIMIT,
+    p_match_key: profile ? matchKey(profile) : null,
+  });
+  if (!trimmed.error) return ((trimmed.data ?? []) as Row[]).map(fromRow);
+  if (!RPC_MISSING.has(String((trimmed.error as { code?: unknown }).code)))
+    throw new Error(trimmed.error.message);
   const { data, error } = await db
     .from('postings')
     .select(

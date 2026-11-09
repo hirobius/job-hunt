@@ -498,14 +498,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
-  `serverFirstReader`, in `useFeed`):** reads the server's rows (with their stored `description_text`, ≤ 20,000
-  characters, and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
+  `serverFirstReader`, in `useFeed`):** reads the server's rows through the `feed_rows` RPC (#499, migration `20261109100000`: each row's
+  `match_text`, the description cut by `tracks/matchText.ts` to its head plus a window around every hit of the
+  scorer's signals, contract / founding and the profile's terms, stored with its `match_key`; the browser
+  sends its profile's `matchKey` and gets the full text for a row cut for other terms or with no match text;
+  `matchText.test.ts` holds the rank parity; the table read is the fallback only while the RPC is missing; and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
   only the request's rows (its boards; feeds when it searches a title), with one progress call. No rows yet (a new
   account before its first sync) or a failed read falls back to the browser read, and a company or title added
   since the last read is read in the browser (the server has not read it yet). **Phones** (`feed/lightBoards.ts`,
   below lg, only with a titles-only inclusion check): Greenhouse boards are read as the plain list
   (`greenhouseListUrl`), then each posting the check lets in gets its description from the single-job endpoint
-  (`feed/lightText.ts` `fillTexts`, ≤ 25 per board, outside the list read's 15 s timeout with its own deadline: the list is never lost, texts not read in time load on open), so everything that can be listed ranks exactly as on a full
+  (`feed/lightText.ts` `fillTexts`, ≤ 25 per board, outside the list read's 15 s timeout with its own deadline: the list is never lost, texts not read in time load on open, and the reads still queued at the deadline are given up through an
+  `AbortSignal`, #499), so everything that can be listed ranks exactly as on a full
   read; an opened posting with no text fetches it (`feed/postingText.ts` `usePostingText`). Pinned in `feed/feedLoad.test.ts`.
   `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
   `feed/postingReader.test.ts`.
