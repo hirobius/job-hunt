@@ -236,9 +236,8 @@ export default function ReviewView({
                       aria-label={name}
                       aria-pressed={mode === value}
                       onClick={() => setMode(value)}
-                    >
-                      <Icon icon={icon} />
-                    </Button>
+                      iconLeft={<Icon icon={icon} />}
+                    />
                   </HdsTooltip.Trigger>
                   <HdsTooltip.Content>{name}</HdsTooltip.Content>
                 </HdsTooltip>

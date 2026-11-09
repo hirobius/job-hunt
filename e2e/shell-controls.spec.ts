@@ -20,20 +20,26 @@ for (const width of [390, 1440]) {
         'page',
       );
       await expect(page.getByRole('radiogroup')).toHaveCount(0);
-      const box = (await nav.boundingBox())!;
-      const logo = (await page
-        .getByRole('img', { name: 'roleflame' })
-        .locator('visible=true')
-        .first()
-        .boundingBox())!;
-      if (width < 600) {
-        // Full width under the logo.
-        expect(box.y).toBeGreaterThan(logo.y + logo.height - 1);
-        expect(box.width).toBeGreaterThan(width * 0.8);
-      } else {
-        // Inline in the app bar, on the logo's row.
-        expect(Math.abs(box.y + box.height / 2 - (logo.y + logo.height / 2))).toBeLessThan(24);
-      }
+      // The bar can re-render as the lazy logo lands; measure until both boxes are there.
+      await expect(async () => {
+        const box = await nav.boundingBox();
+        const logo = await page
+          .getByRole('img', { name: 'roleflame' })
+          .locator('visible=true')
+          .first()
+          .boundingBox();
+        expect(box && logo).toBeTruthy();
+        if (width < 600) {
+          // Full width under the logo.
+          expect(box!.y).toBeGreaterThan(logo!.y + logo!.height - 1);
+          expect(box!.width).toBeGreaterThan(width * 0.8);
+        } else {
+          // Inline in the app bar, on the logo's row.
+          expect(Math.abs(box!.y + box!.height / 2 - (logo!.y + logo!.height / 2))).toBeLessThan(
+            24,
+          );
+        }
+      }).toPass({ timeout: 10_000 });
       await nav.getByRole('link', { name: 'Find' }).click();
       await expect(page).toHaveURL(/#\/find/);
       await expect(nav.getByRole('link', { name: 'Find' })).toHaveAttribute('aria-current', 'page');
