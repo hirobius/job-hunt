@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  settleAll,
   CACHE_BUDGET_CHARS,
   createFetchJson,
   describeError,
@@ -678,5 +679,36 @@ describe('community sources', () => {
     expect(on.sources.map((s) => s.key)).toContain('bluesky');
     expect(calls.some((u) => u.startsWith('https://public.api.bsky.app/'))).toBe(true);
     expect(calls.some((u) => u.includes('reddit.com'))).toBe(false);
+  });
+});
+
+describe('settleAll unlimitedLast (signed-out feedsLast, 2026-11-09)', () => {
+  const order = async (last: boolean) => {
+    const started: string[] = [];
+    const task = (name: string) => async () => {
+      started.push(name);
+      await new Promise((r) => setTimeout(r, 1));
+      return name;
+    };
+    const names = ['hn', 'board1', 'remotive', 'board2'];
+    const out = await settleAll(
+      names.map(task),
+      (i) => names[i].startsWith('board'),
+      undefined,
+      () => 'greenhouse',
+      last,
+    );
+    return { started, out: out.map((r) => r.status === 'fulfilled' && r.value) };
+  };
+
+  it('starts the feeds beside the boards by default', async () => {
+    const { started } = await order(false);
+    expect(started.slice(0, 2)).toEqual(['hn', 'remotive']);
+  });
+
+  it('starts the feeds only after every board settled, and keeps results in task order', async () => {
+    const { started, out } = await order(true);
+    expect(started).toEqual(['board1', 'board2', 'hn', 'remotive']);
+    expect(out).toEqual(['hn', 'board1', 'remotive', 'board2']);
   });
 });

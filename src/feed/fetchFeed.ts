@@ -297,6 +297,8 @@ export async function settleAll<T>(
   limited: (i: number) => boolean,
   onSettled?: (i: number, result: PromiseSettledResult<T>) => void,
   hostOf: (i: number) => string = () => '',
+  /** The unlimited tasks start once every limited one has settled, not at once. */
+  unlimitedLast = false,
 ): Promise<PromiseSettledResult<T>[]> {
   const out: PromiseSettledResult<T>[] = new Array(thunks.length);
   const run = async (i: number) => {
@@ -331,13 +333,16 @@ export async function settleAll<T>(
       w.forEach((f) => f());
     }
   };
-  await Promise.all([
-    ...thunks
+  const unlimited = () =>
+    thunks
       .map((_, i) => i)
       .filter((i) => !limited(i))
-      .map(run),
-    ...Array.from({ length: Math.min(BOARD_CONCURRENCY, queue.length) }, worker),
-  ]);
+      .map(run);
+  const workers = () => Array.from({ length: Math.min(BOARD_CONCURRENCY, queue.length) }, worker);
+  if (unlimitedLast) {
+    await Promise.all(workers());
+    await Promise.all(unlimited());
+  } else await Promise.all([...unlimited(), ...workers()]);
   return out;
 }
 
@@ -417,6 +422,8 @@ export async function fetchFeed(
      *  boards as plain lists and then reads the description of each posting it lets in (lightText.ts),
      *  so what can be listed ranks as a full read does. */
     include?: IncludeRule;
+    /** The term feeds after the boards (FeedRequest `feedsLast`). */
+    feedsLast?: boolean;
   },
   fetchJson: FetchJson = liveFetchJson,
   {
@@ -570,6 +577,7 @@ export async function fetchFeed(
         progress();
       },
       (i) => tasks[i].board?.kind ?? '',
+      !!req.feedsLast,
     );
   } finally {
     // Never left running past the read, whatever ends it.
