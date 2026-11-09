@@ -166,6 +166,39 @@ export const activeAtsRoles = (atsRoles: string[], m: MustInclude): string[] => 
  *  space ("Design-Systems" → "design systems"). A separator breaks a phrase: a spaced hyphen, an
  *  en or em dash, , | / : ; & · • become " | ", so "Design - Systems" is not "design systems". */
 export function normalizeForPhrase(text: string): string {
+  // Kept per text (2026-11-09 phone profile: while a signed-out sweep ran, the Feed's rebuilds
+  // normalized every posting's title and description again each time, the top self time).
+  const hit = normalizedCache.get(text);
+  if (hit !== undefined) return hit;
+  const out = normalizeUncached(text);
+  // Capped by entries and by characters kept (key + value), so long descriptions cannot hold
+  // more than about NORMALIZED_CACHE_MAX_CHARS of strings. Full: it starts again empty.
+  const size = text.length + out.length;
+  if (
+    normalizedCache.size >= NORMALIZED_CACHE_MAX ||
+    normalizedChars + size > NORMALIZED_CACHE_MAX_CHARS
+  ) {
+    normalizedCache.clear();
+    normalizedChars = 0;
+  }
+  if (size <= NORMALIZED_CACHE_MAX_CHARS) {
+    normalizedCache.set(text, out);
+    normalizedChars += size;
+  }
+  return out;
+}
+export const NORMALIZED_CACHE_MAX = 20000;
+/** About 5 MB of UTF-16 strings. */
+export const NORMALIZED_CACHE_MAX_CHARS = 2_500_000;
+const normalizedCache = new Map<string, string>();
+let normalizedChars = 0;
+/** For tests: entries and characters the cache holds. */
+export const normalizedCacheStats = () => ({
+  entries: normalizedCache.size,
+  chars: normalizedChars,
+});
+
+function normalizeUncached(text: string): string {
   const plain = /<[a-z!/]/i.test(text) ? htmlToText(text) : text;
   return ` ${plain
     .toLowerCase()

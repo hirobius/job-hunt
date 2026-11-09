@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  NORMALIZED_CACHE_MAX,
+  NORMALIZED_CACHE_MAX_CHARS,
+  normalizedCacheStats,
+  normalizeForPhrase,
   cleanNaics,
   includeFields,
   keepIncluded,
@@ -307,5 +311,29 @@ describe('a stored NAICS list', () => {
     ]);
     expect(cleanNaics(Array.from({ length: 12 }, (_, i) => String(330000 + i)))).toHaveLength(10);
     expect(cleanNaics('332322')).toEqual([]);
+  });
+});
+
+describe('normalizeForPhrase cache (2026-11-09)', () => {
+  it('starts again empty at NORMALIZED_CACHE_MAX entries', () => {
+    for (let i = 0; i <= NORMALIZED_CACHE_MAX; i++) normalizeForPhrase(`evict ${i}`);
+    // NORMALIZED_CACHE_MAX + 1 new texts: it was full once and started again.
+    expect(normalizedCacheStats().entries).toBeLessThan(NORMALIZED_CACHE_MAX);
+    // Still the right answer after a reset.
+    expect(normalizeForPhrase('Design-Systems')).toBe(' design systems ');
+  });
+
+  it('is capped by characters kept, not only by entries', () => {
+    const big = 'x'.repeat(400_000);
+    for (let i = 0; i < 10; i++) normalizeForPhrase(`${big}${i}`);
+    const { entries, chars } = normalizedCacheStats();
+    expect(chars).toBeLessThanOrEqual(NORMALIZED_CACHE_MAX_CHARS);
+    expect(entries).toBeLessThan(10);
+  });
+
+  it('keeps nothing for a text larger than the cap, and still normalizes it', () => {
+    const huge = 'A'.repeat(NORMALIZED_CACHE_MAX_CHARS);
+    expect(normalizeForPhrase(huge).length).toBe(huge.length + 2);
+    expect(normalizedCacheStats().chars).toBeLessThanOrEqual(NORMALIZED_CACHE_MAX_CHARS);
   });
 });
