@@ -46,4 +46,14 @@ describe('Jobs tab while the cloud copy loads (#478)', () => {
     screen.getByRole('button', { name: 'Try again' }).click();
     expect(retry).toHaveBeenCalledTimes(1);
   });
+
+  it('stopped by another tab (settled, nothing read): it asks for a reload, never 0', () => {
+    retry.mockClear();
+    at({ settled: true, offline: false, stopped: true, retry } as unknown as CloudSyncApi);
+    expect(screen.queryByText('Track your first job')).toBeNull();
+    expect(screen.getByText("Your jobs couldn't load")).toBeInTheDocument();
+    expect(screen.getByText(/Another tab changed the account/)).toBeInTheDocument();
+    screen.getByRole('button', { name: 'Reload' }).click();
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
 });

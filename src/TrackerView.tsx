@@ -49,7 +49,8 @@ export default function TrackerView() {
   const waiting = jobs.length === 0 && signedIn && !!sync && !sync.settled && !sync.offline;
   // The cloud read failed with nothing here: say so, with Retry, never "Track your first job" (a
   // false 0 for an account that has jobs).
-  if (jobs.length === 0 && signedIn && sync?.offline)
+  // Stopped by another tab (#288), it reads nothing more: the same state, with Reload.
+  if (jobs.length === 0 && signedIn && (sync?.offline || sync?.stopped))
     return (
       <Stack gap="px24">
         <Text as="h1" variant="title">
@@ -59,10 +60,14 @@ export default function TrackerView() {
           framed
           icon={Briefcase}
           title="Your jobs couldn't load"
-          description="This device can't reach your account right now. Check the connection, then try again."
+          description={
+            sync.stopped
+              ? 'Another tab changed the account. Reload to continue.'
+              : "This device can't reach your account right now. Check the connection, then try again."
+          }
           action={
             <UiButton variant="primary" onClick={sync.retry}>
-              Try again
+              {sync.stopped ? 'Reload' : 'Try again'}
             </UiButton>
           }
         />

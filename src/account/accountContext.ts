@@ -16,6 +16,8 @@ export interface CloudSyncApi {
   settled: boolean;
   /** True while the last pull/push failed — the menu offers Retry. */
   offline: boolean;
+  /** Another tab changed the account (#288): this tab reads and writes nothing until a reload. */
+  stopped?: boolean;
   /** Email a magic sign-in link. Resolves to an error message, or null when sent. */
   sendLink: (email: string) => Promise<string | null>;
   /** Start "Continue with Google" (the page leaves for Google); an error message, else null. */

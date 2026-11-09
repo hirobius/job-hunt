@@ -24,8 +24,7 @@ const h = vi.hoisted(() => ({
   opts: {} as Parameters<typeof import('../test/fakeSupabase').createFakeSupabase>[0],
   /** Runs as the client is made (before any read), to park a call. */
   onCreate: null as
-    | null
-    | ((f: ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>) => void),
+    null | ((f: ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>) => void),
 }));
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('../test/fakeSupabase');
@@ -65,13 +64,15 @@ async function boot(hash: string, opts: { job?: boolean } = {}) {
   const { default: CloudSyncProvider } = await import('./CloudSyncProvider');
   const { useCloudSync } = await import('./accountContext');
   function Probe() {
-    const { user, settled } = useCloudSync();
+    const { user, settled, offline, stopped } = useCloudSync();
     // A page with its own h1, where focus lands after a confirm closes (#516 review).
     return (
       <main>
         <h1>Page</h1>
         <span>{user ? `in:${user.email}` : 'out'}</span>
         <span>{settled ? 'settled' : 'waiting'}</span>
+        {offline && <span>offline</span>}
+        {stopped && <span>stopped</span>}
       </main>
     );
   }
@@ -244,6 +245,36 @@ describe('settled waits for the first cloud read (#478 follow-up)', () => {
     expect(screen.getByText('waiting')).toBeInTheDocument();
     release();
     expect(await screen.findByText('settled')).toBeInTheDocument();
+  });
+
+  it('a tab stopped by another tab while it reads is settled, never waiting forever', async () => {
+    rememberSignInRequest(ME);
+    h.onCreate = (f) => void f.holdNext('tracker', 'select'); // the read never answers
+    await boot(linkFor(ME));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(screen.getByText('waiting')).toBeInTheDocument();
+    const { freezeTab } = await import('../tabAccount');
+    freezeTab('signedOut'); // ('switched' also guards shared storage for the rest of the run)
+    expect(await screen.findByText('settled')).toBeInTheDocument();
+    expect(screen.getByText('stopped')).toBeInTheDocument();
+  });
+
+  it('a read that hangs says offline at its limit (Try again), and settles when it lands', async () => {
+    const { PULL_LIMIT } = await import('./pullTimeout');
+    expect(PULL_LIMIT.ms).toBe(15_000);
+    PULL_LIMIT.ms = 400;
+    rememberSignInRequest(ME);
+    let release = () => {};
+    h.onCreate = (f) => (release = f.holdNext('tracker', 'select'));
+    await boot(linkFor(ME));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(screen.queryByText('offline')).toBeNull();
+    expect(await screen.findByText('offline')).toBeInTheDocument();
+    expect(screen.getByText('waiting')).toBeInTheDocument();
+    // The late answer still counts: the migrations waiting on settled run then.
+    release();
+    expect(await screen.findByText('settled')).toBeInTheDocument();
+    expect(screen.queryByText('offline')).toBeNull();
   });
 });
 

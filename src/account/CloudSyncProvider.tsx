@@ -86,6 +86,8 @@ import { dropAutoSetup } from '../autoSetup';
 import { LinkConfirmScreen, MergeConfirmDialog } from '../lazyDialogs';
 
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
+import { PULL_LIMIT } from './pullTimeout';
+
 const loadPkce = importFresh(() => import('./oauthPkce'));
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
@@ -148,6 +150,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // session answering and the pull starting, the Jobs tab read as "no jobs").
   // A ref: it is set just before `pulling` turns false, which re-renders the context.
   const pulledFor = useRef<string | null>(null);
+  // The newest pull (adopt): only it may end the pulling state (a Try again after a hung read).
+  const pullRun = useRef(0);
   // False until Supabase reports the stored session (or its absence), so signed-in users don't
   // see the signed-out nudge flash on load. With no session stored (and no magic link returning)
   // the client isn't loaded at all (supabase.ts): signed out, answered a tick later as before.
@@ -370,6 +374,20 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (handled.current !== u.id || tabFrozen() || deleting.current) return;
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
+    const run = ++pullRun.current;
+    const done = () => {
+      if (run !== pullRun.current) return;
+      pulledFor.current = u.id;
+      setPulling(false);
+    };
+    // A read that hangs says so after PULL_LIMIT.ms ("couldn't load", Try again); if it lands
+    // later it still counts, and the sync line says Synced.
+    let late = false;
+    const timer = setTimeout(() => {
+      late = true;
+      if (!tabFrozen()) setMsg(OFFLINE_MSG);
+      done();
+    }, PULL_LIMIT.ms);
     try {
       // Unsent local edits (a failed push) must go up before a pull would replace them.
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
@@ -392,13 +410,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (merged || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (tabFrozen()) return; // the notice stays in the menu (#288)
       if (!curationOk) setMsg(OFFLINE_MSG);
-      else if (!seed) setMsg(`Synced · ${u.email}`);
+      else if (!seed || late) setMsg(`Synced · ${u.email}`);
     } catch {
       setCurationSyncStatus('error');
       if (!tabFrozen()) setMsg(OFFLINE_MSG);
     } finally {
-      pulledFor.current = u.id;
-      setPulling(false);
+      clearTimeout(timer);
+      done();
     }
   }
 
@@ -841,9 +859,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       // Signed out: settled once the session check answers. Signed in: no pull running and the
       // last one didn't fail — an offline device can't know a job is gone, so it doesn't decide.
       // Track write failures don't count: they don't make a job's absence uncertain.
+      // A tab stopped by another tab (#288) reads nothing more: settled, so nothing waits forever.
       settled:
         authResolved &&
-        (!user || (pulledFor.current === user.id && !pulling && msg !== OFFLINE_MSG)),
+        (!user ||
+          !!tabFrozen() ||
+          (pulledFor.current === user.id && !pulling && msg !== OFFLINE_MSG)),
+      stopped: !!tabFrozen(),
       status: msg,
       offline,
       sendLink,
