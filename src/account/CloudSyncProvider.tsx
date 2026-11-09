@@ -66,7 +66,7 @@ import {
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
-import { CloudSyncContext, type CloudSyncApi } from './accountContext';
+import { CloudSyncContext, PULL_LIMIT, type CloudSyncApi } from './accountContext';
 import { magicLinkRedirect } from './authRedirect';
 import { GOOGLE_FAILED_MSG } from './authLinkError';
 import { rememberSignInReturn, returnAfterSignIn } from './signInReturn';
@@ -86,6 +86,7 @@ import { dropAutoSetup } from '../autoSetup';
 import { LinkConfirmScreen, MergeConfirmDialog } from '../lazyDialogs';
 
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
+
 const loadPkce = importFresh(() => import('./oauthPkce'));
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
@@ -143,6 +144,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const [accountTrigger, setAccountTrigger] = useState<HTMLButtonElement | null>(null);
   // True while a pull (adopt) is running: "settled" means none is, and the last one didn't fail.
   const [pulling, setPulling] = useState(false);
+  // The user whose first cloud read has finished (landed or failed) in this tab. Until then a
+  // signed-in device is not settled, even before that read starts (#478 follow-up: between the
+  // session answering and the pull starting, the Jobs tab read as "no jobs").
+  // A ref: it is set just before `pulling` turns false, which re-renders the context.
+  const pulledFor = useRef<string | null>(null);
+  // The newest pull (adopt): only it may end the pulling state (a Try again after a hung read).
+  const pullRun = useRef(0);
   // False until Supabase reports the stored session (or its absence), so signed-in users don't
   // see the signed-out nudge flash on load. With no session stored (and no magic link returning)
   // the client isn't loaded at all (supabase.ts): signed out, answered a tick later as before.
@@ -365,6 +373,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (handled.current !== u.id || tabFrozen() || deleting.current) return;
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
+    const run = ++pullRun.current;
+    const done = () => {
+      if (run !== pullRun.current) return;
+      pulledFor.current = u.id;
+      setPulling(false);
+    };
+    // A read that hangs says so after PULL_LIMIT.ms ("couldn't load", Try again); if it lands
+    // later it still counts, and the sync line says Synced.
+    const timer = setTimeout(() => {
+      if (!tabFrozen()) setMsg(OFFLINE_MSG);
+      done();
+    }, PULL_LIMIT.ms);
     try {
       // Unsent local edits (a failed push) must go up before a pull would replace them.
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
@@ -387,12 +407,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (merged || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (tabFrozen()) return; // the notice stays in the menu (#288)
       if (!curationOk) setMsg(OFFLINE_MSG);
-      else if (!seed) setMsg(`Synced · ${u.email}`);
+      else setMsg(`Synced · ${u.email}`);
     } catch {
       setCurationSyncStatus('error');
       if (!tabFrozen()) setMsg(OFFLINE_MSG);
     } finally {
-      setPulling(false);
+      clearTimeout(timer);
+      done();
     }
   }
 
@@ -829,26 +850,35 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // Stable unless what consumers read changes — the provider re-renders on every store change.
   const api: CloudSyncApi = useMemo(
-    () => ({
-      user,
-      authResolved,
-      // Signed out: settled once the session check answers. Signed in: no pull running and the
-      // last one didn't fail — an offline device can't know a job is gone, so it doesn't decide.
-      // Track write failures don't count: they don't make a job's absence uncertain.
-      settled: authResolved && (!user || (!pulling && msg !== OFFLINE_MSG)),
-      status: msg,
-      offline,
-      sendLink,
-      signInWithGoogle,
-      retry: () =>
-        tabFrozen() ? location.reload() : user && void adopt(seedPending.current, user),
-      signOut: () => void signOut(),
-      deleteMyData: () => void deleteMyData(),
-      signInOpen,
-      accountTrigger,
-      setAccountTrigger,
-      setSignInOpen,
-    }),
+    () => {
+      // Signed out: read once the session check answers. Signed in: no pull running and the last
+      // one didn't fail — an offline device can't know a job is gone, so it doesn't decide. Track
+      // write failures don't count: they don't make a job's absence uncertain.
+      const read =
+        authResolved &&
+        (!user || (pulledFor.current === user.id && !pulling && msg !== OFFLINE_MSG));
+      // A tab stopped by another tab (#288) reads nothing more: settled for the UI, so nothing
+      // waits forever, but never read (canWrite: no migration runs there).
+      const stopped = !!tabFrozen();
+      return {
+        user,
+        authResolved,
+        settled: read || (authResolved && stopped),
+        cloudRead: read && !stopped,
+        status: msg,
+        offline,
+        sendLink,
+        signInWithGoogle,
+        retry: () =>
+          tabFrozen() ? location.reload() : user && void adopt(seedPending.current, user),
+        signOut: () => void signOut(),
+        deleteMyData: () => void deleteMyData(),
+        signInOpen,
+        accountTrigger,
+        setAccountTrigger,
+        setSignInOpen,
+      };
+    },
     // The handlers only close over `user` (and stable module state).
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, authResolved, pulling, msg, offline, signInOpen, accountTrigger],

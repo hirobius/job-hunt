@@ -6,7 +6,7 @@
 // The move's module loads on demand: it pulls in the feed's source list.
 import { useEffect } from 'react';
 import { useToast } from '@hirobius/design-system';
-import { useCloudSync } from './account/accountContext';
+import { canWrite, useCloudSync } from './account/accountContext';
 import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { useAllMustInclude } from './feed/mustInclude';
 import { useAllDreams } from './feed/dreams';
@@ -22,7 +22,9 @@ const loadMove = importFresh(() => import('./v12Migration'));
 const loadDefaults = importFresh(() => import('./searchDefaults'));
 
 export default function V12Migration() {
-  const { settled } = useCloudSync();
+  // Never in a tab stopped by another tab, nor before the cloud copy is here (#517 review): the
+  // default profile would land in shared storage over the account's own.
+  const settled = canWrite(useCloudSync());
   const { toast } = useToast();
   const categories = useCategories();
   const groups = useGroups();

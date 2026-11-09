@@ -16,6 +16,10 @@ export interface CloudSyncApi {
   settled: boolean;
   /** True while the last pull/push failed — the menu offers Retry. */
   offline: boolean;
+  /** The account's cloud copy is here (its first read landed), or signed out, and no other tab
+   *  stopped this one (#288: such a tab is settled for the UI, so nothing waits forever, but never
+   *  read). What a migration or a store write waits on, never `settled` alone (#517 review). */
+  cloudRead?: boolean;
   /** Email a magic sign-in link. Resolves to an error message, or null when sent. */
   sendLink: (email: string) => Promise<string | null>;
   /** Start "Continue with Google" (the page leaves for Google); an error message, else null. */
@@ -41,8 +45,17 @@ export interface DataToolsApi {
   canExport: boolean;
 }
 
+/** A cloud read that has not answered by then says "couldn't load", with Try again (#517 review).
+ *  An object so a test can shorten it. */
+export const PULL_LIMIT = { ms: 15e3 };
+
 export const CloudSyncContext = createContext<CloudSyncApi | null>(null);
 export const DataToolsContext = createContext<DataToolsApi | null>(null);
+
+/** Whether this tab may write what it derives from the stores (the v12 move, the default profile,
+ *  the snippet move, a scan): settled, the cloud copy here, and not stopped by another tab. A test
+ *  double without `cloudRead` counts as read. */
+export const canWrite = (s: CloudSyncApi): boolean => s.settled && s.cloudRead !== false;
 
 export function useCloudSync(): CloudSyncApi {
   const v = useContext(CloudSyncContext);

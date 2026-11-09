@@ -41,7 +41,7 @@ import { AddStarterMessages } from './StarterMessages';
 import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { notifyRemoved } from './saveNotice';
-import { useCloudSync } from './account/accountContext';
+import { canWrite, useCloudSync } from './account/accountContext';
 import type { Job } from './types';
 import { useFocusAfter } from './useFocusAfter';
 import { collapseRow } from './feedback';
@@ -401,7 +401,9 @@ export function ApplicationKit({ job }: { job: Job }) {
     />
   );
   const answered = kit.answers.length;
-  const { user, settled } = useCloudSync(); // signed out, the kit stays on this device
+  const sync = useCloudSync(); // signed out, the kit stays on this device
+  const { user } = sync;
+  const settled = canWrite(sync);
   // #314: a pick whose message was deleted reads as "No template" (the Select value below only
   // ever names a live message), and once sync has settled the stale id is cleared from the kit
   // itself, so it stops syncing and re-adding the starters cannot silently re-link it. Not while

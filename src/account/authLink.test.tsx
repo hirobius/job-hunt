@@ -22,12 +22,16 @@ import { buildReport } from '../errorReport';
 const h = vi.hoisted(() => ({
   fake: null as null | ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>,
   opts: {} as Parameters<typeof import('../test/fakeSupabase').createFakeSupabase>[0],
+  /** Runs as the client is made (before any read), to park a call. */
+  onCreate: null as
+    null | ((f: ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>) => void),
 }));
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('../test/fakeSupabase');
   return {
     createClient: () => {
       h.fake = createFakeSupabase(h.opts);
+      h.onCreate?.(h.fake);
       return h.fake.client;
     },
   };
@@ -41,6 +45,7 @@ const linkFor = (email: string) =>
 beforeEach(() => {
   h.fake = null;
   h.opts = {};
+  h.onCreate = null;
   localStorage.clear();
   vi.resetModules(); // authFragment reads the URL once per load: each test boots a fresh app
 });
@@ -52,19 +57,23 @@ afterEach(async () => {
 });
 
 /** Boot the account seam the way a page load does, with `hash` in the address bar. */
-async function boot(hash: string, opts: { job?: boolean } = {}) {
+async function boot(hash: string, opts: { job?: boolean; migrate?: boolean } = {}) {
   history.replaceState(null, '', '/' + hash);
   const store = await import('../store');
   if (opts.job) store.addJob('https://jobs.example.org/secret-role', 'Secret role');
   const { default: CloudSyncProvider } = await import('./CloudSyncProvider');
   const { useCloudSync } = await import('./accountContext');
+  const { default: V12Migration } = await import('../V12Migration');
   function Probe() {
-    const { user } = useCloudSync();
+    const { user, settled, offline, cloudRead } = useCloudSync();
     // A page with its own h1, where focus lands after a confirm closes (#516 review).
     return (
       <main>
         <h1>Page</h1>
         <span>{user ? `in:${user.email}` : 'out'}</span>
+        <span>{settled ? 'settled' : 'waiting'}</span>
+        {offline && <span>offline</span>}
+        {settled && !cloudRead && <span>unread</span>}
       </main>
     );
   }
@@ -72,6 +81,7 @@ async function boot(hash: string, opts: { job?: boolean } = {}) {
     <ToastProvider>
       <CloudSyncProvider>
         <Probe />
+        {opts.migrate && <V12Migration />}
       </CloudSyncProvider>
     </ToastProvider>,
   );
@@ -223,6 +233,75 @@ describe('a link whose token was refreshed (TOKEN_REFRESHED, not SIGNED_IN)', ()
     expect(screen.getByText(`in:${ME}`)).toBeInTheDocument();
     store.addJob('https://jobs.example.org/another', 'Another role');
     await waitFor(() => expect(h.fake!.tables.tracker[0].data.jobs).toHaveLength(2));
+  });
+});
+
+describe('settled waits for the first cloud read (#478 follow-up)', () => {
+  it('signed in, it is not settled until the first pull has landed, even before it starts', async () => {
+    rememberSignInRequest(ME);
+    // Hold the account's first read of its cloud copy.
+    let release = () => {};
+    h.onCreate = (f) => (release = f.holdNext('tracker', 'select'));
+    await boot(linkFor(ME));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(screen.getByText('waiting')).toBeInTheDocument();
+    release();
+    expect(await screen.findByText('settled')).toBeInTheDocument();
+  });
+
+  it('a tab stopped by another tab while it reads is settled, never waiting forever', async () => {
+    rememberSignInRequest(ME);
+    h.onCreate = (f) => void f.holdNext('tracker', 'select'); // the read never answers
+    await boot(linkFor(ME));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(screen.getByText('waiting')).toBeInTheDocument();
+    const { freezeTab } = await import('../tabAccount');
+    freezeTab('signedOut'); // ('switched' also guards shared storage for the rest of the run)
+    expect(await screen.findByText('settled')).toBeInTheDocument();
+    expect(screen.getByText('unread')).toBeInTheDocument(); // settled for the UI, never read
+  });
+
+  it('a tab stopped before its first read runs no migration: no default profile lands', async () => {
+    rememberSignInRequest(ME);
+    h.onCreate = (f) => void f.holdNext('tracker', 'select'); // the read never answers
+    await boot(linkFor(ME), { migrate: true });
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    const { freezeTab } = await import('../tabAccount');
+    freezeTab('signedOut'); // the freeze that leaves shared storage writable
+    expect(await screen.findByText('settled')).toBeInTheDocument();
+    // Long enough for the move's lazy chunks to load and run, if anything let them.
+    await new Promise((r) => setTimeout(r, 500));
+    expect(localStorage.getItem('rjb_profiles')).toBeNull();
+  });
+
+  it('the same boot with the read landing writes the default profile (the control)', async () => {
+    rememberSignInRequest(ME);
+    let release = () => {};
+    h.onCreate = (f) => (release = f.holdNext('tracker', 'select'));
+    await boot(linkFor(ME), { migrate: true });
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 300));
+    expect(localStorage.getItem('rjb_profiles')).toBeNull(); // waiting for the read
+    release();
+    await waitFor(() => expect(localStorage.getItem('rjb_profiles')).not.toBeNull());
+  });
+
+  it('a read that hangs says offline at its limit (Try again), and settles when it lands', async () => {
+    const { PULL_LIMIT } = await import('./accountContext');
+    expect(PULL_LIMIT.ms).toBe(15_000);
+    PULL_LIMIT.ms = 400;
+    rememberSignInRequest(ME);
+    let release = () => {};
+    h.onCreate = (f) => (release = f.holdNext('tracker', 'select'));
+    await boot(linkFor(ME));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(screen.queryByText('offline')).toBeNull();
+    expect(await screen.findByText('offline')).toBeInTheDocument();
+    expect(screen.getByText('waiting')).toBeInTheDocument();
+    // The late answer still counts: the migrations waiting on settled run then.
+    release();
+    expect(await screen.findByText('settled')).toBeInTheDocument();
+    expect(screen.queryByText('offline')).toBeNull();
   });
 });
 

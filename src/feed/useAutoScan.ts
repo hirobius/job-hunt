@@ -4,7 +4,7 @@
 // signed-in user's profile is here first.
 import { useEffect, useMemo, useRef } from 'react';
 import { DESIGN_SYSTEMS_TITLES } from '../searchDefaults';
-import { useCloudSync } from '../account/accountContext';
+import { canWrite, useCloudSync } from '../account/accountContext';
 import { useFeedInputs } from './useFeed';
 import { boardUrlsOf } from './profile';
 import { cancelScan, scanOnOpen, type ScanInput } from './autoScan';
@@ -35,7 +35,9 @@ export function useScanInput(): ScanInput {
  *  it wait, and a run in flight when it opens stops (what it found is kept, and the next start
  *  finishes it). */
 export function AutoScanOnOpen(): null {
-  const { settled, signInOpen, user } = useCloudSync();
+  const sync = useCloudSync();
+  const { signInOpen, user } = sync;
+  const settled = canWrite(sync);
   const signedIn = !!user;
   const input = useScanInput();
   const latest = useRef(input);
