@@ -158,9 +158,9 @@ export const FLAME: FlameSettings = {
   cell: 2.25,
   smooth: 0.8,
   corner: -0.32,
-  // The letters' heat shimmer (Claude's setting, Adrian 2026-11-10): a lean of 1 degree at most,
-  // no fade, a third of the letters each frame, the rest holding their last pose.
-  tOn: 'letters',
+  // The letters stand still (Adrian 2026-11-10: the shimmer bent the f and l). The rest is kept
+  // so it can be tried again: a lean of 1 degree at most, no fade, a third of the letters a frame.
+  tOn: 'off',
   tShake: 0,
   tSkew: 1,
   tFade: 0,

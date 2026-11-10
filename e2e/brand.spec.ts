@@ -74,21 +74,21 @@ test('the boot splash is the flame while the app loads, and React replaces it', 
 });
 
 // The logo is the flame, then the name (stacked on sign-in): named for assistive tech by brand.ts,
-// its letters shimmer while it runs: a lean of 1 degree at most, a few letters at a time.
-test('the logo names the product and its letters shimmer: header and sign-in', async ({ page }) => {
+// its letters stand still while the flame burns (Adrian 2026-11-10: the flicker is off).
+test('the logo names the product, the letters still: header and sign-in', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/apply');
   const header = page.locator('header .rjb-rf');
   await expect(header.locator('> svg')).toBeVisible();
   await expect(header).toHaveAttribute('role', 'img');
-  const skews = () =>
+  const letterPoses = () =>
     header
       .locator('.rjb-rf-l')
-      .evaluateAll((ls) =>
-        ls.map((l) => +(/skewX\((-?[\d.]+)deg\)/.exec((l as HTMLElement).style.cssText)?.[1] ?? 0)),
-      );
-  await expect.poll(async () => (await skews()).some((v) => v !== 0), { timeout: 2000 }).toBe(true);
-  for (const v of await skews()) expect(Math.abs(v)).toBeLessThanOrEqual(1);
+      .evaluateAll((ls) => ls.map((l) => (l as HTMLElement).style.cssText));
+  const first = await letterPoses();
+  for (const pose of first) expect(pose).toMatch(/skewX\(0\.00deg\)/);
+  await page.waitForTimeout(600);
+  expect(await letterPoses()).toEqual(first);
 
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: /^Sign in/ }).click();

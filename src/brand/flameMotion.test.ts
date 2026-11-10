@@ -55,26 +55,16 @@ describe('animateFlame', () => {
     expect(ds()).toEqual(still);
   });
 
-  it('shimmers the letters: a lean of at most tSkew, no fade, only some letters each frame', () => {
-    expect(FLAME).toMatchObject({ tOn: 'letters', tSkew: 1, tFade: 0, tPct: 33 });
-    const { svg, letters } = mount();
+  it('leaves the letters still while the flame burns (Adrian 2026-11-10: flicker off)', () => {
+    expect(FLAME.tOn).toBe('off');
+    const { svg, letters, ds, still } = mount();
     const stop = animateFlame(svg, letters);
-    let held = 0;
-    for (let i = 0; i < 30; i++) {
-      const before = letters.map((l) => l.style.transform);
+    for (let i = 0; i < 20; i++) {
       vi.advanceTimersByTime(frame);
-      letters.forEach((l, k) => {
-        const skew = /^skewX\((-?[\d.]+)deg\)$/.exec(l.style.transform);
-        expect(skew).not.toBeNull();
-        expect(Math.abs(+skew![1])).toBeLessThanOrEqual(FLAME.tSkew);
-        expect(l.style.opacity).toBe('');
-        if (before[k] && before[k] === l.style.transform) held++;
-      });
+      for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
     }
-    // Most letters hold their pose on a given frame.
-    expect(held).toBeGreaterThan(20);
+    expect(ds()).not.toEqual(still);
     stop();
-    for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
   });
 
   it('keeps running: still moving a minute in (Adrian: never settles)', () => {
