@@ -15,26 +15,33 @@ commit `f15fd52`).
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
-**Flame logo: one source, `src/brand/flame.svg`; motion: Adrian's Version E (2026-10-29).**
-`src/brand/flameEngine.ts` is the Visuals Lab's "family" engine ported as given (squash / stretch / pinch
-keyframes, 3 layers, embers), `FLAME_E` = his locked settings (endless, 10 fps; tune only there).
-`npm run icons` writes its still frame (loop frame 0, no embers, HDS primitive fills, classes
+**Flame logo: one source, `src/brand/flame.svg`; one engine, a small fire simulation (Adrian 2026-11-10; it replaced Version E).**
+`src/brand/flameEngine.ts`: three colour layers, each its own heat field (a body ellipse with width, height up / down,
+drop, pointed top, sway, pulse; a share of the licks' heat); **licks are particles** (position, velocity, size, life:
+buoyancy, swirling air, wander, drag, cooling), each drawn as a tongue along its own velocity; heat is summed on a grid
+and cut at 1 (marching squares, curves with sharp corners). Layers stack, none is clipped; a layer can be off (the core
+is). `FLAME` = the settings Adrian copied out of the **flame tuner** (a private artifact page of sliders; tune only
+there, then `npm run icons`). `RoleFlame.tsx` draws with the same engine (`flameEngine.test.ts` fails on a copy). About
+4 ms a frame in Node at 10 fps.
+`npm run icons` writes its still frame (the first frame of the `STILL_SEED` fire, HDS primitive fills, `fill-rule="evenodd"`, classes
 `flame-1|2|3`) to `src/brand/flame.svg`, then favicon.svg, PNG icons, favicon.ico, og-image from it;
 `flameEngine.test.ts` fails when flame.svg is not the engine's still frame. Everything static derives
 from flame.svg: the wordmark in the header and on sign-in (`src/brand/Flame.tsx` inlines it, ids made
 unique per instance) and the icons. `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its
 path data, a stale `public/favicon.svg`, or non-HDS fills.
 **Motion:** `flameMotion.ts` `animateFlame(svg, letters)` rewrites the three paths' `d` every 1/fps (the
-box never changes) and flickers each wordmark letter (skew ≤ 2.5°, fade ≤ 5%, transform/opacity only);
+box never changes) and can shimmer the wordmark letters (`FLAME.tOn`; off, Adrian 2026-11-10: it bent the f and l, so the letters stand still);
 the header/sign-in `Wordmark` and `Flame` reach it only through `startFlame.ts` (a lazy chunk, `entryChunk.test.ts`: the
-entry is under its 255 kB budget (249.2 kB on HDS 0.39); the still frame shows until it lands);
+entry is under its 255 kB budget (252.6 kB); the still frame shows until it lands);
 it animates continuously (Adrian 2026-10-30: never settles);
 still under prefers-reduced-motion (also when turned on mid-run), paused while the tab is hidden, off
 where matchMedia is missing (jsdom). The header/sign-in `Wordmark` and `BootHold` (`<Flame animate />`)
-animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine's 8-frame loop baked in
-by `brandHtml.ts` (one `.rjb-boot-f` group per frame, frames 1-7 `visibility="hidden"`), stepped by
-base.css (`rjb-boot-frame`, delays and loop length inline from FLAME_E.fps); reduced motion / no CSS
-shows frame 0. The splash still fades in after a short beat. The old rise-in reveal is gone.
+animate. **Boot splash: the live fire, no fixed loop (Adrian 2026-11-10).** `%BRAND_FLAME%` in index.html's `#root` is
+the still mark (`brandHtml.ts`); `src/brand/bootFlame.ts`, its own small chunk put in the head ahead of the entry by the
+`boot-flame` plugin in vite.config.ts (it shares the engine's chunk with the lazy logo, and is not part of the entry's
+budget), runs the simulation on those paths until React replaces the splash; reduced motion / no script shows the still
+mark. No flame anywhere repeats: `loopFrames`, the baked frames and the `rjb-boot-frame` CSS are gone
+(`flameEngine.test.ts` fails if a loop comes back). The splash still fades in after a short beat.
 **Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
@@ -43,11 +50,11 @@ flame `1.35cap` tall with its extra height taken back by a negative top margin, 
 and the name's run is plain text's width (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named
 by `aria-label`, its parts aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
 copy, max 4 s.
-**Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (the lab's procedural flame + flickering name, kept as
+**Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (flameEngine's flame + the flickering name, kept as
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
 (`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
-`BRAND.name` in the HDS display family at 700 (Sora 700, loaded by HDS's fonts.css), its dynamic styles come from helpers (no
+`BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: HDS ships only Sora 700, which stays the fallback; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
 inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** / Play animations (WCAG 2.2.2;
 `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use

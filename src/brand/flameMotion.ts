@@ -1,9 +1,9 @@
-// Plays the flame engine (Version E, endless) on a rendered flame.svg: every 1/fps it rewrites the
+// Plays the flame engine (endless) on a rendered flame.svg: every 1/fps it rewrites the
 // three layers' `d` (the outer's clip follows through its <use>), so the svg's box never changes.
 // The wordmark's letters flicker with it, per letter (a slight lean and fade: transform and
 // opacity only, never layout). Still under prefers-reduced-motion (and when it is turned on
 // mid-run), paused while the tab is hidden, and nothing at all where matchMedia is missing.
-import { FLAME_E, endlessFrames, rng } from './flameEngine';
+import { FLAME, endlessFrames, rng } from './flameEngine';
 
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const LAYERS = ['.flame-1', '.flame-2', '.flame-3'];
@@ -12,7 +12,7 @@ const LAYERS = ['.flame-1', '.flame-2', '.flame-3'];
  *  still frame and the letters back. */
 export function animateFlame(svg: Element, letters: HTMLElement[] = []): () => void {
   if (typeof window.matchMedia !== 'function') return () => {};
-  const S = FLAME_E;
+  const S = FLAME;
   const paths = LAYERS.map((sel) => svg.querySelector(sel));
   const still = paths.map((p) => p?.getAttribute('d') ?? '');
   const mq = window.matchMedia(REDUCE);
@@ -27,10 +27,12 @@ export function animateFlame(svg: Element, letters: HTMLElement[] = []): () => v
     n++;
     if (S.tOn !== 'letters' || n % S.tEvery) return;
     for (const l of letters) {
+      // Only some letters move each frame (tPct); the rest hold their last pose.
+      if (l.style.transform && jiggle() * 100 >= S.tPct) continue;
       const dx = ((jiggle() * 2 - 1) * S.tShake) / 100;
       const skew = ((jiggle() * 2 - 1) * S.tSkew).toFixed(1);
       l.style.transform = (dx ? `translateX(${dx.toFixed(3)}em) ` : '') + `skewX(${skew}deg)`;
-      l.style.opacity = (1 - jiggle() * S.tFade).toFixed(2);
+      if (S.tFade) l.style.opacity = (1 - jiggle() * S.tFade).toFixed(2);
     }
   };
   const halt = () => {

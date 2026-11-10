@@ -1,21 +1,28 @@
-// The logo's name uses HDS's display type token (Sora 700, ADR-063, hds#847, shipped by HDS's
-// fonts.css), never a font file or family of its own (Adrian 2026-11-06).
-import { readFileSync, readdirSync } from 'node:fs';
+// The logo's name is Sora 800 (Adrian 2026-11-10; was HDS's display token, Sora 700). HDS ships only
+// Sora 700, so the logo carries exactly one face of its own, with its licence, for the logo only.
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const css = readFileSync('src/theme/base.css', 'utf8');
-const rule = css.slice(css.indexOf('.rjb-rf {'), css.indexOf('}', css.indexOf('.rjb-rf {')));
+const ruleOf = (sel: string) => css.slice(css.indexOf(sel), css.indexOf('}', css.indexOf(sel)));
 
 describe('RoleFlame logo type', () => {
-  it('takes the HDS display family and weight tokens', () => {
-    expect(rule).toContain('font-family: var(--semantic-typography-display-font-family);');
-    expect(rule).toContain('font-weight: var(--semantic-typography-display-font-weight);');
+  it('sets the animated logo and the still wordmark in Sora 800, HDS display as the fallback', () => {
+    for (const sel of ['.rjb-rf {', '.rjb-logo-word {']) {
+      const rule = ruleOf(sel);
+      expect(rule).toMatch(
+        /font-family: 'Roleflame Sora', var\(--(semantic-typography|hds-font-family)-display/,
+      );
+      expect(rule).toContain('font-weight: 800;');
+    }
+    expect(ruleOf('@font-face')).toContain("url('../brand/fonts/sora-800.woff2')");
   });
 
-  it('loads no Sora of its own', () => {
+  it('carries one Sora face, with its licence, and RoleFlame sets no font itself', () => {
     const files = readdirSync('src', { recursive: true }) as string[];
-    const own = files.filter((f) => /sora/i.test(f) && /\.(woff2?|ttf|otf|css)$/.test(f));
-    expect(own).toEqual([]);
+    const own = files.filter((f) => /sora/i.test(f) && /\.(woff2?|ttf|otf)$/.test(f));
+    expect(own.map((f) => f.replace(/\\/g, '/'))).toEqual(['brand/fonts/sora-800.woff2']);
+    expect(existsSync('src/brand/fonts/sora-LICENSE.txt')).toBe(true);
     expect(readFileSync('src/brand/RoleFlame.tsx', 'utf8')).not.toMatch(
       /font-family|fontFamily|Sora,/,
     );

@@ -17,6 +17,31 @@ export default defineConfig({
   plugins: [
     react(),
     { name: 'brand-html', transformIndexHtml: (html: string) => applyBrand(html) },
+    // boot-flame: the boot splash's flame burns before the app's entry loads. brand/bootFlame.ts
+    // is its own small chunk (it shares the flame engine's chunk with the app's lazy logo), put
+    // in the head ahead of the entry script. Under `vite dev` it is served from source.
+    {
+      name: 'boot-flame-chunk',
+      apply: 'build',
+      buildStart() {
+        this.emitFile({ type: 'chunk', id: 'src/brand/bootFlame.ts', name: 'bootFlame' });
+      },
+    },
+    {
+      name: 'boot-flame',
+      transformIndexHtml: {
+        order: 'post',
+        handler: (_html, ctx) => {
+          const built = Object.values(ctx.bundle ?? {}).find(
+            (c) => c.type === 'chunk' && c.name === 'bootFlame',
+          );
+          const src = built ? `/${built.fileName}` : ctx.server ? '/src/brand/bootFlame.ts' : '';
+          return src
+            ? [{ tag: 'script', attrs: { type: 'module', src }, injectTo: 'head' as const }]
+            : [];
+        },
+      },
+    },
     // preload-font: the body font is fetched with the HTML, not after the CSS is parsed.
     {
       name: 'preload-font',

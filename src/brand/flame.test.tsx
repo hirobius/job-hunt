@@ -1,7 +1,7 @@
 // The flame logo has one source: src/brand/flame.svg. Everything else derives from it (the header,
 // the boot splash, the sign-in screen, and `npm run icons` for the favicon, PNGs and og-image).
 // This fails on a second copy of the mark anywhere in the repo, or a favicon left stale.
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,7 +9,8 @@ import { BRAND } from '../brand';
 import { applyBrand } from '../brandHtml';
 import { BrandLogo, Flame } from './Flame';
 import { flameSvg, withUniqueIds } from './flameSvg';
-import { FLAME_E, FLAME_FRAMES, loopFrames } from './flameEngine';
+import { stillFrame } from './flameEngine';
+import { runBootFlame } from './bootFlame';
 
 afterEach(cleanup);
 
@@ -116,7 +117,10 @@ describe('derived from flame.svg', () => {
     const word = screen.getByRole('img', { name: BRAND.name });
     const flame = word.querySelector('.rjb-wordmark-flame .rjb-flame')!;
     expect(flame.closest('[aria-hidden="true"]')).not.toBeNull();
-    expect([...flame.querySelectorAll('path')].map((p) => p.getAttribute('d'))).toEqual(source);
+    // A layer that is switched off has an empty path.
+    expect(
+      [...flame.querySelectorAll('path')].map((p) => p.getAttribute('d')).filter(Boolean),
+    ).toEqual(source);
     expect(container.querySelector('img, canvas')).toBeNull();
   });
 
@@ -127,12 +131,11 @@ describe('derived from flame.svg', () => {
         <Flame animate />
       </>,
     );
+    // The flame's layers stack with no clip, so today it has no ids at all; if one comes back,
+    // withUniqueIds keeps them apart.
     const ids = [...container.querySelectorAll('[id]')].map((e) => e.id);
-    expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
-    for (const use of container.querySelectorAll('use')) {
-      expect(ids).toContain(use.getAttribute('href')!.slice(1));
-    }
+    expect(container.querySelectorAll('svg')).toHaveLength(2);
   });
 
   it('withUniqueIds handles single quotes and quoted url() references', () => {
@@ -156,42 +159,76 @@ describe('derived from flame.svg', () => {
   });
 });
 
-describe('the boot splash moves (Version E, a baked loop)', () => {
+describe('the boot splash burns (the live fire, no fixed loop)', () => {
   const html = applyBrand(readFileSync('index.html', 'utf8'));
   const root = /<div id="root">([\s\S]*?)<\/div>\s*<script/.exec(html)?.[1] ?? '';
-  const frames = [...root.matchAll(/<g class="rjb-boot-f"([^>]*)>([\s\S]*?)<\/g><\/g>/g)];
   const css = readFileSync('src/theme/base.css', 'utf8');
 
-  it('holds the engine’s loop, one group per frame, the first shown and the rest hidden', () => {
-    expect(frames).toHaveLength(FLAME_FRAMES);
-    const loop = loopFrames(FLAME_E);
-    frames.forEach(([, attrs, body], k) => {
-      for (const d of loop[k]) expect(body).toContain(`d="${d}"`);
-      expect(attrs.includes('visibility="hidden"')).toBe(k > 0);
-      expect(attrs).toContain(`animation-delay:${(k * 1000) / FLAME_E.fps}ms`);
-    });
-    const ids = [...root.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
-    expect(new Set(ids).size).toBe(ids.length);
-    expect(root).toContain(`--rjb-flame-loop:${(FLAME_FRAMES * 1000) / FLAME_E.fps}ms`);
+  it('the served splash is the still mark, with no baked frames and no clip', () => {
+    for (const d of stillFrame().filter(Boolean)) expect(root).toContain(`d="${d}"`);
+    expect(root.match(/<svg[\s>]/g)).toHaveLength(1);
+    expect(root.match(/class="flame-1"/g)).toHaveLength(1);
+    expect(root).not.toMatch(/clip|rjb-boot-f\b|visibility="hidden"/);
+    expect(css).not.toMatch(/rjb-boot-frame|rjb-flame-loop|\.rjb-boot-f\b/);
   });
 
-  it('steps through the frames at the engine’s fps (one slot each), still under reduced motion', () => {
-    const rule = /\.rjb-boot-f\s*\{([^}]*)\}/.exec(css)![1];
-    expect(rule).toMatch(/animation:\s*rjb-boot-frame var\(--rjb-flame-loop\) step-end infinite/);
-    const keys = /@keyframes rjb-boot-frame\s*\{([\s\S]*?)\n\}/.exec(css)![1];
-    expect(keys).toContain(`${100 / FLAME_FRAMES}%`);
+  it('bootFlame sets it burning, every frame new, and stops once the splash is gone', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+    document.body.innerHTML = `<div id="root">${root}</div>`;
+    const path = document.querySelector('.rjb-boot .flame-1')!;
+    const still = path.getAttribute('d');
+    const stop = runBootFlame();
+    const seen = new Set<string>();
+    for (let i = 0; i < 12; i++) {
+      vi.advanceTimersByTime(100);
+      seen.add(path.getAttribute('d')!);
+    }
+    expect(seen.size).toBe(12);
+    expect(seen.has(still!)).toBe(false);
+    // React replaces the splash: the fire stops by itself.
+    document.getElementById('root')!.innerHTML = '';
+    vi.advanceTimersByTime(300);
+    const after = path.getAttribute('d');
+    vi.advanceTimersByTime(500);
+    expect(path.getAttribute('d')).toBe(after);
+    stop();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('under reduced motion the splash stays the still mark', () => {
+    vi.stubGlobal('matchMedia', () => ({
+      matches: true,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+    vi.useFakeTimers();
+    document.body.innerHTML = `<div id="root">${root}</div>`;
+    const path = document.querySelector('.rjb-boot .flame-1')!;
+    const still = path.getAttribute('d');
+    const stop = runBootFlame();
+    vi.advanceTimersByTime(600);
+    expect(path.getAttribute('d')).toBe(still);
+    stop();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
     const reduced = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g)]
       .map((m) => m[1])
       .join('\n');
-    expect(reduced).toMatch(/\.rjb-boot-f\s*\{\s*animation: none/);
     // reduced motion drops the fade, never the beat that keeps a fast boot from flashing
     expect(reduced).toMatch(/\.rjb-boot\s*\{\s*animation-timing-function: step-end/);
-    const boot = /\.rjb-boot\s*\{([^}]*)\}/.exec(css)![1];
-    expect(boot).not.toMatch(/\d+m?s\b/);
   });
 
-  it('the old rise-in reveal is gone (Version E replaced it)', () => {
-    expect(css).not.toMatch(/rjb-flame-reveal/);
-    expect(readFileSync('index.html', 'utf8')).not.toMatch(/rjb-flame-reveal/);
+  it('the boot script is its own chunk ahead of the entry (vite.config.ts boot-flame)', () => {
+    const cfg = readFileSync('vite.config.ts', 'utf8');
+    expect(cfg).toMatch(/emitFile\(\{ type: 'chunk', id: 'src\/brand\/bootFlame\.ts'/);
+    expect(cfg).toMatch(/injectTo: 'head'/);
   });
 });

@@ -44,7 +44,7 @@ describe('Wordmark', () => {
     expect(wordmarkMarkup('<svg/>')).not.toContain('rjb-wordmark-l');
   });
 
-  it('the flame moves and the letters flicker (Version E), unless motion is reduced', async () => {
+  it('the flame moves and the letters stay still, and under reduced motion the flame does too', async () => {
     await loadMotion();
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false }));
@@ -55,7 +55,7 @@ describe('Wordmark', () => {
     const still = outer.getAttribute('d');
     act(() => vi.advanceTimersByTime(250));
     expect(outer.getAttribute('d')).not.toBe(still);
-    expect((word.querySelector('.rjb-wordmark-l') as HTMLElement).style.transform).toMatch(/skewX/);
+    expect((word.querySelector('.rjb-wordmark-l') as HTMLElement).style.transform).toBe('');
     cleanup();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: q.includes('reduce') }));
     render(<Wordmark as="p" />);
@@ -76,11 +76,12 @@ describe('Wordmark', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('npm run icons draws the og-image wordmark from the same markup', () => {
+  it('npm run icons draws the share image with the app logo’s own lockup (Adrian 2026-11-10)', () => {
     const script = readFileSync('scripts/make-icons.mjs', 'utf8');
-    expect(script).toMatch(/wordmarkMarkup/);
-    expect(script).toMatch(/wordmark\.css/);
-    expect(wordmarkMarkup('<svg/>')).toContain('<svg/>');
+    // RoleFlame.tsx's proportions: the flame in its 94 x 146 box at 1.95em, 0.3em before the name.
+    expect(script).toMatch(/viewBox="0 0 94 146" style="height:1\.95em/);
+    expect(script).toMatch(/gap:0\.3em/);
+    expect(readFileSync('src/brand/RoleFlame.tsx', 'utf8')).toMatch(/viewBox="0 0 94 146"/);
   });
 
   it('sizes the flame from the font (cap height) and never changes line-height or tracking', () => {

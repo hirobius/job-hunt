@@ -44,7 +44,7 @@ describe('BootHold', () => {
     expect(screen.getByText('The page')).toBeInTheDocument();
   });
 
-  it('the held flame moves (Version E) while it waits', async () => {
+  it('the held flame moves while it waits', async () => {
     await loadMotion();
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false }));

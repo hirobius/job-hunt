@@ -1,124 +1,174 @@
-// The flame's motion: Adrian's "Version E · final" from his Visuals Lab (2026-10-29), ported as
-// given. The "family" engine draws three layers (outer, middle, core) from eight squash / stretch /
-// pinch keyframes, plus embers off the tip; endless mode draws each frame fresh, so it never
-// repeats. Pure and Node-safe (no DOM, no Vite imports): the app animates with it (flameMotion.ts),
-// the boot splash bakes a loop of it into index.html (brandHtml.ts), and `npm run icons` writes its
-// still frame to flame.svg, the static mark every icon derives from. Tune only through FLAME_E.
-
-/** The lab's settings for one version (the family engine's keys). The per-layer "cut" / "hide"
- *  modes are kept as given but unused: E shows every layer. */
+// The flame, drawn in code as a small physical system (Adrian 2026-11-10; it replaced the Visuals
+// Lab's "Version E"). Pure and Node-safe (no DOM, no Vite imports): the app animates with it
+// (flameMotion.ts, RoleFlame.tsx, and bootFlame.ts on the boot splash), and `npm run icons` writes its still frame to flame.svg, the static mark every
+// icon derives from. Tune only through FLAME (the flame tuner page writes these numbers).
+//
+// LAYERS  Three colours (outer, middle, core). Each is its own heat field: its own body (an
+//         ellipse with a width, a height above its centre, a height below, and a drop), and its
+//         own share of the licks' heat (and for how many frames of a lick's life it takes it).
+//         A layer is drawn where its heat is 1 or more.
+// LICKS   Each lick is a particle: position, velocity, size, life. Born on the body, it rises
+//         (buoyancy), is pushed by swirling air, wanders, slows (drag) and cools (shrinks).
+//         It is drawn as a tongue along its own velocity: wide tail, pointed head.
+export type Layer = {
+  on: boolean;
+  w: number;
+  up: number;
+  down: number;
+  drop: number;
+  share: number;
+  hot: number;
+  /** Shape and life of this layer's own body: a pointed top (0 = round), a top that leans from
+   *  side to side, a size that pulses, how fast both move, and how wide licks are in this colour. */
+  point: number;
+  sway: number;
+  breathe: number;
+  pace: number;
+  lickW: number;
+};
 export type FlameSettings = {
   fps: number;
-  intensity: number;
-  lock: number;
-  embers: number;
-  emberSize: number;
-  width: number;
-  height: number;
-  motion: number;
-  bulge: number;
-  sharp: number;
-  rand: number;
-  lag: number;
-  evar: number;
-  anim: 'loop' | 'endless';
-  l1x: number;
-  l1y: number;
-  l1s: number;
-  l1p: number;
-  l1c: number;
-  l2x: number;
-  l2y: number;
-  l2s: number;
-  l2p: number;
-  l2c: number;
-  l3x: number;
-  l3y: number;
-  l3s: number;
-  l3p: number;
-  l3c: number;
-  l2m: 'fill' | 'cut' | 'hide';
-  l3m: 'fill' | 'cut' | 'hide';
-  fx: number;
-  fy: number;
-  fs: number;
-  tOn: 'off' | 'word' | 'letters';
+  speed: number;
+  seed: number;
+  cx: number;
+  foot: number;
+  layers: [Layer, Layer, Layer];
+  /** How far a body's heat reaches past its edge: higher fuses licks to the body sooner. */
+  fuse: number;
+  // Birth
+  rate: number;
+  burst: number;
+  emitW: number;
+  emitY: number;
+  arc: number;
+  launchUp: [number, number];
+  launchOut: number;
+  launchJitter: number;
+  // Lick
+  size: [number, number];
+  life: [number, number];
+  stretch: number;
+  taper: number;
+  head: number;
+  cool: number;
+  grow: number;
+  // Air
+  buoyancy: number;
+  drag: number;
+  swirl: number;
+  swirlSize: number;
+  swirlSpeed: number;
+  fine: number;
+  wander: number;
+  wanderRate: number;
+  gust: number;
+  pull: number;
+  lift: number;
+  // Drawing
+  cell: number;
+  smooth: number;
+  corner: number;
+  /** The wordmark's letters flicker with the flame (flameMotion.ts). */
+  tOn: 'off' | 'letters';
   tShake: number;
   tSkew: number;
   tFade: number;
   tEvery: number;
-  seed: number;
-  eDist: number;
-  eGap: number;
-  eLife: number;
-  eDrift: number;
-  eScatX: number;
-  eScatY: number;
-  eVarW: number;
-  eVarH: number;
-  eTilt: number;
+  /** Percent of the letters that move on each frame; the others hold their pose. */
+  tPct: number;
 };
-
-/** Version E · final, exactly as Adrian copied it out of the lab. */
-export const FLAME_E: FlameSettings = {
+/** Adrian's settings, 2026-11-10, as copied out of the flame tuner. Tune only here. */
+export const FLAME: FlameSettings = {
   fps: 10,
-  intensity: 0.2,
-  lock: 1.5,
-  embers: 2,
-  emberSize: 1.4,
-  width: 1.36,
-  height: 1,
-  motion: 0.7,
-  bulge: 0.04,
-  sharp: 0.7,
-  rand: 1.4,
-  lag: 3,
-  evar: 2.5,
-  anim: 'endless',
-  l1x: -3,
-  l1y: 10,
-  l1s: 1.12,
-  l1p: 1,
-  l1c: 0,
-  l2x: 2.5,
-  l2y: 3,
-  l2s: 1.16,
-  l2p: 1,
-  l2c: 0,
-  l3x: 4.5,
-  l3y: 0,
-  l3s: 1.42,
-  l3p: 1,
-  l3c: 0,
-  l2m: 'fill',
-  l3m: 'fill',
-  fx: 0,
-  fy: 13,
-  fs: 1,
-  tOn: 'letters',
-  tShake: 0,
-  tSkew: 2.5,
-  tFade: 0.05,
-  tEvery: 1,
+  speed: 1,
   seed: 11,
-  eDist: 16,
-  eGap: 16.5,
-  eLife: 4,
-  eDrift: 7.5,
-  eScatX: 25,
-  eScatY: 19.5,
-  eVarW: 0.6,
-  eVarH: 0.65,
-  eTilt: 0.3,
+  cx: 57.5,
+  foot: 94.5,
+  layers: [
+    {
+      on: true,
+      w: 29.5,
+      up: 37,
+      down: 28.5,
+      drop: -11,
+      share: 0.7,
+      hot: 40,
+      point: 0,
+      sway: 9.5,
+      breathe: 0,
+      pace: 0.41,
+      lickW: 1.22,
+    },
+    {
+      on: true,
+      w: 22,
+      up: 17,
+      down: 25,
+      drop: -10,
+      share: 1.11,
+      hot: 20,
+      point: 0.9,
+      sway: 11.5,
+      breathe: 0.02,
+      pace: 0.2,
+      lickW: 0.64,
+    },
+    {
+      on: false,
+      w: 11,
+      up: 24,
+      down: 9,
+      drop: 10.5,
+      share: 1.86,
+      hot: 6,
+      point: 0,
+      sway: 4,
+      breathe: 0.08,
+      pace: 0.25,
+      lickW: 0.8,
+    },
+  ],
+  fuse: 0.2,
+  rate: 5.2,
+  burst: 0.6,
+  emitW: 18,
+  emitY: 16,
+  arc: 1.15,
+  launchUp: [2.2, 3.5],
+  launchOut: 2.4,
+  launchJitter: 0.75,
+  size: [14, 22],
+  life: [12, 24],
+  stretch: 2.6,
+  taper: 1,
+  head: 0.43,
+  cool: 0.46,
+  grow: 2,
+  buoyancy: 0.81,
+  drag: 0.855,
+  swirl: 1.75,
+  swirlSize: 15.5,
+  swirlSpeed: 0.29,
+  fine: 0.91,
+  wander: 0.49,
+  wanderRate: 0.47,
+  gust: 0.12,
+  pull: 0.033,
+  lift: 0.65,
+  cell: 2.25,
+  smooth: 0.8,
+  corner: -0.32,
+  // The letters stand still (Adrian 2026-11-10: the shimmer bent the f and l). The rest is kept
+  // so it can be tried again: a lean of 1 degree at most, no fade, a third of the letters a frame.
+  tOn: 'off',
+  tShake: 0,
+  tSkew: 1,
+  tFade: 0,
+  tEvery: 1,
+  tPct: 33,
 };
-
-/** One frame: the `d` of the outer (with its embers), middle and core layers. */
-export type FlameFrame = [string, string, string];
 type Pt = [number, number];
-type Poly = Pt[];
-
-/** mulberry32: the lab's seeded random. */
-export function rng(seed: number): () => number {
+export function rng(seed: number) {
   let a = seed | 0;
   return () => {
     a = (a + 0x6d2b79f5) | 0;
@@ -127,311 +177,385 @@ export function rng(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-
-function toD(polys: Poly[]): string {
-  return polys
-    .map((p) => {
-      let a = 0;
-      for (let i = 0; i < p.length; i++) {
-        const q = p[(i + 1) % p.length];
-        a += p[i][0] * q[1] - q[0] * p[i][1];
-      }
-      const pts = a < 0 ? p.slice().reverse() : p;
-      return 'M' + pts.map((v) => v[0].toFixed(1) + ',' + v[1].toFixed(1)).join('L') + 'Z';
-    })
-    .join('');
+function hash(x: number, y: number, z: number, s: number) {
+  let h =
+    Math.imul(x, 374761393) ^
+    Math.imul(y, 668265263) ^
+    Math.imul(z, 2147483647) ^
+    Math.imul(s, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
-
-function drop(cx: number, cy: number, r: number, lean: number, sx = 1, sy = 1, k = 1.3): Poly {
-  const p: Poly = [];
-  for (let i = 0; i < 28; i++) {
-    const t = (2 * Math.PI * i) / 28;
-    const x = r * sx * Math.sin(t) * Math.pow(Math.abs(Math.sin(t / 2)), 1.2);
-    const y = -r * sy * Math.cos(t) * k;
-    p.push([
-      cx + x * Math.cos(lean) - y * Math.sin(lean),
-      cy + x * Math.sin(lean) + y * Math.cos(lean),
-    ]);
-  }
-  return p;
+const sm = (t: number) => t * t * (3 - 2 * t);
+function noise(x: number, y: number, z: number, s: number) {
+  const xi = Math.floor(x),
+    yi = Math.floor(y),
+    zi = Math.floor(z);
+  const xf = sm(x - xi),
+    yf = sm(y - yi),
+    zf = sm(z - zi);
+  const l = (a: number, b: number, t: number) => a + (b - a) * t;
+  const c = (dx: number, dy: number, dz: number) => hash(xi + dx, yi + dy, zi + dz, s);
+  return l(
+    l(l(c(0, 0, 0), c(1, 0, 0), xf), l(c(0, 1, 0), c(1, 1, 0), xf), yf),
+    l(l(c(0, 0, 1), c(1, 0, 1), xf), l(c(0, 1, 1), c(1, 1, 1), xf), yf),
+    zf,
+  );
 }
-
-type Key = {
-  W: number;
-  H: number;
-  lean: number;
-  neck: number;
-  wave: number;
-  aL: number;
-  aR: number;
-  hook: number;
-  side: [number, number, number] | null;
-};
-const K: Key[] = [
-  { W: 30, H: 86, lean: 4, neck: 0, wave: 3, aL: 1.08, aR: 0.92, hook: 8, side: null },
-  { W: 27, H: 106, lean: -6, neck: 0, wave: 4, aL: 0.9, aR: 1.1, hook: -10, side: [13, 30, 9] },
-  { W: 23, H: 124, lean: 4, neck: 0.62, wave: 4, aL: 1.05, aR: 0.95, hook: 6, side: null },
-  { W: 26, H: 100, lean: 2, neck: 0, wave: 3, aL: 0.95, aR: 1.08, hook: -6, side: null },
-  { W: 32, H: 82, lean: -4, neck: 0, wave: 3, aL: 0.92, aR: 1.1, hook: -8, side: null },
-  { W: 27, H: 104, lean: 6, neck: 0, wave: 4, aL: 1.1, aR: 0.9, hook: 10, side: [-13, 28, -9] },
-  { W: 23, H: 120, lean: -4, neck: 0.6, wave: 4, aL: 0.95, aR: 1.05, hook: -6, side: null },
-  { W: 26, H: 98, lean: -2, neck: 0, wave: 3, aL: 1.08, aR: 0.94, hook: 6, side: null },
-];
-/** Frames in one loop (the keyframes): the boot splash's CSS steps through this many. */
-export const FLAME_FRAMES = K.length;
-const mH = K.reduce((s, k) => s + k.H / K.length, 0);
-const mW = K.reduce((s, k) => s + k.W / K.length, 0);
-const FLAY = [
-  { sw: 1, sh: 1, dx: 0, bot: 142 },
-  { sw: 0.66, sh: 0.7, dx: -4, bot: 138 },
-  { sw: 0.38, sh: 0.46, dx: -6, bot: 134 },
-];
-
-function famBody(
-  S: FlameSettings,
-  cx: number,
-  bot: number,
+/** Marching squares at one level, segments joined into closed loops. */
+/** Marching squares at heat 1 over a W x H grid (row-major), segments joined into closed loops. */
+function contours(
+  g: Float32Array,
   W: number,
   H: number,
-  lean: number,
-  neck: number,
-  wave: number,
-  ph: number,
-  aL: number,
-  aR: number,
-  hook: number,
-): Poly {
-  const L: Poly = [];
-  const R: Poly = [];
-  const n = 40;
-  for (let i = 0; i <= n; i++) {
-    const s = i / n;
-    let f =
-      s < 0.42
-        ? Math.sqrt(Math.max(0, 1 - Math.pow(1 - s / 0.42, 2)))
-        : Math.pow((1 - s) / 0.58, S.sharp);
-    f *= 1 - neck * Math.exp(-Math.pow((s - 0.78) / 0.05, 2));
-    const x =
-      cx +
-      lean * s * s +
-      wave * Math.sin(Math.PI * 2 * s + ph) * s +
-      hook * Math.pow(Math.max(0, s - 0.55), 2) * 5;
-    const y = bot - H * s;
-    const wl = W * f * aL * (1 + S.bulge * Math.sin(Math.PI * 3.2 * s + ph));
-    const wr = W * f * aR * (1 + S.bulge * Math.sin(Math.PI * 3.2 * s + ph + 2.1));
-    L.push([x - wl, y]);
-    R.push([x + wr, y]);
-  }
-  return L.concat(R.reverse());
-}
-
-function famTongue(
-  S: FlameSettings,
-  bx: number,
-  by: number,
-  w: number,
-  Ln: number,
-  bend: number,
-): Poly {
-  const l: Poly = [];
-  const r: Poly = [];
-  for (let i = 0; i <= 14; i++) {
-    const s = i / 14;
-    const x = bx + bend * s * s;
-    const y = by - Ln * s;
-    const hw = w * Math.pow(1 - s, S.sharp * 0.67) * (1 + 0.3 * Math.sin(Math.PI * s));
-    l.push([x - hw, y]);
-    r.push([x + hw, y]);
-  }
-  return l.concat(r.reverse());
-}
-
-function famKf(S: FlameSettings, i: number) {
-  const k = K[((i % K.length) + K.length) % K.length];
-  const I = S.intensity;
-  const m = S.motion * I;
-  return {
-    W: (mW + (k.W - mW) * m) * 1.03,
-    H: mH + (k.H - mH) * m,
-    lean: k.lean * Math.min(1, m * 2) * I,
-    neck: k.neck * 0.8 * Math.min(1, m * 2),
-    wave: k.wave * I,
-    aL: 1 + (k.aL - 1) * I,
-    aR: 1 + (k.aR - 1) * I,
-    hook: k.hook * I,
-    side: k.side,
-  };
-}
-
-type Layer = 'l1' | 'l2' | 'l3';
-const layerOf = (S: FlameSettings, pre: Layer) => ({
-  x: S[`${pre}x`],
-  y: S[`${pre}y`],
-  s: S[`${pre}s`],
-  p: S[`${pre}p`],
-  c: S[`${pre}c`],
-});
-
-function famFrame(S: FlameSettings, f: number, R: () => number, endless: boolean) {
-  const fr: Poly[][] = [];
-  let tip: Pt = [47, 60];
-  for (let li = 0; li < 3; li++) {
-    const Ly = FLAY[li];
-    const lay = layerOf(S, `l${li + 1}` as Layer);
-    const k = famKf(S, f - li * S.lag);
-    const jt = li ? S.rand * S.intensity : 0;
-    const sw = Ly.sw * lay.s * S.width;
-    const sh = Ly.sh * lay.s * S.height;
-    let W = k.W * sw * (1 + jt * (R() * 0.16 - 0.08));
-    let H = k.H * sh * (1 + jt * (R() * 0.14 - 0.07));
-    let lean = k.lean * sh + jt * (R() * 6 - 3);
-    let hook = k.hook * sh * (1 + jt * (R() - 0.5)) + jt * (R() * 6 - 3);
-    let ph = f * 1.7 + jt * R() * 6.28;
-    let aL = k.aL + jt * (R() * 0.16 - 0.08);
-    let aR = k.aR + jt * (R() * 0.16 - 0.08);
-    const cx = 47 + Ly.dx * S.width + lay.x + jt * (R() * 3 - 1.5);
-    const bot = Ly.bot - (142 - Ly.bot) * (S.height - 1) - lay.y;
-    if (endless) {
-      const v = S.evar * S.intensity;
-      W *= 1 + v * (R() * 0.12 - 0.06);
-      H *= 1 + v * (R() * 0.16 - 0.08);
-      lean += v * (R() * 6 - 3);
-      hook += v * (R() * 8 - 4);
-      ph += v * R() * 3;
-      aL += v * (R() * 0.1 - 0.05);
-      aR += v * (R() * 0.1 - 0.05);
-    }
-    const polys = [
-      famBody(S, cx, bot, W, H, lean, k.neck * (li ? 0.5 : 1), k.wave * sw, ph, aL, aR, hook),
-    ];
-    if (li === 0) tip = [cx + lean + hook * 0.4, bot - H * 0.86];
-    if (k.side && li < 2)
-      polys.push(
-        famTongue(S, cx + k.side[0] * sw, bot - H * 0.32, 6 * sw, k.side[1] * sh, k.side[2] * sw),
-      );
-    let pts = lay.p - 1;
-    if (R() * 100 < lay.c) pts += 1;
-    for (let t = 1; t <= pts; t++) {
-      const side = t % 2 ? 1 : -1;
-      const o = Math.ceil(t / 2);
-      const len = H * (0.62 - 0.1 * o) * (0.85 + R() * 0.3);
-      polys.push(
-        famTongue(
-          S,
-          cx + side * W * (0.38 + 0.12 * o),
-          bot - H * 0.3,
-          W * (0.34 - 0.05 * o),
-          len,
-          side * W * (0.25 + 0.1 * o) + (R() * 4 - 2),
-        ),
-      );
-    }
-    fr.push(polys);
-  }
-  return { layers: fr, tip };
-}
-
-function emberPoly(
-  S: FlameSettings,
-  x0: number,
-  y0: number,
-  a: number,
-  life: number,
-  d: number,
+  c: number,
   ox: number,
   oy: number,
-  ER: () => number,
-): Poly {
-  const r = (4.2 - 2.6 * (life > 1 ? a / (life - 1) : 0)) * S.emberSize;
-  const sx = 1 + (ER() * 2 - 1) * S.eVarW;
-  const sy = 1 + (ER() * 2 - 1) * S.eVarH;
-  const tl = d * 0.25 + (ER() * 2 - 1) * S.eTilt;
-  return drop(x0 + d * a * S.eDrift + ox, y0 - S.eDist - a * S.eGap - oy, r, tl, sx, sy);
-}
-
-/** The lab's frame position (fx / fy / fs: about the centre of its 94 x 146 frame), then the d. */
-function asFrame(S: FlameSettings, layers: Poly[][]): FlameFrame {
-  const place = (polys: Poly[]) =>
-    toD(
-      polys.map((p) =>
-        p.map(([x, y]): Pt => [47 + (x - 47) * S.fs + S.fx, 73 + (y - 73) * S.fs - S.fy]),
-      ),
-    );
-  return [place(layers[0]), place(layers[1]), place(layers[2])];
-}
-
-/** The loop: FLAME_FRAMES frames from the settings' seed, embers placed across it. */
-export function loopFrames(S: FlameSettings): FlameFrame[] {
-  const R = rng(S.seed);
-  const FR = Array.from({ length: K.length }, (_, f) => famFrame(S, f, R, false));
-  const n = S.embers | 0;
-  const ER = rng(S.seed + 7);
-  const life = Math.max(1, S.eLife | 0);
-  for (let e = 0; e < n; e++) {
-    const bf = Math.round((e * K.length) / n + 3) % K.length;
-    const src = FR[(bf + K.length - 1) % K.length].tip;
-    const d = e % 2 ? -1 : 1;
-    const ox = (e > 1 ? d * 5 : 0) + (ER() * 2 - 1) * S.eScatX;
-    const oy = (e > 1 ? 4 : 0) + (ER() * 2 - 1) * S.eScatY;
-    for (let a = 0; a < life; a++)
-      FR[(bf + a) % K.length].layers[0].push(emberPoly(S, src[0], src[1], a, life, d, ox, oy, ER));
-  }
-  return FR.map((fr) => asFrame(S, fr.layers));
-}
-
-/** Endless: each call draws the next frame fresh from `seed` (the lab seeds it at random). */
-export function endlessFrames(S: FlameSettings, seed: number): () => FlameFrame {
-  const R = rng(seed);
-  let g = 0;
-  let lastTip: Pt | null = null;
-  let parts: {
-    x: number;
-    y: number;
-    a: number;
-    life: number;
-    d: number;
-    ox: number;
-    oy: number;
-  }[] = [];
-  return () => {
-    const fr = famFrame(S, g, R, true);
-    g++;
-    const src = lastTip ?? fr.tip;
-    lastTip = fr.tip;
-    let rate = (S.embers | 0) / K.length;
-    while (rate > 0) {
-      if (R() < Math.min(1, rate)) {
-        const d = R() < 0.5 ? -1 : 1;
-        parts.push({
-          x: src[0],
-          y: src[1],
-          a: 0,
-          life: Math.max(1, S.eLife | 0),
-          d,
-          ox: (R() * 2 - 1) * S.eScatX + d * R() * 3,
-          oy: (R() * 2 - 1) * S.eScatY,
-        });
+): Pt[][] {
+  const f = (a: number, b: number) => (1 - a) / (b - a);
+  // Each crossing sits on one grid edge: key it by that edge (even = the edge to the right of a
+  // grid point, odd = the edge below it), so loops join exactly.
+  const next = new Map<number, number>();
+  const at = new Map<number, Pt>();
+  // Which two cell edges each case joins, as T R B L = 0 1 2 3 (two pairs for a saddle).
+  const TBL = [
+    [],
+    [3, 2],
+    [2, 1],
+    [3, 1],
+    [1, 0],
+    [3, 0, 1, 2],
+    [2, 0],
+    [3, 0],
+    [0, 3],
+    [0, 2],
+    [0, 1, 2, 3],
+    [0, 1],
+    [1, 3],
+    [1, 2],
+    [2, 3],
+    [],
+  ];
+  for (let j = 0; j < H - 1; j++)
+    for (let i = 0; i < W - 1; i++) {
+      const n = j * W + i;
+      const a = g[n],
+        b = g[n + 1],
+        d = g[n + W + 1],
+        e = g[n + W];
+      const idx = (a > 1 ? 8 : 0) | (b > 1 ? 4 : 0) | (d > 1 ? 2 : 0) | (e > 1 ? 1 : 0);
+      if (idx === 0 || idx === 15) continue;
+      const x = ox + i * c,
+        y = oy + j * c;
+      const key = [n * 2, (n + 1) * 2 + 1, (n + W) * 2, n * 2 + 1];
+      const pt = (s: number): Pt =>
+        s === 0
+          ? [x + c * f(a, b), y]
+          : s === 1
+            ? [x + c, y + c * f(b, d)]
+            : s === 2
+              ? [x + c * f(e, d), y + c]
+              : [x, y + c * f(a, e)];
+      const t = TBL[idx];
+      for (let k = 0; k < t.length; k += 2) {
+        next.set(key[t[k]], key[t[k + 1]]);
+        at.set(key[t[k]], pt(t[k]));
+        at.set(key[t[k + 1]], pt(t[k + 1]));
       }
-      rate -= 1;
     }
-    parts = parts.filter((p) => {
-      if (p.a >= p.life) return false;
-      fr.layers[0].push(emberPoly(S, p.x, p.y, p.a, p.life, p.d, p.ox, p.oy, R));
-      p.a++;
-      return true;
-    });
-    return asFrame(S, fr.layers);
+  const loops: Pt[][] = [],
+    seen = new Set<number>();
+  for (const k0 of next.keys()) {
+    if (seen.has(k0)) continue;
+    const loop: Pt[] = [];
+    let k: number | undefined = k0;
+    while (k !== undefined && !seen.has(k)) {
+      seen.add(k);
+      loop.push(at.get(k)!);
+      k = next.get(k);
+    }
+    if (loop.length > 5) loops.push(loop);
+  }
+  return loops;
+}
+function simplify(p: Pt[], tol: number): Pt[] {
+  if (p.length < 4) return p;
+  const dp = (pts: Pt[]): Pt[] => {
+    if (pts.length < 3) return pts;
+    const [a, b] = [pts[0], pts[pts.length - 1]];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    let mi = 0,
+      md = 0;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const d =
+        Math.abs((b[0] - a[0]) * (a[1] - pts[i][1]) - (a[0] - pts[i][0]) * (b[1] - a[1])) / len;
+      if (d > md) {
+        md = d;
+        mi = i;
+      }
+    }
+    return md > tol
+      ? dp(pts.slice(0, mi + 1))
+          .slice(0, -1)
+          .concat(dp(pts.slice(mi)))
+      : [a, b];
+  };
+  // Split the loop at its top point (the tip) and the point farthest from it, so both survive
+  // as vertices and neither half is a closed curve (which would collapse to a line).
+  let top = 0;
+  p.forEach((v, i) => {
+    if (v[1] < p[top][1]) top = i;
+  });
+  let far = top,
+    fd = -1;
+  p.forEach((v, i) => {
+    const d = Math.hypot(v[0] - p[top][0], v[1] - p[top][1]);
+    if (d > fd) {
+      fd = d;
+      far = i;
+    }
+  });
+  const [i0, i1] = top < far ? [top, far] : [far, top];
+  const h1 = p.slice(i0, i1 + 1),
+    h2 = p.slice(i1).concat(p.slice(0, i0 + 1));
+  return dp(h1).slice(0, -1).concat(dp(h2).slice(0, -1));
+}
+/** A closed path through the points: sharp where the outline turns hard (a tip, a notch), a
+ *  smooth curve everywhere else, so edges sweep and points stay points. */
+function curve(p: Pt[], corner: number): string {
+  const n = p.length;
+  if (n < 4) return '';
+  const f = (v: Pt) => v[0].toFixed(1) + ',' + v[1].toFixed(1);
+  const sharp = p.map((v, i) => {
+    const a = p[(i + n - 1) % n],
+      b = p[(i + 1) % n];
+    const ux = v[0] - a[0],
+      uy = v[1] - a[1],
+      wx = b[0] - v[0],
+      wy = b[1] - v[1];
+    const c = (ux * wx + uy * wy) / ((Math.hypot(ux, uy) || 1) * (Math.hypot(wx, wy) || 1));
+    return c < corner;
+  });
+  const mid = (a: Pt, b: Pt): Pt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  // Start at a sharp point if there is one, else at an edge midpoint.
+  const s0 = Math.max(0, sharp.indexOf(true));
+  const q = p.slice(s0).concat(p.slice(0, s0)),
+    sh = sharp.slice(s0).concat(sharp.slice(0, s0));
+  let d = 'M' + f(sh[0] ? q[0] : mid(q[n - 1], q[0]));
+  for (let i = sh[0] ? 1 : 0; i < n; i++) {
+    const nx = q[(i + 1) % n],
+      nsh = sh[(i + 1) % n];
+    if (sh[i]) d += 'L' + f(q[i]);
+    else d += 'Q' + f(q[i]) + ' ' + f(nsh ? nx : mid(q[i], nx));
+  }
+  return d + 'Z';
+}
+
+export type FlameFrame = [string, string, string];
+export type Lick = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r0: number;
+  age: number;
+  life: number;
+  w: number;
+};
+
+/** The air: which way it pushes at (x, y) at time t. A large swirl, a fine one, a gust. */
+function air(S: FlameSettings, x: number, y: number, t: number): Pt {
+  const k = 1 / Math.max(2, S.swirlSize);
+  const a = noise(x * k, y * k - t * S.swirlSpeed, t * S.swirlSpeed * 0.9, S.seed + 1) - 0.5;
+  const b =
+    noise(
+      x * k * 1.6 + 9,
+      y * k * 1.6 - t * S.swirlSpeed * 1.7,
+      t * S.swirlSpeed * 1.9,
+      S.seed + 2,
+    ) - 0.5;
+  const c = noise(x * k * 0.7 + 4, y * k * 0.7, t * S.swirlSpeed, S.seed + 5) - 0.5;
+  const high = Math.max(0, (S.foot - y) / 90);
+  const gust = (noise(t * 0.09, 0, 0, S.seed + 3) - 0.5) * 2 * S.gust * (0.3 + high * 0.6);
+  return [(a * 1.6 + b * 1.6 * S.fine) * S.swirl + gust, c * S.swirl * S.lift];
+}
+
+/** A lick's radius now: it grows in over its first frames, then cools to nothing. */
+export function lickRadius(S: FlameSettings, l: Lick): number {
+  const k = l.age / l.life;
+  return l.r0 * (1 - k) ** S.cool * Math.min(1, S.grow <= 0 ? 1 : (l.age + 1) / (S.grow + 1));
+}
+/** A lick's tongue: tail point, head point. */
+export function lickAxis(S: FlameSettings, l: Lick): [number, number, number, number] {
+  const r = lickRadius(S, l),
+    sp = Math.hypot(l.vx, l.vy) || 1;
+  const len = Math.max(r * 0.9, sp * S.stretch);
+  const ux = l.vx / sp,
+    uy = l.vy / sp;
+  return [
+    l.x - ux * len * (1 - S.head),
+    l.y - uy * len * (1 - S.head),
+    l.x + ux * len * S.head,
+    l.y + uy * len * S.head,
+  ];
+}
+function lickHeat(
+  S: FlameSettings,
+  r: number,
+  ax: [number, number, number, number],
+  x: number,
+  y: number,
+  wide = 1,
+): number {
+  const ex = ax[2] - ax[0],
+    ey = ax[3] - ax[1],
+    L2 = ex * ex + ey * ey || 1;
+  let h = ((x - ax[0]) * ex + (y - ax[1]) * ey) / L2;
+  h = h < 0 ? 0 : h > 1 ? 1 : h;
+  const dx = x - (ax[0] + ex * h),
+    dy = y - (ax[1] + ey * h);
+  // Squared distances, so most cells (outside the lick) cost no square root.
+  const R = (r * (S.taper === 1 ? 1 - h : (1 - h) ** S.taper) + 0.6) * wide;
+  const q2 = (dx * dx + dy * dy) / (R * R);
+  return q2 >= 1 ? 0 : (1 - q2) * (1 - q2);
+}
+
+function draw(S: FlameSettings, licks: Lick[], t = 0): FlameFrame {
+  const c = Math.max(1, S.cell),
+    ox = -30,
+    oy = -70,
+    W = Math.ceil(154 / c) + 1,
+    H = Math.ceil(212 / c) + 1;
+  const on = [0, 1, 2].filter((k) => S.layers[k].on);
+  const sum = S.layers.map((Ly) => (Ly.on ? new Float32Array(W * H) : null));
+  const wide = S.layers.map((Ly) => Math.max(0.05, Ly.lickW));
+  const widest = Math.max(1, ...on.map((k) => wide[k]));
+  // Each lick adds its heat to the cells under it only (its own box), in each colour that takes it.
+  for (const l of licks) {
+    const r = lickRadius(S, l);
+    if (r < 1) continue;
+    const ax = lickAxis(S, l),
+      pad = r * widest + 1;
+    const i0 = Math.max(1, Math.ceil((Math.min(ax[0], ax[2]) - pad - ox) / c)),
+      i1 = Math.min(W - 2, Math.floor((Math.max(ax[0], ax[2]) + pad - ox) / c));
+    const j0 = Math.max(1, Math.ceil((Math.min(ax[1], ax[3]) - pad - oy) / c)),
+      j1 = Math.min(H - 2, Math.floor((Math.max(ax[1], ax[3]) + pad - oy) / c));
+    const fade = 1 - 0.25 * (l.age / l.life);
+    const wt = S.layers.map(
+      (Ly) => (Ly.hot >= 40 ? 1 : Math.max(0, 1 - l.age / Math.max(1, Ly.hot))) * fade * Ly.share,
+    );
+    for (let j = j0; j <= j1; j++)
+      for (let i = i0; i <= i1; i++) {
+        const x = ox + i * c,
+          y = oy + j * c;
+        let same = -1,
+          last = 0;
+        for (const k of on) {
+          if (wt[k] <= 0) continue;
+          const h = wide[k] === same ? last : lickHeat(S, r, ax, x, y, wide[k]);
+          same = wide[k];
+          last = h;
+          if (h > 0) sum[k]![j * W + i] += h * wt[k];
+        }
+      }
+  }
+  return S.layers.map((Ly, k) => {
+    const g = sum[k];
+    if (!g) return '';
+    // This layer's own motion this frame: where its top leans and how big it is.
+    const lean0 = Ly.sway * 2 * (noise(t * Ly.pace, k * 7.3, 0, S.seed + 21) - 0.5);
+    const size =
+      1 + Ly.breathe * 2 * (noise(t * Ly.pace * 1.7 + 50, k * 3.1, 0, S.seed + 22) - 0.5);
+    const cy = S.foot + Ly.drop,
+      up = Math.max(1, Ly.up * size),
+      w = Math.max(1, Ly.w * size),
+      down = Math.max(1, Ly.down * size);
+    const slope = (1 / Math.max(0.05, S.fuse)) * 1.6;
+    for (let j = 0; j < H; j++)
+      for (let i = 0; i < W; i++) {
+        const n = j * W + i;
+        // The frame's edge is cold, so every loop closes.
+        if (i === 0 || j === 0 || i === W - 1 || j === H - 1) {
+          g[n] = -1;
+          continue;
+        }
+        const x = ox + i * c,
+          y = oy + j * c;
+        // The layer's body: exactly this ellipse when no lick is near (heat 1 on its edge).
+        // Above the centre, tt is 0 at the centre and 1 at the top: the top can lean (sway) and
+        // close to a point. Below the centre it is a plain half ellipse.
+        const tt = y < cy ? (cy - y) / up : 0;
+        const narrow =
+          Ly.point > 0 && tt > 0 ? Math.max(0.02, 1 - Math.min(1, tt)) ** (Ly.point * 0.7) : 1;
+        const bx = (x - S.cx - lean0 * tt ** 1.5) / (w * narrow),
+          by = y < cy ? tt : (y - cy) / down;
+        const q = Math.sqrt(bx * bx + by * by);
+        if (q <= 1 + S.fuse) g[n] += Math.max(0, 1 + (1 - q) * slope);
+      }
+    return contours(g, W, H, c, ox, oy)
+      .map((l) => curve(simplify(l, S.smooth), S.corner))
+      .join('');
+  }) as FlameFrame;
+}
+
+/** A live fire: step() advances it one frame, draw() gives the three layers, licks is the state. */
+export function createFire(S: FlameSettings = FLAME, seed = 1) {
+  const R = rng(S.seed * 7919 + seed);
+  const fire = { licks: [] as Lick[], t: 0, step, draw: () => draw(S, fire.licks, fire.t) };
+  let owed = 0;
+  function step() {
+    fire.t++;
+    owed += S.rate * (1 - S.burst / 2 + R() * S.burst);
+    while (owed >= 1) {
+      owed--;
+      const a = (R() * 2 - 1) * S.arc;
+      fire.licks.push({
+        x: S.cx + Math.sin(a) * S.emitW,
+        y: S.foot - Math.cos(a) * S.emitY,
+        vx: Math.sin(a) * S.launchOut + (R() * 2 - 1) * S.launchJitter,
+        vy: -(S.launchUp[0] + R() * Math.max(0, S.launchUp[1] - S.launchUp[0])),
+        r0: S.size[0] + R() * Math.max(0, S.size[1] - S.size[0]),
+        age: 0,
+        w: R() * 6.28,
+        life: Math.max(2, S.life[0] + R() * Math.max(0, S.life[1] - S.life[0])),
+      });
+    }
+    for (const l of fire.licks) {
+      const [ax, ay] = air(S, l.x, l.y, fire.t);
+      l.vx =
+        (l.vx + ax + Math.sin(l.age * S.wanderRate + l.w) * S.wander - (l.x - S.cx) * S.pull) *
+        S.drag;
+      l.vy = (l.vy - S.buoyancy + ay) * S.drag;
+      l.x += l.vx;
+      l.y += l.vy;
+      l.age++;
+    }
+    fire.licks = fire.licks.filter((l) => l.age < l.life && l.y > -90);
+  }
+  for (let i = 0; i < 24; i++) step();
+  return fire;
+}
+/** Endless: a live fire from `seed`. Each call advances it one frame and draws it; it never repeats. */
+export function endlessFrames(S: FlameSettings, seed: number): () => FlameFrame {
+  const f = createFire(S, seed);
+  return () => {
+    for (let i = 0; i < Math.max(1, Math.round(S.speed)); i++) f.step();
+    return f.draw();
   };
 }
 
-/** The static mark: the loop's first frame with no embers. flame.svg holds it (`npm run icons`). */
-export function stillFrame(S: FlameSettings = FLAME_E): FlameFrame {
-  return loopFrames({ ...S, embers: 0 })[0];
+/** The fire the still mark is taken from: one seed, so the logo never changes by itself. Picked by
+ *  eye (`npm run icons` writes its first frame as flame.svg). There is no fixed loop anywhere: every
+ *  moving flame is the live simulation. */
+export const STILL_SEED = 21;
+
+/** The static mark: the first frame of the STILL_SEED fire. flame.svg holds it (`npm run icons`). */
+export function stillFrame(S: FlameSettings = FLAME): FlameFrame {
+  return endlessFrames(S, STILL_SEED)();
 }
 
-/** The still frame's outer layer box, padded a unit and rounded out: flame.svg's viewBox, so the
- *  mark sits in the line like the drawn one did (embers and stretches overflow it, visibly). */
-export function flameViewBox(S: FlameSettings = FLAME_E): [number, number, number, number] {
+/** The still frame's outer layer box, padded a unit and rounded out: flame.svg's viewBox. */
+export function flameViewBox(S: FlameSettings = FLAME): [number, number, number, number] {
   const n = (stillFrame(S)[0].match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
   const xs = n.filter((_, i) => i % 2 === 0);
   const ys = n.filter((_, i) => i % 2 === 1);
@@ -440,21 +564,22 @@ export function flameViewBox(S: FlameSettings = FLAME_E): [number, number, numbe
   return [x, y, Math.ceil(Math.max(...xs)) + 1 - x, Math.ceil(Math.max(...ys)) + 1 - y];
 }
 
-/** flame.svg's text: the still frame, the core and middle clipped to the outer, filled with the
- *  given colours (HDS primitives: `npm run icons` reads them from variables.css). The classes let
- *  the app recolour each layer (base.css) and let flameMotion find the layers it animates. */
-export function flameSvgFile(fills: [string, string, string], S: FlameSettings = FLAME_E): string {
-  const [d1, d2, d3] = stillFrame(S);
+/** flame.svg's text: the still frame's three layers, one over the other (each its own heat field,
+ *  so none is clipped to another), filled with the given colours (HDS primitives: `npm run icons`
+ *  reads them from variables.css). The classes let the app recolour each layer (base.css) and let
+ *  flameMotion find the layers it animates. */
+export function flameSvgFile(fills: [string, string, string], S: FlameSettings = FLAME): string {
+  const d = stillFrame(S);
   return (
-    '<!-- The flame: the one source of the logo, the still frame of src/brand/flameEngine.ts (Version E).\n' +
+    '<!-- The flame: the one source of the logo, the still frame of src/brand/flameEngine.ts.\n' +
     '     Written by `npm run icons`; change the engine or its settings, run it, commit. -->\n' +
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${flameViewBox(S).join(' ')}">\n` +
-    '  <defs><clipPath id="flame-clip"><use href="#flame-outer"/></clipPath></defs>\n' +
-    `  <path id="flame-outer" class="flame-1" fill="${fills[0]}" d="${d1}"/>\n` +
-    '  <g clip-path="url(#flame-clip)">\n' +
-    `    <path class="flame-2" fill="${fills[1]}" d="${d2}"/>\n` +
-    `    <path class="flame-3" fill="${fills[2]}" d="${d3}"/>\n` +
-    '  </g>\n' +
+    d
+      .map(
+        (p, i) =>
+          `  <path class="flame-${i + 1}" fill="${fills[i]}" fill-rule="evenodd" d="${p}"/>\n`,
+      )
+      .join('') +
     '</svg>\n'
   );
 }

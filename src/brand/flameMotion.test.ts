@@ -1,9 +1,9 @@
-// The flame moves (Version E, endless, 10 fps) wherever it shows: the header and sign-in wordmark
+// The flame moves (endless, 10 fps) wherever it shows: the header and sign-in wordmark
 // and the boot hold. Under prefers-reduced-motion it is flame.svg, still. The wordmark's letters
 // flicker with it (a slight lean and a 5% fade, Adrian's per-letter setting); transforms and
 // opacity only, so the word's box never moves.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FLAME_E } from './flameEngine';
+import { FLAME } from './flameEngine';
 import { flameSvg } from './flameSvg';
 import { animateFlame } from './flameMotion';
 
@@ -38,7 +38,7 @@ function mount() {
   const ds = () => [...svg.querySelectorAll('path')].map((p) => p.getAttribute('d'));
   return { svg, letters, ds, still: ds() };
 }
-const frame = 1000 / FLAME_E.fps;
+const frame = 1000 / FLAME.fps;
 
 describe('animateFlame', () => {
   it('draws a new frame every 1/fps, never repeating, and stops on cleanup', () => {
@@ -55,20 +55,16 @@ describe('animateFlame', () => {
     expect(ds()).toEqual(still);
   });
 
-  it('flickers each letter by lean and fade only (no shake), within Adrian’s settings', () => {
-    const { svg, letters } = mount();
+  it('leaves the letters still while the flame burns (Adrian 2026-11-10: flicker off)', () => {
+    expect(FLAME.tOn).toBe('off');
+    const { svg, letters, ds, still } = mount();
     const stop = animateFlame(svg, letters);
     for (let i = 0; i < 20; i++) {
       vi.advanceTimersByTime(frame);
-      for (const l of letters) {
-        const skew = /^skewX\((-?[\d.]+)deg\)$/.exec(l.style.transform);
-        expect(skew).not.toBeNull();
-        expect(Math.abs(+skew![1])).toBeLessThanOrEqual(FLAME_E.tSkew);
-        expect(+l.style.opacity).toBeGreaterThanOrEqual(1 - FLAME_E.tFade);
-      }
+      for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
     }
+    expect(ds()).not.toEqual(still);
     stop();
-    for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
   });
 
   it('keeps running: still moving a minute in (Adrian: never settles)', () => {

@@ -62,31 +62,33 @@ test('the boot splash is the flame while the app loads, and React replaces it', 
   const splash = page.getByRole('status', { name: /^Loading / });
   await expect(splash.locator('.rjb-flame svg path').first()).toBeAttached();
   await expect(page.locator('#root')).not.toContainText('%BRAND');
+  // The splash burns before the app's entry lands: the live fire, a new frame each time.
+  const outer = splash.locator('.rjb-flame svg .flame-1');
+  const seen = new Set<string>();
+  await expect
+    .poll(async () => seen.add((await outer.getAttribute('d')) ?? '').size, { timeout: 5000 })
+    .toBeGreaterThan(3);
   release();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.locator('.rjb-boot')).toHaveCount(0);
 });
 
 // The logo is the flame, then the name (stacked on sign-in): named for assistive tech by brand.ts,
-// its letters flicker while it runs.
-test('the logo names the product and flickers: header and sign-in', async ({ page }) => {
+// its letters stand still while the flame burns (Adrian 2026-11-10: the flicker is off).
+test('the logo names the product, the letters still: header and sign-in', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/apply');
   const header = page.locator('header .rjb-rf');
   await expect(header.locator('> svg')).toBeVisible();
   await expect(header).toHaveAttribute('role', 'img');
-  await expect(header.locator('.rjb-rf-l').first()).toHaveAttribute('style', /skewX/);
-  await expect
-    .poll(
-      () =>
-        header
-          .locator('.rjb-rf-l')
-          .evaluateAll((ls) =>
-            ls.some((l) => !/skewX\(0(\.0+)?deg\)/.test((l as HTMLElement).style.cssText)),
-          ),
-      { timeout: 2000 },
-    )
-    .toBe(true);
+  const letterPoses = () =>
+    header
+      .locator('.rjb-rf-l')
+      .evaluateAll((ls) => ls.map((l) => (l as HTMLElement).style.cssText));
+  const first = await letterPoses();
+  for (const pose of first) expect(pose).toMatch(/skewX\(0\.00deg\)/);
+  await page.waitForTimeout(600);
+  expect(await letterPoses()).toEqual(first);
 
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: /^Sign in/ }).click();
