@@ -134,7 +134,9 @@ describe('figma sync', () => {
   });
 
   it('the push writes only the Sync preview page', async () => {
-    const { emitPush, SYNC_PAGE } = await load('scripts/figma/push.mjs');
+    // emitLite is the path the push uses. emitPush embeds the whole runtime, which is now over
+    // the 15 k script limit, so it throws on size before any page check (not a page leak).
+    const { emitLite, SYNC_PAGE } = await load('scripts/figma/push.mjs');
     expect(SYNC_PAGE).toBe('Sync preview');
     const runtime = fs.readFileSync('scripts/figma/figma-runtime.js', 'utf8');
     expect(runtime).toContain("if (DATA.page !== 'Sync preview') throw");
@@ -152,9 +154,13 @@ describe('figma sync', () => {
         },
       },
     };
-    expect(emitPush(spec, ['k']).every((s: { page: string }) => s.page === 'Sync preview')).toBe(
-      true,
-    );
+    const scripts = emitLite(spec, ['k']) as { code: string }[];
+    expect(scripts.length).toBe(2);
+    for (const s of scripts) {
+      expect(s.code).toContain("p.name === 'Sync preview'");
+      expect(s.code).not.toContain('Phone 390');
+    }
+    expect(scripts[1].code).toContain('"page":"Sync preview"');
   });
 
   // The spec walker (scripts/figma/walk.js) reads React's private DOM keys. If a React upgrade

@@ -177,3 +177,19 @@ Session total: 87 calls today (14 in this part: 1 session, 1 skill load, 1 runti
 | 97  | `get_screenshot`  | read  | frame 63:8006 (390 Apply / 1 job — dark)  | re-score                         | 0.834                                                                                       |
 
 Session total: 97 calls today (10 in this part: 1 session, 1 skill load, 1 runtime install, 2 runtime patches, 2 frame writes to Sync preview, 3 screenshots). Stopped early: the context ran low after part 01. Batch 03 parts 02 to 08 and batch 04 are not pushed. The page runtime is ef53726a, the same as the repo. No publish. No write to the HDS library. No other page touched.
+
+#### 390 runtime fixes (setIcon order, grow, icon-only, toast, Disclosure)
+
+| #   | Tool              | Mode  | Target                                    | Why                       | Result                                                                  |
+| --- | ----------------- | ----- | ----------------------------------------- | ------------------------- | ----------------------------------------------------------------------- |
+| 98  | `create_session`  | read  | 9VCvYGN0pz9faveIhSn6Kn                    | session for this task     | OK                                                                      |
+| 99  | `get_figma_skill` | read  | figma-use SKILL.md                        | required before use_figma | OK                                                                      |
+| 100 | `use_figma`       | write | Sync preview: install runtime (full)      | 4 runtime fixes           | OK. ef53726a to 80f29145; hash read back on the page = 80f29145         |
+| 101 | `use_figma`       | write | Sync preview: install runtime (full)      | Disclosure > Surface card | OK. 80f29145 to 830c80df; hash read back on the page = 830c80df         |
+| 102 | `use_figma`       | write | Sync preview: batch 03 part 01 (4 frames) | re-push with 830c80df     | OK. 4 updated in place; 4 read back = spec                              |
+| 103 | `use_figma`       | write | Sync preview: batch 03 part 02 (1 frame)  | re-push with 830c80df     | OK. 1 updated; read back = spec                                         |
+| 104 | `use_figma`       | write | Sync preview: batch 03 part 03 (1 frame)  | re-push with 830c80df     | OK. 1 updated; read back = spec                                         |
+| 105 | `use_figma`       | write | Sync preview: batch 03 part 04 (6 frames) | re-push with 830c80df     | OK. 6 updated; 6 read back = spec                                       |
+| 106 | `get_screenshot`  | read  | section 63:7851 (batch 03)                | score parts 01 to 04      | 11 frames cropped (40 px margin): min 0.820, median 0.854, 6 of 11 fail |
+
+Session total: 106 calls today (9 in this part: 1 session, 1 skill load, 2 full runtime installs, 4 frame writes to Sync preview, 1 screenshot). Each script was emitted by `push.mjs --emit-lite`, passed as is, and passed a syntax check first. Stopped after part 04: the context ran low. Batch 03 parts 05 to 08 still show `390ef963` output; batch 04 is not pushed. The page runtime is 830c80df, the same as the repo. Receipts: figma/receipts/batch-03-rerun.json. No publish. No write to the HDS library. No other page touched.

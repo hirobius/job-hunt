@@ -225,9 +225,18 @@ async function plainText(t, name) {
 function fill(node, parentDir) {
   if (!node.parent || !('layoutMode' in node.parent) || node.parent.layoutMode === 'NONE') return;
   // A wrap row keeps each child at its own width, so items flow to the next line, not off the row.
-  if (node.parent.layoutWrap === 'WRAP') return;
-  // A Badge, Tag, Avatar or icon-only button hugs its content.
-  if (node.getSharedPluginData(NS, 'hug') === '1') return;
+  // A Badge, Tag, Avatar or icon-only button hugs its content (an HDS default may be FILL).
+  const hug = node.getSharedPluginData(NS, 'hug') === '1';
+  if (node.parent.layoutWrap === 'WRAP' || hug) {
+    if (node.type === 'INSTANCE')
+      try {
+        node.layoutGrow = 0;
+        node.layoutSizingHorizontal = 'HUG';
+      } catch {
+        /* fixed-size instance */
+      }
+    return;
+  }
   const isText = node.name === '#text' || node.name === 'Text' || node.name === 'text';
   const box = node.type === 'FRAME' && node.getSharedPluginData(NS, 'leaf') !== '1';
   try {
@@ -325,7 +334,8 @@ async function setIcon(inst, p) {
     if (d.type === 'INSTANCE_SWAP' && comp) want[k] = comp.id;
     if (d.type === 'BOOLEAN' && /icon/i.test(k)) {
       let side = /left|leading|start/i.test(k) ? 'L' : /right|trailing|end/i.test(k) ? 'R' : '';
-      if (!side && !(p && p.iconOnly)) side = unnamed++ === 0 ? 'L' : 'R';
+      // The first unnamed icon boolean on the HDS Button is the trailing one, the second the leading.
+      if (!side && !(p && p.iconOnly)) side = unnamed++ === 0 ? 'R' : 'L';
       want[k] = side === 'L' ? lead : side === 'R' ? trail : !!comp;
     }
   }
@@ -335,8 +345,35 @@ async function setIcon(inst, p) {
     /* keep the default icon */
   }
 }
+// An icon-only button is square at the app's control size (sm 36, md 44). A secondary one has the
+// muted surface and a border; a tertiary one stays clear. The icon sits in the centre.
+async function iconButton(inst, p) {
+  const px = p.size === 'sm' ? 36 : p.size === 'lg' ? 48 : 44;
+  const dark = DARK;
+  try {
+    inst.resize(px, px);
+  } catch {
+    /* fixed by the component */
+  }
+  try {
+    inst.primaryAxisAlignItems = 'CENTER';
+    inst.counterAxisAlignItems = 'CENTER';
+    inst.cornerRadius = 8;
+    if (p.variant !== 'tertiary' && p.variant !== 'ghost') {
+      inst.fills = await paint('color/surface/muted', dark ? { r: 0.13, g: 0.14, b: 0.17 } : GREY);
+      inst.strokes = await paint(
+        'color/border/default',
+        dark ? { r: 0.2, g: 0.22, b: 0.26 } : { r: 0.894, g: 0.902, b: 0.914 },
+      );
+      inst.strokeWeight = 1;
+    }
+  } catch {
+    /* locked by the component */
+  }
+}
 // On a phone the app's type is smaller than the desktop style: use the measured size (spec `ty`).
 let PHONE = false;
+let DARK = false;
 async function retype(node, ty) {
   if (!PHONE || !Array.isArray(ty) || !ty[0]) return;
   const texts = node.type === 'TEXT' ? [node] : node.findAll((x) => x.type === 'TEXT' && x.visible);
@@ -405,6 +442,12 @@ async function dress(f, sel) {
           /* locked */
         }
     }
+  }
+  // Disclosure > Surface (the Templates disclosure) is a card: muted surface, 12 px radius.
+  if (f.name === 'Surface' && f.parent && f.parent.name === 'Disclosure') {
+    f.fills = await paint('color/surface/muted', GREY);
+    f.cornerRadius = 12;
+    f.paddingLeft = f.paddingRight = 16;
   }
   if (f.name === 'Card') {
     f.fills = await paint('color/surface/muted', GREY);
@@ -494,6 +537,7 @@ async function build(n, parent, psz = null) {
         await setText(inst, n.t);
         if (/^(Input|Select|Textarea)$/.test(setName)) await fieldText(inst, n.t, n.p || {});
         if (/Button/.test(setName)) await setIcon(inst, n.p);
+        if (setName === 'IconButton') await iconButton(inst, n.p || {});
         fill(inst, parentDir);
         await retype(inst, n.p && n.p._ty);
         // The animation toggle floats in the top-right corner of the sign-in surface.
@@ -520,6 +564,21 @@ async function build(n, parent, psz = null) {
     f.setSharedPluginData(NS, 'leaf', '1');
     parent.appendChild(f);
     if (n.t) f.appendChild(await plainText(n.t, 'text'));
+    // A Disclosure (no HDS part) is a card: its label and a chevron on the muted surface.
+    if (name === 'Disclosure' && n.p && n.p.variant !== 'row') {
+      f.fills = await paint('color/surface/muted', GREY);
+      f.cornerRadius = 12;
+      f.paddingTop = f.paddingBottom = 14;
+      f.paddingLeft = f.paddingRight = 16;
+      f.counterAxisAlignItems = 'CENTER';
+      f.primaryAxisAlignItems = 'SPACE_BETWEEN';
+      if (n.p.label && !n.t) {
+        f.appendChild(await plainText(String(n.p.label), 'text'));
+        f.setSharedPluginData(NS, 't', NONE); // the spec leaf has no text: read back as none
+      }
+      const chev = await iconFor('chevron-down');
+      if (chev) f.appendChild(chev.createInstance());
+    }
     fill(f, parentDir);
     return;
   }
@@ -540,6 +599,34 @@ async function build(n, parent, psz = null) {
   fill(f, parentDir);
   for (const k of n.k || []) await build(k, f, n.sz);
   size(f, n.sz, parentDir, psz);
+  // A box that holds only hugging parts (a Menu around an icon button) hugs too.
+  if (f.children.length && f.children.every((k) => k.getSharedPluginData(NS, 'hug') === '1')) {
+    f.setSharedPluginData(NS, 'hug', '1');
+    try {
+      f.layoutGrow = 0;
+      f.layoutSizingHorizontal = 'HUG';
+    } catch {
+      /* fixed */
+    }
+  }
+  // flex-1 in a button row (Star, Open application, More): the one labelled Button grows.
+  if (dir === 'HORIZONTAL' && f.layoutWrap !== 'WRAP') {
+    const btn = f.children.filter(
+      (k) =>
+        k.type === 'INSTANCE' && k.name === 'Button' && k.getSharedPluginData(NS, 'hug') !== '1',
+    );
+    const rest = f.children.filter((k) => !btn.includes(k));
+    if (
+      btn.length === 1 &&
+      rest.length &&
+      rest.every((k) => k.getSharedPluginData(NS, 'hug') === '1')
+    )
+      try {
+        btn[0].layoutGrow = 1;
+      } catch {
+        /* fixed */
+      }
+  }
   // Grid cells share the measured width equally.
   if (grid && n.sz) {
     const cell = (n.sz[0] - (n.l.gapPx || 0) * (n.gc - 1)) / n.gc;
@@ -785,6 +872,7 @@ for (const spec of DATA.frames) {
   }
   frame.name = `${spec.width} / ${spec.name}`;
   PHONE = spec.width < 1024;
+  DARK = spec.theme === 'dark';
   // The viewport, fixed: 390x844 or 1440x900. The page scrolls under it, as in the app.
   frame.layoutMode = 'VERTICAL';
   frame.primaryAxisSizingMode = 'FIXED';
