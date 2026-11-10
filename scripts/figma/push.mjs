@@ -18,7 +18,7 @@ const ROOT = join(HERE, '..', '..');
 export const FILE = { id: '9VCvYGN0pz9faveIhSn6Kn', name: 'roleflame — app states' };
 export const OWNER = 'roleflame-figma-sync';
 /** use_figma takes at most 50,000 characters of code; leave room for the wrapper. */
-const MAX_SCRIPT = 47_000;
+const MAX_SCRIPT = 15_000;
 /** The one page the sync writes. The hand-checked pages are never written (figma/README.md). */
 export const SYNC_PAGE = 'Sync preview';
 const PAGES = [SYNC_PAGE];
@@ -162,13 +162,14 @@ export function emitLite(spec, keys, start = 1) {
   ].join('\n');
   const out = [{ name: 'install', keys: [], code: install }];
   const lite = (frames, n) =>
-    `const DATA = ${wrapJson(JSON.stringify(encode({ mode: 'push', page: SYNC_PAGE, owner: OWNER, keep: null, rt: fnv1a(rt), section: `batch ${String(n).padStart(2, '0')}`, frames })))};\n${stub}`;
+    `const DATA = ${wrapJson(JSON.stringify(encode({ mode: 'push', page: SYNC_PAGE, owner: OWNER, keep: null, rt: fnv1a(rt), section: `batch ${String(start).padStart(2, '0')}`, frames })))};\n${stub}`;
   let batch = [];
   let n = start;
   const flush = () => {
     if (!batch.length) return;
     out.push({
-      name: `batch ${String(n).padStart(2, '0')}`,
+      // Every part writes to one section, "batch <start>".
+      name: `batch ${String(start).padStart(2, '0')}-part-${String(n - start + 1).padStart(2, '0')}`,
       keys: batch.map((f) => f.key),
       code: lite(batch, n),
     });

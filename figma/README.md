@@ -137,7 +137,7 @@ The fidelity gate needs Figma MCP access, so run it by hand or in a job with Fig
 
 ## Scale-out to all 130 frames: resume plan
 
-Status (2026-11-10): 28 of 130 frames on Sync preview (5 samples and batch 01). The runtime in the repo and on the page is `e46861c4` (the batch 01 re-push ran `482b2970`, the same code before a prettier line wrap).
+Status (2026-11-10): 65 of 130 frames on Sync preview (5 samples, batch 01 and batch 02). The runtime in the repo and on the page is `e46861c4` (the batch 01 re-push ran `482b2970`, the same code before a prettier line wrap).
 
 Batch 01 scores (23 frames): 0 of 23 below 0.9. The 8 old fails were re-pushed with `482b2970` (ledger rows 56 to 59): min 0.910, median 0.963.
 
@@ -159,7 +159,11 @@ The fixes, all in the runtime:
 - The dialog surface binds `color/surface/floating` (the app's `bg-popover`, white in light mode).
 - A container in a row takes its measured width (the 349 px sidebar, the 551 px detail pane). Each container takes its measured height (row density). The frame padding comes from the measured page column.
 
-Next: batch 02 (37 frames: 1440 Find except the first Browse frame, Job, Menus, Sign-in). Attempt on 2026-11-10 (ledger row 64) failed: the hand copy of the 45 k script had a syntax error, so nothing ran. Emit it with `--start 2` so the section is "batch 02"; the 12-frame second script comes out as "batch 03", so set its `section` to "batch 02" before the call. Prefer smaller scripts: each hand copy is a risk. Old note: batch 02 (38 frames). With `sz` it is 2 scripts (26 + 12 frames, 45 k + 16 k chars), so 3 calls with the screenshot.
+Batch 02 (37 frames, section 55:3875, ledger rows 65 to 73): done in 6 scripts of 15 k chars or less. All 37 read back = spec. Scores: min 0.025, median 0.963, 3 of 37 fail. The 3 fails are the light menu frames (Find / More menu open, Menus / Account menu / Signed in and Signed out). A flat grey layer (rgb 112,116,125) covers each whole frame; the dark twins pass. Fix this in `figma-runtime.js` (the menu layer fill in light mode), re-install, then re-push the 3 frames.
+
+`MAX_SCRIPT` is now 15,000, and `--emit-lite --start N` writes every part to section "batch NN" (files `batch-NN-part-MM.js`), so no hand edit of `section` is needed. Read each file and pass its text as is; run `node --check` on a copy wrapped in `(async function(){ … })` first.
+
+Old note: batch 02 attempt (ledger row 64) failed: the hand copy of the 45 k script had a syntax error, so nothing ran. Emit it with `--start 2` so the section is "batch 02"; the 12-frame second script comes out as "batch 03", so set its `section` to "batch 02" before the call. Prefer smaller scripts: each hand copy is a risk. Old note: batch 02 (38 frames). With `sz` it is 2 scripts (26 + 12 frames, 45 k + 16 k chars), so 3 calls with the screenshot.
 
 1. Run `node scripts/figma/push.mjs --emit-lite .figma-lite --start <first batch number> --skip '<regex of frames already on the page>'`. For batch 02 the skip is `^390/|^1440/(Apply|Dialogs|Feedback) |^1440/Find / Browse / long title \+ no company — dark$`.
 2. If the runtime changed, run `install.js` first (1 `use_figma` call). The batch stub refuses a runtime with another checksum.
