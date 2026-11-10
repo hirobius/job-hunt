@@ -62,6 +62,22 @@ async function prepare(page: Page, theme: 'light' | 'dark') {
 
 async function shoot(page: Page, name: string) {
   await page.evaluate(() => document.fonts.ready);
+  // Every icon-only button (no text, e.g. the Browse / Deck toggle) must show a drawn icon before the
+  // shot: the #528 baselines saved those buttons empty, and the gap hid under the diff threshold.
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('button')]
+      .filter((b) => !b.textContent?.trim() && b.getClientRects().length > 0)
+      .every((b) => {
+        const svg = b.querySelector('svg');
+        const r = svg?.getBoundingClientRect();
+        return Boolean(
+          r &&
+          r.width > 0 &&
+          r.height > 0 &&
+          svg!.querySelector('path, line, rect, circle, polyline'),
+        );
+      }),
+  );
   await page.mouse.move(0, 0);
   await expect.soft(page).toHaveScreenshot(`${name}.png`, { fullPage: true });
 }
