@@ -74,12 +74,29 @@ The full push above (rows 6 to 14) overwrote the hand-checked frames on Phone 39
 
 Plan (`push.mjs --emit-lite`): 1 install call (runtime and HDS keys stored as shared plugin data on Sync preview), then 4 batch calls (23, 38, 28 and 36 frames), each in its own section "batch NN". One screenshot of each section scores the whole batch (`fidelity.mjs --crop`).
 
-| #   | Tool             | Mode  | Target                                     | Why                                        | Result                                                         |
-| --- | ---------------- | ----- | ------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------- |
-| 43  | `use_figma`      | read  | Sync preview                               | probe: can code run from a string; page id | OK. `new Function` works; page 37:2                            |
-| 44  | `get_screenshot` | read  | Sync preview page 37:2                     | probe: one screenshot for many frames      | OK. 2040x5132 at scale 1; crops give the same 5 scores         |
-| 45  | `use_figma`      | write | Sync preview: shared plugin data           | install runtime and HDS keys               | OK. runtime be0b1e93 (17 260 chars) stored and checked         |
-| 46  | `use_figma`      | write | Sync preview: section batch 01 (23 frames) | scale-out                                  | NOT RUN: stopped here (agent context limit, not the MCP limit) |
-| 47  | `get_screenshot` | read  | section batch 01                           | batch 01 scores                            | NOT RUN                                                        |
+| #   | Tool             | Mode  | Target                           | Why                                        | Result                                                 |
+| --- | ---------------- | ----- | -------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| 43  | `use_figma`      | read  | Sync preview                     | probe: can code run from a string; page id | OK. `new Function` works; page 37:2                    |
+| 44  | `get_screenshot` | read  | Sync preview page 37:2           | probe: one screenshot for many frames      | OK. 2040x5132 at scale 1; crops give the same 5 scores |
+| 45  | `use_figma`      | write | Sync preview: shared plugin data | install runtime and HDS keys               | OK. runtime be0b1e93 (17 260 chars) stored and checked |
 
-Session total: 45 calls (3 in the scale-out: 2 probes, 1 install). Before: 42 calls (rework: 7 writes to Sync preview, 19 screenshots; limit 150 a day). Before the rework: 16 calls (3 skill and session loads, 4 `use_figma` reads, 9 `use_figma` writes). No publish. No write to the HDS library. The page "Archive — screenshots" was not touched. Nothing was deleted: all 130 frames were adopted in place (node ids kept) and tagged `roleflame/owner = roleflame-figma-sync`.
+Rows 46 and 47 of the first plan were not run. They are replaced by the rows below.
+
+#### Dark theme fix and batch 01
+
+| #   | Tool              | Mode  | Target                                                 | Why                                                      | Result                                                                                                                |
+| --- | ----------------- | ----- | ------------------------------------------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 46  | `create_session`  | read  | 9VCvYGN0pz9faveIhSn6Kn                                 | session for this task                                    | OK                                                                                                                    |
+| 47  | `get_figma_skill` | read  | figma-use SKILL.md                                     | required before use_figma                                | OK                                                                                                                    |
+| 48  | `use_figma`       | read  | HDS library variable collections                       | names of the Semantic colour variables                   | OK. Collection `Hirobius/Semantic`, 59 colour variables                                                               |
+| 49  | `use_figma`       | write | Sync preview: shared plugin data                       | install runtime with Semantic variable fills             | OK. runtime bb13e007 stored and checked                                                                               |
+| 50  | `use_figma`       | write | Sync preview: section batch 01 (23 frames)             | scale-out, batch 1 of 4                                  | OK. 23 created in section 47:425; all 23 read back = spec                                                             |
+| 51  | `get_screenshot`  | read  | section 47:425                                         | batch 01 scores                                          | min 0.081, median 0.907, 10 of 23 fail. Dark frames pass; light dialogs fail: the bound scrim variable renders opaque |
+| 52  | `use_figma`       | write | Sync preview: 11 DialogOverlay rects in section 47:425 | apply the runtime fix (literal scrim) without a re-push  | OK. 11 fills changed                                                                                                  |
+| 53  | `get_screenshot`  | read  | section 47:425                                         | rescore                                                  | min 0.081, median 0.945, 9 fail. Merge prompt light: alert dialog has no DialogOverlay, so no scrim                   |
+| 54  | `use_figma`       | write | Sync preview: frames 47:9208, 47:9284                  | apply the runtime fix (chrome scrim for an alert dialog) | OK. 2 rects created (chrome, not in read-back)                                                                        |
+| 55  | `get_screenshot`  | read  | section 47:425                                         | final batch 01 scores                                    | min 0.679, median 0.948, 8 of 23 fail (wide Documents and Legal dialogs; Apply pane layout). See README               |
+
+Session total: 55 calls today (10 in this part: 1 session, 1 skill load, 1 read, 4 writes to Sync preview, 3 screenshots). The runtime on the page is bb13e007; the repo runtime is 4683a752, so batch 02 needs `install.js` first. No publish. No write to the HDS library. No other page touched.
+
+Earlier total: 45 calls (3 in the scale-out: 2 probes, 1 install). Before: 42 calls (rework: 7 writes to Sync preview, 19 screenshots; limit 150 a day). Before the rework: 16 calls (3 skill and session loads, 4 `use_figma` reads, 9 `use_figma` writes). No publish. No write to the HDS library. The page "Archive — screenshots" was not touched. Nothing was deleted: all 130 frames were adopted in place (node ids kept) and tagged `roleflame/owner = roleflame-figma-sync`.

@@ -137,7 +137,12 @@ The fidelity gate needs Figma MCP access, so run it by hand or in a job with Fig
 
 ## Scale-out to all 130 frames: resume plan
 
-Status (2026-11-10): 5 of 130 frames on Sync preview, all scored (min 0.914). The runtime `be0b1e93` is installed on the Sync preview page. The other 125 frames are not pushed.
+Status (2026-11-10): 28 of 130 frames on Sync preview (5 samples and batch 01). The runtime in the repo is `4683a752`. The page holds `bb13e007`, so run `install.js` before batch 02 (the stub refuses the old runtime). Batch 01 frames were built with `bb13e007` and then patched by hand to match `4683a752` (ledger rows 52 and 54).
+
+Batch 01 scores (23 frames): min 0.679, median 0.948, 8 of 23 below 0.9. Open fails, all runtime-level:
+
+- Documents dialogs, light (0.68 to 0.73), and Legal privacy, light (0.86): the app dialog is about 900 px wide and full height; `overlay()` caps a desktop dialog at 512 px. Also `color/surface/raised` resolves light grey, but the app dialog is white.
+- Apply 1 job, Many jobs dark, Templates open dark (0.86 to 0.89): sidebar and detail pane layout and row density, not colour.
 
 1. Run `node scripts/figma/push.mjs --emit-lite .figma-lite --skip '<regex of frames already on the page>'`.
 2. If the runtime changed, run `install.js` first (1 `use_figma` call). The batch stub refuses a runtime with another checksum.
@@ -155,4 +160,4 @@ Batch plan (125 frames, 4 batches, about 9 MCP calls in all):
 | batch 03 | 28 (390 Apply, Dialogs, Feedback)              | 44 k                            |
 | batch 04 | 36 (390 Find, Job, Menus, Sign-in)             | 38 k                            |
 
-Expect fails on dark frames: the card, nav and dialog fills in `dress()` and `overlay()` are light-theme colours.
+Theme: `dress()`, `overlay()` and the frame fill bind HDS Semantic variables (`color/surface/page`, `muted`, `inverse`, `raised`, `color/content/inverse`, `secondary`). Each frame sets the Semantic collection to its Light or Dark mode. The dialog scrim stays a literal (ink at 60%): a bound scrim came out opaque in light mode. An alert dialog with no DialogOverlay gets a scrim marked `chrome`, so the read-back ignores it.

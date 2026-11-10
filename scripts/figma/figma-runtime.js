@@ -238,6 +238,42 @@ function fill(node, parentDir) {
 const GREY = { r: 0.914, g: 0.918, b: 0.925 };
 const INK = { r: 0.067, g: 0.094, b: 0.153 };
 const solid = (color) => [{ type: 'SOLID', color }];
+// HDS Semantic colour variables (library 2VgBbVpKiDnu0aftJEVyBQ), so a frame's variable mode
+// gives light or dark. The literal colour is only the fallback when the library is not reachable.
+const SEM = { vars: null, col: null };
+async function semVar(name) {
+  if (SEM.vars === null) {
+    SEM.vars = {};
+    try {
+      const cols = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+      const c = cols.find((x) => /(^|\/)Semantic$/.test(x.name));
+      if (c)
+        for (const v of await figma.teamLibrary.getVariablesInLibraryCollectionAsync(c.key))
+          if (v.resolvedType === 'COLOR') SEM.vars[v.name] = v.key;
+    } catch {
+      /* no library access: literal colours */
+    }
+  }
+  const k = SEM.vars[name];
+  if (!k) return null;
+  if (typeof k !== 'string') return k;
+  try {
+    const v = await figma.variables.importVariableByKeyAsync(k);
+    SEM.vars[name] = v;
+    if (!SEM.col)
+      SEM.col = await figma.variables.getVariableCollectionByIdAsync(v.variableCollectionId);
+    return v;
+  } catch {
+    SEM.vars[name] = null;
+    return null;
+  }
+}
+async function paint(name, color, opacity) {
+  const p = { type: 'SOLID', color };
+  if (opacity !== undefined) p.opacity = opacity;
+  const v = await semVar(name);
+  return [v ? figma.variables.setBoundVariableForPaint(p, 'color', v) : p];
+}
 const LABEL_ICON = {
   Account: 'user',
   Starred: 'star',
@@ -284,7 +320,7 @@ function logo(row) {
 }
 async function dress(f, sel) {
   if (f.name === 'Box' && f.children.length && f.children.every((k) => k.name === 'a')) {
-    f.fills = solid(GREY);
+    f.fills = await paint('color/surface/muted', GREY);
     f.cornerRadius = 10;
     for (const a of f.children) {
       a.layoutGrow = 1;
@@ -293,18 +329,21 @@ async function dress(f, sel) {
       a.paddingTop = a.paddingBottom = 10;
       a.cornerRadius = 8;
       const on = firstText(a).trim() === sel;
-      if (on) a.fills = solid(INK);
+      if (on) a.fills = await paint('color/surface/inverse', INK);
+      const tf = on
+        ? await paint('color/content/inverse', { r: 1, g: 1, b: 1 })
+        : await paint('color/content/secondary', { r: 0.42, g: 0.45, b: 0.5 });
       for (const t of a.findAll((x) => x.type === 'TEXT'))
         try {
           t.textAlignHorizontal = 'CENTER';
-          t.fills = solid(on ? { r: 1, g: 1, b: 1 } : { r: 0.42, g: 0.45, b: 0.5 });
+          t.fills = tf;
         } catch {
           /* locked */
         }
     }
   }
   if (f.name === 'Card') {
-    f.fills = solid(GREY);
+    f.fills = await paint('color/surface/muted', GREY);
     f.cornerRadius = 12;
     f.paddingTop = f.paddingBottom = f.paddingLeft = f.paddingRight = 16;
   }
@@ -500,7 +539,8 @@ async function overlay(n, frame, spec) {
     const r = figma.createRectangle();
     r.name = 'DialogOverlay';
     r.resize(W, H);
-    r.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, opacity: 0.6 }];
+    // Literal on purpose: a bound scrim variable comes out opaque and hides the page in light mode.
+    r.fills = [{ type: 'SOLID', color: { r: 0.067, g: 0.094, b: 0.153 }, opacity: 0.6 }];
     frame.appendChild(r);
     r.layoutPositioning = 'ABSOLUTE';
     r.x = 0;
@@ -521,12 +561,10 @@ async function overlay(n, frame, spec) {
   holder.primaryAxisSizingMode = 'AUTO';
   const body = holder.children[0];
   if (body && !isToast) {
-    body.fills = [
-      {
-        type: 'SOLID',
-        color: spec.theme === 'dark' ? { r: 0.09, g: 0.1, b: 0.12 } : { r: 1, g: 1, b: 1 },
-      },
-    ];
+    body.fills = await paint(
+      'color/surface/raised',
+      spec.theme === 'dark' ? { r: 0.09, g: 0.1, b: 0.12 } : { r: 1, g: 1, b: 1 },
+    );
     body.cornerRadius = phone && !isMenu ? 0 : 12;
   }
   holder.x = isMenu ? W - w - 16 : Math.round((W - w) / 2);
@@ -589,13 +627,15 @@ for (const spec of DATA.frames) {
   frame.counterAxisSizingMode = 'FIXED';
   frame.resize(spec.width, spec.height);
   frame.clipsContent = true;
-  frame.fills = [
-    {
-      type: 'SOLID',
-      color: spec.theme === 'dark' ? { r: 0.05, g: 0.06, b: 0.08 } : { r: 1, g: 1, b: 1 },
-    },
-  ];
-  await themeFrame(frame, spec.theme, null);
+  frame.fills = await paint(
+    'color/surface/page',
+    spec.theme === 'dark' ? { r: 0.05, g: 0.06, b: 0.08 } : { r: 1, g: 1, b: 1 },
+  );
+  // Light or dark from the Semantic collection's mode; else the mode another dark frame uses.
+  const semMode =
+    SEM.col && SEM.col.modes.find((m) => (spec.theme === 'dark' ? /dark/i : /light/i).test(m.name));
+  if (semMode) frame.setExplicitVariableModeForCollection(SEM.col, semMode.modeId);
+  else await themeFrame(frame, spec.theme, null);
   // App shell padding: 20 px on phone; on desktop the content column is 920 px, centred.
   const side = spec.width < 1024 ? 20 : Math.round((spec.width - 920) / 2);
   [frame.paddingTop, frame.paddingRight, frame.paddingBottom, frame.paddingLeft] = [
@@ -608,7 +648,15 @@ for (const spec of DATA.frames) {
   const tree = spec.tree || DATA.frames.find((x) => x.key === spec.same).tree;
   const [main, ...rest] = tree;
   if (main) await build(node(main), frame);
-  for (const n of rest) await overlay(node(n), frame, spec);
+  // A centred dialog with no DialogOverlay in the tree (an alert dialog) still dims the page in the
+  // app: add a scrim, marked as chrome so the read-back does not see it.
+  const ov = rest.map(node);
+  const dialog = ov.some((n) => n.c !== 'ol' && !/^(Box|Menu|Stack)$/.test(n.c) && n.k);
+  if (dialog && !ov.some((n) => n.c === 'DialogOverlay')) {
+    await overlay({ c: 'DialogOverlay' }, frame, spec);
+    frame.children[frame.children.length - 1].setSharedPluginData(NS, 'chrome', '1');
+  }
+  for (const n of ov) await overlay(n, frame, spec);
   frame.setSharedPluginData(NS, 'owner', DATA.owner);
   frame.setSharedPluginData(NS, 'key', spec.key);
   frame.setSharedPluginData(NS, 'checksum', spec.checksum);
