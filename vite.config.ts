@@ -37,7 +37,15 @@ export default defineConfig({
           );
           const src = built ? `/${built.fileName}` : ctx.server ? '/src/brand/bootFlame.ts' : '';
           return src
-            ? [{ tag: 'script', attrs: { type: 'module', src }, injectTo: 'head' as const }]
+            ? // async: a module script otherwise waits for the entry before it (document order),
+              // and by then React has replaced the splash, so it would never burn.
+              [
+                {
+                  tag: 'script',
+                  attrs: { type: 'module', async: true, src },
+                  injectTo: 'head-prepend' as const,
+                },
+              ]
             : [];
         },
       },

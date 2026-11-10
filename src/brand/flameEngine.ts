@@ -554,6 +554,12 @@ export function stillFrame(S: FlameSettings = FLAME): FlameFrame {
   return endlessFrames(S, STILL_SEED)();
 }
 
+/** The animated logo's box (RoleFlame.tsx and the share image): 94 x 146, centred on the flame's
+ *  own centre line (FLAME.cx), so the flame sits on the name's centre whatever cx the tuner set. */
+export function logoViewBox(S: FlameSettings = FLAME): string {
+  return `${S.cx - 47} 0 94 146`;
+}
+
 /** The still frame's outer layer box, padded a unit and rounded out: flame.svg's viewBox. */
 export function flameViewBox(S: FlameSettings = FLAME): [number, number, number, number] {
   const n = (stillFrame(S)[0].match(/-?\d+(\.\d+)?/g) ?? []).map(Number);

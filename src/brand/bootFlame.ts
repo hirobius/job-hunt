@@ -19,4 +19,11 @@ export function runBootFlame(doc: Document = document): () => void {
   return stop;
 }
 
-runBootFlame();
+// The script is async and in the head, so it can run before the body is parsed: wait for the
+// splash (a few frames at most), and give up if React has already replaced it.
+function whenSplash(tries = 120) {
+  if (document.querySelector('.rjb-boot .rjb-flame svg')) runBootFlame();
+  else if (tries > 0 && !document.querySelector('#root > :not(.rjb-boot)'))
+    setTimeout(() => whenSplash(tries - 1), 16);
+}
+whenSplash();

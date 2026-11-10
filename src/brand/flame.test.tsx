@@ -229,6 +229,7 @@ describe('the boot splash burns (the live fire, no fixed loop)', () => {
   it('the boot script is its own chunk ahead of the entry (vite.config.ts boot-flame)', () => {
     const cfg = readFileSync('vite.config.ts', 'utf8');
     expect(cfg).toMatch(/emitFile\(\{ type: 'chunk', id: 'src\/brand\/bootFlame\.ts'/);
-    expect(cfg).toMatch(/injectTo: 'head'/);
+    expect(cfg).toMatch(/async: true/);
+    expect(cfg).toMatch(/injectTo: 'head-prepend'/);
   });
 });
