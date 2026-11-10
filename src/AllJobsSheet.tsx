@@ -2,6 +2,8 @@
 // bottom sheet holds the Apply list (TrackerView JobsList: Follow up, Next 7 days, then every job
 // with search, Status and Sort, each its own card) to jump to any job. A jump moves in place (Back
 // leaves the tab, as the pager does) and closes the sheet.
+// A Dialog set as a bottom sheet in place of HDS Sheet (G2: a Sheet build that fits the entry).
+// hds-gap: hirobius/hds#1433 (G2)
 import { useEffect } from 'react';
 import { Box, Dialog } from '@hirobius/design-system';
 import { DialogNotice } from './NoticeHost';

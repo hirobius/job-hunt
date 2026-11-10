@@ -1,0 +1,101 @@
+{
+  "note": "Known HDS conformance violations (npm run check:hds). Each entry names the redesign issue that removes it. Delete an entry when its violation is gone; the check fails on any new one.",
+  "entries": [
+    {
+      "rule": "dup",
+      "file": "src/PipelinePanel.tsx",
+      "match": "ItemList duplicates HDS List",
+      "count": 1,
+      "issue": "job-hunt#559",
+      "why": "P2 views rebuild the Pipeline lists on HDS List"
+    },
+    {
+      "rule": "dup",
+      "file": "src/PipelinePanel.tsx",
+      "match": "ItemRow duplicates HDS ListItem",
+      "count": 1,
+      "issue": "job-hunt#559",
+      "why": "P2 views rebuild the Pipeline lists on HDS List"
+    },
+    {
+      "rule": "gap",
+      "file": "src/hds-gaps/NavListActionItem.css",
+      "match": "stand-in has no hds-gap tag",
+      "count": 1,
+      "issue": "job-hunt#543",
+      "why": "the All jobs sheet replaces the job rail and its posting link"
+    },
+    {
+      "rule": "gap",
+      "file": "src/hds-gaps/NavListActionItem.tsx",
+      "match": "stand-in has no hds-gap tag",
+      "count": 1,
+      "issue": "job-hunt#543",
+      "why": "the All jobs sheet replaces the job rail and its posting link"
+    },
+    {
+      "rule": "gap",
+      "file": "src/hds-gaps/PageShell.css",
+      "match": "stand-in has no hds-gap tag",
+      "count": 1,
+      "issue": "job-hunt#548",
+      "why": "the P4 shell rebuild; needs a Container shell width in HDS"
+    },
+    {
+      "rule": "gap",
+      "file": "src/hds-gaps/PageShell.tsx",
+      "match": "stand-in has no hds-gap tag",
+      "count": 1,
+      "issue": "job-hunt#548",
+      "why": "the P4 shell rebuild; needs a Container shell width in HDS"
+    },
+    {
+      "rule": "gap",
+      "file": "src/hds-gaps/toastAnnouncer.ts",
+      "match": "stand-in has no hds-gap tag",
+      "count": 1,
+      "issue": "job-hunt#534",
+      "why": "the Undo toasts rework; needs a polite HDS toast type"
+    },
+    {
+      "rule": "gap",
+      "file": "src/hds-gaps/useVisualViewportVars.ts",
+      "match": "stand-in has no hds-gap tag",
+      "count": 1,
+      "issue": "job-hunt#535",
+      "why": "the keyboard-aware action dock (G1, hds#1432)"
+    },
+    {
+      "rule": "px",
+      "file": "src/theme/base.css",
+      "match": "border-radius: 4px",
+      "count": 1,
+      "issue": "job-hunt#548",
+      "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"
+    },
+    {
+      "rule": "px",
+      "file": "src/theme/base.css",
+      "match": "border-radius: 6px",
+      "count": 1,
+      "issue": "job-hunt#564",
+      "why": "focus ring radius; no single round owns it"
+    },
+    {
+      "rule": "px",
+      "file": "src/theme/base.css",
+      "match": "padding: 4px",
+      "count": 1,
+      "issue": "job-hunt#548",
+      "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"
+    },
+    {
+      "rule": "version",
+      "file": "package.json",
+      "match": ".npmrc maps @hirobius to https://npm.pkg.github.com (behind public npm)",
+      "count": 1,
+      "issue": "job-hunt#564",
+      "why": ".npmrc still maps @hirobius to GitHub Packages for hds-toolkit; needs a decision"
+    }
+  ]
+}

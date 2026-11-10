@@ -416,7 +416,7 @@ p {
   [data-hds] input,
   [data-hds] textarea,
   [data-hds] select {
-    font-size: 16px;
+    font-size: 16px; /* hds-allow: 16px stops iOS zooming into a focused field */
   }
 }
 
@@ -724,7 +724,7 @@ p {
    The file's layers (.flame-1 outer .. .flame-3 core) take HDS primitives here, light and dark; a
    file without those classes keeps its own fills. Wordmark: the HDS display family at 700. */
 .rjb-logo {
-  --rjb-logo-size: 19px;
+  --rjb-logo-size: 19px; /* hds-allow: brand logo size, not UI type */
   display: inline-flex;
   align-items: center;
   /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it loads. */
@@ -854,7 +854,7 @@ p {
   align-items: center;
   gap: 0.3em;
   font-family: 'Roleflame Sora', var(--semantic-typography-display-font-family);
-  font-size: var(--rjb-rf-size, 19px);
+  font-size: var(--rjb-rf-size, 19px); /* hds-allow: Roleflame wordmark size, not UI type */
   font-weight: 800;
   line-height: 1;
 }
