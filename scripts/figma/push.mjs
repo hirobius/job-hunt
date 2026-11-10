@@ -85,6 +85,7 @@ export function slim(nodes) {
       l.gapPx ?? 0,
       l.padPx ?? 0,
       slim(n.k ?? []),
+      ...(n.sz ? [n.sz] : []),
     ];
   });
 }
@@ -105,8 +106,8 @@ function encode(data) {
   };
   const enc = (nodes) =>
     nodes.map((n) =>
-      n.length === 5 && Array.isArray(n[4])
-        ? [id(n[0]), n[1], n[2], n[3] ? id(n[3]) : 0, enc(n[4])]
+      n.length >= 5 && Array.isArray(n[4])
+        ? [id(n[0]), n[1], n[2], n[3] ? id(n[3]) : 0, enc(n[4]), ...(n[5] ? [id(n[5])] : [])]
         : n.map(id),
     );
   const frames = data.frames.map((f) => (f.tree ? { ...f, tree: enc(f.tree) } : f));

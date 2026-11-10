@@ -137,12 +137,29 @@ The fidelity gate needs Figma MCP access, so run it by hand or in a job with Fig
 
 ## Scale-out to all 130 frames: resume plan
 
-Status (2026-11-10): 28 of 130 frames on Sync preview (5 samples and batch 01). The runtime in the repo is `4683a752`. The page holds `bb13e007`, so run `install.js` before batch 02 (the stub refuses the old runtime). Batch 01 frames were built with `bb13e007` and then patched by hand to match `4683a752` (ledger rows 52 and 54).
+Status (2026-11-10): 28 of 130 frames on Sync preview (5 samples and batch 01). The runtime in the repo and on the page is `e46861c4` (the batch 01 re-push ran `482b2970`, the same code before a prettier line wrap).
 
-Batch 01 scores (23 frames): min 0.679, median 0.948, 8 of 23 below 0.9. Open fails, all runtime-level:
+Batch 01 scores (23 frames): 0 of 23 below 0.9. The 8 old fails were re-pushed with `482b2970` (ledger rows 56 to 59): min 0.910, median 0.963.
 
-- Documents dialogs, light (0.68 to 0.73), and Legal privacy, light (0.86): the app dialog is about 900 px wide and full height; `overlay()` caps a desktop dialog at 512 px. Also `color/surface/raised` resolves light grey, but the app dialog is white.
-- Apply 1 job, Many jobs dark, Templates open dark (0.86 to 0.89): sidebar and detail pane layout and row density, not colour.
+| Frame (1440)                           | Before | After |
+| -------------------------------------- | ------ | ----- |
+| Apply / 1 job — dark                   | <0.9   | 0.933 |
+| Apply / 1 job — light                  | <0.9   | 0.910 |
+| Apply / Many jobs — dark               | <0.9   | 0.932 |
+| Apply / Templates open — dark          | <0.9   | 0.915 |
+| Dialogs / Documents / Empty — light    | 0.68+  | 0.990 |
+| Dialogs / Documents / Template — light | 0.68+  | 0.967 |
+| Dialogs / Documents / Starters — light | 0.68+  | 0.983 |
+| Dialogs / Legal / Privacy — light      | 0.86   | 0.963 |
+
+The fixes, all in the runtime:
+
+- The walker records each container's box `sz` = [w, h, x, y] from the app DOM. `sz` is layout data only: it is outside `checksum` and `projection`, so the snapshot does not drift.
+- A dialog takes its measured box (Documents 896x868, Legal 672x868), not a 512 px cap.
+- The dialog surface binds `color/surface/floating` (the app's `bg-popover`, white in light mode).
+- A container in a row takes its measured width (the 349 px sidebar, the 551 px detail pane). Each container takes its measured height (row density). The frame padding comes from the measured page column.
+
+Next: batch 02 (38 frames). With `sz` it is 2 scripts (26 + 12 frames, 45 k + 16 k chars), so 3 calls with the screenshot.
 
 1. Run `node scripts/figma/push.mjs --emit-lite .figma-lite --skip '<regex of frames already on the page>'`.
 2. If the runtime changed, run `install.js` first (1 `use_figma` call). The batch stub refuses a runtime with another checksum.

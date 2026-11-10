@@ -24,10 +24,20 @@ export function fnv1a(str) {
   return h.toString(16).padStart(8, '0');
 }
 
-/** The checksum of one frame's spec: its tree, size and theme. */
+/** The tree without measured boxes (`sz`): layout data for the runtime, not part of a checksum. */
+export const unsized = (nodes) =>
+  nodes.map(({ sz, ...n }) => (n.k ? { ...n, k: unsized(n.k) } : n));
+
+/** The checksum of one frame's spec: its tree (without `sz`), size and theme. */
 export const frameChecksum = (f) =>
   fnv1a(
-    stable({ tree: f.tree, width: f.width, height: f.height, theme: f.theme, gap: f.gap ?? [] }),
+    stable({
+      tree: unsized(f.tree),
+      width: f.width,
+      height: f.height,
+      theme: f.theme,
+      gap: f.gap ?? [],
+    }),
   );
 
 /** HDS components drawn as one library instance: the spec keeps their text, not their insides. */

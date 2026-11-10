@@ -100,3 +100,15 @@ Rows 46 and 47 of the first plan were not run. They are replaced by the rows bel
 Session total: 55 calls today (10 in this part: 1 session, 1 skill load, 1 read, 4 writes to Sync preview, 3 screenshots). The runtime on the page is bb13e007; the repo runtime is 4683a752, so batch 02 needs `install.js` first. No publish. No write to the HDS library. No other page touched.
 
 Earlier total: 45 calls (3 in the scale-out: 2 probes, 1 install). Before: 42 calls (rework: 7 writes to Sync preview, 19 screenshots; limit 150 a day). Before the rework: 16 calls (3 skill and session loads, 4 `use_figma` reads, 9 `use_figma` writes). No publish. No write to the HDS library. The page "Archive — screenshots" was not touched. Nothing was deleted: all 130 frames were adopted in place (node ids kept) and tagged `roleflame/owner = roleflame-figma-sync`.
+
+#### Measured sizes (runtime 482b2970) and batch 01 re-run
+
+| #   | Tool             | Mode  | Target                                  | Why                                                | Result                                                   |
+| --- | ---------------- | ----- | --------------------------------------- | -------------------------------------------------- | -------------------------------------------------------- |
+| 56  | `create_session` | read  | 9VCvYGN0pz9faveIhSn6Kn                  | session for this task                              | OK                                                       |
+| 57  | `use_figma`      | write | Sync preview: shared plugin data        | install runtime 482b2970 (measured `sz`, floating) | OK. runtime 482b2970 stored                              |
+| 58  | `use_figma`      | write | Sync preview: 8 failing batch 01 frames | re-push in place                                   | OK. 8 updated in section 47:425; all 8 read back = spec  |
+| 59  | `get_screenshot` | read  | section batch 01                        | re-score                                           | 8 of 8 pass: min 0.910, median 0.963                     |
+| 60  | `use_figma`      | write | Sync preview: shared plugin data        | runtime text after prettier (one line rewrapped)   | OK. runtime e46861c4 stored and checked; no node changed |
+
+Session total: 60 calls today (5 in this part: 1 session, 2 runtime writes, 1 frame write to Sync preview, 1 screenshot). Frames were built with 482b2970; the page and the repo now hold e46861c4 (same code, prettier line wrap). Batch 02 was not run (context budget): it now splits into 2 scripts (26 + 12 frames, 45 k + 16 k chars). No publish. No write to the HDS library. No other page touched.

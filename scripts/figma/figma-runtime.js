@@ -367,7 +367,7 @@ async function dress(f, sel) {
 // [c, row, gap, pad, kids] container, strings and objects as indexes into DATA.s.
 const S = DATA.s || [];
 function node(a) {
-  if (a.length === 5 && Array.isArray(a[4]))
+  if (a.length >= 5 && Array.isArray(a[4]))
     return {
       c: S[a[0]],
       l: {
@@ -377,10 +377,11 @@ function node(a) {
         padPx: a[3] ? S[a[3]] : null,
       },
       k: a[4].map(node),
+      sz: a[5] ? S[a[5]] : null,
     };
   return { c: S[a[0]], t: a.length > 1 ? S[a[1]] : '', p: a.length > 2 ? S[a[2]] : {} };
 }
-async function build(n, parent) {
+async function build(n, parent, psz = null) {
   const parentDir = parent.layoutMode;
   if (n.c === '#text') {
     const t = await plainText(n.t, '#text');
@@ -460,7 +461,8 @@ async function build(n, parent) {
     if (n.l.padPx) [f.paddingTop, f.paddingRight, f.paddingBottom, f.paddingLeft] = n.l.padPx;
   }
   fill(f, parentDir);
-  for (const k of n.k || []) await build(k, f);
+  for (const k of n.k || []) await build(k, f, n.sz);
+  size(f, n.sz, parentDir, psz);
   if (f.name === 'span' && f.children[0] && f.children[0].name === 'svg') {
     const t = f.children[1] && f.children[1].findOne((x) => x.type === 'TEXT');
     if (t)
@@ -481,6 +483,33 @@ async function build(n, parent) {
   await dress(f, SEL);
 }
 let SEL = '';
+// The app's measured box (spec `sz`). In a row a container takes its measured width, not a share of
+// the row (a sidebar beside a detail pane); in a column it fills unless the app made it narrower.
+// Its height is the app's height, so row density matches; the text inside may wrap but not grow it.
+function size(f, sz, parentDir, psz) {
+  if (!sz || !f.parent || !('layoutMode' in f.parent) || f.parent.layoutMode === 'NONE') return;
+  const [w, h] = sz;
+  try {
+    if (parentDir === 'HORIZONTAL') {
+      f.layoutGrow = 0;
+      f.layoutSizingHorizontal = 'FIXED';
+      f.resize(Math.max(1, w), f.height);
+    } else if (psz) {
+      const p = f.parent;
+      const inner = psz[0] - (p.paddingLeft || 0) - (p.paddingRight || 0);
+      if (w < inner - 4) {
+        f.layoutSizingHorizontal = 'FIXED';
+        f.resize(Math.max(1, w), f.height);
+      }
+    }
+    if (h > 0) {
+      f.layoutSizingVertical = 'FIXED';
+      f.resize(f.width, h);
+    }
+  } catch {
+    /* hug */
+  }
+}
 
 let darkMode = null;
 async function themeFrame(frame, theme, existingModes) {
@@ -555,14 +584,24 @@ async function overlay(n, frame, spec) {
   const phone = W < 1024;
   const isToast = n.c === 'ol';
   const isMenu = n.c === 'Box' || n.c === 'Menu' || n.c === 'Stack';
-  const w = isToast ? Math.min(W - 32, 420) : isMenu ? 280 : phone ? W : Math.min(W - 64, 512);
+  // The measured dialog box from the app (spec `sz`), else the old defaults.
+  const m = !isToast && n.sz && n.sz[0] > 0 ? n.sz : null;
+  const w = m
+    ? m[0]
+    : isToast
+      ? Math.min(W - 32, 420)
+      : isMenu
+        ? 280
+        : phone
+          ? W
+          : Math.min(W - 64, 512);
   holder.resize(w, Math.max(1, holder.height));
   holder.counterAxisSizingMode = 'FIXED';
   holder.primaryAxisSizingMode = 'AUTO';
   const body = holder.children[0];
   if (body && !isToast) {
     body.fills = await paint(
-      'color/surface/raised',
+      'color/surface/floating', // bg-popover = --semantic-color-surface-floating (white in light)
       spec.theme === 'dark' ? { r: 0.09, g: 0.1, b: 0.12 } : { r: 1, g: 1, b: 1 },
     );
     body.cornerRadius = phone && !isMenu ? 0 : 12;
@@ -575,7 +614,21 @@ async function overlay(n, frame, spec) {
       : phone
         ? 0
         : Math.max(16, Math.round((H - holder.height) / 2));
-  if (phone && !isMenu && !isToast) {
+  if (m) {
+    holder.resize(w, Math.max(1, m[1]));
+    holder.primaryAxisSizingMode = 'FIXED';
+    try {
+      if (body) {
+        body.layoutSizingHorizontal = 'FILL';
+        body.layoutSizingVertical = 'FILL';
+      }
+    } catch {
+      /* hug */
+    }
+    holder.x = m[2];
+    holder.y = m[3];
+    if (body) body.cornerRadius = phone && m[0] >= W ? 0 : 12;
+  } else if (phone && !isMenu && !isToast) {
     holder.resize(w, H);
     holder.primaryAxisSizingMode = 'FIXED';
     try {
@@ -647,7 +700,14 @@ for (const spec of DATA.frames) {
   SEL = spec.name.split(' / ')[0];
   const tree = spec.tree || DATA.frames.find((x) => x.key === spec.same).tree;
   const [main, ...rest] = tree;
-  if (main) await build(node(main), frame);
+  const mn = main ? node(main) : null;
+  // The page column where the app measured it (else the 920 px column above).
+  if (mn && mn.sz && mn.sz[0] > 0 && mn.sz[0] <= spec.width) {
+    frame.paddingLeft = Math.max(0, mn.sz[2]);
+    frame.paddingRight = Math.max(0, spec.width - mn.sz[2] - mn.sz[0]);
+    frame.paddingTop = Math.max(0, mn.sz[3]);
+  }
+  if (mn) await build(mn, frame);
   // A centred dialog with no DialogOverlay in the tree (an alert dialog) still dims the page in the
   // app: add a scrim, marked as chrome so the read-back does not see it.
   const ov = rest.map(node);

@@ -93,6 +93,11 @@ async function __rfWalk(opts) {
     if (pad.some(Boolean)) l.padPx = pad;
     return l;
   };
+  // Measured box [w, h, x, y] in CSS px. It is layout data for the runtime, outside the checksums.
+  const size = (el) => {
+    const r = el.getBoundingClientRect();
+    return [r.width, r.height, r.left, r.top].map(Math.round);
+  };
   const visible = (el) =>
     el.checkVisibility
       ? el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
@@ -203,6 +208,7 @@ async function __rfWalk(opts) {
         if (l) n.l = l;
         if (tk.length) n.tk = tk;
         if (kids.length) n.k = kids;
+        n.sz = size(el);
         outer = outer.slice(0, -1);
         inner = [n];
       } else if (!l && !tk.some((t) => /^(bg|border|rounded|shadow)-/.test(t))) inner = kids;
@@ -213,6 +219,7 @@ async function __rfWalk(opts) {
         if (l) n.l = l;
         if (tk.length) n.tk = tk;
         if (kids.length) n.k = kids;
+        n.sz = size(el);
         inner = [n];
       }
     }
