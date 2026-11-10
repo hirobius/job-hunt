@@ -9,7 +9,7 @@ import { BRAND } from '../brand';
 import { applyBrand } from '../brandHtml';
 import { BrandLogo, Flame } from './Flame';
 import { flameSvg, withUniqueIds } from './flameSvg';
-import { FLAME_E, FLAME_FRAMES, loopFrames } from './flameEngine';
+import { FLAME, FLAME_FRAMES, loopFrames } from './flameEngine';
 
 afterEach(cleanup);
 
@@ -156,7 +156,7 @@ describe('derived from flame.svg', () => {
   });
 });
 
-describe('the boot splash moves (Version E, a baked loop)', () => {
+describe('the boot splash moves (a baked loop)', () => {
   const html = applyBrand(readFileSync('index.html', 'utf8'));
   const root = /<div id="root">([\s\S]*?)<\/div>\s*<script/.exec(html)?.[1] ?? '';
   const frames = [...root.matchAll(/<g class="rjb-boot-f"([^>]*)>([\s\S]*?)<\/g><\/g>/g)];
@@ -164,15 +164,17 @@ describe('the boot splash moves (Version E, a baked loop)', () => {
 
   it('holds the engine’s loop, one group per frame, the first shown and the rest hidden', () => {
     expect(frames).toHaveLength(FLAME_FRAMES);
-    const loop = loopFrames(FLAME_E);
+    const loop = loopFrames(FLAME);
     frames.forEach(([, attrs, body], k) => {
       for (const d of loop[k]) expect(body).toContain(`d="${d}"`);
       expect(attrs.includes('visibility="hidden"')).toBe(k > 0);
-      expect(attrs).toContain(`animation-delay:${(k * 1000) / FLAME_E.fps}ms`);
+      expect(attrs).toContain(`animation-delay:${(k * 1000) / FLAME.fps}ms`);
     });
     const ids = [...root.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(root).toContain(`--rjb-flame-loop:${(FLAME_FRAMES * 1000) / FLAME_E.fps}ms`);
+    expect(root).toContain(`--rjb-flame-loop:${(FLAME_FRAMES * 1000) / FLAME.fps}ms`);
+    // The glow sits behind the frames, in the flame's own outer colour.
+    expect(root).toMatch(/<circle[^>]*fill="url\(#rjb-boot-glow\)"\/><g class="rjb-boot-f"/);
   });
 
   it('steps through the frames at the engine’s fps (one slot each), still under reduced motion', () => {
@@ -190,7 +192,7 @@ describe('the boot splash moves (Version E, a baked loop)', () => {
     expect(boot).not.toMatch(/\d+m?s\b/);
   });
 
-  it('the old rise-in reveal is gone (Version E replaced it)', () => {
+  it('the old rise-in reveal is gone', () => {
     expect(css).not.toMatch(/rjb-flame-reveal/);
     expect(readFileSync('index.html', 'utf8')).not.toMatch(/rjb-flame-reveal/);
   });

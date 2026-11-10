@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-11-07T15:15:00Z",
+  "updatedAt": "2026-11-10T03:45:00Z",
   "phase": "live",
   "headline": "Two screens done (#471, ADR 0010): Find and Apply are the only top tabs, each a list beside a detail at lg; Documents and Privacy and terms are dialogs in the page URL. Slice 5 (visual tune-up) waits on Adrian.",
   "next": [
+    "Review claude/gallant-hawking-be15eq: the flame rebuilt as a stylized anime fire (one engine for the app bar, sign-in, boot splash, icons, og-image), a glow behind the big flame on sign-in and the splash. verify + brand / sign-in / a11y / layout e2e green. Visual baselines and manifest screenshots not re-taken (need the pinned Docker image). Not merged.",
     "Review the open PR for the v12MigrationNotice test flake (#505).",
     "#471 slice 5 (visual tune-up of the two columns) waits on Adrian's details.",
     "Daily picks: merged (#469, on Find). Setup still to confirm (Adrian): 20261105100000_daily_picks.sql applied, a feed token made (docs/daily-picks.md), PICKS_TOKEN in the scheduled run environment, nelrcmbkimjjmfmgnixj.supabase.co allowed, the new prompt swapped in.",

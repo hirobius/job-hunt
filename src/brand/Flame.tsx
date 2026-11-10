@@ -1,7 +1,7 @@
 // The flame logo. `flame.svg` beside this file is the one source of the mark: the header, the
 // boot splash (index.html, via the brand-html plugin, a baked loop of the engine's frames), the
 // sign-in screen and `npm run icons` (favicon, PNG icons, favicon.ico, og-image) all read it. It is
-// the still frame of flameEngine.ts (Adrian's Version E), written by `npm run icons`;
+// the still frame of flameEngine.ts, written by `npm run icons`;
 // `flame.test.tsx` fails on a second copy anywhere else. In the app its layers take HDS primitives
 // by class (`.flame-1..3` in base.css, light / dark), and flameMotion.ts sets them moving.
 import { useEffect, useId, useMemo, useRef } from 'react';
@@ -10,7 +10,7 @@ import { flameSvg, withUniqueIds } from './flameSvg';
 import { startFlame } from './startFlame';
 
 /** The flame alone. Decorative: whatever sits beside it carries the name. `animate` sets it
- *  moving (Version E, endless; flame.svg, still, under prefers-reduced-motion). */
+ *  moving (endless; flame.svg, still, under prefers-reduced-motion). */
 export function Flame({ className, animate = false }: { className?: string; animate?: boolean }) {
   const suffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const html = useMemo(() => withUniqueIds(flameSvg, suffix), [suffix]);

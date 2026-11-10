@@ -1,124 +1,77 @@
-// The flame's motion: Adrian's "Version E · final" from his Visuals Lab (2026-10-29), ported as
-// given. The "family" engine draws three layers (outer, middle, core) from eight squash / stretch /
-// pinch keyframes, plus embers off the tip; endless mode draws each frame fresh, so it never
-// repeats. Pure and Node-safe (no DOM, no Vite imports): the app animates with it (flameMotion.ts),
-// the boot splash bakes a loop of it into index.html (brandHtml.ts), and `npm run icons` writes its
-// still frame to flame.svg, the static mark every icon derives from. Tune only through FLAME_E.
+// The flame, drawn in code: a stylized anime fire (Adrian 2026-11-10; it replaced the Visuals Lab's
+// "Version E"). A soft, round-bottomed body that squashes and stretches on hard cuts, licks that
+// climb its flanks and whip at the tip, a tip that pinches off and rises as a shrinking piece, and
+// a round bright core. Three layers (outer, middle, core). Pure and Node-safe (no DOM, no Vite
+// imports): the app animates with it (flameMotion.ts, RoleFlame.tsx), the boot splash bakes a loop
+// of it into index.html (brandHtml.ts), and `npm run icons` writes its still frame to flame.svg,
+// the static mark every icon derives from. Tune only through FLAME.
 
-/** The lab's settings for one version (the family engine's keys). The per-layer "cut" / "hide"
- *  modes are kept as given but unused: E shows every layer. */
 export type FlameSettings = {
+  /** Hard cuts a second (drawn "on twos", never tweened). */
   fps: number;
-  intensity: number;
-  lock: number;
-  embers: number;
-  emberSize: number;
+  /** The outer body's half width and height, in the 94 x 146 frame. */
   width: number;
   height: number;
-  motion: number;
-  bulge: number;
+  /** How far the squash / stretch keys move the body (0 = a fixed size). */
+  stretch: number;
+  /** The S-wave that travels up the body: its reach at the tip. */
+  sway: number;
+  /** The flanks' ripple, as a part of the width. */
+  ripple: number;
+  /** The upper taper: above 1 the flanks are concave and the tip is a point. */
   sharp: number;
-  rand: number;
-  lag: number;
-  evar: number;
-  anim: 'loop' | 'endless';
-  l1x: number;
-  l1y: number;
-  l1s: number;
-  l1p: number;
-  l1c: number;
-  l2x: number;
-  l2y: number;
-  l2s: number;
-  l2p: number;
-  l2c: number;
-  l3x: number;
-  l3y: number;
-  l3s: number;
-  l3p: number;
-  l3c: number;
-  l2m: 'fill' | 'cut' | 'hide';
-  l3m: 'fill' | 'cut' | 'hide';
-  fx: number;
-  fy: number;
-  fs: number;
-  tOn: 'off' | 'word' | 'letters';
+  /** Licks climbing the outer body (the middle layer has one fewer). */
+  licks: number;
+  /** A lick's longest reach, as a part of the body's height. */
+  lickLen: number;
+  /** Pieces that break off in one loop (the tip first, then lick ends). */
+  pieces: number;
+  pieceSize: number;
+  /** A piece's climb and sideways drift per frame. */
+  rise: number;
+  drift: number;
+  /** Endless only: the hand-drawn "boil", the difference between one frame and the next. */
+  boil: number;
+  seed: number;
+  /** The wordmark's letters flicker with the flame (flameMotion.ts). */
+  tOn: 'off' | 'letters';
   tShake: number;
   tSkew: number;
   tFade: number;
   tEvery: number;
-  seed: number;
-  eDist: number;
-  eGap: number;
-  eLife: number;
-  eDrift: number;
-  eScatX: number;
-  eScatY: number;
-  eVarW: number;
-  eVarH: number;
-  eTilt: number;
 };
 
-/** Version E · final, exactly as Adrian copied it out of the lab. */
-export const FLAME_E: FlameSettings = {
+export const FLAME: FlameSettings = {
   fps: 10,
-  intensity: 0.2,
-  lock: 1.5,
-  embers: 2,
-  emberSize: 1.4,
-  width: 1.36,
-  height: 1,
-  motion: 0.7,
-  bulge: 0.04,
-  sharp: 0.7,
-  rand: 1.4,
-  lag: 3,
-  evar: 2.5,
-  anim: 'endless',
-  l1x: -3,
-  l1y: 10,
-  l1s: 1.12,
-  l1p: 1,
-  l1c: 0,
-  l2x: 2.5,
-  l2y: 3,
-  l2s: 1.16,
-  l2p: 1,
-  l2c: 0,
-  l3x: 4.5,
-  l3y: 0,
-  l3s: 1.42,
-  l3p: 1,
-  l3c: 0,
-  l2m: 'fill',
-  l3m: 'fill',
-  fx: 0,
-  fy: 13,
-  fs: 1,
+  width: 32,
+  height: 106,
+  stretch: 1,
+  sway: 9,
+  ripple: 0.09,
+  sharp: 1.15,
+  licks: 3,
+  lickLen: 0.27,
+  pieces: 3,
+  pieceSize: 1,
+  rise: 13,
+  drift: 3.5,
+  boil: 1,
+  seed: 11,
   tOn: 'letters',
   tShake: 0,
   tSkew: 2.5,
   tFade: 0.05,
   tEvery: 1,
-  seed: 11,
-  eDist: 16,
-  eGap: 16.5,
-  eLife: 4,
-  eDrift: 7.5,
-  eScatX: 25,
-  eScatY: 19.5,
-  eVarW: 0.6,
-  eVarH: 0.65,
-  eTilt: 0.3,
 };
 
-/** One frame: the `d` of the outer (with its embers), middle and core layers. */
+/** One frame: the `d` of the outer (with its pieces), middle and core layers. */
 export type FlameFrame = [string, string, string];
 type Pt = [number, number];
 type Poly = Pt[];
+type Rand = () => number;
 
-/** mulberry32: the lab's seeded random. */
-export function rng(seed: number): () => number {
+/** mulberry32: a small seeded random. */
+export function rng(seed: number): Rand {
   let a = seed | 0;
   return () => {
     a = (a + 0x6d2b79f5) | 0;
@@ -142,296 +95,242 @@ function toD(polys: Poly[]): string {
     .join('');
 }
 
-function drop(cx: number, cy: number, r: number, lean: number, sx = 1, sy = 1, k = 1.3): Poly {
-  const p: Poly = [];
-  for (let i = 0; i < 28; i++) {
-    const t = (2 * Math.PI * i) / 28;
-    const x = r * sx * Math.sin(t) * Math.pow(Math.abs(Math.sin(t / 2)), 1.2);
-    const y = -r * sy * Math.cos(t) * k;
-    p.push([
-      cx + x * Math.cos(lean) - y * Math.sin(lean),
-      cy + x * Math.sin(lean) + y * Math.cos(lean),
-    ]);
-  }
-  return p;
+/** The frame's centre line and the outer body's foot. */
+const CX = 47;
+const BASE = 120;
+const TAU = Math.PI * 2;
+
+/** The keys, one per frame of the loop: the body gathers, stretches, pinches its tip off (frame 3),
+ *  drops wide and short, then recovers. `h` / `w` scale the body, `neck` pinches it below the tip. */
+const KEYS = [
+  { h: 1.0, w: 1.0, neck: 0, lean: 2 },
+  { h: 1.06, w: 0.97, neck: 0, lean: -3 },
+  { h: 1.13, w: 0.93, neck: 0.3, lean: -5 },
+  { h: 1.2, w: 0.9, neck: 0.68, lean: -2 },
+  { h: 0.88, w: 1.09, neck: 0, lean: 4 },
+  { h: 0.85, w: 1.1, neck: 0, lean: 5 },
+  { h: 0.91, w: 1.06, neck: 0, lean: 1 },
+  { h: 0.96, w: 1.03, neck: 0, lean: -2 },
+];
+/** Frames in one loop: the boot splash's CSS steps through this many. */
+export const FLAME_FRAMES = KEYS.length;
+/** The frame a piece leaves on (the tip right after the pinch, then lick ends) and how long it
+ *  lives. None is alive on frame 0, so the loop's first frame is the clean mark. */
+const BREAKS = [
+  { at: 4, life: 4, size: 1, from: 'tip' },
+  { at: 1, life: 3, size: 0.6, from: 'lick' },
+  { at: 6, life: 2, size: 0.55, from: 'lick' },
+  { at: 2, life: 3, size: 0.45, from: 'lick' },
+] as const;
+/** The three layers: width and height as parts of the outer, the foot's lift, the frames it lags,
+ *  and its taper (the core is the round one). */
+const LAYERS = [
+  { sw: 1, sh: 1, up: 0, lag: 0, dx: 0, round: 0 },
+  { sw: 0.63, sh: 0.68, up: 3, lag: 1, dx: -1.5, round: 0.15 },
+  { sw: 0.36, sh: 0.4, up: 7, lag: 2, dx: -2, round: 0.5 },
+];
+
+type Pose = { W: number; H: number; lean: number; neck: number; amp: number; t: number };
+
+/** The body's centre line at `s` (0 the foot, 1 the tip): a lean plus the S-wave that climbs it. */
+function spine(p: Pose, cx: number, s: number): number {
+  return cx + p.lean * s * s + p.amp * Math.sin(TAU * (0.85 * s - p.t)) * Math.pow(s, 1.4);
 }
 
-type Key = {
-  W: number;
-  H: number;
-  lean: number;
-  neck: number;
-  wave: number;
-  aL: number;
-  aR: number;
-  hook: number;
-  side: [number, number, number] | null;
-};
-const K: Key[] = [
-  { W: 30, H: 86, lean: 4, neck: 0, wave: 3, aL: 1.08, aR: 0.92, hook: 8, side: null },
-  { W: 27, H: 106, lean: -6, neck: 0, wave: 4, aL: 0.9, aR: 1.1, hook: -10, side: [13, 30, 9] },
-  { W: 23, H: 124, lean: 4, neck: 0.62, wave: 4, aL: 1.05, aR: 0.95, hook: 6, side: null },
-  { W: 26, H: 100, lean: 2, neck: 0, wave: 3, aL: 0.95, aR: 1.08, hook: -6, side: null },
-  { W: 32, H: 82, lean: -4, neck: 0, wave: 3, aL: 0.92, aR: 1.1, hook: -8, side: null },
-  { W: 27, H: 104, lean: 6, neck: 0, wave: 4, aL: 1.1, aR: 0.9, hook: 10, side: [-13, 28, -9] },
-  { W: 23, H: 120, lean: -4, neck: 0.6, wave: 4, aL: 0.95, aR: 1.05, hook: -6, side: null },
-  { W: 26, H: 98, lean: -2, neck: 0, wave: 3, aL: 1.08, aR: 0.94, hook: 6, side: null },
-];
-/** Frames in one loop (the keyframes): the boot splash's CSS steps through this many. */
-export const FLAME_FRAMES = K.length;
-const mH = K.reduce((s, k) => s + k.H / K.length, 0);
-const mW = K.reduce((s, k) => s + k.W / K.length, 0);
-const FLAY = [
-  { sw: 1, sh: 1, dx: 0, bot: 142 },
-  { sw: 0.66, sh: 0.7, dx: -4, bot: 138 },
-  { sw: 0.38, sh: 0.46, dx: -6, bot: 134 },
-];
+/** Half width at `s` as a part of W: a round foot, widest at 0.3, tapering to a point. */
+function profile(s: number, sharp: number): number {
+  return s < 0.3
+    ? Math.sqrt(Math.max(0, 1 - Math.pow(1 - s / 0.3, 2)))
+    : Math.pow((1 - s) / 0.7, sharp);
+}
 
-function famBody(
-  S: FlameSettings,
-  cx: number,
-  bot: number,
-  W: number,
-  H: number,
-  lean: number,
-  neck: number,
-  wave: number,
-  ph: number,
-  aL: number,
-  aR: number,
-  hook: number,
-): Poly {
+function body(S: FlameSettings, p: Pose, cx: number, bot: number, sharp: number): Poly {
   const L: Poly = [];
   const R: Poly = [];
-  const n = 40;
+  const n = 36;
   for (let i = 0; i <= n; i++) {
     const s = i / n;
-    let f =
-      s < 0.42
-        ? Math.sqrt(Math.max(0, 1 - Math.pow(1 - s / 0.42, 2)))
-        : Math.pow((1 - s) / 0.58, S.sharp);
-    f *= 1 - neck * Math.exp(-Math.pow((s - 0.78) / 0.05, 2));
-    const x =
-      cx +
-      lean * s * s +
-      wave * Math.sin(Math.PI * 2 * s + ph) * s +
-      hook * Math.pow(Math.max(0, s - 0.55), 2) * 5;
-    const y = bot - H * s;
-    const wl = W * f * aL * (1 + S.bulge * Math.sin(Math.PI * 3.2 * s + ph));
-    const wr = W * f * aR * (1 + S.bulge * Math.sin(Math.PI * 3.2 * s + ph + 2.1));
-    L.push([x - wl, y]);
-    R.push([x + wr, y]);
+    const f = profile(s, sharp) * (1 - p.neck * Math.exp(-Math.pow((s - 0.74) / 0.075, 2)));
+    const x = spine(p, cx, s);
+    const y = bot - p.H * s;
+    const rip = S.ripple * Math.sin(TAU * (1.5 * s - p.t));
+    L.push([x - p.W * f * (1 + rip), y]);
+    R.push([x + p.W * f * (1 - rip), y]);
   }
   return L.concat(R.reverse());
 }
 
-function famTongue(
-  S: FlameSettings,
-  bx: number,
-  by: number,
-  w: number,
-  Ln: number,
-  bend: number,
-): Poly {
+/** A lick: a tapering tongue from (bx, by), `len` tall, leaning `out` and whipping `curl` more at
+ *  its end. Its foot sits inside the body, so the two read as one shape. */
+function lick(bx: number, by: number, w: number, len: number, out: number, curl: number): Poly {
   const l: Poly = [];
   const r: Poly = [];
-  for (let i = 0; i <= 14; i++) {
-    const s = i / 14;
-    const x = bx + bend * s * s;
-    const y = by - Ln * s;
-    const hw = w * Math.pow(1 - s, S.sharp * 0.67) * (1 + 0.3 * Math.sin(Math.PI * s));
+  for (let i = 0; i <= 12; i++) {
+    const s = i / 12;
+    const x = bx + out * s + curl * s * s;
+    const y = by - len * s;
+    const hw = w * Math.pow(1 - s, 0.9) * (0.75 + 0.6 * Math.sin(Math.PI * Math.min(1, s * 1.6)));
     l.push([x - hw, y]);
     r.push([x + hw, y]);
   }
   return l.concat(r.reverse());
 }
 
-function famKf(S: FlameSettings, i: number) {
-  const k = K[((i % K.length) + K.length) % K.length];
-  const I = S.intensity;
-  const m = S.motion * I;
-  return {
-    W: (mW + (k.W - mW) * m) * 1.03,
-    H: mH + (k.H - mH) * m,
-    lean: k.lean * Math.min(1, m * 2) * I,
-    neck: k.neck * 0.8 * Math.min(1, m * 2),
-    wave: k.wave * I,
-    aL: 1 + (k.aL - 1) * I,
-    aR: 1 + (k.aR - 1) * I,
-    hook: k.hook * I,
-    side: k.side,
-  };
-}
-
-type Layer = 'l1' | 'l2' | 'l3';
-const layerOf = (S: FlameSettings, pre: Layer) => ({
-  x: S[`${pre}x`],
-  y: S[`${pre}y`],
-  s: S[`${pre}s`],
-  p: S[`${pre}p`],
-  c: S[`${pre}c`],
-});
-
-function famFrame(S: FlameSettings, f: number, R: () => number, endless: boolean) {
-  const fr: Poly[][] = [];
-  let tip: Pt = [47, 60];
-  for (let li = 0; li < 3; li++) {
-    const Ly = FLAY[li];
-    const lay = layerOf(S, `l${li + 1}` as Layer);
-    const k = famKf(S, f - li * S.lag);
-    const jt = li ? S.rand * S.intensity : 0;
-    const sw = Ly.sw * lay.s * S.width;
-    const sh = Ly.sh * lay.s * S.height;
-    let W = k.W * sw * (1 + jt * (R() * 0.16 - 0.08));
-    let H = k.H * sh * (1 + jt * (R() * 0.14 - 0.07));
-    let lean = k.lean * sh + jt * (R() * 6 - 3);
-    let hook = k.hook * sh * (1 + jt * (R() - 0.5)) + jt * (R() * 6 - 3);
-    let ph = f * 1.7 + jt * R() * 6.28;
-    let aL = k.aL + jt * (R() * 0.16 - 0.08);
-    let aR = k.aR + jt * (R() * 0.16 - 0.08);
-    const cx = 47 + Ly.dx * S.width + lay.x + jt * (R() * 3 - 1.5);
-    const bot = Ly.bot - (142 - Ly.bot) * (S.height - 1) - lay.y;
-    if (endless) {
-      const v = S.evar * S.intensity;
-      W *= 1 + v * (R() * 0.12 - 0.06);
-      H *= 1 + v * (R() * 0.16 - 0.08);
-      lean += v * (R() * 6 - 3);
-      hook += v * (R() * 8 - 4);
-      ph += v * R() * 3;
-      aL += v * (R() * 0.1 - 0.05);
-      aR += v * (R() * 0.1 - 0.05);
-    }
-    const polys = [
-      famBody(S, cx, bot, W, H, lean, k.neck * (li ? 0.5 : 1), k.wave * sw, ph, aL, aR, hook),
-    ];
-    if (li === 0) tip = [cx + lean + hook * 0.4, bot - H * 0.86];
-    if (k.side && li < 2)
-      polys.push(
-        famTongue(S, cx + k.side[0] * sw, bot - H * 0.32, 6 * sw, k.side[1] * sh, k.side[2] * sw),
-      );
-    let pts = lay.p - 1;
-    if (R() * 100 < lay.c) pts += 1;
-    for (let t = 1; t <= pts; t++) {
-      const side = t % 2 ? 1 : -1;
-      const o = Math.ceil(t / 2);
-      const len = H * (0.62 - 0.1 * o) * (0.85 + R() * 0.3);
-      polys.push(
-        famTongue(
-          S,
-          cx + side * W * (0.38 + 0.12 * o),
-          bot - H * 0.3,
-          W * (0.34 - 0.05 * o),
-          len,
-          side * W * (0.25 + 0.1 * o) + (R() * 4 - 2),
-        ),
-      );
-    }
-    fr.push(polys);
+/** A teardrop about (cx, cy), radius r, tilted by `tilt`. */
+function drop(cx: number, cy: number, r: number, tilt: number, sx = 1, sy = 1): Poly {
+  const p: Poly = [];
+  for (let i = 0; i < 20; i++) {
+    const t = (TAU * i) / 20;
+    const x = r * sx * Math.sin(t) * Math.pow(Math.abs(Math.sin(t / 2)), 1.2);
+    const y = -r * sy * Math.cos(t) * 1.35;
+    p.push([
+      cx + x * Math.cos(tilt) - y * Math.sin(tilt),
+      cy + x * Math.sin(tilt) + y * Math.cos(tilt),
+    ]);
   }
-  return { layers: fr, tip };
+  return p;
 }
 
-function emberPoly(
-  S: FlameSettings,
-  x0: number,
-  y0: number,
-  a: number,
-  life: number,
-  d: number,
-  ox: number,
-  oy: number,
-  ER: () => number,
-): Poly {
-  const r = (4.2 - 2.6 * (life > 1 ? a / (life - 1) : 0)) * S.emberSize;
-  const sx = 1 + (ER() * 2 - 1) * S.eVarW;
-  const sy = 1 + (ER() * 2 - 1) * S.eVarH;
-  const tl = d * 0.25 + (ER() * 2 - 1) * S.eTilt;
-  return drop(x0 + d * a * S.eDrift + ox, y0 - S.eDist - a * S.eGap - oy, r, tl, sx, sy);
+type Raw = { layers: Poly[][]; tip: Pt; ends: Pt[] };
+
+/** Per-frame differences (endless only): all zero in the loop. */
+type Boil = { w: number; h: number; lean: number; amp: number; lick: number };
+const CALM: Boil = { w: 0, h: 0, lean: 0, amp: 0, lick: 0 };
+
+function drawFrame(S: FlameSettings, f: number, boil: (layer: number) => Boil): Raw {
+  const N = KEYS.length;
+  const layers: Poly[][] = [];
+  let tip: Pt = [CX, BASE - S.height];
+  const ends: Pt[] = [];
+  LAYERS.forEach((Ly, li) => {
+    const g = f - Ly.lag;
+    const k = KEYS[((g % N) + N) % N];
+    const b = boil(li);
+    const p: Pose = {
+      W: S.width * Ly.sw * (1 + (k.w - 1) * S.stretch) * (1 + b.w),
+      H: S.height * Ly.sh * (1 + (k.h - 1) * S.stretch) * (1 + b.h),
+      lean: k.lean * Ly.sh + b.lean,
+      neck: k.neck * (li ? 0.5 : 1) * Math.min(1, S.stretch),
+      amp: S.sway * Ly.sh * (1 + b.amp),
+      t: g / N,
+    };
+    const cx = CX + Ly.dx;
+    const bot = BASE - Ly.up;
+    const sharp = S.sharp * (1 - Ly.round);
+    const polys = [body(S, p, cx, bot, sharp)];
+    if (li === 0) tip = [spine(p, cx, 1), bot - p.H];
+    const count = Math.max(0, (S.licks | 0) - li);
+    for (let j = 0; li < 2 && j < count; j++) {
+      // Each lick climbs the flank through one loop: born small and low, longest half way up,
+      // swallowed by the body near the top.
+      const ph = (((g / N + j / count + 0.2 + li * 0.13) % 1) + 1) % 1;
+      const side = (j + li) % 2 ? 1 : -1;
+      const sb = 0.2 + 0.4 * ph;
+      const grow = Math.pow(Math.sin(Math.PI * ph), 0.7);
+      const len = p.H * (0.14 + S.lickLen * grow) * (1 + b.lick * (j % 2 ? 1 : -1));
+      const w = p.W * (0.16 + 0.2 * grow);
+      const bx = spine(p, cx, sb) + side * p.W * profile(sb, sharp) * 0.52;
+      const by = bot - p.H * sb;
+      // Out, then bowed back up: a horn, whipping a little as it climbs.
+      const out = side * p.W * (0.65 + 0.4 * ph);
+      const curl = side * p.W * (-0.5 + 0.3 * Math.sin(TAU * (ph * 1.4 + j * 0.31)));
+      polys.push(lick(bx, by, w, len, out, curl));
+      if (li === 0) ends.push([bx + out + curl, by - len]);
+    }
+    layers.push(polys);
+  });
+  return { layers, tip, ends };
 }
 
-/** The lab's frame position (fx / fy / fs: about the centre of its 94 x 146 frame), then the d. */
-function asFrame(S: FlameSettings, layers: Poly[][]): FlameFrame {
-  const place = (polys: Poly[]) =>
-    toD(
-      polys.map((p) =>
-        p.map(([x, y]): Pt => [47 + (x - 47) * S.fs + S.fx, 73 + (y - 73) * S.fs - S.fy]),
-      ),
-    );
-  return [place(layers[0]), place(layers[1]), place(layers[2])];
+type Piece = { x: number; y: number; a: number; life: number; dir: number; size: number };
+
+/** A piece that broke off, `a` frames on: it climbs, drifts and shrinks to a spark. The tip's
+ *  first frame is a curled sliver, still the shape it tore from. */
+function piecePolys(S: FlameSettings, pc: Piece, tilt: number): Poly[] {
+  const k = pc.life > 1 ? pc.a / (pc.life - 1) : 0;
+  const r = (5.2 - 3.4 * k) * pc.size * S.pieceSize;
+  const x = pc.x + pc.dir * pc.a * S.drift;
+  const y = pc.y - 4 - pc.a * S.rise;
+  if (pc.a === 0 && pc.size >= 1) return [drop(x, y - r, r * 1.15, -pc.dir * 0.35, 0.8, 1.7)];
+  const out = [drop(x, y, r, pc.dir * 0.3 + tilt, 1 - 0.2 * k, 1 + 0.25 * k)];
+  // The tip's piece sheds a spark of its own as it goes.
+  if (pc.size >= 1 && pc.a >= 2)
+    out.push(drop(x - pc.dir * r * 2.4, y + r * 3.2, r * 0.45, -pc.dir * 0.4));
+  return out;
 }
 
-/** The loop: FLAME_FRAMES frames from the settings' seed, embers placed across it. */
+/** The frame's place in the 94 x 146 box, then the d. */
+function asFrame(layers: Poly[][]): FlameFrame {
+  return [toD(layers[0]), toD(layers[1]), toD(layers[2])];
+}
+
+/** The loop: FLAME_FRAMES frames, the same every time, pieces placed across it. */
 export function loopFrames(S: FlameSettings): FlameFrame[] {
-  const R = rng(S.seed);
-  const FR = Array.from({ length: K.length }, (_, f) => famFrame(S, f, R, false));
-  const n = S.embers | 0;
-  const ER = rng(S.seed + 7);
-  const life = Math.max(1, S.eLife | 0);
-  for (let e = 0; e < n; e++) {
-    const bf = Math.round((e * K.length) / n + 3) % K.length;
-    const src = FR[(bf + K.length - 1) % K.length].tip;
-    const d = e % 2 ? -1 : 1;
-    const ox = (e > 1 ? d * 5 : 0) + (ER() * 2 - 1) * S.eScatX;
-    const oy = (e > 1 ? 4 : 0) + (ER() * 2 - 1) * S.eScatY;
-    for (let a = 0; a < life; a++)
-      FR[(bf + a) % K.length].layers[0].push(emberPoly(S, src[0], src[1], a, life, d, ox, oy, ER));
-  }
-  return FR.map((fr) => asFrame(S, fr.layers));
+  const N = KEYS.length;
+  const FR = Array.from({ length: N }, (_, f) => drawFrame(S, f, () => CALM));
+  BREAKS.slice(0, Math.max(0, S.pieces | 0)).forEach((br, e) => {
+    const src = FR[(br.at + N - 1) % N];
+    const [x, y] = br.from === 'tip' ? src.tip : (src.ends[e % src.ends.length] ?? src.tip);
+    const dir = e % 2 ? -1 : 1;
+    for (let a = 0; a < br.life && br.at + a < N; a++)
+      FR[br.at + a].layers[0].push(
+        ...piecePolys(S, { x, y, a, life: br.life, dir, size: br.size }, 0),
+      );
+  });
+  return FR.map((fr) => asFrame(fr.layers));
 }
 
-/** Endless: each call draws the next frame fresh from `seed` (the lab seeds it at random). */
+/** Endless: each call draws the next frame fresh from `seed`. The keys still drive it, but every
+ *  frame boils and every pass through them differs, so it never repeats. */
 export function endlessFrames(S: FlameSettings, seed: number): () => FlameFrame {
   const R = rng(seed);
+  const N = KEYS.length;
   let g = 0;
-  let lastTip: Pt | null = null;
-  let parts: {
-    x: number;
-    y: number;
-    a: number;
-    life: number;
-    d: number;
-    ox: number;
-    oy: number;
-  }[] = [];
+  let last: Raw | null = null;
+  let parts: Piece[] = [];
+  // One pass's own character: redrawn each time the keys start over.
+  let pass = { lean: 0, amp: 0, h: 0 };
   return () => {
-    const fr = famFrame(S, g, R, true);
-    g++;
-    const src = lastTip ?? fr.tip;
-    lastTip = fr.tip;
-    let rate = (S.embers | 0) / K.length;
-    while (rate > 0) {
-      if (R() < Math.min(1, rate)) {
-        const d = R() < 0.5 ? -1 : 1;
-        parts.push({
-          x: src[0],
-          y: src[1],
-          a: 0,
-          life: Math.max(1, S.eLife | 0),
-          d,
-          ox: (R() * 2 - 1) * S.eScatX + d * R() * 3,
-          oy: (R() * 2 - 1) * S.eScatY,
-        });
-      }
-      rate -= 1;
+    if (g % N === 0)
+      pass = { lean: (R() * 2 - 1) * 4, amp: (R() * 2 - 1) * 0.35, h: (R() * 2 - 1) * 0.05 };
+    const v = S.boil;
+    const fr = drawFrame(S, g, (li) => ({
+      w: v * (R() * 0.08 - 0.04),
+      h: pass.h * v + v * (R() * 0.08 - 0.04),
+      lean: (pass.lean + (R() * 2 - 1) * (li ? 3 : 2)) * v,
+      amp: (pass.amp + (R() * 0.4 - 0.2)) * v,
+      lick: v * (R() * 0.3 - 0.15),
+    }));
+    const src = last ?? fr;
+    const spawn = (x: number, y: number, size: number, life: number) =>
+      parts.push({ x, y, a: 0, life, dir: R() < 0.5 ? -1 : 1, size });
+    const wanted = Math.max(0, S.pieces | 0);
+    // The tip tears off on the frame after the pinch; lick ends go at random.
+    if (wanted && g % N === BREAKS[0].at) spawn(src.tip[0], src.tip[1], 1, 4);
+    else if (src.ends.length && R() < Math.max(0, wanted - 1) / N) {
+      const [x, y] = src.ends[(R() * src.ends.length) | 0];
+      spawn(x + (R() * 2 - 1) * 4, y, 0.4 + R() * 0.3, 2 + ((R() * 2) | 0));
     }
-    parts = parts.filter((p) => {
-      if (p.a >= p.life) return false;
-      fr.layers[0].push(emberPoly(S, p.x, p.y, p.a, p.life, p.d, p.ox, p.oy, R));
-      p.a++;
+    parts = parts.filter((pc) => {
+      if (pc.a >= pc.life) return false;
+      fr.layers[0].push(...piecePolys(S, pc, (R() * 2 - 1) * 0.4 * v));
+      pc.a++;
       return true;
     });
-    return asFrame(S, fr.layers);
+    last = fr;
+    g++;
+    return asFrame(fr.layers);
   };
 }
 
-/** The static mark: the loop's first frame with no embers. flame.svg holds it (`npm run icons`). */
-export function stillFrame(S: FlameSettings = FLAME_E): FlameFrame {
-  return loopFrames({ ...S, embers: 0 })[0];
+/** The static mark: the loop's first frame with no pieces. flame.svg holds it (`npm run icons`). */
+export function stillFrame(S: FlameSettings = FLAME): FlameFrame {
+  return loopFrames({ ...S, pieces: 0 })[0];
 }
 
 /** The still frame's outer layer box, padded a unit and rounded out: flame.svg's viewBox, so the
- *  mark sits in the line like the drawn one did (embers and stretches overflow it, visibly). */
-export function flameViewBox(S: FlameSettings = FLAME_E): [number, number, number, number] {
+ *  mark sits in the line (pieces and stretches overflow it, visibly). */
+export function flameViewBox(S: FlameSettings = FLAME): [number, number, number, number] {
   const n = (stillFrame(S)[0].match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
   const xs = n.filter((_, i) => i % 2 === 0);
   const ys = n.filter((_, i) => i % 2 === 1);
@@ -443,10 +342,10 @@ export function flameViewBox(S: FlameSettings = FLAME_E): [number, number, numbe
 /** flame.svg's text: the still frame, the core and middle clipped to the outer, filled with the
  *  given colours (HDS primitives: `npm run icons` reads them from variables.css). The classes let
  *  the app recolour each layer (base.css) and let flameMotion find the layers it animates. */
-export function flameSvgFile(fills: [string, string, string], S: FlameSettings = FLAME_E): string {
+export function flameSvgFile(fills: [string, string, string], S: FlameSettings = FLAME): string {
   const [d1, d2, d3] = stillFrame(S);
   return (
-    '<!-- The flame: the one source of the logo, the still frame of src/brand/flameEngine.ts (Version E).\n' +
+    '<!-- The flame: the one source of the logo, the still frame of src/brand/flameEngine.ts.\n' +
     '     Written by `npm run icons`; change the engine or its settings, run it, commit. -->\n' +
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${flameViewBox(S).join(' ')}">\n` +
     '  <defs><clipPath id="flame-clip"><use href="#flame-outer"/></clipPath></defs>\n' +
