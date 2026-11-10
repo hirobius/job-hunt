@@ -8,6 +8,7 @@
 //   - HDS's children sit gap-1 (4px) apart, so the actions crowd the sentence; centred empties put
 //     16px more above the actions (rev-3: about 16-20px).
 // Every app empty state imports this one, not HDS's, so the italic can't come back on a new screen.
+// hds-gap: hirobius/hds#1441 (G10: the italic EmptyState title)
 import type { ReactNode } from 'react';
 import {
   Box,
