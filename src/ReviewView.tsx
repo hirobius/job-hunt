@@ -18,7 +18,6 @@ import {
   Icon,
   Menu,
   Pagination,
-  SegmentedControl,
   Sidebar,
   Skeleton,
   Stack,
@@ -37,6 +36,8 @@ import {
   MapPin,
   MousePointerClick,
   SearchX,
+  Layers,
+  List,
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
@@ -80,6 +81,10 @@ export const REVIEW_PAGE = 25;
 const FILTERS: FeedFilter[] = ['new', 'remote'];
 const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
+const VIEW_TOGGLE: { value: Mode; label: string; icon: LucideIcon }[] = [
+  { value: 'browse', label: 'Browse', icon: List },
+  { value: 'deck', label: 'Deck', icon: Layers },
+];
 
 export default function ReviewView({
   label = 'New postings',
@@ -216,16 +221,28 @@ export default function ReviewView({
           </VisuallyHidden>
           {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). */}
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-            <SegmentedControl
-              aria-label="Review view"
-              size="sm"
-              value={mode}
-              onChange={(v) => setMode(v as Mode)}
-              options={[
-                { value: 'browse', label: 'Browse' },
-                { value: 'deck', label: 'Deck' },
-              ]}
-            />
+            {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
+                takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
+                with a tooltip; the pressed one is the secondary (filled) button. */}
+            <Stack direction="row" gap="hairline" role="group" aria-label="Review view">
+              {VIEW_TOGGLE.map(({ value, label: name, icon }) => (
+                <HdsTooltip key={value}>
+                  <HdsTooltip.Trigger asChild>
+                    <Button
+                      size="sm"
+                      variant={mode === value ? 'secondary' : 'tertiary'}
+                      iconOnly
+                      label={name}
+                      aria-label={name}
+                      aria-pressed={mode === value}
+                      onClick={() => setMode(value)}
+                      iconLeft={<Icon icon={icon} />}
+                    />
+                  </HdsTooltip.Trigger>
+                  <HdsTooltip.Content>{name}</HdsTooltip.Content>
+                </HdsTooltip>
+              ))}
+            </Stack>
             {view && view.rows.length > 0 && mode === 'browse' && (
               <Menu {...sortSheet}>
                 <Menu.Trigger asChild>

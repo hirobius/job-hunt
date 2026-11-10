@@ -166,7 +166,11 @@ test.describe('Tab from the open top tab goes on into the page (#364)', () => {
       await expect(page.getByRole('tabpanel')).toHaveCount(0);
       const panel = page.getByRole('main');
       await currentTab(page).focus();
-      await page.keyboard.press('Tab');
+      // From md the tabs sit in the app bar before Account (2026-11-09): Tab on past the header.
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('Tab');
+        if (!(await page.evaluate(() => !!document.activeElement?.closest('header')))) break;
+      }
       const landed = await panel.evaluate(
         (p) =>
           document.activeElement !== p &&
@@ -190,13 +194,16 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
       const cs = getComputedStyle(e);
       const shadow =
         cs.boxShadow !== 'none' && !/^(rgba\(0, 0, 0, 0\)[^,]*,?\s*)+$/.test(cs.boxShadow);
-      return cs.outlineStyle !== 'none' || shadow
+      // A pressed toggle (Browse / Deck, 2026-11-09) is the secondary button, whose edge is a
+      // box shadow at rest too: only a shadow that differs from the unfocused one is a ring.
+      const rest = e.getAttribute('aria-pressed') === 'true';
+      return cs.outlineStyle !== 'none' || (shadow && !rest)
         ? `${e.tagName} ${e.textContent?.trim()}`
         : 'none';
     });
   for (const [role, name] of [
-    ['radio', 'Deck'],
-    ['radio', 'Browse'],
+    ['button', 'Deck'],
+    ['button', 'Browse'],
     ['link', 'Apply'],
     ['link', 'Find'],
     ['button', 'Scan now'],

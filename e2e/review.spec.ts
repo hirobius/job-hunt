@@ -58,7 +58,7 @@ async function setUp(page: Page) {
   await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
-  await expect(page.getByRole('radio', { name: 'Browse' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
   const since = await page.evaluate(() => Date.now());
   await page.getByRole('button', { name: 'Scan now' }).click();
   await scanFinished(page, since);
@@ -149,7 +149,7 @@ for (const width of [390, 1440]) {
     await expect(list.getByRole('listitem')).toHaveCount(1);
 
     // The deck: one card at a time.
-    await page.getByRole('radio', { name: 'Deck' }).click();
+    await page.getByRole('button', { name: 'Deck' }).click();
     await expect(page.getByRole('article')).toHaveCount(1);
     await page.screenshot({ path: `test-results/review-deck-${width}.png`, fullPage: true });
     // Past the double-tap guard again.

@@ -59,6 +59,19 @@ describe('App top-level tab wiring', () => {
     expect(topTab('Find')).not.toHaveAttribute('aria-current');
   });
 
+  it('drawn as a segmented control but still a nav of links: a tap routes, Back returns (2026-11-09)', async () => {
+    window.location.hash = '#/find';
+    renderApp();
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+    expect(topTab('Find').className).toBe('rjb-seg');
+    topTab('Apply').click();
+    await vi.waitFor(() => expect(window.location.hash).toMatch(/^#\/apply/));
+    await vi.waitFor(() => expect(topTab('Apply')).toHaveAttribute('aria-current', 'page'));
+    window.history.back();
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await vi.waitFor(() => expect(topTab('Find')).toHaveAttribute('aria-current', 'page'));
+  });
+
   it('defaults to the Today tab when the hash carries no route (#383)', () => {
     renderApp();
     expect(currentTab()).toHaveAccessibleName('Find');

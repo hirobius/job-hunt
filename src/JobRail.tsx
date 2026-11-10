@@ -20,6 +20,7 @@ import { rowView } from './jobRow';
 import { JobBadges } from './JobRowParts';
 import { JobPostingLink } from './PostingLink';
 import { NavListActionItem } from './hds-gaps/NavListActionItem';
+import { RemoteOnlySwitch } from './ApplyFilterBar';
 import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
 import type { Job } from './types';
 import './JobRail.css';
@@ -105,6 +106,7 @@ export default function JobRail({ openId }: { openId: string }) {
         />
         <SampleBanner jobs={jobs} onCleared={focusNewHeading} />
         <PipelineMenus size="sm" />
+        <RemoteOnlySwitch />
         <PipelineLiveness jobs={jobs} />
         <Text variant="caption" as="p" tone="secondary" role="status">
           {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}

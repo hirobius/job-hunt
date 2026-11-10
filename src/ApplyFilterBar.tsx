@@ -4,7 +4,7 @@
 // kept for this page load (view memory).
 import { useRef } from 'react';
 import { ListFilter, Search } from 'lucide-react';
-import { Box, Button, Icon, Input, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Icon, Input, Stack, Text, Toggle } from '@hirobius/design-system';
 import AddJobButton from './AddJob';
 import PipelineMenus from './PipelineMenus';
 import { PipelineLiveness } from './LivenessViews';
@@ -37,6 +37,8 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
             Filters
           </Button>
           <AddJobButton size="md" />
+          {/* Outside Filters, so it shows while they are closed (Adrian 2026-11-09). Per device. */}
+          <RemoteOnlySwitch />
         </Stack>
         <Text variant="caption" as="p" tone="secondary" role="status">
           {summary}
@@ -75,5 +77,17 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
         <SampleBanner jobs={jobs} onCleared={() => focusNewHeading(pageHeadingNow())} />
       </Stack>
     </Box>
+  );
+}
+
+/** Apply's Remote only switch (Adrian 2026-11-09): the phone's filter bar and the lg job rail. */
+export function RemoteOnlySwitch() {
+  const { remoteOnly } = usePipelineView();
+  return (
+    <Toggle
+      label="Remote only"
+      checked={!!remoteOnly}
+      onChange={(on) => setPipelineView({ remoteOnly: on })}
+    />
   );
 }

@@ -52,7 +52,7 @@ for (const width of [390, 1440]) {
     await fakeSupabase(page, new Date(Date.now() - 4 * 60_000).toISOString());
     await signIn(page);
     await page.goto('/#/find');
-    await expect(page.getByRole('radio', { name: 'Browse' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(1500);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
     await expect(
