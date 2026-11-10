@@ -32,14 +32,16 @@ path data, a stale `public/favicon.svg`, or non-HDS fills.
 **Motion:** `flameMotion.ts` `animateFlame(svg, letters)` rewrites the three paths' `d` every 1/fps (the
 box never changes) and flickers each wordmark letter (skew ≤ 2.5°, fade ≤ 5%, transform/opacity only);
 the header/sign-in `Wordmark` and `Flame` reach it only through `startFlame.ts` (a lazy chunk, `entryChunk.test.ts`: the
-entry is under its 255 kB budget (249.2 kB on HDS 0.39); the still frame shows until it lands);
+entry is under its 255 kB budget (252.6 kB); the still frame shows until it lands);
 it animates continuously (Adrian 2026-10-30: never settles);
 still under prefers-reduced-motion (also when turned on mid-run), paused while the tab is hidden, off
 where matchMedia is missing (jsdom). The header/sign-in `Wordmark` and `BootHold` (`<Flame animate />`)
-animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine's 8-frame loop baked in
-by `brandHtml.ts` (one `.rjb-boot-f` group per frame, frames 1-7 `visibility="hidden"`), stepped by
-base.css (`rjb-boot-frame`, delays and loop length inline from FLAME.fps); reduced motion / no CSS
-shows frame 0. The splash still fades in after a short beat. The old rise-in reveal is gone.
+animate. **Boot splash: the live fire, no fixed loop (Adrian 2026-11-10).** `%BRAND_FLAME%` in index.html's `#root` is
+the still mark (`brandHtml.ts`); `src/brand/bootFlame.ts`, its own small chunk put in the head ahead of the entry by the
+`boot-flame` plugin in vite.config.ts (it shares the engine's chunk with the lazy logo, and is not part of the entry's
+budget), runs the simulation on those paths until React replaces the splash; reduced motion / no script shows the still
+mark. No flame anywhere repeats: `loopFrames`, the baked frames and the `rjb-boot-frame` CSS are gone
+(`flameEngine.test.ts` fails if a loop comes back). The splash still fades in after a short beat.
 **Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in

@@ -1,7 +1,6 @@
 // The flame, drawn in code as a small physical system (Adrian 2026-11-10; it replaced the Visuals
 // Lab's "Version E"). Pure and Node-safe (no DOM, no Vite imports): the app animates with it
-// (flameMotion.ts, RoleFlame.tsx), the boot splash bakes a loop of it into index.html
-// (brandHtml.ts), and `npm run icons` writes its still frame to flame.svg, the static mark every
+// (flameMotion.ts, RoleFlame.tsx, and bootFlame.ts on the boot splash), and `npm run icons` writes its still frame to flame.svg, the static mark every
 // icon derives from. Tune only through FLAME (the flame tuner page writes these numbers).
 //
 // LAYERS  Three colours (outer, middle, core). Each is its own heat field: its own body (an
@@ -540,19 +539,12 @@ export function endlessFrames(S: FlameSettings, seed: number): () => FlameFrame 
   };
 }
 
-/** Frames in the baked loop: the boot splash's CSS steps through this many. */
-export const FLAME_FRAMES = 8;
-/** The fire the still mark and the baked loop are taken from: one seed, so they never change by
- *  themselves. Picked by eye (`npm run icons` writes its first frame as the logo). */
+/** The fire the still mark is taken from: one seed, so the logo never changes by itself. Picked by
+ *  eye (`npm run icons` writes its first frame as flame.svg). There is no fixed loop anywhere: every
+ *  moving flame is the live simulation. */
 export const STILL_SEED = 21;
 
-/** The loop: FLAME_FRAMES frames in a row from the settings' seed, the same every time. */
-export function loopFrames(S: FlameSettings): FlameFrame[] {
-  const next = endlessFrames(S, STILL_SEED);
-  return Array.from({ length: FLAME_FRAMES }, () => next());
-}
-
-/** The static mark: the loop's first frame. flame.svg holds it (`npm run icons`). */
+/** The static mark: the first frame of the STILL_SEED fire. flame.svg holds it (`npm run icons`). */
 export function stillFrame(S: FlameSettings = FLAME): FlameFrame {
   return endlessFrames(S, STILL_SEED)();
 }

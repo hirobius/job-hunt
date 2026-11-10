@@ -62,6 +62,12 @@ test('the boot splash is the flame while the app loads, and React replaces it', 
   const splash = page.getByRole('status', { name: /^Loading / });
   await expect(splash.locator('.rjb-flame svg path').first()).toBeAttached();
   await expect(page.locator('#root')).not.toContainText('%BRAND');
+  // The splash burns before the app's entry lands: the live fire, a new frame each time.
+  const outer = splash.locator('.rjb-flame svg .flame-1');
+  const seen = new Set<string>();
+  await expect
+    .poll(async () => seen.add((await outer.getAttribute('d')) ?? '').size, { timeout: 5000 })
+    .toBeGreaterThan(3);
   release();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.locator('.rjb-boot')).toHaveCount(0);

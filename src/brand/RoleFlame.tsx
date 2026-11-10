@@ -1,6 +1,6 @@
 // The animated flame logo: the flame engine (flameEngine.ts, a small fire simulation on hard cuts) drawn live,
-// with the name's letters flickering on the same clock. mode="endless" draws every frame fresh (never repeats);
-// mode="loop" repeats the engine's 8 frames. Frames sit in a 94x146 box; pieces that break off rise above it
+// with the name's letters flickering on the same clock. It is always the live fire: every frame is drawn fresh and it never repeats.
+// Frames sit in a 94x146 box; pieces that break off rise above it
 // (overflow: visible).
 //
 // In the app (App bar, sign-in) it loads lazily (LazyRoleFlameLogo.tsx) behind the still wordmark, so it
@@ -13,7 +13,7 @@ import { MOTION_EVENT, REDUCE, motionPaused } from '../motionPref';
 import {
   FLAME,
   endlessFrames,
-  loopFrames,
+  stillFrame,
   type FlameFrame as Frame,
   type FlameSettings,
 } from './flameEngine';
@@ -67,40 +67,34 @@ function usePageVisible() {
   return visible;
 }
 
-export type FlameMode = 'endless' | 'loop';
-
 /** Current flame frame plus a tick counter, advancing at settings.fps. Pass a stable `settings` object. */
 // It burns on everywhere, the sign-in screen too (Adrian 2026-11-09: never stops; was a 5 s limit).
 // WCAG 2.2.2 (Pause, Stop, Hide) is met by Pause animations and reduced motion, and a hidden tab
 // pauses it.
-function useFlame(mode: FlameMode = 'endless', animated = true, settings: FlameSettings = FLAME) {
+function useFlame(animated = true, settings: FlameSettings = FLAME) {
   // Reduced motion, or Pause animations in the Account menu (motionPref.ts, WCAG 2.2.2).
   // Paused: the Account menu's choice when made (an explicit Play wins over the system), else the
   // system's reduced-motion setting (motionPref.ts).
   const reduced = useMotionPaused();
   const visible = usePageVisible();
   const on = animated && !reduced;
-  const loop = useMemo(() => loopFrames(settings), [settings]);
-  // One generator per mode/settings, kept across a pause so a hidden tab resumes where it was.
-  const next = useMemo(
-    () => (mode === 'endless' ? freshEndless(settings) : null),
-    [mode, settings],
-  );
+  const still = useMemo(() => stillFrame(settings), [settings]);
+  // One live fire per settings, kept across a pause so a hidden tab resumes where it was.
+  const next = useMemo(() => freshEndless(settings), [settings]);
   const ticks = useRef(0);
   const [state, setState] = useState<{ frame: Frame; tick: number }>(() => ({
-    frame: loop[0],
+    frame: still,
     tick: 0,
   }));
   useEffect(() => {
     if (!on || !visible) return;
     const id = window.setInterval(() => {
-      const i = ++ticks.current;
-      setState({ frame: next ? next() : loop[i % loop.length], tick: i });
+      setState({ frame: next(), tick: ++ticks.current });
     }, 1000 / settings.fps);
     return () => window.clearInterval(id);
-  }, [on, visible, next, loop, settings]);
-  // Stopped (reduced motion, Pause animations, or not animated): the first frame, held.
-  return on ? { ...state, running: true } : { frame: loop[0], tick: 0, running: false };
+  }, [on, visible, next, settings]);
+  // Stopped (reduced motion, Pause animations, or not animated): the still mark, held.
+  return on ? { ...state, running: true } : { frame: still, tick: 0, running: false };
 }
 
 type SvgProps = {
@@ -129,9 +123,6 @@ const letterStyle = (transform: string, opacity: number, ease: number): CSSPrope
   transition: ease ? `transform ${ease}ms ease-out, opacity ${ease}ms ease-out` : undefined,
 });
 
-// The flame's own centre line sits in the middle of its 94 x 146 box, wherever the settings put it.
-const VIEW_BOX = `${FLAME.cx - 47} 0 94 146`;
-
 function FlameSvg({
   frame,
   size = 32,
@@ -144,7 +135,7 @@ function FlameSvg({
   const [outer, middle, core] = frame;
   return (
     <svg
-      viewBox={VIEW_BOX}
+      viewBox="0 0 94 146"
       className={className}
       style={svgStyle(size, style)}
       role={title ? 'img' : undefined}
@@ -160,28 +151,21 @@ function FlameSvg({
 }
 
 type FlameProps = SvgProps & {
-  mode?: FlameMode;
   animated?: boolean;
   settings?: FlameSettings;
   /** Drive the flame from outside with a frame from useFlame (e.g. to sync with text). */
   frame?: Frame;
 };
 
-function SelfDrivenFlame({ mode, animated, settings, ...svg }: Omit<FlameProps, 'frame'>) {
-  const { frame } = useFlame(mode, animated, settings);
+function SelfDrivenFlame({ animated, settings, ...svg }: Omit<FlameProps, 'frame'>) {
+  const { frame } = useFlame(animated, settings);
   return <FlameSvg {...svg} frame={frame} />;
 }
 
 /** Just the flame. Height = flame body; pieces that break off rise above. */
-export function RoleFlameMark({
-  frame,
-  mode = 'endless',
-  animated = true,
-  settings = FLAME,
-  ...svg
-}: FlameProps) {
+export function RoleFlameMark({ frame, animated = true, settings = FLAME, ...svg }: FlameProps) {
   if (frame) return <FlameSvg {...svg} frame={frame} />;
-  return <SelfDrivenFlame {...svg} mode={mode} animated={animated} settings={settings} />;
+  return <SelfDrivenFlame {...svg} animated={animated} settings={settings} />;
 }
 
 // Small deterministic hash so each letter's flicker is stable within a tick.
@@ -213,7 +197,6 @@ export type TextSettings = typeof TEXT_SETTINGS;
 type LogoProps = {
   /** Wordmark font size in px. */
   fontSize?: number;
-  mode?: FlameMode;
   animated?: boolean;
   colors?: FlameColors;
   settings?: FlameSettings;
@@ -227,7 +210,6 @@ type LogoProps = {
 /** Flame + the name, with per-letter flicker, all on one clock. */
 export function RoleFlameLogo({
   fontSize = 20,
-  mode = 'endless',
   animated = true,
   colors = BLUE,
   settings = FLAME,
@@ -237,7 +219,7 @@ export function RoleFlameLogo({
   style,
 }: LogoProps) {
   const T = { ...TEXT_SETTINGS, ...text };
-  const { frame, tick, running } = useFlame(mode, animated, settings);
+  const { frame, tick, running } = useFlame(animated, settings);
   const [salt] = useState(() => (Math.random() * 1e6) | 0);
   const step = Math.floor(tick / Math.max(1, T.every));
   return (

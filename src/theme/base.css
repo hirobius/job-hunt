@@ -767,23 +767,8 @@ p {
 }
 
 /* The boot splash (index.html's #root, replaced the moment React mounts, so a ready app is never
-   held): the flame engine's loop (Version E), one group per frame, each shown for its one slot of
-   the loop (its delay and the loop's length are set from the engine's fps by brandHtml.ts). The
-   splash itself fades in after a short beat, so a fast boot shows nothing. */
-.rjb-boot-f {
-  animation: rjb-boot-frame var(--rjb-flame-loop) step-end infinite;
-}
-@keyframes rjb-boot-frame {
-  0% {
-    visibility: visible;
-  }
-  12.5% {
-    visibility: hidden;
-  }
-  100% {
-    visibility: hidden;
-  }
-}
+   held): the flame's still mark, set burning by brand/bootFlame.ts (the live fire, no fixed loop).
+   The splash itself fades in after a short beat, so a fast boot shows nothing. */
 .rjb-boot {
   position: fixed;
   inset: 0;
@@ -810,10 +795,6 @@ p {
   --rjb-logo-size: var(--primitive-space-10);
 }
 @media (prefers-reduced-motion: reduce) {
-  /* The splash's first frame (the others are hidden by attribute): the still mark. */
-  .rjb-boot-f {
-    animation: none;
-  }
   /* No fade, but the same beat: a fast boot still shows nothing. */
   .rjb-boot {
     animation-timing-function: step-end;

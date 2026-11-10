@@ -5,15 +5,7 @@
 // is the engine's still frame, so the logo and its motion never drift apart.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import {
-  FLAME,
-  FLAME_FRAMES,
-  createFire,
-  endlessFrames,
-  flameViewBox,
-  loopFrames,
-  stillFrame,
-} from './flameEngine';
+import { FLAME, createFire, endlessFrames, flameViewBox, stillFrame } from './flameEngine';
 
 const numbers = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
 const PATH = /^(M[-\d.,LQ ]+Z)+$/;
@@ -34,9 +26,12 @@ describe('the flame settings', () => {
 });
 
 describe('the engine', () => {
-  it('draws a loop of FLAME_FRAMES frames, closed paths per layer, the same every time', () => {
-    const a = loopFrames(FLAME);
-    expect(a).toHaveLength(FLAME_FRAMES);
+  it('draws closed paths per layer, and the same fire from the same seed', () => {
+    const run = (seed: number) => {
+      const next = endlessFrames(FLAME, seed);
+      return Array.from({ length: 8 }, () => next());
+    };
+    const a = run(5);
     for (const f of a) {
       expect(f).toHaveLength(3);
       f.forEach((d, k) => {
@@ -44,12 +39,20 @@ describe('the engine', () => {
         else expect(d).toBe('');
       });
     }
-    expect(loopFrames(FLAME)).toEqual(a);
-    expect(new Set(a.map((f) => f[0])).size).toBe(FLAME_FRAMES);
+    expect(run(5)).toEqual(a);
+    expect(run(6)).not.toEqual(a);
   });
 
-  it('the still frame is the loop’s first frame', () => {
-    expect(loopFrames(FLAME)[0]).toEqual(stillFrame());
+  it('the still frame is one fixed frame (the logo never changes by itself)', () => {
+    expect(stillFrame()).toEqual(stillFrame());
+    expect(stillFrame()[0]).toMatch(PATH);
+  });
+
+  it('there is no fixed loop: the engine has no loop to bake or repeat', () => {
+    const src = readFileSync('src/brand/flameEngine.ts', 'utf8');
+    expect(src).not.toMatch(/export (function|const) (loopFrames|FLAME_FRAMES)/);
+    for (const f of ['src/brandHtml.ts', 'src/brand/RoleFlame.tsx', 'src/theme/base.css'])
+      expect(readFileSync(f, 'utf8')).not.toMatch(/loopFrames|rjb-boot-frame|rjb-flame-loop/);
   });
 
   it('a layer that is off draws nothing, and turning it on draws it', () => {
