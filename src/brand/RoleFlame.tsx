@@ -13,6 +13,7 @@ import { MOTION_EVENT, REDUCE, motionPaused } from '../motionPref';
 import {
   FLAME,
   endlessFrames,
+  logoViewBox,
   stillFrame,
   type FlameFrame as Frame,
   type FlameSettings,
@@ -135,7 +136,7 @@ function FlameSvg({
   const [outer, middle, core] = frame;
   return (
     <svg
-      viewBox="0 0 94 146"
+      viewBox={logoViewBox(FLAME)}
       className={className}
       style={svgStyle(size, style)}
       role={title ? 'img' : undefined}

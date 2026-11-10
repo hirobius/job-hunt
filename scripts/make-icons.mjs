@@ -13,7 +13,7 @@ import { chromium } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
 import { hdsColor } from '../src/hdsColor.ts';
-import { flameSvgFile, stillFrame } from '../src/brand/flameEngine.ts';
+import { flameSvgFile, logoViewBox, stillFrame } from '../src/brand/flameEngine.ts';
 
 // First the source: src/brand/flame.svg is the flame engine's still frame, in the HDS
 // primitives base.css recolours per theme. Everything below reads it.
@@ -120,7 +120,7 @@ try {
   const fills = [hdsColor('blue-500'), hdsColor('cobalt-400'), hdsColor('cobalt-200')];
   const shareLockup =
     `<div style="display:inline-flex;align-items:center;gap:0.3em;font-family:Display,sans-serif;font-size:72px;font-weight:800;line-height:1;color:#fff">` +
-    `<svg viewBox="0 0 94 146" style="height:1.95em;width:auto;overflow:visible">` +
+    `<svg viewBox="${logoViewBox()}" style="height:1.95em;width:auto;overflow:visible">` +
     stillFrame()
       .map((d, i) => (d ? `<path fill="${fills[i]}" fill-rule="evenodd" d="${d}"/>` : ''))
       .join('') +

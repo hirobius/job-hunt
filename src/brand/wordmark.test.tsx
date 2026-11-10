@@ -79,9 +79,11 @@ describe('Wordmark', () => {
   it('npm run icons draws the share image with the app logo’s own lockup (Adrian 2026-11-10)', () => {
     const script = readFileSync('scripts/make-icons.mjs', 'utf8');
     // RoleFlame.tsx's proportions: the flame in its 94 x 146 box at 1.95em, 0.3em before the name.
-    expect(script).toMatch(/viewBox="0 0 94 146" style="height:1\.95em/);
+    expect(script).toMatch(/viewBox="\$\{logoViewBox\(\)\}" style="height:1\.95em/);
     expect(script).toMatch(/gap:0\.3em/);
-    expect(readFileSync('src/brand/RoleFlame.tsx', 'utf8')).toMatch(/viewBox="0 0 94 146"/);
+    expect(readFileSync('src/brand/RoleFlame.tsx', 'utf8')).toMatch(
+      /viewBox=\{logoViewBox\(FLAME\)\}/,
+    );
   });
 
   it('sizes the flame from the font (cap height) and never changes line-height or tracking', () => {
