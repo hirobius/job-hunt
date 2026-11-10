@@ -107,11 +107,11 @@ export function stringLiterals(code) {
 const COLOUR_RE =
   /(?<![\w&/-])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])|\b(?:rgba?|hsla?)\(/g;
 const PX_PROPS =
-  /^(?:margin|padding|gap|row-gap|column-gap|inset|top|right|bottom|left|font|font-size|line-height|letter-spacing|border(?:-[a-z]+)*-radius|border-radius|scroll-padding|scroll-margin)(?:-[a-z]+)*$/;
+  /^(?:margin|padding|gap|row-gap|column-gap|inset|top|right|bottom|left|font|font-size|line-height|letter-spacing|border(?:-[a-z]+)*-radius|border-radius|scroll-padding|scroll-margin|width|height|min-width|max-width|min-height|max-height|block-size|inline-size|min-block-size|min-inline-size|max-block-size|max-inline-size|flex-basis)(?:-[a-z]+)*$/;
 const TW_PX =
-  /(?:^|[\s:])(-?(?:p[xytrblse]?|m[xytrblse]?|gap(?:-[xy])?|space-[xy]|rounded(?:-[a-z]{1,2})?|text|leading|tracking|inset(?:-[xy])?|top|left|right|bottom)-\[(-?[\d.]+px)\])/g;
+  /(?:^|[\s:])(-?(?:p[xytrblse]?|m[xytrblse]?|gap(?:-[xy])?|space-[xy]|rounded(?:-[a-z]{1,2})?|text|leading|tracking|inset(?:-[xy])?|top|left|right|bottom|[wh]|min-[wh]|max-[wh]|size|basis)-\[(-?[\d.]+px)\])/g;
 const STYLE_PX =
-  /\b(padding\w*|margin\w*|gap|rowGap|columnGap|borderRadius|border\w*Radius|fontSize|lineHeight|letterSpacing)\s*:\s*(['"`]?)([^,}\n]*?\b\d[\d.]*px\b[^,}\n]*?)\2\s*[,}\n]/g;
+  /\b(padding\w*|margin\w*|gap|rowGap|columnGap|borderRadius|border\w*Radius|fontSize|lineHeight|letterSpacing|width|height|minWidth|maxWidth|minHeight|maxHeight|flexBasis|top|left|right|bottom|inset)\s*:\s*(['"`]?)([^,}\n]*?\b\d[\d.]*px\b[^,}\n]*?)\2\s*[,}\n]/g;
 
 function badPx(value) {
   // A fallback inside an HDS token (`var(--primitive-radius-full, 999px)`) is the token, not a literal.
@@ -122,6 +122,19 @@ function badPx(value) {
   return (value.match(/-?\b\d*\.?\d+px\b/g) ?? []).filter((v) => !/^-?(0|1)(\.0+)?px$/.test(v));
 }
 
+// CSS named colours a UI could reach for (transparent, currentColor and inherit are fine).
+const NAMED =
+  'black|white|red|green|blue|yellow|orange|purple|pink|gray|grey|silver|maroon|navy|teal|olive|lime|aqua|cyan|magenta|fuchsia|gold|brown|beige|ivory|indigo|violet|crimson|coral|salmon|tomato|khaki|plum|orchid|tan|wheat|azure|lavender|turquoise|chocolate|firebrick|darkgr[ae]y|lightgr[ae]y|dimgr[ae]y|slategr[ae]y|whitesmoke|ghostwhite|snow|mintcream|darkblue|darkred|darkgreen|lightblue|skyblue|steelblue|royalblue|hotpink|deeppink';
+const COLOUR_PROPS =
+  /^(?:color|background|background-color|border(?:-[a-z]+)*-color|border(?:-[a-z]+)?|outline|outline-color|fill|stroke|box-shadow|text-shadow|caret-color|accent-color|text-decoration-color|column-rule-color)$/;
+const NAMED_RE = new RegExp(`(?<![\\w-])(?:${NAMED})(?![\\w-])`, 'gi');
+const STYLE_COLOUR = new RegExp(
+  `\\b(color|background(?:Color)?|border\\w*Color|fill|stroke|outlineColor|caretColor|accentColor)\\s*:\\s*['"\`](${NAMED})['"\`]`,
+  'gi',
+);
+// px built by concatenation: `n + 'px'`, `${n}px` (a number is never a token).
+const CONCAT_PX = /\+\s*(['"`])px\1|\$\{[^}]*\}px\b/g;
+
 /** Colour and px violations in one file. Returns [{rule, line, match}]. */
 export function scanFile(rel, src) {
   const css = rel.endsWith('.css');
@@ -131,11 +144,16 @@ export function scanFile(rel, src) {
   if (css) {
     code.split('\n').forEach((text, idx) => {
       for (const m of text.matchAll(COLOUR_RE)) push('colour', idx + 1, m[0]);
+      if (/^\s*@(?:media|container|custom-media)\b/.test(text)) return; // breakpoints are allowed
+      for (const decl of text.matchAll(/(?:^|[;{\s])([a-z][a-z-]*)\s*:\s*([^;{}]+)/g))
+        if (COLOUR_PROPS.test(decl[1]))
+          for (const m of decl[2].replace(/var\([^)]*\)/g, '').matchAll(NAMED_RE))
+            push('colour', idx + 1, `${decl[1]}: ${m[0]}`);
       for (const decl of text.matchAll(/(?:^|[;{\s])(-?-?[a-z][a-z-]*)\s*:\s*([^;{}]+)/g)) {
         const prop = decl[1];
         if (
           prop.startsWith('--')
-            ? !/(space|gap|pad|radius|font|size|text|inset)/.test(prop)
+            ? !/(space|gap|pad|radius|font|size|text|inset|width|height)/.test(prop)
             : !PX_PROPS.test(prop)
         )
           continue;
@@ -150,7 +168,15 @@ export function scanFile(rel, src) {
         for (const m of text.matchAll(TW_PX)) if (badPx(m[2]).length) push('px', s.line + k, m[1]);
       });
     }
+    for (const m of code.matchAll(STYLE_COLOUR))
+      push('colour', code.slice(0, m.index).split('\n').length, `${m[1]}: ${m[2]}`);
+    code.split('\n').forEach((text, idx) => {
+      if (/matchMedia|@media|\((?:min|max)-(?:width|height)|translate|transform/.test(text)) return; // breakpoints, motion
+      for (const m of text.matchAll(CONCAT_PX))
+        if (m[0]) push('px', idx + 1, `concatenated px: ${text.trim().slice(0, 60)}`);
+    });
     for (const m of code.matchAll(STYLE_PX)) {
+      if (/\((?:min|max)-$/.test(code.slice(Math.max(0, m.index - 5), m.index))) continue; // a media query
       for (const v of badPx(m[3]))
         push('px', code.slice(0, m.index).split('\n').length, `${m[1]}: ${v}`);
     }
@@ -222,11 +248,34 @@ export const ROLE_ALIASES = {
 export function localComponents(src) {
   const code = stripComments(src);
   const names = new Set();
+  const P = '([A-Z][A-Za-z0-9]*)(?![\\w$])';
+  // A lazy wrapper (lazy(), lazyView(() => import(...))) re-exports a local component.
+  const lazyOf = new Set(
+    [...code.matchAll(new RegExp(`const\\s+${P}\\s*=\\s*(?:React\\.)?lazy\\w*\\(`, 'g'))].map(
+      (m) => m[1],
+    ),
+  );
   for (const m of code.matchAll(
-    /export\s+(?:default\s+)?(?:function|const|class)\s+([A-Z][A-Za-z0-9]*)/g,
+    new RegExp(`export\\s+(?:default\\s+)?(?:function|const|let|class)\\s+${P}`, 'g'),
   ))
     names.add(m[1]);
-  return [...names];
+  // Declared first, exported after: `function Button() {}` then `export default Button` / `export { Button }`.
+  const declared = new Set(
+    [...code.matchAll(new RegExp(`(?:^|[\\s;])(?:function|const|let|class)\\s+${P}`, 'g'))].map(
+      (m) => m[1],
+    ),
+  );
+  for (const m of code.matchAll(new RegExp(`export\\s+default\\s+${P}`, 'g')))
+    if (declared.has(m[1])) names.add(m[1]);
+  for (const m of code.matchAll(/export\s*\{([^}]*)\}(?!\s*from)/g))
+    for (const part of m[1].split(',')) {
+      const local = part
+        .trim()
+        .split(/\s+as\s+/)[0]
+        .trim();
+      if (declared.has(local)) names.add(local);
+    }
+  return [...names].filter((n) => !lazyOf.has(n));
 }
 
 /** Names imported from HDS in a file (a local Sheet that wraps HDS Sheet composes, not copies). */
@@ -358,10 +407,13 @@ export function collect(root) {
     }
     if (isGap && !tags.length)
       all.push({ rule: 'gap', file: rel, line: 0, match: 'stand-in has no hds-gap tag' });
-    if (rel.endsWith('.tsx')) {
+    if (/\.tsx?$/.test(rel)) {
       for (const name of localComponents(src)) {
         const dup = duplicateOf(name, hds, hdsImports(src));
-        if (dup && !tags.length)
+        // A tag excuses a role overlap (a Dialog set as a sheet), never a copy that takes an
+        // HDS export's own name: that one shadows HDS for every caller.
+        const byName = hds.includes(name) || hds.includes(name.replace(GENERIC_PREFIX, ''));
+        if (dup && (byName || !tags.length))
           all.push({ rule: 'dup', file: rel, line: 0, match: `${name} duplicates HDS ${dup}` });
       }
     }

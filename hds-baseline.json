@@ -3,6 +3,14 @@
   "entries": [
     {
       "rule": "dup",
+      "file": "src/hds-gaps/EmptyState.tsx",
+      "match": "EmptyState duplicates HDS EmptyState",
+      "count": 1,
+      "issue": "job-hunt#553",
+      "why": "the P6 empty states adopt HDS EmptyState (G10, hds#1441)"
+    },
+    {
+      "rule": "dup",
       "file": "src/PipelinePanel.tsx",
       "match": "ItemList duplicates HDS List",
       "count": 1,
@@ -67,6 +75,54 @@
     },
     {
       "rule": "px",
+      "file": "src/account/sheet.css",
+      "match": "max-width: 440px",
+      "count": 1,
+      "issue": "job-hunt#549",
+      "why": "the account sheet width moves to an HDS Sheet size"
+    },
+    {
+      "rule": "px",
+      "file": "src/brand/Flame.tsx",
+      "match": "concatenated px: ref={(el) => el?.style.setProperty('--rjb-logo-size', `${fon",
+      "count": 1,
+      "issue": "job-hunt#556",
+      "why": "flame size set at run time; the flame rework owns it"
+    },
+    {
+      "rule": "px",
+      "file": "src/brand/RoleFlame.tsx",
+      "match": "concatenated px: ['--rjb-rf-size' as string]: `${px}px`,",
+      "count": 1,
+      "issue": "job-hunt#556",
+      "why": "flame size set at run time; the flame rework owns it"
+    },
+    {
+      "rule": "px",
+      "file": "src/hds-gaps/PageShell.css",
+      "match": "--rjb-shell-width: 1048px",
+      "count": 1,
+      "issue": "job-hunt#548",
+      "why": "the P4 shell rebuild; needs a Container shell width in HDS"
+    },
+    {
+      "rule": "px",
+      "file": "src/hds-gaps/useVisualViewportVars.ts",
+      "match": "concatenated px: el.style.setProperty('--rjb-vv-height', `${Math.round(vv.hei",
+      "count": 1,
+      "issue": "job-hunt#535",
+      "why": "the keyboard-aware action dock (G1, hds#1432)"
+    },
+    {
+      "rule": "px",
+      "file": "src/hds-gaps/useVisualViewportVars.ts",
+      "match": "concatenated px: el.style.setProperty('--rjb-vv-top', `${Math.round(vv.offset",
+      "count": 1,
+      "issue": "job-hunt#535",
+      "why": "the keyboard-aware action dock (G1, hds#1432)"
+    },
+    {
+      "rule": "px",
       "file": "src/theme/base.css",
       "match": "border-radius: 4px",
       "count": 1,
@@ -80,6 +136,30 @@
       "count": 1,
       "issue": "job-hunt#564",
       "why": "focus ring radius; no single round owns it"
+    },
+    {
+      "rule": "px",
+      "file": "src/theme/base.css",
+      "match": "height: 19px",
+      "count": 1,
+      "issue": "job-hunt#556",
+      "why": "flame logo size; the flame rework owns it"
+    },
+    {
+      "rule": "px",
+      "file": "src/theme/base.css",
+      "match": "max-width: 480px",
+      "count": 1,
+      "issue": "job-hunt#551",
+      "why": "Add job becomes an HDS sheet"
+    },
+    {
+      "rule": "px",
+      "file": "src/theme/base.css",
+      "match": "min-height: 30px",
+      "count": 1,
+      "issue": "job-hunt#548",
+      "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"
     },
     {
       "rule": "px",

@@ -20,6 +20,7 @@ function fixture(files: Files = {}, baseline: unknown[] = []) {
     'node_modules/@hirobius/design-system/package.json': JSON.stringify({ version: '0.40.0' }),
     'node_modules/@hirobius/design-system/src/app/data/component-api.json': JSON.stringify({
       components: {
+        Button: {},
         Badge: {},
         EmptyState: {},
         List: {},
@@ -88,7 +89,7 @@ describe('check:hds', () => {
       'gap: 6px',
     ])
       expect(r.stderr).toContain(m);
-    expect(r.stderr).not.toMatch(/\b(0|1|300|999|16)px/);
+    expect(r.stderr).not.toMatch(/\b(0|1|999|16)px/);
   });
 
   it('flags a local copy of an HDS component, but not one that builds on it', () => {
@@ -107,8 +108,8 @@ describe('check:hds', () => {
   });
 
   it('needs an hds-gap tag on each stand-in, naming a known gap issue', () => {
-    const tagged = '// hds-gap: hirobius/hds#1441\nexport function EmptyState() { return null; }\n';
-    expect(run(fixture({ 'src/hds-gaps/EmptyState.tsx': tagged })).status).toBe(0);
+    const tagged = '// hds-gap: hirobius/hds#1441\nexport function QuietEmpty() { return null; }\n';
+    expect(run(fixture({ 'src/hds-gaps/QuietEmpty.tsx': tagged })).status).toBe(0);
     const r = run(
       fixture({
         'src/hds-gaps/Bare.ts': 'export const x = 1;\n',
@@ -150,6 +151,72 @@ describe('check:hds', () => {
       ]),
     );
     expect(more.status).toBe(1);
+  });
+
+  it('catches a component declared first and exported after (default and named)', () => {
+    const r = run(
+      fixture({
+        'src/A.tsx': 'function Button() { return null; }\nexport default Button;\n',
+        'src/B.tsx': 'const Badge = () => null;\nexport { Badge as JobTag };\n',
+      }),
+    );
+    expect(r.stderr).toContain('src/A.tsx  Button duplicates HDS Button');
+    expect(r.stderr).toContain('src/B.tsx  Badge duplicates HDS Badge');
+  });
+
+  it('does not let an hds-gap tag excuse a copy that takes an HDS name', () => {
+    const tag = '// hds-gap: hirobius/hds#1441\n';
+    const r = run(
+      fixture({
+        'src/hds-gaps/EmptyState.tsx': `${tag}export function EmptyState() { return null; }\n`,
+        'src/hds-gaps/JobSheet.tsx': `${tag}export function JobSheet() { return null; }\n`,
+      }),
+    );
+    expect(r.stderr).toContain('EmptyState duplicates HDS EmptyState');
+    expect(r.stderr).not.toContain('JobSheet');
+  });
+
+  it('scans .ts files for duplicates too, but not lazy re-exports', () => {
+    const r = run(
+      fixture({
+        'src/a.ts': 'export const Button = (p: unknown) => p;\n',
+        'src/lazy.ts': "export const StatusDialog = lazyView(() => import('./x'));\n",
+      }),
+    );
+    expect(r.stderr).toContain('src/a.ts  Button duplicates HDS Button');
+    expect(r.stderr).not.toContain('StatusDialog');
+  });
+
+  it('catches concatenated px, named colours and px sizes; allows hairlines and breakpoints', () => {
+    const r = run(
+      fixture({
+        'src/a.ts': [
+          "export const a = n + 'px';",
+          'export const b = `${n}px`;',
+          "export const q = window.matchMedia('(max-width: 640px)');",
+          "export const s = { color: 'red', width: '320px', height: '1px' };",
+        ].join('\n'),
+        'src/b.css': [
+          '.a { color: white; background: transparent; border: 1px solid black; }',
+          '.b { width: 240px; max-height: 50px; height: 1px; }',
+          '@media (min-width: 640px) { .c { color: currentColor; } }',
+        ].join('\n'),
+        'src/c.tsx': 'export const C = () => <div className="w-[12px] h-px" />;\n',
+      }),
+    );
+    for (const m of [
+      'src/a.ts:1  concatenated px',
+      'src/a.ts:2  concatenated px',
+      'color: red',
+      'width: 320px',
+      'color: white',
+      'border: black',
+      'width: 240px',
+      'max-height: 50px',
+      'w-[12px]',
+    ])
+      expect(r.stderr).toContain(m);
+    expect(r.stderr).not.toMatch(/640px|\b1px|transparent|currentColor|a\.ts:3/);
   });
 
   it('passes on the repo itself, fast', () => {
