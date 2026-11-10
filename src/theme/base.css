@@ -757,10 +757,18 @@ p {
 .rjb-flame .flame-3 {
   fill: var(--rjb-flame-3);
 }
+/* The logo's name is Sora 800 (Adrian 2026-11-10: heavier than HDS's display Sora 700). HDS ships
+   only 700, so the logo carries its one face (src/brand/fonts, SIL OFL); nothing else uses it. */
+@font-face {
+  font-family: 'Roleflame Sora';
+  src: url('../brand/fonts/sora-800.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
 .rjb-logo-word {
   margin: 0;
-  font-family: var(--hds-font-family-display);
-  font-weight: 700;
+  font-family: 'Roleflame Sora', var(--hds-font-family-display);
+  font-weight: 800;
   font-size: var(--rjb-logo-size);
   line-height: 1;
   color: var(--semantic-color-content-primary);
@@ -845,9 +853,9 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  font-family: var(--semantic-typography-display-font-family);
+  font-family: 'Roleflame Sora', var(--semantic-typography-display-font-family);
   font-size: var(--rjb-rf-size, 19px);
-  font-weight: var(--semantic-typography-display-font-weight);
+  font-weight: 800;
   line-height: 1;
 }
 :root[data-theme='dark'] .rjb-rf {

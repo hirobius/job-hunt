@@ -49,16 +49,16 @@ const font = `data:font/woff2;base64,${readFileSync(
 const GRAPHITE = hdsColor('graphite-900');
 const FACE = '#d4d0d2';
 
-// The wordmark's face (HDS display, Sora 700) and its own CSS (src/brand/wordmark.css), so the
+// The wordmark's face (the logo's Sora 800, src/brand/fonts) and its own CSS (src/brand/wordmark.css), so the
 // share image draws the app's wordmark from the same markup (wordmarkMarkup).
 const display = `data:font/woff2;base64,${readFileSync(
-  'node_modules/@hirobius/design-system/dist/fonts/sora-700.woff2',
+  'src/brand/fonts/sora-800.woff2',
 ).toString('base64')}`;
 const wordmarkCss = readFileSync('src/brand/wordmark.css', 'utf8');
 
 const page = (body, w, h) => `<!doctype html><html><head><style>
   @font-face { font-family: Brand; src: url(${font}) format('woff2'); font-weight: 200 800; }
-  @font-face { font-family: Display; src: url(${display}) format('woff2'); font-weight: 700; }
+  @font-face { font-family: Display; src: url(${display}) format('woff2'); font-weight: 800; }
   ${wordmarkCss}
   html, body { margin: 0; width: ${w}px; height: ${h}px; overflow: hidden; }
   body { background: ${GRAPHITE}; font-family: Brand, sans-serif; }
@@ -122,7 +122,7 @@ try {
   await p.setContent(
     page(
       `<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 96px;box-sizing:border-box;color:${FACE}">
-        <div class="rjb-logo-word" style="font-family:Display,sans-serif;font-size:128px;font-weight:700;line-height:1;color:#fff">${wordmarkMarkup(flame)}</div>
+        <div class="rjb-logo-word" style="font-family:Display,sans-serif;font-size:128px;font-weight:800;line-height:1;color:#fff">${wordmarkMarkup(flame)}</div>
         <div style="font-size:36px;line-height:1.35;margin-top:40px;max-width:960px">${BRAND.description}</div>
       </div>`,
       1200,
