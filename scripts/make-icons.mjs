@@ -13,8 +13,7 @@ import { chromium } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
 import { hdsColor } from '../src/hdsColor.ts';
-import { wordmarkMarkup } from '../src/brand/wordmarkMarkup.ts';
-import { flameSvgFile } from '../src/brand/flameEngine.ts';
+import { flameSvgFile, stillFrame } from '../src/brand/flameEngine.ts';
 
 // First the source: src/brand/flame.svg is the flame engine's still frame, in the HDS
 // primitives base.css recolours per theme. Everything below reads it.
@@ -49,17 +48,14 @@ const font = `data:font/woff2;base64,${readFileSync(
 const GRAPHITE = hdsColor('graphite-900');
 const FACE = '#d4d0d2';
 
-// The wordmark's face (the logo's Sora 800, src/brand/fonts) and its own CSS (src/brand/wordmark.css), so the
-// share image draws the app's wordmark from the same markup (wordmarkMarkup).
-const display = `data:font/woff2;base64,${readFileSync(
-  'src/brand/fonts/sora-800.woff2',
-).toString('base64')}`;
-const wordmarkCss = readFileSync('src/brand/wordmark.css', 'utf8');
+// The logo's face (Sora 800, src/brand/fonts), for the share image's lockup.
+const display = `data:font/woff2;base64,${readFileSync('src/brand/fonts/sora-800.woff2').toString(
+  'base64',
+)}`;
 
 const page = (body, w, h) => `<!doctype html><html><head><style>
   @font-face { font-family: Brand; src: url(${font}) format('woff2'); font-weight: 200 800; }
   @font-face { font-family: Display; src: url(${display}) format('woff2'); font-weight: 800; }
-  ${wordmarkCss}
   html, body { margin: 0; width: ${w}px; height: ${h}px; overflow: hidden; }
   body { background: ${GRAPHITE}; font-family: Brand, sans-serif; }
 </style></head><body>${body}</body></html>`;
@@ -118,12 +114,23 @@ try {
     console.log('public/favicon.ico');
   }
 
+  // The share image's lockup is the app's own (RoleFlame.tsx, .rjb-rf in base.css): the flame in its
+  // 94 x 146 box at 1.95em, 0.3em before the name, both centred, so it reads as the app bar does,
+  // at the sign-in screen's size.
+  const fills = [hdsColor('blue-500'), hdsColor('cobalt-400'), hdsColor('cobalt-200')];
+  const shareLockup =
+    `<div style="display:inline-flex;align-items:center;gap:0.3em;font-family:Display,sans-serif;font-size:72px;font-weight:800;line-height:1;color:#fff">` +
+    `<svg viewBox="0 0 94 146" style="height:1.95em;width:auto;overflow:visible">` +
+    stillFrame()
+      .map((d, i) => (d ? `<path fill="${fills[i]}" fill-rule="evenodd" d="${d}"/>` : ''))
+      .join('') +
+    `</svg><span>${BRAND.name}</span></div>`;
   const p = await browser.newPage({ viewport: { width: 1200, height: 630 } });
   await p.setContent(
     page(
       `<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 96px;box-sizing:border-box;color:${FACE}">
-        <div class="rjb-logo-word" style="font-family:Display,sans-serif;font-size:128px;font-weight:800;line-height:1;color:#fff">${wordmarkMarkup(flame)}</div>
-        <div style="font-size:36px;line-height:1.35;margin-top:40px;max-width:960px">${BRAND.description}</div>
+        ${shareLockup}
+        <div style="font-size:36px;line-height:1.35;margin-top:28px;max-width:960px">${BRAND.description}</div>
       </div>`,
       1200,
       630,
