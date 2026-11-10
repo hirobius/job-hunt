@@ -174,3 +174,31 @@ describe('live verification queries (#285)', () => {
     expect(body).toContain('octet_length(data::text) < 8000000');
   });
 });
+
+describe('least-privilege grants (L1, L2, L4)', () => {
+  const f = '20261110100000_least_privilege_grants.sql';
+  const body = files.includes(f) ? code(f) : '';
+
+  it('takes every table privilege from anon and only regrants to authenticated', () => {
+    expect(body).toContain('revoke all on all tables in schema public from anon, authenticated;');
+    expect(body).not.toMatch(/grant [a-z, ]+ on public\.\w+ to [a-z_, ]*\banon\b/);
+    for (const t of ['tracker', 'categories', 'groups', 'tiles'])
+      expect(body).toContain(`grant select, insert, update, delete on public.${t} to authenticated;`);
+    for (const t of ['postings', 'sync_log', 'daily_picks'])
+      expect(body).toContain(`grant select on public.${t} to authenticated;`);
+  });
+
+  it('makes new tables in public grant nothing to anon', () => {
+    expect(body).toMatch(/alter default privileges for role postgres in schema public revoke all on tables from anon/);
+  });
+
+  it('moves the user-owned policies to authenticated', () => {
+    for (const t of ['postings', 'skips', 'sync_log', 'tracker', 'watched_companies'])
+      expect(body).toMatch(new RegExp(`alter policy "[^"]+" on public\\.${t} to authenticated;`));
+  });
+
+  it('takes net.* from anon and authenticated, and keeps report_client_error for anon', () => {
+    expect(body).toContain('revoke execute on all functions in schema net from public, anon, authenticated;');
+    expect(body).toContain('grant execute on function public.report_client_error to anon, authenticated;');
+  });
+});
