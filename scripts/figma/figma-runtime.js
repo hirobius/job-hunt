@@ -84,10 +84,11 @@ const readFrame = (f) =>
   f.children
     .filter((k) => k.getSharedPluginData(NS, 'chrome') !== '1')
     .flatMap((k) => (k.name.startsWith('layer: ') ? k.children.map(readNode) : [readNode(k)]));
+// Owned frames sit on the page, or in a batch section on it.
 const owned = () =>
-  page.children.filter(
-    (n) => n.type === 'FRAME' && n.getSharedPluginData(NS, 'owner') === DATA.owner,
-  );
+  page.children
+    .flatMap((n) => (n.type === 'SECTION' ? n.children : [n]))
+    .filter((n) => n.type === 'FRAME' && n.getSharedPluginData(NS, 'owner') === DATA.owner);
 
 if (DATA.mode === 'read') {
   const out = {};
@@ -546,6 +547,21 @@ async function overlay(n, frame, spec) {
     }
   }
 }
+// New frames go into a section per batch, 6 to a row, so one screenshot of the section scores
+// the whole batch (scripts/figma/fidelity.mjs --crop).
+let section = null;
+if (DATA.section) {
+  section = page.children.find((n) => n.type === 'SECTION' && n.name === DATA.section);
+  if (!section) {
+    section = figma.createSection();
+    section.name = DATA.section;
+    page.appendChild(section);
+    section.x = 0;
+    section.y = bottom;
+  }
+  receipt.section = section.id;
+}
+let slot = section ? section.children.length : 0;
 for (const spec of DATA.frames) {
   let frame = owned().find((f) => f.getSharedPluginData(NS, 'key') === spec.key);
   if (frame) {
@@ -553,10 +569,17 @@ for (const spec of DATA.frames) {
     receipt.updated.push(spec.key);
   } else {
     frame = figma.createFrame();
-    page.appendChild(frame);
-    frame.x = spec.width === 390 ? 0 : 600;
-    frame.y = bottom;
-    bottom += spec.height + 200;
+    if (section) {
+      section.appendChild(frame);
+      frame.x = 100 + (slot % 6) * 1540;
+      frame.y = 100 + Math.floor(slot / 6) * 1000;
+      slot++;
+    } else {
+      page.appendChild(frame);
+      frame.x = spec.width === 390 ? 0 : 600;
+      frame.y = bottom;
+      bottom += spec.height + 200;
+    }
     receipt.created.push(spec.key);
   }
   frame.name = `${spec.width} / ${spec.name}`;
@@ -593,11 +616,17 @@ for (const spec of DATA.frames) {
   const projection = fnv1a(stable(readFrame(frame)));
   receipt.frames[spec.key] = {
     id: frame.id,
+    box: [frame.x, frame.y, spec.width, spec.height],
     checksum: spec.checksum,
     projection,
     ok: projection === spec.projection,
   };
 }
+if (section)
+  section.resizeWithoutConstraints(
+    100 + Math.max(...section.children.map((n) => n.x + n.width)),
+    100 + Math.max(...section.children.map((n) => n.y + n.height)),
+  );
 // The first frame that reads back differently, as Figma has it, to compare with the spec's projection.
 const bad = Object.entries(receipt.frames)
   .filter(([, v]) => !v.ok)

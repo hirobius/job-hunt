@@ -134,3 +134,25 @@ The fidelity gate needs Figma MCP access, so run it by hand or in a job with Fig
 ## Risk: React internals
 
 `scripts/figma/walk.js` reads React's private DOM keys (`__reactFiber$…`, `__reactProps$…`). These are not a public API. A React upgrade can rename them. Then the walker throws "React fiber keys … not found". The test `src/figmaSync.test.ts` also fails if React stops setting those keys. If this happens, update the walker before you run the sync.
+
+## Scale-out to all 130 frames: resume plan
+
+Status (2026-11-10): 5 of 130 frames on Sync preview, all scored (min 0.914). The runtime `be0b1e93` is installed on the Sync preview page. The other 125 frames are not pushed.
+
+1. Run `node scripts/figma/push.mjs --emit-lite .figma-lite --skip '<regex of frames already on the page>'`.
+2. If the runtime changed, run `install.js` first (1 `use_figma` call). The batch stub refuses a runtime with another checksum.
+3. Run each `batch-NN.js` (1 `use_figma` call each). Each batch writes into its own section "batch NN", 6 frames to a row.
+4. Take 1 `get_screenshot` of the section id in the receipt. Crop each frame by its `box` from the receipt, and save it as `<slug>.png`.
+5. Run `npm run check:figma-fidelity -- --compare <crops> <captures>`. Fix fails in `figma-runtime.js`, not per frame. Re-install, then re-run the batch.
+
+Batch plan (125 frames, 4 batches, about 9 MCP calls in all):
+
+| Batch    | Frames                                         | Script size                     |
+| -------- | ---------------------------------------------- | ------------------------------- |
+| install  | runtime + HDS keys                             | 21 k chars (done once; current) |
+| batch 01 | 23 (1440 Apply, Dialogs, Feedback, Find start) | 47 k                            |
+| batch 02 | 38 (1440 Find, Job, Menus, Sign-in)            | 46 k                            |
+| batch 03 | 28 (390 Apply, Dialogs, Feedback)              | 44 k                            |
+| batch 04 | 36 (390 Find, Job, Menus, Sign-in)             | 38 k                            |
+
+Expect fails on dark frames: the card, nav and dialog fills in `dress()` and `overlay()` are light-theme colours.

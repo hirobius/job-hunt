@@ -70,4 +70,16 @@ The full push above (rows 6 to 14) overwrote the hand-checked frames on Phone 39
 | 37    | `use_figma`      | write | Sync preview: 5 sample frames        | final: full push of the committed runtime                                                            | OK. 5 updated in place; all 5 read back = spec                             |
 | 38-42 | `get_screenshot` | read  | Sync preview: 5 sample frames        | final scores                                                                                         | OK. min 0.914, median 0.935, 0 of 5 fail                                   |
 
-Session total: 42 calls (rework: 7 writes to Sync preview, 19 screenshots; limit 150 a day). Before the rework: 16 calls (3 skill and session loads, 4 `use_figma` reads, 9 `use_figma` writes). No publish. No write to the HDS library. The page "Archive — screenshots" was not touched. Nothing was deleted: all 130 frames were adopted in place (node ids kept) and tagged `roleflame/owner = roleflame-figma-sync`.
+### Scale-out to all 130 frames (Sync preview only)
+
+Plan (`push.mjs --emit-lite`): 1 install call (runtime and HDS keys stored as shared plugin data on Sync preview), then 4 batch calls (23, 38, 28 and 36 frames), each in its own section "batch NN". One screenshot of each section scores the whole batch (`fidelity.mjs --crop`).
+
+| #   | Tool             | Mode  | Target                                     | Why                                        | Result                                                         |
+| --- | ---------------- | ----- | ------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------- |
+| 43  | `use_figma`      | read  | Sync preview                               | probe: can code run from a string; page id | OK. `new Function` works; page 37:2                            |
+| 44  | `get_screenshot` | read  | Sync preview page 37:2                     | probe: one screenshot for many frames      | OK. 2040x5132 at scale 1; crops give the same 5 scores         |
+| 45  | `use_figma`      | write | Sync preview: shared plugin data           | install runtime and HDS keys               | OK. runtime be0b1e93 (17 260 chars) stored and checked         |
+| 46  | `use_figma`      | write | Sync preview: section batch 01 (23 frames) | scale-out                                  | NOT RUN: stopped here (agent context limit, not the MCP limit) |
+| 47  | `get_screenshot` | read  | section batch 01                           | batch 01 scores                            | NOT RUN                                                        |
+
+Session total: 45 calls (3 in the scale-out: 2 probes, 1 install). Before: 42 calls (rework: 7 writes to Sync preview, 19 screenshots; limit 150 a day). Before the rework: 16 calls (3 skill and session loads, 4 `use_figma` reads, 9 `use_figma` writes). No publish. No write to the HDS library. The page "Archive — screenshots" was not touched. Nothing was deleted: all 130 frames were adopted in place (node ids kept) and tagged `roleflame/owner = roleflame-figma-sync`.

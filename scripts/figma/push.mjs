@@ -137,6 +137,62 @@ function wrapJson(json) {
 const script = (data) =>
   `const DATA = ${wrapJson(JSON.stringify(encode(data)))};\n${minify(runtime())}`;
 
+/**
+ * Light scripts for a large push: install the runtime and the HDS keys once on the Sync preview
+ * page (shared plugin data), then each batch call carries only its frames and strings.
+ */
+export function emitLite(spec, keys, start = 1) {
+  const rt = minify(runtime());
+  const install = [
+    "const page = figma.root.children.find((p) => p.name === 'Sync preview');",
+    "if (!page) throw new Error('no Sync preview page');",
+    `page.setSharedPluginData('roleflame', 'static', ${JSON.stringify(JSON.stringify(components()))});`,
+    `page.setSharedPluginData('roleflame', 'runtime', ${JSON.stringify(rt)});`,
+    `return { runtime: '${fnv1a(rt)}' };`,
+  ].join('\n');
+  const stub = [
+    "const P = figma.root.children.find((p) => p.name === 'Sync preview');",
+    "const RT = P.getSharedPluginData('roleflame', 'runtime');",
+    'let h = 0x811c9dc5;',
+    'for (let i = 0; i < RT.length; i++) { h ^= RT.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }',
+    "if (h.toString(16).padStart(8, '0') !== DATA.rt) throw new Error('runtime on the page is not this version: run the install script');",
+    "Object.assign(DATA, JSON.parse(P.getSharedPluginData('roleflame', 'static')));",
+    "return await new (Object.getPrototypeOf(async function () {}).constructor)('DATA', RT)(DATA);",
+  ].join('\n');
+  const out = [{ name: 'install', keys: [], code: install }];
+  const lite = (frames, n) =>
+    `const DATA = ${wrapJson(JSON.stringify(encode({ mode: 'push', page: SYNC_PAGE, owner: OWNER, keep: null, rt: fnv1a(rt), section: `batch ${String(n).padStart(2, '0')}`, frames })))};\n${stub}`;
+  let batch = [];
+  let n = start;
+  const flush = () => {
+    if (!batch.length) return;
+    out.push({
+      name: `batch ${String(n).padStart(2, '0')}`,
+      keys: batch.map((f) => f.key),
+      code: lite(batch, n),
+    });
+    n++;
+    batch = [];
+  };
+  for (const key of keys) {
+    const { name, width, height, theme, checksum, projection, gap, tree } = spec.frames[key];
+    const f = { key, name, width, height, theme, checksum, projection, gap, tree: slim(tree) };
+    const twin = batch.find((b) => b.tree && stable(b.tree) === stable(f.tree));
+    if (twin) {
+      f.same = twin.key;
+      delete f.tree;
+    }
+    if (batch.length && lite([...batch, f], n).length > MAX_SCRIPT) flush();
+    if (f.same && !batch.some((b) => b.key === f.same)) {
+      f.tree = slim(tree);
+      delete f.same;
+    }
+    batch.push(f);
+  }
+  flush();
+  return out;
+}
+
 /** The push scripts: per page, frames packed under the size limit; the first also removes. */
 export function emitPush(spec, keys) {
   const scripts = [];
@@ -265,6 +321,18 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(
       `${scripts.length} use_figma write(s). Log each in figma/MCP-LEDGER.md before the call; save each result as JSON and run --record.`,
     );
+  } else if (arg('--emit-lite')) {
+    // --emit-lite <dir> [--skip <re>]: install script, then batches of frames not on the page yet.
+    const dir = arg('--emit-lite');
+    mkdirSync(dir, { recursive: true });
+    const skip = arg('--skip') ? new RegExp(arg('--skip')) : null;
+    const keys = Object.keys(spec.frames).filter((k) => !skip || !skip.test(k));
+    for (const s of emitLite(spec, keys)) {
+      const file = join(dir, `${s.name.replace(' ', '-')}.js`);
+      writeFileSync(file, s.code);
+      console.log(`${file}  ${s.keys.length} frame(s)  ${s.code.length} chars`);
+      if (s.keys.length) writeFileSync(file.replace(/\.js$/, '.keys.json'), JSON.stringify(s.keys));
+    }
   } else if (arg('--emit-read')) {
     const dir = arg('--emit-read');
     mkdirSync(dir, { recursive: true });
