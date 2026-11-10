@@ -156,7 +156,7 @@ export const FLAME: FlameSettings = {
   cell: 2.25,
   smooth: 0.8,
   corner: -0.32,
-  tOn: 'letters',
+  tOn: 'off',
   tShake: 0,
   tSkew: 2.5,
   tFade: 0.05,

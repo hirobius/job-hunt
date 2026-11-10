@@ -55,20 +55,16 @@ describe('animateFlame', () => {
     expect(ds()).toEqual(still);
   });
 
-  it('flickers each letter by lean and fade only (no shake), within Adrian’s settings', () => {
-    const { svg, letters } = mount();
+  it('leaves the letters still while the flame burns (Adrian 2026-11-10: flicker off)', () => {
+    expect(FLAME.tOn).toBe('off');
+    const { svg, letters, ds, still } = mount();
     const stop = animateFlame(svg, letters);
     for (let i = 0; i < 20; i++) {
       vi.advanceTimersByTime(frame);
-      for (const l of letters) {
-        const skew = /^skewX\((-?[\d.]+)deg\)$/.exec(l.style.transform);
-        expect(skew).not.toBeNull();
-        expect(Math.abs(+skew![1])).toBeLessThanOrEqual(FLAME.tSkew);
-        expect(+l.style.opacity).toBeGreaterThanOrEqual(1 - FLAME.tFade);
-      }
+      for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
     }
+    expect(ds()).not.toEqual(still);
     stop();
-    for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
   });
 
   it('keeps running: still moving a minute in (Adrian: never settles)', () => {

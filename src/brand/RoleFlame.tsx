@@ -244,7 +244,8 @@ export function RoleFlameLogo({
             for (let back = 0; back < 12 && hash(s + salt, i, 9) * 100 >= T.pct; back++) s--;
           }
           const h = (k: number) => hash(s + salt, i, k);
-          const on = running && s > 0;
+          // The letters stand still unless the settings ask for the flicker (Adrian 2026-11-10: off).
+          const on = running && s > 0 && settings.tOn === 'letters';
           const sk = on ? (h(1) * 2 - 1) * T.skew : 0;
           const dx = on ? ((h(2) * 2 - 1) * T.shake) / 100 : 0;
           const dy = on ? ((T.bobDir === 'up' ? -h(4) : h(4) * 2 - 1) * T.bob) / 100 : 0;
