@@ -1,0 +1,233 @@
+{
+  "page": "Sync preview",
+  "section": "63:7851",
+  "created": [
+    "390/Apply / 0 jobs (empty) — dark",
+    "390/Apply / 1 job — dark",
+    "390/Apply / 1 job — light",
+    "390/Apply / All jobs sheet — dark",
+    "390/Apply / All jobs sheet — light",
+    "390/Apply / Filters open — dark",
+    "390/Apply / Filters open — light",
+    "390/Apply / Many jobs (sample, pager) — dark",
+    "390/Apply / Many jobs (sample, pager) — light",
+    "390/Apply / Template dialog — dark",
+    "390/Apply / Template dialog — light",
+    "390/Apply / Templates open — dark",
+    "390/Apply / Templates open — light",
+    "390/Dialogs / Add job — dark",
+    "390/Dialogs / Add job — light",
+    "390/Dialogs / Documents / Empty — dark",
+    "390/Dialogs / Documents / Empty — light",
+    "390/Dialogs / Documents / Template open — dark",
+    "390/Dialogs / Documents / Template open — light",
+    "390/Dialogs / Documents / With starters — dark",
+    "390/Dialogs / Documents / With starters — light",
+    "390/Dialogs / Legal / Privacy — dark",
+    "390/Dialogs / Legal / Privacy — light",
+    "390/Feedback / Merge prompt / Device data on sign-in — dark",
+    "390/Feedback / Merge prompt / Device data on sign-in — light",
+    "390/Feedback / Toast / Skip with Undo — dark",
+    "390/Feedback / Toast / Skip with Undo — light"
+  ],
+  "updated": ["390/Apply / 0 jobs (empty) — light"],
+  "removed": [],
+  "frames": {
+    "390/Apply / 0 jobs (empty) — dark": {
+      "id": "63:7852",
+      "box": [100, 100, 390, 844],
+      "checksum": "0bc1213b",
+      "projection": "393810b3",
+      "ok": true
+    },
+    "390/Apply / 0 jobs (empty) — light": {
+      "id": "37:4477",
+      "box": [0, 2400, 390, 844],
+      "checksum": "a9d7f433",
+      "projection": "393810b3",
+      "ok": true
+    },
+    "390/Apply / 1 job — dark": {
+      "id": "63:8006",
+      "box": [1640, 100, 390, 844],
+      "checksum": "08165b82",
+      "projection": "64c02055",
+      "ok": true
+    },
+    "390/Apply / 1 job — light": {
+      "id": "63:8332",
+      "box": [3180, 100, 390, 844],
+      "checksum": "bde548fa",
+      "projection": "64c02055",
+      "ok": true
+    },
+    "390/Apply / All jobs sheet — dark": {
+      "id": "64:8098",
+      "box": [4720, 100, 390, 844],
+      "checksum": "8c3f051c",
+      "projection": "5396af4c",
+      "ok": true
+    },
+    "390/Apply / All jobs sheet — light": {
+      "id": "64:9085",
+      "box": [6260, 100, 390, 844],
+      "checksum": "3314aee4",
+      "projection": "5396af4c",
+      "ok": true
+    },
+    "390/Apply / Filters open — dark": {
+      "id": "65:8774",
+      "box": [7800, 100, 390, 844],
+      "checksum": "b44f0854",
+      "projection": "91018734",
+      "ok": true
+    },
+    "390/Apply / Filters open — light": {
+      "id": "65:9132",
+      "box": [100, 1100, 390, 844],
+      "checksum": "b0a0efdc",
+      "projection": "91018734",
+      "ok": true
+    },
+    "390/Apply / Many jobs (sample, pager) — dark": {
+      "id": "65:9459",
+      "box": [1640, 1100, 390, 844],
+      "checksum": "b7da1fff",
+      "projection": "e3762fd1",
+      "ok": true
+    },
+    "390/Apply / Many jobs (sample, pager) — light": {
+      "id": "65:9739",
+      "box": [3180, 1100, 390, 844],
+      "checksum": "1cecd347",
+      "projection": "e3762fd1",
+      "ok": true
+    },
+    "390/Apply / Template dialog — dark": {
+      "id": "65:10019",
+      "box": [4720, 1100, 390, 844],
+      "checksum": "640455d0",
+      "projection": "fd3ab0ab",
+      "ok": true
+    },
+    "390/Apply / Template dialog — light": {
+      "id": "65:10453",
+      "box": [6260, 1100, 390, 844],
+      "checksum": "1611c568",
+      "projection": "fd3ab0ab",
+      "ok": true
+    },
+    "390/Apply / Templates open — dark": {
+      "id": "66:9502",
+      "box": [7800, 1100, 390, 844],
+      "checksum": "b9b61b9d",
+      "projection": "5cb6e7ca",
+      "ok": true
+    },
+    "390/Apply / Templates open — light": {
+      "id": "66:9910",
+      "box": [100, 2100, 390, 844],
+      "checksum": "58250e55",
+      "projection": "5cb6e7ca",
+      "ok": true
+    },
+    "390/Dialogs / Add job — dark": {
+      "id": "66:10299",
+      "box": [1640, 2100, 390, 844],
+      "checksum": "3e434fb7",
+      "projection": "637aec31",
+      "ok": true
+    },
+    "390/Dialogs / Add job — light": {
+      "id": "66:10652",
+      "box": [3180, 2100, 390, 844],
+      "checksum": "0d384abf",
+      "projection": "637aec31",
+      "ok": true
+    },
+    "390/Dialogs / Documents / Empty — dark": {
+      "id": "66:10993",
+      "box": [4720, 2100, 390, 844],
+      "checksum": "31cc035f",
+      "projection": "1ff44099",
+      "ok": true
+    },
+    "390/Dialogs / Documents / Empty — light": {
+      "id": "66:11136",
+      "box": [6260, 2100, 390, 844],
+      "checksum": "87f43377",
+      "projection": "1ff44099",
+      "ok": true
+    },
+    "390/Dialogs / Documents / Template open — dark": {
+      "id": "67:10092",
+      "box": [7800, 2100, 390, 844],
+      "checksum": "960f190c",
+      "projection": "a404614a",
+      "ok": true
+    },
+    "390/Dialogs / Documents / Template open — light": {
+      "id": "67:10447",
+      "box": [100, 3100, 390, 844],
+      "checksum": "eb135636",
+      "projection": "a404614a",
+      "ok": true
+    },
+    "390/Dialogs / Documents / With starters — dark": {
+      "id": "67:10769",
+      "box": [1640, 3100, 390, 844],
+      "checksum": "2d3ec777",
+      "projection": "50753688",
+      "ok": true
+    },
+    "390/Dialogs / Documents / With starters — light": {
+      "id": "67:11005",
+      "box": [3180, 3100, 390, 844],
+      "checksum": "7b823e7f",
+      "projection": "50753688",
+      "ok": true
+    },
+    "390/Dialogs / Legal / Privacy — dark": {
+      "id": "68:10446",
+      "box": [4720, 3100, 390, 844],
+      "checksum": "17bc181d",
+      "projection": "9430e2a4",
+      "ok": true
+    },
+    "390/Dialogs / Legal / Privacy — light": {
+      "id": "68:10659",
+      "box": [6260, 3100, 390, 844],
+      "checksum": "4d6b5ce5",
+      "projection": "9430e2a4",
+      "ok": true
+    },
+    "390/Feedback / Merge prompt / Device data on sign-in — dark": {
+      "id": "68:10860",
+      "box": [7800, 3100, 390, 844],
+      "checksum": "2ac8bba5",
+      "projection": "34fff32b",
+      "ok": true
+    },
+    "390/Feedback / Merge prompt / Device data on sign-in — light": {
+      "id": "68:10944",
+      "box": [100, 4100, 390, 844],
+      "checksum": "2a61e4ad",
+      "projection": "34fff32b",
+      "ok": true
+    },
+    "390/Feedback / Toast / Skip with Undo — dark": {
+      "id": "69:10620",
+      "box": [1640, 4100, 390, 844],
+      "checksum": "4d86a741",
+      "projection": "02ca1655",
+      "ok": true
+    },
+    "390/Feedback / Toast / Skip with Undo — light": {
+      "id": "69:11131",
+      "box": [3180, 4100, 390, 844],
+      "checksum": "4b8db539",
+      "projection": "02ca1655",
+      "ok": true
+    }
+  }
+}

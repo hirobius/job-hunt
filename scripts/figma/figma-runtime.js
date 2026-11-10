@@ -711,7 +711,11 @@ for (const spec of DATA.frames) {
   // A centred dialog with no DialogOverlay in the tree (an alert dialog) still dims the page in the
   // app: add a scrim, marked as chrome so the read-back does not see it.
   const ov = rest.map(node);
-  const dialog = ov.some((n) => n.c !== 'ol' && !/^(Box|Menu|Stack)$/.test(n.c) && n.k);
+  // A menu or popover (a plain div of rows, no HDS component inside) has no scrim in the app.
+  const hasComp = (n) => /^[A-Z]/.test(n.c || '') || (n.k || []).some(hasComp);
+  const dialog = ov.some(
+    (n) => n.c !== 'ol' && !/^(Box|Menu|Stack)$/.test(n.c) && n.k && n.k.some(hasComp),
+  );
   if (dialog && !ov.some((n) => n.c === 'DialogOverlay')) {
     await overlay({ c: 'DialogOverlay' }, frame, spec);
     frame.children[frame.children.length - 1].setSharedPluginData(NS, 'chrome', '1');

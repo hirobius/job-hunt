@@ -139,3 +139,24 @@ Session total: 64 calls today (4 in this part). Batch 02 is not on the page. No 
 | 73  | `get_screenshot`  | read  | section 55:3875 (batch 02)                | batch 02 scores           | 37 frames: min 0.025, median 0.963, 3 of 37 fail. All 3 are light menus (More menu, Account menu signed in and signed out): a flat grey layer (rgb 112,116,125) covers the whole frame. Dark menus pass |
 
 Session total: 73 calls today (9 in this part: 1 session, 1 skill load, 6 writes to Sync preview, 1 screenshot). MAX_SCRIPT is now 15 k, so batch 02 is 6 scripts (7 + 8 + 2 + 5 + 6 + 9 frames, 9 k to 15 k chars). Each script was read from the file, passed as is, and passed `node --check` first. All 37 frames read back = spec. Runtime e46861c4. No publish. No write to the HDS library. No other page touched.
+
+#### Menu scrim fix and batch 03
+
+| #   | Tool              | Mode  | Target                                     | Why                              | Result                                                                              |
+| --- | ----------------- | ----- | ------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------- |
+| 74  | `create_session`  | read  | 9VCvYGN0pz9faveIhSn6Kn                     | session for this task            | OK                                                                                  |
+| 75  | `get_figma_skill` | read  | figma-use SKILL.md                         | required before use_figma        | OK                                                                                  |
+| 76  | `use_figma`       | write | Sync preview: install runtime              | menu scrim fix                   | OK. Runtime 390ef963                                                                |
+| 77  | `use_figma`       | write | Sync preview: 3 light 1440 menu frames     | re-push without scrim            | OK. 3 updated in place in section 55:3875; 3 read back = spec                       |
+| 78  | `use_figma`       | write | Sync preview: batch 03 part 01 (4 frames)  | scale-out, batch 3               | OK. 3 created in section 63:7851, 1 sample updated in place; 4 read back = spec     |
+| 79  | `use_figma`       | write | Sync preview: batch 03 part 02 (2 frames)  | scale-out, batch 3               | OK. 2 created; 2 read back = spec                                                   |
+| 80  | `use_figma`       | write | Sync preview: batch 03 part 03 (6 frames)  | scale-out, batch 3               | OK. 6 created; 6 read back = spec                                                   |
+| 81  | `use_figma`       | write | Sync preview: batch 03 part 04 (6 frames)  | scale-out, batch 3               | OK. 6 created; 6 read back = spec                                                   |
+| 82  | `use_figma`       | write | Sync preview: batch 03 part 05 (4 frames)  | scale-out, batch 3               | OK. 4 created; 4 read back = spec                                                   |
+| 83  | `use_figma`       | write | Sync preview: batch 03 part 06 (4 frames)  | scale-out, batch 3               | OK. 4 created; 4 read back = spec                                                   |
+| 84  | `use_figma`       | write | Sync preview: batch 03 part 07 (2 frames)  | scale-out, batch 3               | OK. 2 created; 2 read back = spec                                                   |
+| 85  | `get_screenshot`  | read  | section 63:7851 (batch 03)                 | batch 03 scores                  | 27 frames cropped (40 px margin)                                                    |
+| 86  | `get_screenshot`  | read  | section 55:3875 (batch 02)                 | menu re-scores                   | More menu 0.959, Account signed in 0.983, signed out 0.979                          |
+| 87  | `get_screenshot`  | read  | frame 37:4477 (390 Apply / 0 jobs — light) | sample frame outside the section | 0.966. Batch 03: min 0.794, median 0.899, 15 of 28 fail (runtime-level, see README) |
+
+Session total: 87 calls today (14 in this part: 1 session, 1 skill load, 1 runtime install, 8 writes to Sync preview, 3 screenshots). Each script was read from the file, passed as is, and passed `node --check` first. figma/snapshot.json removed until all 130 frames are pushed; receipts are in figma/receipts/. No publish. No write to the HDS library. No other page touched.

@@ -119,7 +119,7 @@ Sample result (5 frames, 2026-11-10, after the fidelity rework): min 0.914, medi
 | 390 Job / Not found — light          | 0.945 |
 | 390 Sign-in / Email — light          | 0.914 |
 
-The runtime adds what the spec tree does not carry: the brand logo (from `public/favicon.svg`), the selected nav segment, card fills, HDS icon instances in buttons, and md as the default control size. Text fills the width of its column or shares the row. A phone dialog fills the screen. The other 125 frames are not pushed yet.
+The runtime adds what the spec tree does not carry: the brand logo (from `public/favicon.svg`), the selected nav segment, card fills, HDS icon instances in buttons, and md as the default control size. Text fills the width of its column or shares the row. A phone dialog fills the screen. The other 37 frames (batch 04, 390 Find, Job, Menus, Sign-in) are not pushed yet.
 
 ## CI steps (not in `npm run verify`)
 
@@ -137,7 +137,21 @@ The fidelity gate needs Figma MCP access, so run it by hand or in a job with Fig
 
 ## Scale-out to all 130 frames: resume plan
 
-Status (2026-11-10): 65 of 130 frames on Sync preview (5 samples, batch 01 and batch 02). The runtime in the repo and on the page is `e46861c4` (the batch 01 re-push ran `482b2970`, the same code before a prettier line wrap).
+Status (2026-11-10): 93 of 130 frames on Sync preview (5 samples, batch 01, 02 and 03). The runtime in the repo and on the page is `390ef963`.
+
+**Snapshot decision: no `figma/snapshot.json` until all 130 frames are on the page.** The batch 02 commit recorded only its own 37 receipts into an empty snapshot (the samples and batch 01 receipts were never saved). A partial snapshot makes `check:figma-drift` report every other frame as drift (93 false fails), which hides real drift. With no snapshot the check exits 2 ("no snapshot yet"), which is the true state. Each batch now commits its receipts in `figma/receipts/` (`batch-02.json`, `batch-02-menus.json`, `batch-03.json`; 65 frames). After the last batch, run `--emit-read`, save the read of Sync preview as `figma/receipts/read-all.json` (it carries id, checksum and projection for every owned frame, so it also covers the samples and batch 01), then run `npm run figma:push -- --record figma/receipts/*.json` once and commit the full snapshot.
+
+Light menu fix (runtime `390ef963`, ledger rows 76 and 77): a menu or popover is a plain `div` of rows, so the runtime took it for an alert dialog and added a scrim (ink at 60%, rgb 112,116,125 over white). Now only an overlay that holds an HDS component (Button, Text, …) counts as a dialog. Re-scores: More menu 0.959, Account menu signed in 0.983, signed out 0.979.
+
+Batch 03 (28 frames, section 63:7851, ledger rows 78 to 87): all 28 read back = spec. Scores: min 0.794, median 0.899, 15 of 28 fail. The fails are runtime-level and not fixed yet (next step, before batch 04, which shares the same 390 layouts):
+
+- Phone text is too large: nav segments, buttons and inputs use the desktop text size (Apply list frames: 1 job, Filters open, Many jobs, Templates open, Add job; 0.79 to 0.83).
+- A wrap row (`l.wrap`) gives each child `layoutGrow`, so the second item drops off (Mark applied / Not a fit) and the icon-only buttons stretch.
+- Icon-only buttons show the default `+` icon (no `icon` prop in the spec: Star, More actions, pager arrows).
+- A Badge fills the column width ("Saved"), and Input shows "Placeholder" (no placeholder text set); the Select pair is missing.
+- The phone toast (`ol` > `li`) gets no surface and no border (1 job, Toast / Skip with Undo 0.865 and 0.878).
+- Merge prompt (0.859, 0.855): the dialog title uses the large title size and the footer order is reversed (the app puts the primary action first on a phone).
+- Documents / With starters — dark 0.899: just under the line, same text-size cause.
 
 Batch 01 scores (23 frames): 0 of 23 below 0.9. The 8 old fails were re-pushed with `482b2970` (ledger rows 56 to 59): min 0.910, median 0.963.
 
@@ -159,7 +173,7 @@ The fixes, all in the runtime:
 - The dialog surface binds `color/surface/floating` (the app's `bg-popover`, white in light mode).
 - A container in a row takes its measured width (the 349 px sidebar, the 551 px detail pane). Each container takes its measured height (row density). The frame padding comes from the measured page column.
 
-Batch 02 (37 frames, section 55:3875, ledger rows 65 to 73): done in 6 scripts of 15 k chars or less. All 37 read back = spec. Scores: min 0.025, median 0.963, 3 of 37 fail. The 3 fails are the light menu frames (Find / More menu open, Menus / Account menu / Signed in and Signed out). A flat grey layer (rgb 112,116,125) covers each whole frame; the dark twins pass. Fix this in `figma-runtime.js` (the menu layer fill in light mode), re-install, then re-push the 3 frames.
+Batch 02 (37 frames, section 55:3875, ledger rows 65 to 73): done in 6 scripts of 15 k chars or less. All 37 read back = spec. Scores: min 0.025, median 0.963, 3 of 37 fail. The 3 fails are the light menu frames (Find / More menu open, Menus / Account menu / Signed in and Signed out). A flat grey layer (rgb 112,116,125) covers each whole frame; the dark twins pass. Fixed in runtime `390ef963` (see the menu fix above).
 
 `MAX_SCRIPT` is now 15,000, and `--emit-lite --start N` writes every part to section "batch NN" (files `batch-NN-part-MM.js`), so no hand edit of `section` is needed. Read each file and pass its text as is; run `node --check` on a copy wrapped in `(async function(){ … })` first.
 
