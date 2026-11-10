@@ -71,11 +71,14 @@ function readNode(node) {
       .trim();
     return t ? { c, t } : { c };
   }
-  const o = { c, d: node.layoutMode === 'HORIZONTAL' ? 'row' : 'column' };
+  // A grid is drawn as a wrap row but is a column in the spec.
+  const row = node.layoutMode === 'HORIZONTAL' && node.getSharedPluginData(NS, 'grid') !== '1';
+  const o = { c, d: row ? 'row' : 'column' };
   const kids =
     'children' in node
       ? node.children.filter((k) => k.getSharedPluginData(NS, 'chrome') !== '1').map(readNode)
       : [];
+  if (node.getSharedPluginData(NS, 'rv') === '1') kids.reverse();
   if (kids.length) o.k = kids;
   return o;
 }
@@ -119,8 +122,19 @@ async function setFor(name) {
   sets[name] = node;
   return node;
 }
+// Lucide names the app draws that HDS ships under another name (figma/hds-components.json).
+const ICON_ALIAS = {
+  ellipsis: 'more-horizontal',
+  'list-filter': 'filter',
+  copy: 'file',
+  'square-arrow-out-up-right': 'external-link',
+  'triangle-alert': 'info',
+  'chevrons-up-down': 'chevron-down',
+  list: 'menu',
+};
 const icons = {};
-async function iconFor(name) {
+async function iconFor(raw) {
+  const name = ICON_ALIAS[raw] || raw;
   if (name in icons) return icons[name];
   let node = null;
   if (DATA.icons[name])
@@ -210,6 +224,10 @@ async function plainText(t, name) {
 // space left, and its text wraps (textAutoResize HEIGHT) instead of clipping.
 function fill(node, parentDir) {
   if (!node.parent || !('layoutMode' in node.parent) || node.parent.layoutMode === 'NONE') return;
+  // A wrap row keeps each child at its own width, so items flow to the next line, not off the row.
+  if (node.parent.layoutWrap === 'WRAP') return;
+  // A Badge, Tag, Avatar or icon-only button hugs its content.
+  if (node.getSharedPluginData(NS, 'hug') === '1') return;
   const isText = node.name === '#text' || node.name === 'Text' || node.name === 'text';
   const box = node.type === 'FRAME' && node.getSharedPluginData(NS, 'leaf') !== '1';
   try {
@@ -289,6 +307,7 @@ function iconName(p) {
       .replace(/^icon:/, '')
       .replace(/([a-z])([A-Z])/g, '$1-$2')
       .toLowerCase();
+  if (p._ic) return String(p._ic);
   const label = String(p.label || '');
   const hit = Object.keys(LABEL_ICON).find((k) => label.startsWith(k));
   return hit ? LABEL_ICON[hit] : '';
@@ -298,11 +317,16 @@ async function setIcon(inst, p) {
   const comp = name ? await iconFor(name) : null;
   const props = inst.componentProperties || {};
   const want = {};
+  // The app draws one icon: leading unless the code asks for iconRight.
+  const lead = !!comp && !(p && p.iconRight);
+  const trail = !!comp && !!(p && p.iconRight);
+  let unnamed = 0;
   for (const [k, d] of Object.entries(props)) {
     if (d.type === 'INSTANCE_SWAP' && comp) want[k] = comp.id;
     if (d.type === 'BOOLEAN' && /icon/i.test(k)) {
-      const side = /left|leading|start/i.test(k) ? 'L' : /right|trailing|end/i.test(k) ? 'R' : '';
-      want[k] = side === 'L' ? !!(p && p.iconLeft) : side === 'R' ? !!(p && p.iconRight) : !!comp;
+      let side = /left|leading|start/i.test(k) ? 'L' : /right|trailing|end/i.test(k) ? 'R' : '';
+      if (!side && !(p && p.iconOnly)) side = unnamed++ === 0 ? 'L' : 'R';
+      want[k] = side === 'L' ? lead : side === 'R' ? trail : !!comp;
     }
   }
   try {
@@ -310,6 +334,46 @@ async function setIcon(inst, p) {
   } catch {
     /* keep the default icon */
   }
+}
+// On a phone the app's type is smaller than the desktop style: use the measured size (spec `ty`).
+let PHONE = false;
+async function retype(node, ty) {
+  if (!PHONE || !Array.isArray(ty) || !ty[0]) return;
+  const texts = node.type === 'TEXT' ? [node] : node.findAll((x) => x.type === 'TEXT' && x.visible);
+  for (const t of texts)
+    try {
+      await loadFonts(t);
+      t.fontSize = ty[0];
+      if (ty[1]) t.lineHeight = { value: ty[1], unit: 'PIXELS' };
+    } catch {
+      /* locked by the component */
+    }
+}
+// An Input or Select shows its label, helper and value text, not the component's sample text.
+async function fieldText(inst, t, p) {
+  const defs = inst.componentProperties || {};
+  const want = {};
+  for (const [k, d] of Object.entries(defs)) {
+    if (d.type !== 'TEXT') continue;
+    if (/label/i.test(k)) want[k] = String(p.label || t || '');
+    else if (/helper|hint|description/i.test(k)) want[k] = String(p.helperText || '');
+    else want[k] = String(t || p.placeholder || '');
+  }
+  try {
+    await loadFonts(inst);
+    if (Object.keys(want).length) inst.setProperties(want);
+  } catch {
+    /* keep */
+  }
+  for (const x of inst.findAll(
+    (y) => y.type === 'TEXT' && /^(Placeholder|Label|Value)$/i.test(y.characters),
+  ))
+    try {
+      await loadFonts(x);
+      x.characters = /^label$/i.test(x.characters) ? String(p.label || t || '') : String(t || '');
+    } catch {
+      /* locked */
+    }
 }
 function logo(row) {
   const n = figma.createNodeFromSvg(DATA.logo);
@@ -378,6 +442,8 @@ function node(a) {
       },
       k: a[4].map(node),
       sz: a[5] ? S[a[5]] : null,
+      rv: (a[6] || 0) % 2 === 1,
+      gc: Math.floor((a[6] || 0) / 2),
     };
   return { c: S[a[0]], t: a.length > 1 ? S[a[1]] : '', p: a.length > 2 ? S[a[2]] : {} };
 }
@@ -387,6 +453,7 @@ async function build(n, parent, psz = null) {
     const t = await plainText(n.t, '#text');
     parent.appendChild(t);
     fill(t, parentDir);
+    await retype(t, n.p && n.p._ty);
     return;
   }
   if (!n.k) {
@@ -415,6 +482,8 @@ async function build(n, parent, psz = null) {
         const inst = comp.createInstance();
         parent.appendChild(inst);
         inst.name = name;
+        if (/^(Badge|Tag|Avatar|IconButton)$/.test(setName))
+          inst.setSharedPluginData(NS, 'hug', '1');
         try {
           // The app's default control size is md; HDS defaults to sm.
           const props = /^(Button|Input)$/.test(setName) ? { size: 'md', ...n.p } : n.p;
@@ -423,8 +492,10 @@ async function build(n, parent, psz = null) {
           /* keep the default variant */
         }
         await setText(inst, n.t);
+        if (/^(Input|Select|Textarea)$/.test(setName)) await fieldText(inst, n.t, n.p || {});
         if (/Button/.test(setName)) await setIcon(inst, n.p);
         fill(inst, parentDir);
+        await retype(inst, n.p && n.p._ty);
         // The animation toggle floats in the top-right corner of the sign-in surface.
         if (n.p && n.p.label === 'Play animations') {
           inst.layoutPositioning = 'ABSOLUTE';
@@ -440,6 +511,7 @@ async function build(n, parent, psz = null) {
       parent.appendChild(inst);
       inst.name = name;
       await setText(inst, n.t);
+      await retype(inst, n.p && n.p._ty);
       return;
     }
     // No HDS part for it (an element, or a GAP): a local frame named after it, holding its text.
@@ -451,18 +523,39 @@ async function build(n, parent, psz = null) {
     fill(f, parentDir);
     return;
   }
-  const dir = n.l && n.l.dir === 'row' ? 'HORIZONTAL' : 'VERTICAL';
+  const grid = n.gc > 1;
+  const dir = (n.l && n.l.dir === 'row') || grid ? 'HORIZONTAL' : 'VERTICAL';
   const f = figma.createAutoLayout(dir, { name: n.c });
   f.fills = [];
   parent.appendChild(f);
   if (n.l) {
     if (n.l.gapPx) f.itemSpacing = n.l.gapPx;
-    if (n.l.wrap && dir === 'HORIZONTAL') f.layoutWrap = 'WRAP';
+    if ((n.l.wrap || grid) && dir === 'HORIZONTAL') f.layoutWrap = 'WRAP';
+    if (grid) {
+      f.setSharedPluginData(NS, 'grid', '1');
+      f.counterAxisSpacing = n.l.gapPx || 0;
+    }
     if (n.l.padPx) [f.paddingTop, f.paddingRight, f.paddingBottom, f.paddingLeft] = n.l.padPx;
   }
   fill(f, parentDir);
   for (const k of n.k || []) await build(k, f, n.sz);
   size(f, n.sz, parentDir, psz);
+  // Grid cells share the measured width equally.
+  if (grid && n.sz) {
+    const cell = (n.sz[0] - (n.l.gapPx || 0) * (n.gc - 1)) / n.gc;
+    for (const k of f.children)
+      try {
+        k.layoutGrow = 0;
+        k.resize(Math.max(1, cell), k.height);
+      } catch {
+        /* fixed */
+      }
+  }
+  // flex-col-reverse (a phone dialog footer: primary first): draw reversed, read back in DOM order.
+  if (n.rv) {
+    for (const k of [...f.children]) f.insertChild(0, k);
+    f.setSharedPluginData(NS, 'rv', '1');
+  }
   if (f.name === 'span' && f.children[0] && f.children[0].name === 'svg') {
     const t = f.children[1] && f.children[1].findOne((x) => x.type === 'TEXT');
     if (t)
@@ -599,6 +692,23 @@ async function overlay(n, frame, spec) {
   holder.counterAxisSizingMode = 'FIXED';
   holder.primaryAxisSizingMode = 'AUTO';
   const body = holder.children[0];
+  // A toast is a raised card with a border inside the toast region (ol > li).
+  if (body && isToast)
+    for (const li of 'children' in body ? body.children : []) {
+      if (li.type !== 'FRAME') continue;
+      li.fills = await paint(
+        'color/surface/floating',
+        spec.theme === 'dark' ? { r: 0.09, g: 0.1, b: 0.12 } : { r: 1, g: 1, b: 1 },
+      );
+      li.strokes = await paint(
+        'color/border/default',
+        spec.theme === 'dark' ? { r: 0.2, g: 0.22, b: 0.26 } : { r: 0.894, g: 0.902, b: 0.914 },
+      );
+      li.strokeWeight = 1;
+      li.cornerRadius = 8;
+      if (!li.paddingTop) li.paddingTop = li.paddingBottom = 12;
+      if (!li.paddingLeft) li.paddingLeft = li.paddingRight = 16;
+    }
   if (body && !isToast) {
     body.fills = await paint(
       'color/surface/floating', // bg-popover = --semantic-color-surface-floating (white in light)
@@ -674,6 +784,7 @@ for (const spec of DATA.frames) {
     receipt.created.push(spec.key);
   }
   frame.name = `${spec.width} / ${spec.name}`;
+  PHONE = spec.width < 1024;
   // The viewport, fixed: 390x844 or 1440x900. The page scrolls under it, as in the app.
   frame.layoutMode = 'VERTICAL';
   frame.primaryAxisSizingMode = 'FIXED';

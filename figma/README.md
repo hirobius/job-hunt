@@ -137,7 +137,26 @@ The fidelity gate needs Figma MCP access, so run it by hand or in a job with Fig
 
 ## Scale-out to all 130 frames: resume plan
 
-Status (2026-11-10): 93 of 130 frames on Sync preview (5 samples, batch 01, 02 and 03). The runtime in the repo and on the page is `390ef963`.
+Status (2026-11-10, later): 93 of 130 frames on Sync preview (5 samples, batch 01, 02 and 03). The runtime in the repo and on the page is `ef53726a`. Batch 04 is not pushed. Batch 03 part 01 (4 frames) is re-pushed with `ef53726a`; parts 02 to 08 still show `390ef963` output.
+
+390 fix status (ledger rows 88 to 97). The walker now records layout data outside `checksum` and `projection` (spec checksums did not change): `ty` (measured font size and line height of a leaf or text run), `ic` (the lucide icon the app draws in a leaf), `rv` (flex `*-reverse`) and `gc` (grid columns). The runtime uses them:
+
+- On a phone, text takes the measured `ty` size and line height.
+- A wrap row keeps each child at its own width. A grid with 2 or more columns is a wrap row with equal cells (read back as a column).
+- Icon-only buttons take the drawn icon, mapped to HDS names (`ellipsis` to `more-horizontal`, `list-filter` to `filter`, and others in `ICON_ALIAS`). A button shows one icon.
+- Badge, Tag, Avatar and IconButton hug their content.
+- Toast items get the floating surface, a border and 8 px radius.
+- Input, Select and Textarea set their label, helper and value text (no "Placeholder").
+- A reversed flex box (the phone dialog footer) is drawn reversed and read back in DOM order.
+
+Re-scores so far: 390 Apply / 1 job — light 0.824, — dark 0.834 (still below 0.9). Causes still open, all in the runtime:
+
+1. The button icon sits on the right. The first unnamed icon boolean on the HDS Button is the trailing one, so swap the order in `setIcon`.
+2. The middle button of a row ("Open application") does not grow. The app gives it `flex-1`.
+3. Icon-only buttons (pager arrows, Account) show no surface or size.
+4. Toast buttons (Open, Undo) stack in a column and fill the width. The Disclosure ("Templates") has no card surface.
+
+Resume: fix these, re-emit with `--emit-lite <dir> --start 3 --skip '^1440/|^390/(Find|Job|Menus|Sign-in) '`, patch or install the runtime, run parts 01 to 08, score, then batch 04 with `--start 4 --skip '^1440/|^390/(Apply|Dialogs|Feedback) '` (6 parts, 36 frames). A runtime change can go up as a hash-checked line patch (old and new hash in the script) instead of the 27 k install script.
 
 **Snapshot decision: no `figma/snapshot.json` until all 130 frames are on the page.** The batch 02 commit recorded only its own 37 receipts into an empty snapshot (the samples and batch 01 receipts were never saved). A partial snapshot makes `check:figma-drift` report every other frame as drift (93 false fails), which hides real drift. With no snapshot the check exits 2 ("no snapshot yet"), which is the true state. Each batch now commits its receipts in `figma/receipts/` (`batch-02.json`, `batch-02-menus.json`, `batch-03.json`; 65 frames). After the last batch, run `--emit-read`, save the read of Sync preview as `figma/receipts/read-all.json` (it carries id, checksum and projection for every owned frame, so it also covers the samples and batch 01), then run `npm run figma:push -- --record figma/receipts/*.json` once and commit the full snapshot.
 

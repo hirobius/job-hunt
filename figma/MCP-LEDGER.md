@@ -160,3 +160,20 @@ Session total: 73 calls today (9 in this part: 1 session, 1 skill load, 6 writes
 | 87  | `get_screenshot`  | read  | frame 37:4477 (390 Apply / 0 jobs — light) | sample frame outside the section | 0.966. Batch 03: min 0.794, median 0.899, 15 of 28 fail (runtime-level, see README) |
 
 Session total: 87 calls today (14 in this part: 1 session, 1 skill load, 1 runtime install, 8 writes to Sync preview, 3 screenshots). Each script was read from the file, passed as is, and passed `node --check` first. figma/snapshot.json removed until all 130 frames are pushed; receipts are in figma/receipts/. No publish. No write to the HDS library. No other page touched.
+
+#### 390 runtime fixes (partial)
+
+| #   | Tool              | Mode  | Target                                    | Why                              | Result                                                                                      |
+| --- | ----------------- | ----- | ----------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------- |
+| 88  | `create_session`  | read  | 9VCvYGN0pz9faveIhSn6Kn                    | session for this task            | OK                                                                                          |
+| 89  | `get_figma_skill` | read  | figma-use SKILL.md                        | required before use_figma        | OK                                                                                          |
+| 90  | `use_figma`       | write | Sync preview: install runtime             | 390 fixes                        | OK. Runtime 7b65356e                                                                        |
+| 91  | `use_figma`       | write | Sync preview: runtime patch               | icon alias map (lucide to HDS)   | OK. 7b65356e to 1e500e8b; the patch checks both hashes and writes nothing on a mismatch     |
+| 92  | `use_figma`       | write | Sync preview: batch 03 part 01 (4 frames) | test push                        | OK. 4 updated in place; 4 read back = spec                                                  |
+| 93  | `get_screenshot`  | read  | frame 63:8332 (390 Apply / 1 job — light) | check the fixes                  | Text size, icons, Badge, toast surface fixed. Icon on both sides; "Not a fit" still missing |
+| 94  | `use_figma`       | write | Sync preview: runtime patch               | grid as row, one icon per button | OK. 1e500e8b to ef53726a (hash-checked line patch)                                          |
+| 95  | `use_figma`       | write | Sync preview: batch 03 part 01 (4 frames) | re-push with ef53726a            | OK. 4 updated in place in section 63:7851; 4 read back = spec                               |
+| 96  | `get_screenshot`  | read  | frame 63:8332 (390 Apply / 1 job — light) | re-score                         | 0.824 (was below 0.83). "Not a fit" now shows                                               |
+| 97  | `get_screenshot`  | read  | frame 63:8006 (390 Apply / 1 job — dark)  | re-score                         | 0.834                                                                                       |
+
+Session total: 97 calls today (10 in this part: 1 session, 1 skill load, 1 runtime install, 2 runtime patches, 2 frame writes to Sync preview, 3 screenshots). Stopped early: the context ran low after part 01. Batch 03 parts 02 to 08 and batch 04 are not pushed. The page runtime is ef53726a, the same as the repo. No publish. No write to the HDS library. No other page touched.

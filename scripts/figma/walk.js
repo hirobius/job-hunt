@@ -98,6 +98,30 @@ async function __rfWalk(opts) {
     const r = el.getBoundingClientRect();
     return [r.width, r.height, r.left, r.top].map(Math.round);
   };
+  // Measured type [fontSize, lineHeight] of the first visible text in a leaf (layout data, like sz).
+  const typeOf = (el) => {
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let t = w.nextNode();
+    while (t && !text(t.textContent)) t = w.nextNode();
+    const host = t
+      ? t.parentElement
+      : el.matches('input,textarea')
+        ? el
+        : el.querySelector('input,textarea');
+    if (!host) return null;
+    const cs = getComputedStyle(host);
+    const fs = parseFloat(cs.fontSize);
+    const lh = parseFloat(cs.lineHeight);
+    return [Math.round(fs * 10) / 10, Number.isFinite(lh) ? Math.round(lh * 10) / 10 : 0];
+  };
+  // A reversed flex box (flex-col-reverse): the DOM order stays, the runtime draws it reversed.
+  const reversed = (el) => /-reverse$/.test(getComputedStyle(el).flexDirection);
+  // Columns of a CSS grid (layout data): the spec keeps a grid as a column, the runtime lays it out.
+  const gridCols = (el) => {
+    const cs = getComputedStyle(el);
+    if (!cs.display.includes('grid')) return 1;
+    return cs.gridTemplateColumns.split(' ').filter((x) => x && x !== 'none').length || 1;
+  };
   const visible = (el) =>
     el.checkVisibility
       ? el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
@@ -142,8 +166,12 @@ async function __rfWalk(opts) {
     for (const c of el.childNodes) {
       if (c.nodeType === 3) {
         const t = c.nodeValue.replace(/\s+/g, ' ');
-        if (t.trim()) out.push({ c: '#text', t });
-        else if (t) out.push({ c: '#text', t: ' ' });
+        if (t.trim()) {
+          const cs = getComputedStyle(el);
+          const lh = parseFloat(cs.lineHeight);
+          const ty = [parseFloat(cs.fontSize), Number.isFinite(lh) ? Math.round(lh * 10) / 10 : 0];
+          out.push({ c: '#text', t, ty });
+        } else if (t) out.push({ c: '#text', t: ' ' });
       } else if (c.nodeType === 1) {
         // Block-level children are separate runs of text: keep a space between them.
         const block = !/^inline/.test(getComputedStyle(c).display);
@@ -156,11 +184,15 @@ async function __rfWalk(opts) {
     const merged = [];
     for (const n of out) {
       const prev = merged[merged.length - 1];
-      if (n.c === '#text' && prev && prev.c === '#text') prev.t += n.t;
-      else merged.push(n.c === '#text' ? { ...n } : n);
+      if (n.c === '#text' && prev && prev.c === '#text') {
+        prev.t += n.t;
+        if (!prev.ty) prev.ty = n.ty;
+      } else merged.push(n.c === '#text' ? { ...n } : n);
     }
     return merged
-      .map((n) => (n.c === '#text' ? { c: '#text', t: text(n.t) } : n))
+      .map((n) =>
+        n.c === '#text' ? { c: '#text', t: text(n.t), ...(n.ty ? { ty: n.ty } : {}) } : n,
+      )
       .filter((n) => n.c !== '#text' || n.t);
   }
   function visit(el) {
@@ -191,6 +223,11 @@ async function __rfWalk(opts) {
         ? text(field.value || field.placeholder || '')
         : text(el.innerText || el.getAttribute('aria-label') || '');
       if (t) inner.t = t;
+      const ty = typeOf(el);
+      if (ty) inner.ty = ty;
+      const ico = el.querySelector('svg[class*="lucide-"]');
+      const im = ico && /(?:^|\s)lucide-([a-z0-9-]+)/.exec(ico.getAttribute('class') || '');
+      if (im) inner.ic = im[1];
       outer = chain.slice(0, li);
       inner = [inner];
     } else if (['INPUT', 'TEXTAREA'].includes(el.tagName)) {
@@ -209,6 +246,8 @@ async function __rfWalk(opts) {
         if (tk.length) n.tk = tk;
         if (kids.length) n.k = kids;
         n.sz = size(el);
+        if (reversed(el)) n.rv = 1;
+        if (gridCols(el) > 1) n.gc = gridCols(el);
         outer = outer.slice(0, -1);
         inner = [n];
       } else if (!l && !tk.some((t) => /^(bg|border|rounded|shadow)-/.test(t))) inner = kids;
@@ -220,6 +259,8 @@ async function __rfWalk(opts) {
         if (tk.length) n.tk = tk;
         if (kids.length) n.k = kids;
         n.sz = size(el);
+        if (reversed(el)) n.rv = 1;
+        if (gridCols(el) > 1) n.gc = gridCols(el);
         inner = [n];
       }
     }

@@ -24,11 +24,18 @@ export function fnv1a(str) {
   return h.toString(16).padStart(8, '0');
 }
 
-/** The tree without measured boxes (`sz`): layout data for the runtime, not part of a checksum. */
+/**
+ * The tree without layout data: measured boxes (`sz`), type (`ty`), leaf icons (`ic`) and reversed
+ * flex (`rv`) and grid columns (`gc`) are for the runtime only, not part of a checksum.
+ */
 export const unsized = (nodes) =>
   nodes.map((node) => {
     const n = { ...node };
     delete n.sz;
+    delete n.ty;
+    delete n.ic;
+    delete n.rv;
+    delete n.gc;
     return n.k ? { ...n, k: unsized(n.k) } : n;
   });
 

@@ -76,6 +76,9 @@ export function slim(nodes) {
       const p = Object.fromEntries(
         Object.entries(n.p ?? {}).filter(([, v]) => typeof v !== 'string' || v.length <= 24),
       );
+      // Layout data for the runtime (outside the checksums): measured type and the drawn icon.
+      if (n.ty) p._ty = n.ty;
+      if (n.ic) p._ic = n.ic;
       return Object.keys(p).length ? [n.c, n.t ?? '', p] : n.t ? [n.c, n.t] : [n.c];
     }
     const l = n.l ?? {};
@@ -85,7 +88,9 @@ export function slim(nodes) {
       l.gapPx ?? 0,
       l.padPx ?? 0,
       slim(n.k ?? []),
-      ...(n.sz ? [n.sz] : []),
+      // Flags: bit 0 reversed flex, the rest the grid column count.
+      ...(n.sz || n.rv || n.gc ? [n.sz ?? 0] : []),
+      ...(n.rv || n.gc ? [(n.rv ? 1 : 0) + (n.gc > 1 ? n.gc : 0) * 2] : []),
     ];
   });
 }
@@ -107,7 +112,15 @@ function encode(data) {
   const enc = (nodes) =>
     nodes.map((n) =>
       n.length >= 5 && Array.isArray(n[4])
-        ? [id(n[0]), n[1], n[2], n[3] ? id(n[3]) : 0, enc(n[4]), ...(n[5] ? [id(n[5])] : [])]
+        ? [
+            id(n[0]),
+            n[1],
+            n[2],
+            n[3] ? id(n[3]) : 0,
+            enc(n[4]),
+            ...(n[5] || n[6] ? [n[5] ? id(n[5]) : 0] : []),
+            ...(n[6] ? [n[6]] : []),
+          ]
         : n.map(id),
     );
   const frames = data.frames.map((f) => (f.tree ? { ...f, tree: enc(f.tree) } : f));
