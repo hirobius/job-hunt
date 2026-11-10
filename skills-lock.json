@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "skills": {
+    "dxe": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "aa8174703726efa51577c3070c7af41ae8d258a3d2cdc652e311b5dcc417e598"
+    },
+    "dxe-ai-output-judgement": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-ai-output-judgement/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "f9370109b32c440d6f6b246eba419720051cbc78072767b10f921bbd197624d9"
+    },
+    "dxe-design-engineering": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-design-engineering/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "0eb0efa7b66d2557f01bcc5fe3c9e97d0bededc2944cb66dcfaaae6b3518d5b2"
+    },
+    "dxe-design-for-repetition": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-design-for-repetition/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "77574ec79ca3b0e5de38b65990fa5a68aff2fff67d687e16584553a3eda71ca1"
+    },
+    "dxe-design-system-evolution": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-design-system-evolution/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "9a5c5018b73397464a1fd8372b825ceb7b506358dae0c9f49f08b4863e77f890"
+    },
+    "dxe-fluid-design": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-fluid-design/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "13797209022fec116ca91e005934efaa6729c198706d51f1aa17825b5ae5e279"
+    },
+    "dxe-humane-functionalism": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-humane-functionalism/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "5e5e2afae7ac9cc365ac15837ac15d4472a55abc4a72652e7657e3c5419aad62"
+    },
+    "dxe-intentional-craft": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-intentional-craft/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "952c7af01caec231b7ed7453f4177a41e8858643977d08b2cd9a69fbf6608e03"
+    },
+    "dxe-interaction-contracts": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-interaction-contracts/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "544722c9ef0fb521271f960ac21b1fb53a84de9b152300e89f3efd9a7a7b95b2"
+    },
+    "dxe-interface-affordances": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-interface-affordances/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "9fb929eb5a0e959e93a17662743a263a3c28f06a96897e7c2f7ee4b1ebf36107"
+    },
+    "dxe-modern-css-html": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-modern-css-html/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "c6e58bc4964515a06a59f388b3d7211b7abd26844ee98bddbd724607869c340e"
+    },
+    "dxe-product-delight": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-product-delight/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "9a2d16c78adaa6b632e112f2374ae8f55905a158252ca7624b024ef9b05ce706"
+    },
+    "dxe-prototype-to-production": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-prototype-to-production/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "7e9a7e7ada84f2f17ec37b60db5800e1bbdc5aebdc98a94e80da37db5adaa803"
+    },
+    "dxe-real-content-design": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-real-content-design/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "8d8bbd0caf8987efe9c7d42948883c46842309345862e6b4b1e6014adb2eb756"
+    },
+    "dxe-semantic-html-first": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-semantic-html-first/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "e50c0ffd4478a55600883f97367465fa4f8e3589db11298b346f5d09103f6d9d"
+    },
+    "dxe-software-needs-hierarchy": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-software-needs-hierarchy/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "fb1452ccc0007ce9465daa1bbce5e3175783d7304ba8dfcd70e20fe47e7f9a0c"
+    },
+    "dxe-subtractive-design": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-subtractive-design/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "a1eaf2797330f62f8bc5187029ddcda2449e70c8ad8236565eb29ade207bc050"
+    },
+    "dxe-write-first-design": {
+      "source": "kemiljk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dxe-write-first-design/SKILL.md",
+      "pinnedCommit": "6d92b73ce13554d7a4277993a4eee7f598592057",
+      "hashAlgorithm": "sha256",
+      "computedHash": "34c8eef3dd08f86cd7cd670a86c6ace5504c05303470cdcb85e81ee55a5f0998"
+    }
+  }
+}
