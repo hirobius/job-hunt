@@ -9,7 +9,7 @@ import { BRAND } from '../brand';
 import { applyBrand } from '../brandHtml';
 import { BrandLogo, Flame } from './Flame';
 import { flameSvg, withUniqueIds } from './flameSvg';
-import { FLAME_E, FLAME_FRAMES, loopFrames } from './flameEngine';
+import { FLAME, FLAME_FRAMES, loopFrames } from './flameEngine';
 
 afterEach(cleanup);
 
@@ -116,7 +116,10 @@ describe('derived from flame.svg', () => {
     const word = screen.getByRole('img', { name: BRAND.name });
     const flame = word.querySelector('.rjb-wordmark-flame .rjb-flame')!;
     expect(flame.closest('[aria-hidden="true"]')).not.toBeNull();
-    expect([...flame.querySelectorAll('path')].map((p) => p.getAttribute('d'))).toEqual(source);
+    // A layer that is switched off has an empty path.
+    expect(
+      [...flame.querySelectorAll('path')].map((p) => p.getAttribute('d')).filter(Boolean),
+    ).toEqual(source);
     expect(container.querySelector('img, canvas')).toBeNull();
   });
 
@@ -127,12 +130,11 @@ describe('derived from flame.svg', () => {
         <Flame animate />
       </>,
     );
+    // The flame's layers stack with no clip, so today it has no ids at all; if one comes back,
+    // withUniqueIds keeps them apart.
     const ids = [...container.querySelectorAll('[id]')].map((e) => e.id);
-    expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
-    for (const use of container.querySelectorAll('use')) {
-      expect(ids).toContain(use.getAttribute('href')!.slice(1));
-    }
+    expect(container.querySelectorAll('svg')).toHaveLength(2);
   });
 
   it('withUniqueIds handles single quotes and quoted url() references', () => {
@@ -156,23 +158,24 @@ describe('derived from flame.svg', () => {
   });
 });
 
-describe('the boot splash moves (Version E, a baked loop)', () => {
+describe('the boot splash moves (a baked loop)', () => {
   const html = applyBrand(readFileSync('index.html', 'utf8'));
   const root = /<div id="root">([\s\S]*?)<\/div>\s*<script/.exec(html)?.[1] ?? '';
-  const frames = [...root.matchAll(/<g class="rjb-boot-f"([^>]*)>([\s\S]*?)<\/g><\/g>/g)];
+  const frames = [...root.matchAll(/<g class="rjb-boot-f"([^>]*)>([\s\S]*?)<\/g>/g)];
   const css = readFileSync('src/theme/base.css', 'utf8');
 
   it('holds the engine’s loop, one group per frame, the first shown and the rest hidden', () => {
     expect(frames).toHaveLength(FLAME_FRAMES);
-    const loop = loopFrames(FLAME_E);
+    const loop = loopFrames(FLAME);
     frames.forEach(([, attrs, body], k) => {
       for (const d of loop[k]) expect(body).toContain(`d="${d}"`);
+      expect(body).not.toMatch(/clip/);
       expect(attrs.includes('visibility="hidden"')).toBe(k > 0);
-      expect(attrs).toContain(`animation-delay:${(k * 1000) / FLAME_E.fps}ms`);
+      expect(attrs).toContain(`animation-delay:${(k * 1000) / FLAME.fps}ms`);
     });
     const ids = [...root.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(root).toContain(`--rjb-flame-loop:${(FLAME_FRAMES * 1000) / FLAME_E.fps}ms`);
+    expect(root).toContain(`--rjb-flame-loop:${(FLAME_FRAMES * 1000) / FLAME.fps}ms`);
   });
 
   it('steps through the frames at the engine’s fps (one slot each), still under reduced motion', () => {
@@ -190,7 +193,7 @@ describe('the boot splash moves (Version E, a baked loop)', () => {
     expect(boot).not.toMatch(/\d+m?s\b/);
   });
 
-  it('the old rise-in reveal is gone (Version E replaced it)', () => {
+  it('the old rise-in reveal is gone', () => {
     expect(css).not.toMatch(/rjb-flame-reveal/);
     expect(readFileSync('index.html', 'utf8')).not.toMatch(/rjb-flame-reveal/);
   });
