@@ -112,3 +112,14 @@ Earlier total: 45 calls (3 in the scale-out: 2 probes, 1 install). Before: 42 ca
 | 60  | `use_figma`      | write | Sync preview: shared plugin data        | runtime text after prettier (one line rewrapped)   | OK. runtime e46861c4 stored and checked; no node changed |
 
 Session total: 60 calls today (5 in this part: 1 session, 2 runtime writes, 1 frame write to Sync preview, 1 screenshot). Frames were built with 482b2970; the page and the repo now hold e46861c4 (same code, prettier line wrap). Batch 02 was not run (context budget): it now splits into 2 scripts (26 + 12 frames, 45 k + 16 k chars). No publish. No write to the HDS library. No other page touched.
+
+#### Batch 02 attempt
+
+| #   | Tool              | Mode  | Target                                    | Why                                   | Result                                                                                                                                        |
+| --- | ----------------- | ----- | ----------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 61  | `create_session`  | read  | 9VCvYGN0pz9faveIhSn6Kn                    | session for this task                 | OK                                                                                                                                            |
+| 62  | `get_figma_skill` | read  | figma-use SKILL.md                        | required before use_figma             | OK                                                                                                                                            |
+| 63  | `use_figma`       | read  | Sync preview                              | owned frame keys and runtime checksum | OK. Runtime e46861c4. 28 owned frames: 5 samples + 23 in batch 01. Batch 02 is 37 frames (not 38)                                             |
+| 64  | `use_figma`       | write | Sync preview: batch 02 part 1 (25 frames) | scale-out, batch 2 of 4               | Refused before run: `SyntaxError: expecting ':'`. The 45 k script was copied into the call by hand and the copy had an error. No node changed |
+
+Session total: 64 calls today (4 in this part). Batch 02 is not on the page. No publish. No write to the HDS library. No other page touched.

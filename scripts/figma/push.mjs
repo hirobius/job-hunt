@@ -328,7 +328,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     mkdirSync(dir, { recursive: true });
     const skip = arg('--skip') ? new RegExp(arg('--skip')) : null;
     const keys = Object.keys(spec.frames).filter((k) => !skip || !skip.test(k));
-    for (const s of emitLite(spec, keys)) {
+    for (const s of emitLite(spec, keys, Number(arg('--start') ?? 1))) {
       const file = join(dir, `${s.name.replace(' ', '-')}.js`);
       writeFileSync(file, s.code);
       console.log(`${file}  ${s.keys.length} frame(s)  ${s.code.length} chars`);

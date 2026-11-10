@@ -159,9 +159,9 @@ The fixes, all in the runtime:
 - The dialog surface binds `color/surface/floating` (the app's `bg-popover`, white in light mode).
 - A container in a row takes its measured width (the 349 px sidebar, the 551 px detail pane). Each container takes its measured height (row density). The frame padding comes from the measured page column.
 
-Next: batch 02 (38 frames). With `sz` it is 2 scripts (26 + 12 frames, 45 k + 16 k chars), so 3 calls with the screenshot.
+Next: batch 02 (37 frames: 1440 Find except the first Browse frame, Job, Menus, Sign-in). Attempt on 2026-11-10 (ledger row 64) failed: the hand copy of the 45 k script had a syntax error, so nothing ran. Emit it with `--start 2` so the section is "batch 02"; the 12-frame second script comes out as "batch 03", so set its `section` to "batch 02" before the call. Prefer smaller scripts: each hand copy is a risk. Old note: batch 02 (38 frames). With `sz` it is 2 scripts (26 + 12 frames, 45 k + 16 k chars), so 3 calls with the screenshot.
 
-1. Run `node scripts/figma/push.mjs --emit-lite .figma-lite --skip '<regex of frames already on the page>'`.
+1. Run `node scripts/figma/push.mjs --emit-lite .figma-lite --start <first batch number> --skip '<regex of frames already on the page>'`. For batch 02 the skip is `^390/|^1440/(Apply|Dialogs|Feedback) |^1440/Find / Browse / long title \+ no company — dark$`.
 2. If the runtime changed, run `install.js` first (1 `use_figma` call). The batch stub refuses a runtime with another checksum.
 3. Run each `batch-NN.js` (1 `use_figma` call each). Each batch writes into its own section "batch NN", 6 frames to a row.
 4. Take 1 `get_screenshot` of the section id in the receipt. Crop each frame by its `box` from the receipt, and save it as `<slug>.png`.
