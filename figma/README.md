@@ -1,0 +1,96 @@
+# Figma sync: roleflame — app states
+
+Figma file: https://www.figma.com/design/9VCvYGN0pz9faveIhSn6Kn ("roleflame — app states"),
+pages **Phone 390** and **Desktop 1440**, 130 frames. The code is the source. The frames are built
+from it, and a check fails when they differ. The pattern follows hirobius/hds
+(`check:figma-drift`, `figma/snapshot.json`, `figma/MCP-LEDGER.md`).
+
+## Files
+
+| File                             | What it is                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/figma/states.mjs`       | The screen fixtures: 65 named states with fixed data, a fixed clock (Tue, Nov 10, 2026, 17:00 UTC) and no network. One state = one frame per width and theme.                                                                                                                                                                                            |
+| `scripts/figma/extract.mjs`      | Renders each state in Playwright (Vite dev server) at 390 and 1440, light and dark, and writes `figma/spec.json`.                                                                                                                                                                                                                                        |
+| `scripts/figma/walk.js`          | The in-page walker. It reads each visible element's React fiber chain, so HDS components are found by identity (the exports of the HDS module the app runs). The app carries no markers and no extra runtime code.                                                                                                                                       |
+| `figma/spec.json`                | Per frame: the tree (HDS component, variant and props, text, auto layout direction, gap and padding, token classes), a `checksum` and a `projection` checksum. No pixel positions. Generated; do not edit. One frame per line; a frame whose copy holds an e-mail address outside example.com carries a reviewed `pii-allow` note for the pre-push scan. |
+| `scripts/figma/push.mjs`         | Plans a push, writes the `use_figma` scripts, and records their receipts in `figma/snapshot.json`.                                                                                                                                                                                                                                                       |
+| `scripts/figma/figma-runtime.js` | The code each `use_figma` script runs in Figma.                                                                                                                                                                                                                                                                                                          |
+| `figma/hds-components.json`      | The HDS library (`2VgBbVpKiDnu0aftJEVyBQ`) component and icon keys the push makes instances of.                                                                                                                                                                                                                                                          |
+| `figma/snapshot.json`            | What the last push put in Figma: per frame its node id, `checksum` and `projection`. It carries its own FNV-1a checksum, so a hand edit is refused.                                                                                                                                                                                                      |
+| `scripts/check-figma-drift.mjs`  | The drift check.                                                                                                                                                                                                                                                                                                                                         |
+| `figma/MCP-LEDGER.md`            | Every Figma MCP call, logged before it is made.                                                                                                                                                                                                                                                                                                          |
+
+## Check (`npm run check:figma-drift`)
+
+Offline, part of `npm run verify`. It renders the 130 frames again and compares each checksum
+with `figma/snapshot.json`. It also fails when `figma/spec.json` is not what the code renders now.
+A frame that is added, removed or changed in code since the last push is drift.
+
+1. If the check fails because you changed the UI, run `npm run figma:spec`.
+2. Push the changed frames (below).
+3. Commit `figma/spec.json`, `figma/snapshot.json` and the ledger rows.
+
+Exit codes: 0 no drift, 1 drift or a bad snapshot checksum, 2 no snapshot yet.
+
+It needs Playwright's Chromium (`PW_CHROMIUM_PATH`, else `/opt/pw-browsers/chromium`, else
+Playwright's own) and takes about 3 minutes. `FIGMA_SPEC_WORKERS` sets the parallel pages
+(default 4).
+
+**CI.** GitHub Actions is off in this repo (owner preference). If it comes back, add this step
+after `npm ci` and `npx playwright install --with-deps chromium`:
+
+```yaml
+- run: npm run check:figma-drift
+```
+
+**Figma mode.** `node scripts/check-figma-drift.mjs --figma <read.json>…` compares Figma itself
+with the snapshot:
+
+1. Run `npm run figma:push -- --emit-read <dir>`. It writes one read script per page.
+2. Log each call in the ledger, then run each script with `use_figma` (2 reads).
+3. Save each result as JSON, then run the check with the files.
+
+A frame that reads back differently was edited in Figma after the push. The read-back sees each
+node's name (the HDS component), each leaf's text and each container's direction.
+
+## GAP frames
+
+Two states use parts that HDS does not have yet. Their spec entries carry `gap`:
+
+- `Job / Not found / Unknown route`: hds#1425, SegmentedControl has no "none selected" state.
+- `Dialogs / Documents / Template open`: hds#1426, no template editor with inline variable chips.
+
+In Figma mode these frames may differ (a local `GAP: …` frame). The check lists them as expected
+and does not count them. Offline, they are checked like every other frame.
+
+Any element that has no HDS library component is drawn as a local frame named after it, with the
+`roleflame/leaf` plugin data. This is part of the spec, so it is not drift.
+
+## Push
+
+Caution: the push writes only the Roleflame file. It never publishes or edits the HDS library, and
+it never touches the "Archive — screenshots" page.
+
+1. Run `npm run figma:push -- --plan`. It lists the frames to create, update and remove.
+2. Run `npm run figma:push -- --emit <dir>`. It writes `push-NN.js` (under 50,000 characters each).
+3. Add one ledger row per script, then run each script with `use_figma` on file `9VCvYGN0pz9faveIhSn6Kn`.
+4. Save each result as `<dir>/receipt-NN.json`.
+5. Run `npm run figma:push -- --record <dir>/receipt-*.json`. It refuses a frame whose Figma read-back differs from the spec.
+6. Run `npm run check:figma-drift`, then commit.
+
+The push is idempotent. It owns only frames tagged with shared plugin data `roleflame/owner =
+roleflame-figma-sync` (plus `key` and `checksum`). On the first push it adopts the frame with the
+same name, so node ids and links stay. It rebuilds a frame in place, and it removes an owned frame
+only when its key leaves the spec. Untagged nodes (row labels, notes) stay.
+
+How a frame is built: an auto layout frame per container (direction, gap and padding from the
+spec), an HDS library instance per leaf component (variant from the code props, text set on the
+instance), an `Icon/<name>` instance per icon. Dark frames take the dark variable mode.
+
+## Frames that are not fully deterministic
+
+- `Find / Loading (scan running)`: the job source never answers, so the scan stays running. Its spinner is
+  held by reduced motion.
+- `Find / Signed out / 0 jobs (first run)`: same, with the scan that runs on open.
+- `Sign-in / Signed in`: the screen hands over after 600 ms. The fixture drops that one timer.
+- `Sign-in / Keyboard open`: drawn at 390 x 400 (the keyboard is not simulated).

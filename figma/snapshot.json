@@ -1,0 +1,818 @@
+{
+  "checksum": "b0cc53e2",
+  "snapshot": {
+    "schemaVersion": 1,
+    "file": {
+      "id": "9VCvYGN0pz9faveIhSn6Kn",
+      "name": "roleflame — app states"
+    },
+    "pushedAt": "2026-11-10T03:47:58.918Z",
+    "clock": "2026-11-10T17:00:00.000Z",
+    "frames": {
+      "1440/Apply / 0 jobs (empty) — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19283",
+        "checksum": "09da29fa",
+        "projection": "e764c881"
+      },
+      "1440/Apply / 0 jobs (empty) — light": {
+        "page": "Desktop 1440",
+        "id": "13:6724",
+        "checksum": "e9e93a84",
+        "projection": "e764c881"
+      },
+      "1440/Apply / 1 job — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19299",
+        "checksum": "f626c88f",
+        "projection": "f0f7aff6"
+      },
+      "1440/Apply / 1 job — light": {
+        "page": "Desktop 1440",
+        "id": "13:7360",
+        "checksum": "6bd4eb75",
+        "projection": "f0f7aff6"
+      },
+      "1440/Apply / Many jobs (sample, pager) — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19403",
+        "checksum": "a213fab8",
+        "projection": "2f537d20"
+      },
+      "1440/Apply / Many jobs (sample, pager) — light": {
+        "page": "Desktop 1440",
+        "id": "13:7940",
+        "checksum": "6a765dca",
+        "projection": "2f537d20"
+      },
+      "1440/Apply / Template dialog — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19815",
+        "checksum": "22eab577",
+        "projection": "69b76dec"
+      },
+      "1440/Apply / Template dialog — light": {
+        "page": "Desktop 1440",
+        "id": "13:9996",
+        "checksum": "bf73e4e9",
+        "projection": "69b76dec"
+      },
+      "1440/Apply / Templates open — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19657",
+        "checksum": "d4125586",
+        "projection": "bd8e7553"
+      },
+      "1440/Apply / Templates open — light": {
+        "page": "Desktop 1440",
+        "id": "13:9328",
+        "checksum": "b334736c",
+        "projection": "bd8e7553"
+      },
+      "1440/Dialogs / Add job — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19956",
+        "checksum": "4a6057be",
+        "projection": "f5671754"
+      },
+      "1440/Dialogs / Add job — light": {
+        "page": "Desktop 1440",
+        "id": "14:7113",
+        "checksum": "5d7c6f2c",
+        "projection": "f5671754"
+      },
+      "1440/Dialogs / Documents / Empty — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19986",
+        "checksum": "4baf9d35",
+        "projection": "cf4ce332"
+      },
+      "1440/Dialogs / Documents / Empty — light": {
+        "page": "Desktop 1440",
+        "id": "14:7306",
+        "checksum": "7c8a26fb",
+        "projection": "cf4ce332"
+      },
+      "1440/Dialogs / Documents / Template open — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20107",
+        "checksum": "526c3156",
+        "projection": "2e1d1e16",
+        "gap": [
+          "hds#1426: no template editor with inline variable chips"
+        ]
+      },
+      "1440/Dialogs / Documents / Template open — light": {
+        "page": "Desktop 1440",
+        "id": "14:7954",
+        "checksum": "33cb458e",
+        "projection": "2e1d1e16",
+        "gap": [
+          "hds#1426: no template editor with inline variable chips"
+        ]
+      },
+      "1440/Dialogs / Documents / With starters — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20017",
+        "checksum": "7652796d",
+        "projection": "6942f2f7"
+      },
+      "1440/Dialogs / Documents / With starters — light": {
+        "page": "Desktop 1440",
+        "id": "14:7699",
+        "checksum": "1be093db",
+        "projection": "6942f2f7"
+      },
+      "1440/Dialogs / Legal / Privacy — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20147",
+        "checksum": "de8c76c0",
+        "projection": "df1d4814"
+      },
+      "1440/Dialogs / Legal / Privacy — light": {
+        "page": "Desktop 1440",
+        "id": "14:8141",
+        "checksum": "edb65486",
+        "projection": "df1d4814"
+      },
+      "1440/Feedback / Merge prompt / Device data on sign-in — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20216",
+        "checksum": "9069409a",
+        "projection": "356536b3"
+      },
+      "1440/Feedback / Merge prompt / Device data on sign-in — light": {
+        "page": "Desktop 1440",
+        "id": "16:8196",
+        "checksum": "8085e0e0",
+        "projection": "356536b3"
+      },
+      "1440/Feedback / Toast / Skip with Undo — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20300",
+        "checksum": "e7d47765",
+        "projection": "569ec843"
+      },
+      "1440/Feedback / Toast / Skip with Undo — light": {
+        "page": "Desktop 1440",
+        "id": "16:8824",
+        "checksum": "37fc6993",
+        "projection": "569ec843"
+      },
+      "1440/Find / Browse / long title + no company — dark": {
+        "page": "Desktop 1440",
+        "id": "16:18802",
+        "checksum": "8da3de1b",
+        "projection": "38cff297"
+      },
+      "1440/Find / Browse / long title + no company — light": {
+        "page": "Desktop 1440",
+        "id": "12:7258",
+        "checksum": "cbd2603d",
+        "projection": "38cff297"
+      },
+      "1440/Find / Browse / many jobs — dark": {
+        "page": "Desktop 1440",
+        "id": "16:18659",
+        "checksum": "a86148d0",
+        "projection": "cfd85174"
+      },
+      "1440/Find / Browse / many jobs — light": {
+        "page": "Desktop 1440",
+        "id": "12:6945",
+        "checksum": "f602b7b6",
+        "projection": "cfd85174"
+      },
+      "1440/Find / Card description open — dark": {
+        "page": "Desktop 1440",
+        "id": "16:18978",
+        "checksum": "a3e5a04c",
+        "projection": "b4b69b98"
+      },
+      "1440/Find / Card description open — light": {
+        "page": "Desktop 1440",
+        "id": "12:8403",
+        "checksum": "4b717896",
+        "projection": "b4b69b98"
+      },
+      "1440/Find / Deck — dark": {
+        "page": "Desktop 1440",
+        "id": "16:18917",
+        "checksum": "a4d321c2",
+        "projection": "4975ac27"
+      },
+      "1440/Find / Deck — light": {
+        "page": "Desktop 1440",
+        "id": "12:7913",
+        "checksum": "7c889ab8",
+        "projection": "4975ac27"
+      },
+      "1440/Find / Loading (scan running) — dark": {
+        "page": "Desktop 1440",
+        "id": "16:18553",
+        "checksum": "b41a61d2",
+        "projection": "05254b4e"
+      },
+      "1440/Find / Loading (scan running) — light": {
+        "page": "Desktop 1440",
+        "id": "12:5583",
+        "checksum": "0b8aa15c",
+        "projection": "05254b4e"
+      },
+      "1440/Find / More menu open — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19074",
+        "checksum": "ed837385",
+        "projection": "33442814"
+      },
+      "1440/Find / More menu open — light": {
+        "page": "Desktop 1440",
+        "id": "12:8916",
+        "checksum": "53cd17d7",
+        "projection": "33442814"
+      },
+      "1440/Find / New companies / List — dark": {
+        "page": "Desktop 1440",
+        "id": "16:19180",
+        "checksum": "157c8afb",
+        "projection": "31d95999"
+      },
+      "1440/Find / New companies / List — light": {
+        "page": "Desktop 1440",
+        "id": "12:9659",
+        "checksum": "a177fe9d",
+        "projection": "31d95999"
+      },
+      "1440/Find / Signed out / 0 jobs (first run) — dark": {
+        "page": "Desktop 1440",
+        "id": "16:18522",
+        "checksum": "892c5670",
+        "projection": "9ab8851a"
+      },
+      "1440/Find / Signed out / 0 jobs (first run) — light": {
+        "page": "Desktop 1440",
+        "id": "12:5421",
+        "checksum": "4c9541da",
+        "projection": "9ab8851a"
+      },
+      "1440/Job / Company page / Larkspur Analytics — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20339",
+        "checksum": "79afb61a",
+        "projection": "4f89f478"
+      },
+      "1440/Job / Company page / Larkspur Analytics — light": {
+        "page": "Desktop 1440",
+        "id": "16:9025",
+        "checksum": "6e895c38",
+        "projection": "4f89f478"
+      },
+      "1440/Job / Job page / Default — dark": {
+        "page": "Desktop 1440",
+        "id": "23:13531",
+        "checksum": "a08ec75d",
+        "projection": "e17e4ea4"
+      },
+      "1440/Job / Job page / Default — light": {
+        "page": "Desktop 1440",
+        "id": "23:13239",
+        "checksum": "7a34ef63",
+        "projection": "e17e4ea4"
+      },
+      "1440/Job / Not found / Unknown route — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20434",
+        "checksum": "2240c86a",
+        "projection": "014059d3",
+        "gap": [
+          "hds#1425: SegmentedControl has no \"none selected\" state"
+        ]
+      },
+      "1440/Job / Not found / Unknown route — light": {
+        "page": "Desktop 1440",
+        "id": "16:9405",
+        "checksum": "b5ec8594",
+        "projection": "014059d3",
+        "gap": [
+          "hds#1425: SegmentedControl has no \"none selected\" state"
+        ]
+      },
+      "1440/Menus / Account menu / Signed in — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20447",
+        "checksum": "e1e519c1",
+        "projection": "9c1c2db5"
+      },
+      "1440/Menus / Account menu / Signed in — light": {
+        "page": "Desktop 1440",
+        "id": "16:9807",
+        "checksum": "9ea39727",
+        "projection": "03cffc5f"
+      },
+      "1440/Menus / Account menu / Signed out — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20506",
+        "checksum": "de9208cd",
+        "projection": "60cc715d"
+      },
+      "1440/Menus / Account menu / Signed out — light": {
+        "page": "Desktop 1440",
+        "id": "16:10209",
+        "checksum": "7a1d1a9f",
+        "projection": "f713fae3"
+      },
+      "1440/Menus / Scan details / After scan — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20565",
+        "checksum": "14e0a460",
+        "projection": "3f86d0d0"
+      },
+      "1440/Menus / Scan details / After scan — light": {
+        "page": "Desktop 1440",
+        "id": "16:10522",
+        "checksum": "4a7d3052",
+        "projection": "3f86d0d0"
+      },
+      "1440/Sign-in / Check email — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20640",
+        "checksum": "9bcc86ca",
+        "projection": "869e5038"
+      },
+      "1440/Sign-in / Check email — light": {
+        "page": "Desktop 1440",
+        "id": "16:10652",
+        "checksum": "8c0550e0",
+        "projection": "869e5038"
+      },
+      "1440/Sign-in / Confirm link — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20654",
+        "checksum": "f7d9cfb1",
+        "projection": "043dfd9c"
+      },
+      "1440/Sign-in / Confirm link — light": {
+        "page": "Desktop 1440",
+        "id": "16:10706",
+        "checksum": "83e6c5f7",
+        "projection": "043dfd9c"
+      },
+      "1440/Sign-in / Email — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20628",
+        "checksum": "b635090b",
+        "projection": "1427eda3"
+      },
+      "1440/Sign-in / Email — light": {
+        "page": "Desktop 1440",
+        "id": "16:10591",
+        "checksum": "6472cba5",
+        "projection": "1427eda3"
+      },
+      "1440/Sign-in / Error (refused link) — dark": {
+        "page": "Desktop 1440",
+        "id": "16:20667",
+        "checksum": "d69b09c9",
+        "projection": "296fd70f"
+      },
+      "1440/Sign-in / Error (refused link) — light": {
+        "page": "Desktop 1440",
+        "id": "16:10771",
+        "checksum": "08254a1f",
+        "projection": "296fd70f"
+      },
+      "1440/Sign-in / Signed in — dark": {
+        "page": "Desktop 1440",
+        "id": "22:13676",
+        "checksum": "45518916",
+        "projection": "05959852"
+      },
+      "1440/Sign-in / Signed in — light": {
+        "page": "Desktop 1440",
+        "id": "22:13350",
+        "checksum": "f9d8e254",
+        "projection": "05959852"
+      },
+      "390/Apply / 0 jobs (empty) — dark": {
+        "page": "Phone 390",
+        "id": "16:14069",
+        "checksum": "0bc1213b",
+        "projection": "393810b3"
+      },
+      "390/Apply / 0 jobs (empty) — light": {
+        "page": "Phone 390",
+        "id": "13:6678",
+        "checksum": "a9d7f433",
+        "projection": "393810b3"
+      },
+      "390/Apply / 1 job — dark": {
+        "page": "Phone 390",
+        "id": "16:14086",
+        "checksum": "3e39575c",
+        "projection": "47faaae3"
+      },
+      "390/Apply / 1 job — light": {
+        "page": "Phone 390",
+        "id": "13:7047",
+        "checksum": "b8e8d194",
+        "projection": "47faaae3"
+      },
+      "390/Apply / All jobs sheet — dark": {
+        "page": "Phone 390",
+        "id": "16:14625",
+        "checksum": "ea9e358a",
+        "projection": "5f039136"
+      },
+      "390/Apply / All jobs sheet — light": {
+        "page": "Phone 390",
+        "id": "13:10331",
+        "checksum": "f70c4012",
+        "projection": "5f039136"
+      },
+      "390/Apply / Filters open — dark": {
+        "page": "Phone 390",
+        "id": "16:14281",
+        "checksum": "a47f33a6",
+        "projection": "34c9106a"
+      },
+      "390/Apply / Filters open — light": {
+        "page": "Phone 390",
+        "id": "13:8231",
+        "checksum": "07fcf28e",
+        "projection": "34c9106a"
+      },
+      "390/Apply / Many jobs (sample, pager) — dark": {
+        "page": "Phone 390",
+        "id": "16:14184",
+        "checksum": "39606771",
+        "projection": "3b3525ff"
+      },
+      "390/Apply / Many jobs (sample, pager) — light": {
+        "page": "Phone 390",
+        "id": "13:7611",
+        "checksum": "f9007919",
+        "projection": "3b3525ff"
+      },
+      "390/Apply / Template dialog — dark": {
+        "page": "Phone 390",
+        "id": "16:14514",
+        "checksum": "a7aa7e12",
+        "projection": "c56fe347"
+      },
+      "390/Apply / Template dialog — light": {
+        "page": "Phone 390",
+        "id": "13:9623",
+        "checksum": "fae089ea",
+        "projection": "c56fe347"
+      },
+      "390/Apply / Templates open — dark": {
+        "page": "Phone 390",
+        "id": "16:14386",
+        "checksum": "2c90e997",
+        "projection": "06286d5e"
+      },
+      "390/Apply / Templates open — light": {
+        "page": "Phone 390",
+        "id": "13:8905",
+        "checksum": "6cc4764f",
+        "projection": "06286d5e"
+      },
+      "390/Dialogs / Add job — dark": {
+        "page": "Phone 390",
+        "id": "16:14766",
+        "checksum": "7538dde9",
+        "projection": "87357ad7"
+      },
+      "390/Dialogs / Add job — light": {
+        "page": "Phone 390",
+        "id": "14:7014",
+        "checksum": "6fd76691",
+        "projection": "87357ad7"
+      },
+      "390/Dialogs / Documents / Empty — dark": {
+        "page": "Phone 390",
+        "id": "16:14797",
+        "checksum": "31cc035f",
+        "projection": "1ff44099"
+      },
+      "390/Dialogs / Documents / Empty — light": {
+        "page": "Phone 390",
+        "id": "14:7210",
+        "checksum": "87f43377",
+        "projection": "1ff44099"
+      },
+      "390/Dialogs / Documents / Template open — dark": {
+        "page": "Phone 390",
+        "id": "16:14920",
+        "checksum": "960f190c",
+        "projection": "a404614a",
+        "gap": [
+          "hds#1426: no template editor with inline variable chips"
+        ]
+      },
+      "390/Dialogs / Documents / Template open — light": {
+        "page": "Phone 390",
+        "id": "14:7827",
+        "checksum": "eb135636",
+        "projection": "a404614a",
+        "gap": [
+          "hds#1426: no template editor with inline variable chips"
+        ]
+      },
+      "390/Dialogs / Documents / With starters — dark": {
+        "page": "Phone 390",
+        "id": "16:14829",
+        "checksum": "c7ab8543",
+        "projection": "ffa90ca0"
+      },
+      "390/Dialogs / Documents / With starters — light": {
+        "page": "Phone 390",
+        "id": "14:7503",
+        "checksum": "5a8333fb",
+        "projection": "ffa90ca0"
+      },
+      "390/Dialogs / Legal / Privacy — dark": {
+        "page": "Phone 390",
+        "id": "16:14961",
+        "checksum": "17bc181d",
+        "projection": "9430e2a4"
+      },
+      "390/Dialogs / Legal / Privacy — light": {
+        "page": "Phone 390",
+        "id": "14:8050",
+        "checksum": "4d6b5ce5",
+        "projection": "9430e2a4"
+      },
+      "390/Feedback / Merge prompt / Device data on sign-in — dark": {
+        "page": "Phone 390",
+        "id": "16:15032",
+        "checksum": "2ac8bba5",
+        "projection": "34fff32b"
+      },
+      "390/Feedback / Merge prompt / Device data on sign-in — light": {
+        "page": "Phone 390",
+        "id": "16:8074",
+        "checksum": "2a61e4ad",
+        "projection": "34fff32b"
+      },
+      "390/Feedback / Toast / Skip with Undo — dark": {
+        "page": "Phone 390",
+        "id": "16:15118",
+        "checksum": "cbe4416d",
+        "projection": "7cbc49b5"
+      },
+      "390/Feedback / Toast / Skip with Undo — light": {
+        "page": "Phone 390",
+        "id": "16:8682",
+        "checksum": "b4a01af5",
+        "projection": "7cbc49b5"
+      },
+      "390/Find / Browse / long title + no company — dark": {
+        "page": "Phone 390",
+        "id": "16:13614",
+        "checksum": "452b4a80",
+        "projection": "b7be97dd"
+      },
+      "390/Find / Browse / long title + no company — light": {
+        "page": "Phone 390",
+        "id": "12:7099",
+        "checksum": "a7a89b28",
+        "projection": "b7be97dd"
+      },
+      "390/Find / Browse / many jobs — dark": {
+        "page": "Phone 390",
+        "id": "16:13457",
+        "checksum": "bb006c19",
+        "projection": "567716ac"
+      },
+      "390/Find / Browse / many jobs — light": {
+        "page": "Phone 390",
+        "id": "12:6499",
+        "checksum": "4166e2b1",
+        "projection": "567716ac"
+      },
+      "390/Find / Card description open — dark": {
+        "page": "Phone 390",
+        "id": "16:13784",
+        "checksum": "787a4ceb",
+        "projection": "0b396fbc"
+      },
+      "390/Find / Card description open — light": {
+        "page": "Phone 390",
+        "id": "12:8134",
+        "checksum": "a8ce6bf3",
+        "projection": "0b396fbc"
+      },
+      "390/Find / Deck — dark": {
+        "page": "Phone 390",
+        "id": "16:13727",
+        "checksum": "9fefd43b",
+        "projection": "5cb87769"
+      },
+      "390/Find / Deck — light": {
+        "page": "Phone 390",
+        "id": "12:7739",
+        "checksum": "04f3b8f3",
+        "projection": "5cb87769"
+      },
+      "390/Find / Loading (scan running) — dark": {
+        "page": "Phone 390",
+        "id": "16:13363",
+        "checksum": "8a9c7e0b",
+        "projection": "efc2c5e6"
+      },
+      "390/Find / Loading (scan running) — light": {
+        "page": "Phone 390",
+        "id": "12:5498",
+        "checksum": "a990ad53",
+        "projection": "efc2c5e6"
+      },
+      "390/Find / More menu open — dark": {
+        "page": "Phone 390",
+        "id": "16:13863",
+        "checksum": "4f25c7fe",
+        "projection": "3071e6bc"
+      },
+      "390/Find / More menu open — light": {
+        "page": "Phone 390",
+        "id": "12:8671",
+        "checksum": "4f51e766",
+        "projection": "3071e6bc"
+      },
+      "390/Find / New companies / List — dark": {
+        "page": "Phone 390",
+        "id": "16:13967",
+        "checksum": "bd4b2698",
+        "projection": "2ce17d2f"
+      },
+      "390/Find / New companies / List — light": {
+        "page": "Phone 390",
+        "id": "12:9353",
+        "checksum": "171a48e0",
+        "projection": "2ce17d2f"
+      },
+      "390/Find / Signed out / 0 jobs (first run) — dark": {
+        "page": "Phone 390",
+        "id": "16:13336",
+        "checksum": "fbc179b9",
+        "projection": "4123078a"
+      },
+      "390/Find / Signed out / 0 jobs (first run) — light": {
+        "page": "Phone 390",
+        "id": "12:5336",
+        "checksum": "987371e1",
+        "projection": "4123078a"
+      },
+      "390/Job / Company page / Larkspur Analytics — dark": {
+        "page": "Phone 390",
+        "id": "16:15158",
+        "checksum": "532596a8",
+        "projection": "7f9982e4"
+      },
+      "390/Job / Company page / Larkspur Analytics — light": {
+        "page": "Phone 390",
+        "id": "16:8930",
+        "checksum": "266cedd0",
+        "projection": "7f9982e4"
+      },
+      "390/Job / Job page / Default — dark": {
+        "page": "Phone 390",
+        "id": "23:13022",
+        "checksum": "8a42524c",
+        "projection": "a832f51e"
+      },
+      "390/Job / Job page / Default — light": {
+        "page": "Phone 390",
+        "id": "23:12804",
+        "checksum": "0bc53c24",
+        "projection": "a832f51e"
+      },
+      "390/Job / Not found / Unknown route — dark": {
+        "page": "Phone 390",
+        "id": "16:15255",
+        "checksum": "e356f433",
+        "projection": "12bd878d",
+        "gap": [
+          "hds#1425: SegmentedControl has no \"none selected\" state"
+        ]
+      },
+      "390/Job / Not found / Unknown route — light": {
+        "page": "Phone 390",
+        "id": "16:9375",
+        "checksum": "144ef733",
+        "projection": "12bd878d",
+        "gap": [
+          "hds#1425: SegmentedControl has no \"none selected\" state"
+        ]
+      },
+      "390/Menus / Account menu / Signed in — dark": {
+        "page": "Phone 390",
+        "id": "16:15269",
+        "checksum": "889dbf3e",
+        "projection": "860b3cd9"
+      },
+      "390/Menus / Account menu / Signed in — light": {
+        "page": "Phone 390",
+        "id": "16:9609",
+        "checksum": "b5081676",
+        "projection": "1fdfae1b"
+      },
+      "390/Menus / Account menu / Signed out — dark": {
+        "page": "Phone 390",
+        "id": "16:15330",
+        "checksum": "f43234f0",
+        "projection": "f922f1cd"
+      },
+      "390/Menus / Account menu / Signed out — light": {
+        "page": "Phone 390",
+        "id": "16:10009",
+        "checksum": "1dc8ab50",
+        "projection": "cf749133"
+      },
+      "390/Menus / Scan details / After scan — dark": {
+        "page": "Phone 390",
+        "id": "16:15391",
+        "checksum": "46e0670d",
+        "projection": "bf5b84f8"
+      },
+      "390/Menus / Scan details / After scan — light": {
+        "page": "Phone 390",
+        "id": "16:10366",
+        "checksum": "45468805",
+        "projection": "bf5b84f8"
+      },
+      "390/Sign-in / Check email — dark": {
+        "page": "Phone 390",
+        "id": "16:15464",
+        "checksum": "aa3184b6",
+        "projection": "633bf236"
+      },
+      "390/Sign-in / Check email — light": {
+        "page": "Phone 390",
+        "id": "16:10634",
+        "checksum": "16036d4e",
+        "projection": "633bf236"
+      },
+      "390/Sign-in / Confirm link — dark": {
+        "page": "Phone 390",
+        "id": "16:15473",
+        "checksum": "9287dd43",
+        "projection": "ed90616c"
+      },
+      "390/Sign-in / Confirm link — light": {
+        "page": "Phone 390",
+        "id": "16:10688",
+        "checksum": "f37f709b",
+        "projection": "ed90616c"
+      },
+      "390/Sign-in / Email — dark": {
+        "page": "Phone 390",
+        "id": "16:15455",
+        "checksum": "370d1a61",
+        "projection": "fce99fb5"
+      },
+      "390/Sign-in / Email — light": {
+        "page": "Phone 390",
+        "id": "16:10573",
+        "checksum": "b2493bb9",
+        "projection": "fce99fb5"
+      },
+      "390/Sign-in / Error (refused link) — dark": {
+        "page": "Phone 390",
+        "id": "16:15482",
+        "checksum": "cd94f61b",
+        "projection": "a36b19ff"
+      },
+      "390/Sign-in / Error (refused link) — light": {
+        "page": "Phone 390",
+        "id": "16:10753",
+        "checksum": "a8d18383",
+        "projection": "a36b19ff"
+      },
+      "390/Sign-in / Keyboard open — dark": {
+        "page": "Phone 390",
+        "id": "16:15491",
+        "checksum": "5190b289",
+        "projection": "fce99fb5"
+      },
+      "390/Sign-in / Keyboard open — light": {
+        "page": "Phone 390",
+        "id": "16:10822",
+        "checksum": "1a2cd439",
+        "projection": "fce99fb5"
+      },
+      "390/Sign-in / Signed in — dark": {
+        "page": "Phone 390",
+        "id": "22:6835",
+        "checksum": "2a39e48e",
+        "projection": "225ee6fa"
+      },
+      "390/Sign-in / Signed in — light": {
+        "page": "Phone 390",
+        "id": "22:6487",
+        "checksum": "d4773276",
+        "projection": "225ee6fa"
+      }
+    }
+  }
+}
