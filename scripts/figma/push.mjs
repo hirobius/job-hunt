@@ -55,7 +55,14 @@ const runtime = () =>
   readFileSync(join(HERE, 'figma-runtime.js'), 'utf8').replace(/^\/\/.*\n/gm, '');
 const components = () => {
   const c = readJson(join(ROOT, 'figma', 'hds-components.json'));
-  return { components: c.components, icons: c.icons };
+  const d = /id="flame-outer"[^>]*d="([^"]*)"/.exec(
+    readFileSync(join(ROOT, 'public', 'favicon.svg'), 'utf8'),
+  )[1];
+  // Every 4th point of the flame outline is enough at 24 to 72 px.
+  const pts = d.replace(/Z$/, '').slice(1).split('L');
+  const short = `M${pts.filter((_, i) => i % 4 === 0).join('L')}Z`;
+  const logo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="1 5 87 115"><path fill="#1e2efd" d="${short}"/></svg>`;
+  return { components: c.components, icons: c.icons, logo };
 };
 /**
  * The payload a push sends: what figma-runtime.js draws, as arrays. A leaf is

@@ -209,22 +209,120 @@ async function plainText(t, name) {
 // space left, and its text wraps (textAutoResize HEIGHT) instead of clipping.
 function fill(node, parentDir) {
   if (!node.parent || !('layoutMode' in node.parent) || node.parent.layoutMode === 'NONE') return;
+  const isText = node.name === '#text' || node.name === 'Text' || node.name === 'text';
+  const box = node.type === 'FRAME' && node.getSharedPluginData(NS, 'leaf') !== '1';
   try {
     if (parentDir === 'VERTICAL') node.layoutSizingHorizontal = 'FILL';
-    else if (node.name === '#text' || node.name === 'Text') node.layoutGrow = 1;
+    else if (isText || box) node.layoutGrow = 1;
   } catch {
     /* fixed-size instance */
   }
-  if (node.type === 'INSTANCE' && (node.name === '#text' || node.name === 'Text')) {
+  if (node.type === 'INSTANCE' && isText) {
     const t = node.findOne((x) => x.type === 'TEXT');
+    if (!t) return;
     try {
-      if (t) t.textAutoResize = 'HEIGHT';
+      t.layoutSizingHorizontal = 'FILL';
+      t.textAutoResize = 'HEIGHT';
     } catch {
-      /* locked by the component */
+      try {
+        t.textAutoResize = 'WIDTH_AND_HEIGHT';
+      } catch {
+        /* locked by the component */
+      }
     }
   }
 }
 
+// Look of the app that the spec tree does not carry: brand logo, nav segment, cards, button icons.
+const GREY = { r: 0.914, g: 0.918, b: 0.925 };
+const INK = { r: 0.067, g: 0.094, b: 0.153 };
+const solid = (color) => [{ type: 'SOLID', color }];
+const LABEL_ICON = {
+  Account: 'user',
+  Starred: 'star',
+  'More actions': 'more-horizontal',
+  Copy: 'file',
+  'Open posting': 'external-link',
+  Close: 'x',
+};
+function iconName(p) {
+  const raw = p.iconLeft || p.iconRight || p.icon || '';
+  if (raw)
+    return String(raw)
+      .replace(/^icon:/, '')
+      .replace(/([a-z])([A-Z])/g, '$1-$2')
+      .toLowerCase();
+  const label = String(p.label || '');
+  const hit = Object.keys(LABEL_ICON).find((k) => label.startsWith(k));
+  return hit ? LABEL_ICON[hit] : '';
+}
+async function setIcon(inst, p) {
+  const name = iconName(p || {});
+  const comp = name ? await iconFor(name) : null;
+  const props = inst.componentProperties || {};
+  const want = {};
+  for (const [k, d] of Object.entries(props)) {
+    if (d.type === 'INSTANCE_SWAP' && comp) want[k] = comp.id;
+    if (d.type === 'BOOLEAN' && /icon/i.test(k)) {
+      const side = /left|leading|start/i.test(k) ? 'L' : /right|trailing|end/i.test(k) ? 'R' : '';
+      want[k] = side === 'L' ? !!(p && p.iconLeft) : side === 'R' ? !!(p && p.iconRight) : !!comp;
+    }
+  }
+  try {
+    if (Object.keys(want).length) inst.setProperties(want);
+  } catch {
+    /* keep the default icon */
+  }
+}
+function logo(row) {
+  const n = figma.createNodeFromSvg(DATA.logo);
+  n.name = 'svg';
+  n.setSharedPluginData(NS, 'leaf', '1');
+  n.resize(row ? 18 : 54, row ? 24 : 72);
+  return n;
+}
+async function dress(f, sel) {
+  if (f.name === 'Box' && f.children.length && f.children.every((k) => k.name === 'a')) {
+    f.fills = solid(GREY);
+    f.cornerRadius = 10;
+    for (const a of f.children) {
+      a.layoutGrow = 1;
+      a.primaryAxisAlignItems = 'CENTER';
+      a.counterAxisAlignItems = 'CENTER';
+      a.paddingTop = a.paddingBottom = 10;
+      a.cornerRadius = 8;
+      const on = firstText(a).trim() === sel;
+      if (on) a.fills = solid(INK);
+      for (const t of a.findAll((x) => x.type === 'TEXT'))
+        try {
+          t.textAlignHorizontal = 'CENTER';
+          t.fills = solid(on ? { r: 1, g: 1, b: 1 } : { r: 0.42, g: 0.45, b: 0.5 });
+        } catch {
+          /* locked */
+        }
+    }
+  }
+  if (f.name === 'Card') {
+    f.fills = solid(GREY);
+    f.cornerRadius = 12;
+    f.paddingTop = f.paddingBottom = f.paddingLeft = f.paddingRight = 16;
+  }
+  if (f.name === 'EmptyState' || (f.name === 'Stack' && f.parent && f.parent.name === 'Card')) {
+    f.counterAxisAlignItems = 'CENTER';
+    if (f.layoutMode === 'HORIZONTAL') f.primaryAxisAlignItems = 'CENTER';
+    for (const t of f.findAll((x) => x.type === 'TEXT'))
+      try {
+        t.textAlignHorizontal = 'CENTER';
+      } catch {
+        /* locked */
+      }
+  }
+  if (f.layoutMode === 'HORIZONTAL') {
+    f.counterAxisAlignItems = 'CENTER';
+    const last = f.children[f.children.length - 1];
+    if (last && last.name === 'Menu') f.primaryAxisAlignItems = 'SPACE_BETWEEN';
+  }
+}
 // Payload arrays (push.mjs slim() and encode()) back to nodes: [c, t, p] leaf and
 // [c, row, gap, pad, kids] container, strings and objects as indexes into DATA.s.
 const S = DATA.s || [];
@@ -251,6 +349,11 @@ async function build(n, parent) {
     return;
   }
   if (!n.k) {
+    if (n.c === 'svg' && !(n.p && n.p.icon) && DATA.logo && parent.name === 'span') {
+      const l = logo(parentDir === 'HORIZONTAL');
+      parent.appendChild(l);
+      return;
+    }
     let comp = null;
     const name = n.c;
     if (n.c === 'svg' || n.c === 'Icon')
@@ -272,12 +375,22 @@ async function build(n, parent) {
         parent.appendChild(inst);
         inst.name = name;
         try {
-          inst.setProperties(variantProps(set, n.p));
+          // The app's default control size is md; HDS defaults to sm.
+          const props = /^(Button|Input)$/.test(setName) ? { size: 'md', ...n.p } : n.p;
+          inst.setProperties(variantProps(set, props));
         } catch {
           /* keep the default variant */
         }
         await setText(inst, n.t);
+        if (/Button/.test(setName)) await setIcon(inst, n.p);
         fill(inst, parentDir);
+        // The animation toggle floats in the top-right corner of the sign-in surface.
+        if (n.p && n.p.label === 'Play animations') {
+          inst.layoutPositioning = 'ABSOLUTE';
+          inst.constraints = { horizontal: 'MAX', vertical: 'MIN' };
+          inst.x = parent.width - inst.width - 8;
+          inst.y = 16;
+        }
         return;
       }
     }
@@ -308,7 +421,26 @@ async function build(n, parent) {
   }
   fill(f, parentDir);
   for (const k of n.k || []) await build(k, f);
+  if (f.name === 'span' && f.children[0] && f.children[0].name === 'svg') {
+    const t = f.children[1] && f.children[1].findOne((x) => x.type === 'TEXT');
+    if (t)
+      try {
+        await figma.loadFontAsync({ family: t.fontName.family, style: 'Bold' });
+        t.fontName = { family: t.fontName.family, style: 'Bold' };
+        t.fontSize = f.layoutMode === 'HORIZONTAL' ? 20 : 44;
+        t.textAutoResize = 'WIDTH_AND_HEIGHT';
+        f.children[1].layoutGrow = 0;
+        f.children[1].resize(Math.max(f.children[1].width, t.width), Math.ceil(t.height));
+        if (f.layoutMode === 'VERTICAL') f.paddingBottom = 24;
+        f.counterAxisAlignItems = 'CENTER';
+        if (f.layoutMode === 'VERTICAL') f.parent.counterAxisAlignItems = 'CENTER';
+      } catch {
+        /* font */
+      }
+  }
+  await dress(f, SEL);
 }
+let SEL = '';
 
 let darkMode = null;
 async function themeFrame(frame, theme, existingModes) {
@@ -382,7 +514,7 @@ async function overlay(n, frame, spec) {
   const phone = W < 1024;
   const isToast = n.c === 'ol';
   const isMenu = n.c === 'Box' || n.c === 'Menu' || n.c === 'Stack';
-  const w = isToast ? Math.min(W - 32, 420) : isMenu ? 280 : phone ? W : Math.min(W - 64, 640);
+  const w = isToast ? Math.min(W - 32, 420) : isMenu ? 280 : phone ? W : Math.min(W - 64, 512);
   holder.resize(w, Math.max(1, holder.height));
   holder.counterAxisSizingMode = 'FIXED';
   holder.primaryAxisSizingMode = 'AUTO';
@@ -404,7 +536,15 @@ async function overlay(n, frame, spec) {
       : phone
         ? 0
         : Math.max(16, Math.round((H - holder.height) / 2));
-  if (phone && !isMenu && !isToast) holder.resize(w, H);
+  if (phone && !isMenu && !isToast) {
+    holder.resize(w, H);
+    holder.primaryAxisSizingMode = 'FIXED';
+    try {
+      if (body) body.layoutSizingVertical = 'FILL';
+    } catch {
+      /* hug */
+    }
+  }
 }
 for (const spec of DATA.frames) {
   let frame = owned().find((f) => f.getSharedPluginData(NS, 'key') === spec.key);
@@ -433,6 +573,15 @@ for (const spec of DATA.frames) {
     },
   ];
   await themeFrame(frame, spec.theme, null);
+  // App shell padding: 20 px on phone; on desktop the content column is 920 px, centred.
+  const side = spec.width < 1024 ? 20 : Math.round((spec.width - 920) / 2);
+  [frame.paddingTop, frame.paddingRight, frame.paddingBottom, frame.paddingLeft] = [
+    16,
+    side,
+    16,
+    side,
+  ];
+  SEL = spec.name.split(' / ')[0];
   const tree = spec.tree || DATA.frames.find((x) => x.key === spec.same).tree;
   const [main, ...rest] = tree;
   if (main) await build(node(main), frame);

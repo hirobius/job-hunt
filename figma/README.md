@@ -109,7 +109,17 @@ The drift check proves structure only. The fidelity gate proves the frame looks 
 
 The score is the share of matching pixels (pixelmatch, threshold 0.15, at half size). A frame fails below 0.9. The script exits 1 on any fail or missing render.
 
-Sample result (5 frames, 2026-11-10): min 0.600, median 0.921, 2 of 5 fail. Known gaps: no brand logo, text instances wrap in narrow columns inside some rows, the phone dialog body does not fill the viewport, icons inside buttons and the selected segment are not set.
+Sample result (5 frames, 2026-11-10, after the fidelity rework): min 0.914, median 0.935, 0 of 5 fail.
+
+| Frame                                | Score |
+| ------------------------------------ | ----- |
+| 1440 Apply / 0 jobs — light          | 0.979 |
+| 1440 Apply / Template dialog — light | 0.935 |
+| 390 Apply / 0 jobs — light           | 0.925 |
+| 390 Job / Not found — light          | 0.945 |
+| 390 Sign-in / Email — light          | 0.914 |
+
+The runtime adds what the spec tree does not carry: the brand logo (from `public/favicon.svg`), the selected nav segment, card fills, HDS icon instances in buttons, and md as the default control size. Text fills the width of its column or shares the row. A phone dialog fills the screen. The other 125 frames are not pushed yet.
 
 ## CI steps (not in `npm run verify`)
 
