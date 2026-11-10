@@ -218,7 +218,17 @@ export function RoleFlameLogo({
   className,
   style,
 }: LogoProps) {
-  const T = { ...TEXT_SETTINGS, ...text };
+  // The letters' shimmer comes from the flame's settings (flameEngine.ts FLAME), one place to tune it.
+  const T = {
+    ...TEXT_SETTINGS,
+    skew: settings.tSkew,
+    fade: settings.tFade,
+    shake: settings.tShake,
+    pct: settings.tPct,
+    every: settings.tEvery,
+    bob: 0,
+    ...text,
+  };
   const { frame, tick, running } = useFlame(animated, settings);
   const [salt] = useState(() => (Math.random() * 1e6) | 0);
   const step = Math.floor(tick / Math.max(1, T.every));

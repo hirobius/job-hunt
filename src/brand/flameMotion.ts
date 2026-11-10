@@ -27,10 +27,12 @@ export function animateFlame(svg: Element, letters: HTMLElement[] = []): () => v
     n++;
     if (S.tOn !== 'letters' || n % S.tEvery) return;
     for (const l of letters) {
+      // Only some letters move each frame (tPct); the rest hold their last pose.
+      if (l.style.transform && jiggle() * 100 >= S.tPct) continue;
       const dx = ((jiggle() * 2 - 1) * S.tShake) / 100;
       const skew = ((jiggle() * 2 - 1) * S.tSkew).toFixed(1);
       l.style.transform = (dx ? `translateX(${dx.toFixed(3)}em) ` : '') + `skewX(${skew}deg)`;
-      l.style.opacity = (1 - jiggle() * S.tFade).toFixed(2);
+      if (S.tFade) l.style.opacity = (1 - jiggle() * S.tFade).toFixed(2);
     }
   };
   const halt = () => {

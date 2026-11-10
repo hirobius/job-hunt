@@ -20,7 +20,7 @@ describe('the flame settings', () => {
         '"fuse":0.2,"rate":5.2,"burst":0.6,"emitW":18,"emitY":16,"arc":1.15,"launchUp":[2.2,3.5],"launchOut":2.4,"launchJitter":0.75,' +
         '"size":[14,22],"life":[12,24],"stretch":2.6,"taper":1,"head":0.43,"cool":0.46,"grow":2,"buoyancy":0.81,"drag":0.855,' +
         '"swirl":1.75,"swirlSize":15.5,"swirlSpeed":0.29,"fine":0.91,"wander":0.49,"wanderRate":0.47,"gust":0.12,"pull":0.033,"lift":0.65,' +
-        '"cell":2.25,"smooth":0.8,"corner":-0.32,"tOn":"off","tShake":0,"tSkew":2.5,"tFade":0.05,"tEvery":1}',
+        '"cell":2.25,"smooth":0.8,"corner":-0.32,"tOn":"letters","tShake":0,"tSkew":1,"tFade":0,"tEvery":1,"tPct":33}',
     );
   });
 });

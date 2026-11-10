@@ -30,7 +30,7 @@ from flame.svg: the wordmark in the header and on sign-in (`src/brand/Flame.tsx`
 unique per instance) and the icons. `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its
 path data, a stale `public/favicon.svg`, or non-HDS fills.
 **Motion:** `flameMotion.ts` `animateFlame(svg, letters)` rewrites the three paths' `d` every 1/fps (the
-box never changes) and can flicker each wordmark letter (`FLAME.tOn`; off since Adrian 2026-11-10, so the letters stand still);
+box never changes) and shimmers the wordmark letters (`FLAME.tOn` etc., 2026-11-10: lean ≤ 1°, no fade, a third of the letters per frame);
 the header/sign-in `Wordmark` and `Flame` reach it only through `startFlame.ts` (a lazy chunk, `entryChunk.test.ts`: the
 entry is under its 255 kB budget (252.6 kB); the still frame shows until it lands);
 it animates continuously (Adrian 2026-10-30: never settles);

@@ -44,7 +44,7 @@ describe('Wordmark', () => {
     expect(wordmarkMarkup('<svg/>')).not.toContain('rjb-wordmark-l');
   });
 
-  it('the flame moves and the letters stay still, and under reduced motion the flame does too', async () => {
+  it('the flame moves and the letters shimmer, unless motion is reduced', async () => {
     await loadMotion();
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false }));
@@ -55,7 +55,7 @@ describe('Wordmark', () => {
     const still = outer.getAttribute('d');
     act(() => vi.advanceTimersByTime(250));
     expect(outer.getAttribute('d')).not.toBe(still);
-    expect((word.querySelector('.rjb-wordmark-l') as HTMLElement).style.transform).toBe('');
+    expect((word.querySelector('.rjb-wordmark-l') as HTMLElement).style.transform).toMatch(/skewX/);
     cleanup();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: q.includes('reduce') }));
     render(<Wordmark as="p" />);

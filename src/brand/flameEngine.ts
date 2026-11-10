@@ -74,6 +74,8 @@ export type FlameSettings = {
   tSkew: number;
   tFade: number;
   tEvery: number;
+  /** Percent of the letters that move on each frame; the others hold their pose. */
+  tPct: number;
 };
 /** Adrian's settings, 2026-11-10, as copied out of the flame tuner. Tune only here. */
 export const FLAME: FlameSettings = {
@@ -156,11 +158,14 @@ export const FLAME: FlameSettings = {
   cell: 2.25,
   smooth: 0.8,
   corner: -0.32,
-  tOn: 'off',
+  // The letters' heat shimmer (Claude's setting, Adrian 2026-11-10): a lean of 1 degree at most,
+  // no fade, a third of the letters each frame, the rest holding their last pose.
+  tOn: 'letters',
   tShake: 0,
-  tSkew: 2.5,
-  tFade: 0.05,
+  tSkew: 1,
+  tFade: 0,
   tEvery: 1,
+  tPct: 33,
 };
 type Pt = [number, number];
 export function rng(seed: number) {
