@@ -1,7 +1,7 @@
 // The wordmark: the flame, then the name (Adrian 2026-10-30; was St(flame)ke). Named for assistive
 // tech by aria-label; its parts and the flame are hidden. The markup is wordmarkMarkup's, shared
 // with the og-image; the flame is src/brand/flame.svg with its ids made unique per instance, set
-// moving by flameMotion (still under reduced motion), its letters flickering with it.
+// moving by flameMotion (Version E; still under reduced motion), its letters flickering with it.
 import { useEffect, useId, useMemo, useRef } from 'react';
 import { BRAND } from '../brand';
 import { flameSvg, withUniqueIds } from './flameSvg';

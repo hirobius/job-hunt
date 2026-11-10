@@ -57,34 +57,3 @@
     background: var(--semantic-color-border-strong);
   }
 }
-
-/* The big flame glows (2026-11-10): a soft halo of the flame's own blue behind the sign-in screen's
-   stacked logo and the boot hold's flame (the boot splash draws its own, in its svg: brandHtml.ts).
-   Paint only: it takes no room, and it scales with the logo when the keyboard opens. */
-.rjb-rf[data-layout='stacked'],
-.rjb-boot-hold .rjb-flame {
-  position: relative;
-  isolation: isolate;
-}
-.rjb-rf[data-layout='stacked']::before,
-.rjb-boot-hold .rjb-flame::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: 50%;
-  top: 1.2em;
-  width: 5.5em;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--rjb-rf-1, var(--rjb-flame-1)) 26%, transparent),
-    transparent
-  );
-  pointer-events: none;
-}
-.rjb-boot-hold .rjb-flame::before {
-  top: 50%;
-  width: 360%;
-}

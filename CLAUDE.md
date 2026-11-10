@@ -15,11 +15,10 @@ commit `f15fd52`).
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
-**Flame logo: one source, `src/brand/flame.svg`; one engine, a stylized anime fire (Adrian 2026-11-10; it replaced Version E).**
-`src/brand/flameEngine.ts` draws it: a round-footed body on 8 squash / stretch keys with hard cuts, licks that climb
-its flanks, a tip that pinches off (frame 3) and rises as a shrinking piece, a round core; 3 layers. `FLAME` = its
-settings (endless, 10 fps; tune only there). `RoleFlame.tsx` draws with the same engine (`flameEngine.test.ts` fails on a copy).
-`npm run icons` writes its still frame (loop frame 0, no piece in the air, HDS primitive fills, classes
+**Flame logo: one source, `src/brand/flame.svg`; motion: Adrian's Version E (2026-10-29).**
+`src/brand/flameEngine.ts` is the Visuals Lab's "family" engine ported as given (squash / stretch / pinch
+keyframes, 3 layers, embers), `FLAME_E` = his locked settings (endless, 10 fps; tune only there).
+`npm run icons` writes its still frame (loop frame 0, no embers, HDS primitive fills, classes
 `flame-1|2|3`) to `src/brand/flame.svg`, then favicon.svg, PNG icons, favicon.ico, og-image from it;
 `flameEngine.test.ts` fails when flame.svg is not the engine's still frame. Everything static derives
 from flame.svg: the wordmark in the header and on sign-in (`src/brand/Flame.tsx` inlines it, ids made
@@ -34,7 +33,7 @@ still under prefers-reduced-motion (also when turned on mid-run), paused while t
 where matchMedia is missing (jsdom). The header/sign-in `Wordmark` and `BootHold` (`<Flame animate />`)
 animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine's 8-frame loop baked in
 by `brandHtml.ts` (one `.rjb-boot-f` group per frame, frames 1-7 `visibility="hidden"`), stepped by
-base.css (`rjb-boot-frame`, delays and loop length inline from FLAME.fps; a soft glow of the outer blue sits behind it, drawn in the svg); reduced motion / no CSS
+base.css (`rjb-boot-frame`, delays and loop length inline from FLAME_E.fps); reduced motion / no CSS
 shows frame 0. The splash still fades in after a short beat. The old rise-in reveal is gone.
 **Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
@@ -44,8 +43,8 @@ flame `1.35cap` tall with its extra height taken back by a negative top margin, 
 and the name's run is plain text's width (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named
 by `aria-label`, its parts aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
 copy, max 4 s.
-**Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (flameEngine's flame + the flickering name, kept as
-code, never an SVG/image; on sign-in a soft glow of the flame's blue sits behind it, `late.css`) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
+**Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (the lab's procedural flame + flickering name, kept as
+code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
 (`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in the HDS display family at 700 (Sora 700, loaded by HDS's fonts.css), its dynamic styles come from helpers (no

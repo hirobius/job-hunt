@@ -767,7 +767,7 @@ p {
 }
 
 /* The boot splash (index.html's #root, replaced the moment React mounts, so a ready app is never
-   held): the flame engine's loop, one group per frame, each shown for its one slot of
+   held): the flame engine's loop (Version E), one group per frame, each shown for its one slot of
    the loop (its delay and the loop's length are set from the engine's fps by brandHtml.ts). The
    splash itself fades in after a short beat, so a fast boot shows nothing. */
 .rjb-boot-f {

@@ -1,9 +1,9 @@
-// The flame moves (endless, 10 fps) wherever it shows: the header and sign-in wordmark
+// The flame moves (Version E, endless, 10 fps) wherever it shows: the header and sign-in wordmark
 // and the boot hold. Under prefers-reduced-motion it is flame.svg, still. The wordmark's letters
 // flicker with it (a slight lean and a 5% fade, Adrian's per-letter setting); transforms and
 // opacity only, so the word's box never moves.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FLAME } from './flameEngine';
+import { FLAME_E } from './flameEngine';
 import { flameSvg } from './flameSvg';
 import { animateFlame } from './flameMotion';
 
@@ -38,7 +38,7 @@ function mount() {
   const ds = () => [...svg.querySelectorAll('path')].map((p) => p.getAttribute('d'));
   return { svg, letters, ds, still: ds() };
 }
-const frame = 1000 / FLAME.fps;
+const frame = 1000 / FLAME_E.fps;
 
 describe('animateFlame', () => {
   it('draws a new frame every 1/fps, never repeating, and stops on cleanup', () => {
@@ -63,8 +63,8 @@ describe('animateFlame', () => {
       for (const l of letters) {
         const skew = /^skewX\((-?[\d.]+)deg\)$/.exec(l.style.transform);
         expect(skew).not.toBeNull();
-        expect(Math.abs(+skew![1])).toBeLessThanOrEqual(FLAME.tSkew);
-        expect(+l.style.opacity).toBeGreaterThanOrEqual(1 - FLAME.tFade);
+        expect(Math.abs(+skew![1])).toBeLessThanOrEqual(FLAME_E.tSkew);
+        expect(+l.style.opacity).toBeGreaterThanOrEqual(1 - FLAME_E.tFade);
       }
     }
     stop();

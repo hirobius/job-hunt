@@ -1,9 +1,9 @@
-// Plays the flame engine (endless) on a rendered flame.svg: every 1/fps it rewrites the
+// Plays the flame engine (Version E, endless) on a rendered flame.svg: every 1/fps it rewrites the
 // three layers' `d` (the outer's clip follows through its <use>), so the svg's box never changes.
 // The wordmark's letters flicker with it, per letter (a slight lean and fade: transform and
 // opacity only, never layout). Still under prefers-reduced-motion (and when it is turned on
 // mid-run), paused while the tab is hidden, and nothing at all where matchMedia is missing.
-import { FLAME, endlessFrames, rng } from './flameEngine';
+import { FLAME_E, endlessFrames, rng } from './flameEngine';
 
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const LAYERS = ['.flame-1', '.flame-2', '.flame-3'];
@@ -12,7 +12,7 @@ const LAYERS = ['.flame-1', '.flame-2', '.flame-3'];
  *  still frame and the letters back. */
 export function animateFlame(svg: Element, letters: HTMLElement[] = []): () => void {
   if (typeof window.matchMedia !== 'function') return () => {};
-  const S = FLAME;
+  const S = FLAME_E;
   const paths = LAYERS.map((sel) => svg.querySelector(sel));
   const still = paths.map((p) => p?.getAttribute('d') ?? '');
   const mq = window.matchMedia(REDUCE);

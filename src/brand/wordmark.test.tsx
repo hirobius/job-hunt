@@ -44,7 +44,7 @@ describe('Wordmark', () => {
     expect(wordmarkMarkup('<svg/>')).not.toContain('rjb-wordmark-l');
   });
 
-  it('the flame moves and the letters flicker, unless motion is reduced', async () => {
+  it('the flame moves and the letters flicker (Version E), unless motion is reduced', async () => {
     await loadMotion();
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false }));

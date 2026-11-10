@@ -16,7 +16,7 @@ import { hdsColor } from '../src/hdsColor.ts';
 import { wordmarkMarkup } from '../src/brand/wordmarkMarkup.ts';
 import { flameSvgFile } from '../src/brand/flameEngine.ts';
 
-// First the source: src/brand/flame.svg is the flame engine's still frame, in the HDS
+// First the source: src/brand/flame.svg is the flame engine's still frame (Version E), in the HDS
 // primitives base.css recolours per theme. Everything below reads it.
 writeFileSync(
   'src/brand/flame.svg',
