@@ -26,7 +26,11 @@ export function fnv1a(str) {
 
 /** The tree without measured boxes (`sz`): layout data for the runtime, not part of a checksum. */
 export const unsized = (nodes) =>
-  nodes.map(({ sz, ...n }) => (n.k ? { ...n, k: unsized(n.k) } : n));
+  nodes.map((node) => {
+    const n = { ...node };
+    delete n.sz;
+    return n.k ? { ...n, k: unsized(n.k) } : n;
+  });
 
 /** The checksum of one frame's spec: its tree (without `sz`), size and theme. */
 export const frameChecksum = (f) =>
