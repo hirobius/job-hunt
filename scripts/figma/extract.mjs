@@ -55,7 +55,7 @@ function browserPath() {
   );
 }
 
-async function renderFrame(browser, base, f) {
+async function renderFrame(browser, base, f, shot) {
   const ctx = await browser.newContext({
     viewport: { width: f.width, height: f.height },
     colorScheme: f.theme,
@@ -107,6 +107,8 @@ async function renderFrame(browser, base, f) {
     );
     await p.mouse.move(0, 0);
     await p.addScriptTag({ content: WALK });
+    // The live capture of the state, for the fidelity gate (fidelity.mjs): the viewport only.
+    if (shot) await p.screenshot({ path: shot, animations: 'disabled', caret: 'hide' });
     const { found, tree } = await p.evaluate((leaf) => window.__rfWalk({ leaf }), LEAF);
     if (!found) throw new Error('no HDS exports found (is this the Vite dev server?)');
     return tree;
@@ -116,7 +118,14 @@ async function renderFrame(browser, base, f) {
 }
 
 /** Renders the frames (all, or those matching `only`) and returns `{ key: frameSpec }`. */
-export async function extractSpec({ only, log = () => {} } = {}) {
+/** A frame key as a file name: `390-sign-in-email-light`. */
+export const slug = (key) =>
+  key
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+export async function extractSpec({ only, log = () => {}, shots } = {}) {
   const list = frames().filter((f) => !only || only.test(f.key));
   const dev = await startDev();
   const browser = await chromium.launch({ executablePath: browserPath() });
@@ -129,7 +138,12 @@ export async function extractSpec({ only, log = () => {} } = {}) {
         while (q.length) {
           const f = q.shift();
           try {
-            const tree = await renderFrame(browser, dev.url, f);
+            const tree = await renderFrame(
+              browser,
+              dev.url,
+              f,
+              shots && `${shots}/${slug(f.key)}.png`,
+            );
             const spec = {
               page: f.page,
               name: f.name,
@@ -169,16 +183,24 @@ export const specFile = (framesByKey) => ({
 });
 
 // The repo's pre-push scan (scripts/hooks/secret-pii-scan.mjs) flags e-mail addresses outside
-// example.com. A frame whose app copy holds one (the public contact address on the legal page, or
-// a fixture address run into the next word) carries a reviewed `pii-allow` note on its own line.
+// example.com. Only the app's own public contact address (src/legal.ts CONTACT_EMAIL) may appear in
+// the copy; its frame carries a reviewed `pii-allow` note on its line. Any other address fails.
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
 const EXAMPLE = /@(?:[\w-]+\.)*(?:example\.(?:com|org|net)|localhost)$/i;
+export const PII_ALLOW = ['hello@hirobius.com']; // pii-allow: the public contact address
 export function scanNote(spec) {
-  const found = [...JSON.stringify(spec.tree).matchAll(EMAIL)].some((m) => !EXAMPLE.test(m[0]));
-  if (!found) return spec;
+  const found = [...JSON.stringify(spec.tree).matchAll(EMAIL)]
+    .map((m) => m[0])
+    .filter((e) => !EXAMPLE.test(e));
+  const other = found.filter((e) => !PII_ALLOW.includes(e));
+  if (other.length)
+    throw new Error(
+      `${spec.name}: e-mail address not on the allowlist in the copy (${other.length})`,
+    );
+  if (!found.length) return spec;
   return {
     ...spec,
-    scan: 'pii-allow: app copy (the public contact address, or a fixture address run into the next word)',
+    scan: 'pii-allow: hello@hirobius.com, the public contact address (src/legal.ts)',
   };
 }
 

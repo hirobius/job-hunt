@@ -12,7 +12,6 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fnv1a, isLeaf, stable } from './lib.mjs';
-import { WIDTHS } from './states.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
@@ -20,7 +19,9 @@ export const FILE = { id: '9VCvYGN0pz9faveIhSn6Kn', name: 'roleflame — app sta
 export const OWNER = 'roleflame-figma-sync';
 /** use_figma takes at most 50,000 characters of code; leave room for the wrapper. */
 const MAX_SCRIPT = 47_000;
-const PAGES = Object.values(WIDTHS).map((w) => w.page);
+/** The one page the sync writes. The hand-checked pages are never written (figma/README.md). */
+export const SYNC_PAGE = 'Sync preview';
+const PAGES = [SYNC_PAGE];
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 export const loadSpec = (root = ROOT) => readJson(join(root, 'figma', 'spec.json'));
@@ -133,8 +134,8 @@ const script = (data) =>
 export function emitPush(spec, keys) {
   const scripts = [];
   for (const page of PAGES) {
-    const keep = Object.keys(spec.frames).filter((k) => spec.frames[k].page === page);
-    const todo = keys.filter((k) => spec.frames[k].page === page);
+    const keep = Object.keys(spec.frames);
+    const todo = keys;
     const base = { mode: 'push', page, owner: OWNER, keep, ...components() };
     let batch = [];
     const flush = () => {

@@ -44,4 +44,13 @@ Rows 1 to 3 were made before this ledger existed; they are logged here after the
 | 15  | `use_figma`       | read  | 9VCvYGN0pz9faveIhSn6Kn Phone 390: `read-phone-390.js`                                            | `check:figma-drift --figma`, page 1 of 2                              | OK. 68 owned frames read back                                                                                                                                                                                  |
 | 16  | `use_figma`       | read  | 9VCvYGN0pz9faveIhSn6Kn Desktop 1440: `read-desktop-1440.js`                                      | `check:figma-drift --figma`, page 2 of 2                              | OK. 62 owned frames read back; `check:figma-drift --figma` 0 drift on all 130                                                                                                                                  |
 
-Session total: 16 calls (3 skill and session loads, 4 `use_figma` reads, 9 `use_figma` writes). No publish. No write to the HDS library. The page "Archive — screenshots" was not touched. Nothing was deleted: all 130 frames were adopted in place (node ids kept) and tagged `roleflame/owner = roleflame-figma-sync`.
+## Rework (after review of PR #530)
+
+The full push above (rows 6 to 14) overwrote the hand-checked frames on Phone 390 and Desktop 1440. That was wrong. Adrian restores those pages from version history. From here, the sync writes only to the page "Sync preview".
+
+| #   | Tool             | Mode  | Target                                                                        | Why                   | Result                                                                                                                       |
+| --- | ---------------- | ----- | ----------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 17  | `use_figma`      | write | 9VCvYGN0pz9faveIhSn6Kn Sync preview: `push-01.js` (5 frames)                  | fidelity sample push  | OK. Page created; 5 frames created (37:3, 37:3075, 37:4477, 37:4538, 37:4582); all 5 read back = spec. No other page touched |
+| 18  | `get_screenshot` | read  | 9VCvYGN0pz9faveIhSn6Kn Sync preview: 5 sample frames (5 calls, rows 18 to 22) | fidelity gate renders | OK. 5 PNGs. Scores: min 0.600, median 0.921, 2 of 5 below 0.9                                                                |
+
+Session total: 22 calls (rework: 1 write to Sync preview, 5 screenshots). Before the rework: 16 calls (3 skill and session loads, 4 `use_figma` reads, 9 `use_figma` writes). No publish. No write to the HDS library. The page "Archive — screenshots" was not touched. Nothing was deleted: all 130 frames were adopted in place (node ids kept) and tagged `roleflame/owner = roleflame-figma-sync`.

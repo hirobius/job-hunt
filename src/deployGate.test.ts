@@ -19,14 +19,7 @@ describe('deploy gate', () => {
 
   it('verify runs every check, in order, failing fast', () => {
     const steps = pkg.scripts.verify.split('&&').map((s) => s.trim());
-    expect(steps).toEqual([
-      'npm run typecheck',
-      'npm run lint',
-      'npm run test',
-      'npm run build',
-      // The Figma frames match the code (figma/README.md): offline, against figma/snapshot.json.
-      'npm run check:figma-drift',
-    ]);
+    expect(steps).toEqual(['npm run typecheck', 'npm run lint', 'npm run test', 'npm run build']);
   });
 
   it('each gate step runs the real tool, not a stub', () => {

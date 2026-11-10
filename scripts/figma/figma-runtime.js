@@ -16,8 +16,15 @@ const ROLEFLAME_FILE = '9VCvYGN0pz9faveIhSn6Kn';
 const isFile = figma.fileKey === undefined || figma.fileKey === ROLEFLAME_FILE;
 if (!isFile)
   throw new Error(`refusing to run outside roleflame — app states (file ${figma.fileKey})`);
-const page = figma.root.children.find((p) => p.name === DATA.page);
-if (!page) throw new Error(`no page named ${DATA.page}`);
+// The sync writes only its own page. The hand-checked pages (Phone 390, Desktop 1440, Archive)
+// are never written: the sync output must match them first (figma/README.md, fidelity gate).
+if (DATA.page !== 'Sync preview') throw new Error(`refusing to write page ${DATA.page}`);
+let page = figma.root.children.find((p) => p.name === DATA.page);
+if (!page && DATA.mode === 'read') return { page: DATA.page, frames: {} };
+if (!page) {
+  page = figma.createPage();
+  page.name = DATA.page;
+}
 await figma.setCurrentPageAsync(page);
 
 // The FNV-1a and stable JSON of scripts/figma/lib.mjs, so receipts carry the same checksums.
@@ -72,8 +79,11 @@ function readNode(node) {
   if (kids.length) o.k = kids;
   return o;
 }
+// Overlay holders ("layer: …") are drawing scaffolds, not spec nodes: read through them.
 const readFrame = (f) =>
-  f.children.filter((k) => k.getSharedPluginData(NS, 'chrome') !== '1').map(readNode);
+  f.children
+    .filter((k) => k.getSharedPluginData(NS, 'chrome') !== '1')
+    .flatMap((k) => (k.name.startsWith('layer: ') ? k.children.map(readNode) : [readNode(k)]));
 const owned = () =>
   page.children.filter(
     (n) => n.type === 'FRAME' && n.getSharedPluginData(NS, 'owner') === DATA.owner,
@@ -195,12 +205,23 @@ async function plainText(t, name) {
   await setText(inst, t);
   return inst;
 }
+// Text never sits in a fixed narrow column: in a column it fills the width, in a row it takes the
+// space left, and its text wraps (textAutoResize HEIGHT) instead of clipping.
 function fill(node, parentDir) {
   if (!node.parent || !('layoutMode' in node.parent) || node.parent.layoutMode === 'NONE') return;
   try {
     if (parentDir === 'VERTICAL') node.layoutSizingHorizontal = 'FILL';
+    else if (node.name === '#text' || node.name === 'Text') node.layoutGrow = 1;
   } catch {
     /* fixed-size instance */
+  }
+  if (node.type === 'INSTANCE' && (node.name === '#text' || node.name === 'Text')) {
+    const t = node.findOne((x) => x.type === 'TEXT');
+    try {
+      if (t) t.textAutoResize = 'HEIGHT';
+    } catch {
+      /* locked by the component */
+    }
   }
 }
 
@@ -301,7 +322,12 @@ async function themeFrame(frame, theme, existingModes) {
   if (theme !== 'dark') return;
   if (darkMode === null) {
     darkMode = false;
-    for (const other of page.children) {
+    const frames = [];
+    for (const p of figma.root.children) {
+      await p.loadAsync();
+      frames.push(...p.children);
+    }
+    for (const other of frames) {
       const modes =
         other.type === 'FRAME' && other.name.endsWith('— dark')
           ? other.explicitVariableModes
@@ -331,34 +357,86 @@ if (DATA.keep) {
   }
 }
 let bottom = Math.max(0, ...page.children.map((n) => n.y + n.height)) + 200;
+// The first top-level node is the page; the rest (dialogs, menus, toasts) are overlays, drawn as an
+// absolute layer over it: a DialogOverlay is a full-size scrim, a dialog is centred (full width on a
+// phone), a menu sits under the header on the right, a toast region sits at the bottom.
+async function overlay(n, frame, spec) {
+  const W = spec.width;
+  const H = spec.height;
+  if (n.c === 'DialogOverlay') {
+    const r = figma.createRectangle();
+    r.name = 'DialogOverlay';
+    r.resize(W, H);
+    r.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, opacity: 0.6 }];
+    frame.appendChild(r);
+    r.layoutPositioning = 'ABSOLUTE';
+    r.x = 0;
+    r.y = 0;
+    return;
+  }
+  const holder = figma.createAutoLayout('VERTICAL', { name: `layer: ${n.c}` });
+  holder.fills = [];
+  frame.appendChild(holder);
+  holder.layoutPositioning = 'ABSOLUTE';
+  await build(n, holder);
+  const phone = W < 1024;
+  const isToast = n.c === 'ol';
+  const isMenu = n.c === 'Box' || n.c === 'Menu' || n.c === 'Stack';
+  const w = isToast ? Math.min(W - 32, 420) : isMenu ? 280 : phone ? W : Math.min(W - 64, 640);
+  holder.resize(w, Math.max(1, holder.height));
+  holder.counterAxisSizingMode = 'FIXED';
+  holder.primaryAxisSizingMode = 'AUTO';
+  const body = holder.children[0];
+  if (body && !isToast) {
+    body.fills = [
+      {
+        type: 'SOLID',
+        color: spec.theme === 'dark' ? { r: 0.09, g: 0.1, b: 0.12 } : { r: 1, g: 1, b: 1 },
+      },
+    ];
+    body.cornerRadius = phone && !isMenu ? 0 : 12;
+  }
+  holder.x = isMenu ? W - w - 16 : Math.round((W - w) / 2);
+  holder.y = isToast
+    ? Math.max(0, H - holder.height - 16)
+    : isMenu
+      ? 64
+      : phone
+        ? 0
+        : Math.max(16, Math.round((H - holder.height) / 2));
+  if (phone && !isMenu && !isToast) holder.resize(w, H);
+}
 for (const spec of DATA.frames) {
-  // Adopt the frame of the same name (the hand-built frames before this sync), else ours, else new.
-  let frame =
-    owned().find((f) => f.getSharedPluginData(NS, 'key') === spec.key) ||
-    page.children.find((f) => f.type === 'FRAME' && f.name === spec.name);
-  let modes = null;
+  let frame = owned().find((f) => f.getSharedPluginData(NS, 'key') === spec.key);
   if (frame) {
-    modes = frame.explicitVariableModes;
     for (const c of [...frame.children]) c.remove();
     receipt.updated.push(spec.key);
   } else {
     frame = figma.createFrame();
     page.appendChild(frame);
-    frame.x = 0;
+    frame.x = spec.width === 390 ? 0 : 600;
     frame.y = bottom;
     bottom += spec.height + 200;
     receipt.created.push(spec.key);
   }
-  frame.name = spec.name;
+  frame.name = `${spec.width} / ${spec.name}`;
+  // The viewport, fixed: 390x844 or 1440x900. The page scrolls under it, as in the app.
   frame.layoutMode = 'VERTICAL';
-  frame.primaryAxisSizingMode = 'AUTO';
+  frame.primaryAxisSizingMode = 'FIXED';
   frame.counterAxisSizingMode = 'FIXED';
-  frame.resize(spec.width, Math.max(1, frame.height));
-  frame.minHeight = spec.height;
+  frame.resize(spec.width, spec.height);
   frame.clipsContent = true;
-  await themeFrame(frame, spec.theme, modes);
+  frame.fills = [
+    {
+      type: 'SOLID',
+      color: spec.theme === 'dark' ? { r: 0.05, g: 0.06, b: 0.08 } : { r: 1, g: 1, b: 1 },
+    },
+  ];
+  await themeFrame(frame, spec.theme, null);
   const tree = spec.tree || DATA.frames.find((x) => x.key === spec.same).tree;
-  for (const n of tree) await build(node(n), frame);
+  const [main, ...rest] = tree;
+  if (main) await build(node(main), frame);
+  for (const n of rest) await overlay(node(n), frame, spec);
   frame.setSharedPluginData(NS, 'owner', DATA.owner);
   frame.setSharedPluginData(NS, 'key', spec.key);
   frame.setSharedPluginData(NS, 'checksum', spec.checksum);

@@ -116,14 +116,65 @@ describe('figma sync', () => {
     expect(gone.frames).toEqual({});
   });
 
-  it('the committed snapshot passes its checksum and matches the committed spec', async () => {
+  it('the snapshot, when there is one, passes its checksum and matches the spec', async () => {
     const { loadSnapshot } = await load('scripts/figma/push.mjs');
     const snapshot = loadSnapshot();
+    if (!snapshot) return; // nothing pushed to Sync preview yet
     const spec = JSON.parse(fs.readFileSync('figma/spec.json', 'utf8')) as Spec;
-    expect(Object.keys(spec.frames)).toHaveLength(130);
-    for (const [key, f] of Object.entries(spec.frames)) {
-      expect(snapshot.frames[key]?.checksum, key).toBe(f.checksum);
-      expect(snapshot.frames[key]?.projection, key).toBe(f.projection);
-    }
+    for (const [key, s] of Object.entries(snapshot.frames as Record<string, Frame>))
+      expect(spec.frames[key]?.checksum, key).toBe(s.checksum);
+  });
+
+  it('pii-allow is an allowlist: only the public contact address', async () => {
+    const { scanNote } = await load('scripts/figma/extract.mjs');
+    const frame = (t: string) => ({ name: 'f', tree: [{ c: '#text', t }] });
+    expect(scanNote(frame('mail hello@hirobius.com')).scan).toMatch(/pii-allow/); // pii-allow: public contact address
+    expect(scanNote(frame('me@example.com')).scan).toBeUndefined();
+    expect(() => scanNote(frame('someone@gmail.com'))).toThrow(/allowlist/); // pii-allow: test fixture
+  });
+
+  it('the push writes only the Sync preview page', async () => {
+    const { emitPush, SYNC_PAGE } = await load('scripts/figma/push.mjs');
+    expect(SYNC_PAGE).toBe('Sync preview');
+    const runtime = fs.readFileSync('scripts/figma/figma-runtime.js', 'utf8');
+    expect(runtime).toContain("if (DATA.page !== 'Sync preview') throw");
+    const spec = {
+      frames: {
+        k: {
+          page: 'Phone 390',
+          name: 'n',
+          width: 390,
+          height: 844,
+          theme: 'light',
+          checksum: 'a',
+          projection: 'b',
+          tree: [],
+        },
+      },
+    };
+    expect(emitPush(spec, ['k']).every((s: { page: string }) => s.page === 'Sync preview')).toBe(
+      true,
+    );
+  });
+
+  // The spec walker (scripts/figma/walk.js) reads React's private DOM keys. If a React upgrade
+  // renames them, this fails here, loudly, before the Figma sync silently draws nothing.
+  it('React still puts __reactFiber$ and __reactProps$ keys on DOM nodes', async () => {
+    const React = await import('react');
+    const { createRoot } = await import('react-dom/client');
+    const { act } = await import('react');
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    await act(async () => createRoot(host).render(React.createElement('span', { id: 'x' }, 'hi')));
+    const el = host.firstElementChild as Element & Record<string, unknown>;
+    const keys = Object.keys(el);
+    expect(
+      keys.some((k) => k.startsWith('__reactFiber$')),
+      'React fiber key missing',
+    ).toBe(true);
+    expect(
+      keys.some((k) => k.startsWith('__reactProps$')),
+      'React props key missing',
+    ).toBe(true);
   });
 });

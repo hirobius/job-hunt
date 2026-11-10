@@ -139,7 +139,13 @@ async function __rfWalk(opts) {
         const t = c.nodeValue.replace(/\s+/g, ' ');
         if (t.trim()) out.push({ c: '#text', t });
         else if (t) out.push({ c: '#text', t: ' ' });
-      } else if (c.nodeType === 1) out.push(...visit(c));
+      } else if (c.nodeType === 1) {
+        // Block-level children are separate runs of text: keep a space between them.
+        const block = !/^inline/.test(getComputedStyle(c).display);
+        if (block) out.push({ c: '#text', t: ' ' });
+        out.push(...visit(c));
+        if (block) out.push({ c: '#text', t: ' ' });
+      }
     }
     // One text node per run: letters split over spans read as one word, words keep their spaces.
     const merged = [];
@@ -227,6 +233,14 @@ async function __rfWalk(opts) {
       if (PASS.has(n.c) && !n.tk && (!n.k || n.k.length <= 1)) return n.k || [];
       return [n];
     });
+  // React internals: the walk depends on the `__reactFiber$` and `__reactProps$` keys React puts
+  // on DOM nodes (figma/README.md, "Risk"). Fail loudly when a React upgrade removes them.
+  const first =
+    document.getElementById('root') && document.getElementById('root').firstElementChild;
+  if (!first || !fk(first) || !pk(first))
+    throw new Error(
+      'React fiber keys (__reactFiber$ / __reactProps$) not found: the Figma spec walker needs updating',
+    );
   const tree = [];
   for (const el of document.body.children) tree.push(...visit(el));
   return { found: names.size, tree: collapse(tree) };

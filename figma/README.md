@@ -94,3 +94,33 @@ instance), an `Icon/<name>` instance per icon. Dark frames take the dark variabl
 - `Find / Signed out / 0 jobs (first run)`: same, with the scan that runs on open.
 - `Sign-in / Signed in`: the screen hands over after 600 ms. The fixture drops that one timer.
 - `Sign-in / Keyboard open`: drawn at 390 x 400 (the keyboard is not simulated).
+
+## Sync preview page (only write target)
+
+The push writes only to the page "Sync preview". The runtime refuses any other page. The hand-checked pages Phone 390 and Desktop 1440 are never written. Each frame is the viewport size (390x844 or 1440x900). Overlays (dialogs, menus, toasts) sit in absolute "layer: …" holders over the page; a dialog gets a scrim.
+
+## Fidelity gate
+
+The drift check proves structure only. The fidelity gate proves the frame looks like the app.
+
+1. Run `npm run check:figma-fidelity -- --capture .fidelity/live [--only <re>]`.
+2. Save `get_screenshot` of each Sync preview frame as `.fidelity/figma/<slug>.png`.
+3. Run `npm run check:figma-fidelity -- --compare .fidelity/figma .fidelity/live`.
+
+The score is the share of matching pixels (pixelmatch, threshold 0.15, at half size). A frame fails below 0.9. The script exits 1 on any fail or missing render.
+
+Sample result (5 frames, 2026-11-10): min 0.600, median 0.921, 2 of 5 fail. Known gaps: no brand logo, text instances wrap in narrow columns inside some rows, the phone dialog body does not fill the viewport, icons inside buttons and the selected segment are not set.
+
+## CI steps (not in `npm run verify`)
+
+Add these as separate CI steps. This PR does not edit `.github/workflows`.
+
+```yaml
+- run: npm run check:figma-drift
+```
+
+The fidelity gate needs Figma MCP access, so run it by hand or in a job with Figma credentials.
+
+## Risk: React internals
+
+`scripts/figma/walk.js` reads React's private DOM keys (`__reactFiber$…`, `__reactProps$…`). These are not a public API. A React upgrade can rename them. Then the walker throws "React fiber keys … not found". The test `src/figmaSync.test.ts` also fails if React stops setting those keys. If this happens, update the walker before you run the sync.
