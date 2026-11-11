@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 // Find / Apply ink sits at the segment's centre (port of HDS tests/visual/
 // segmented-control-centering.spec.ts, hds#1461): the label's ink box, from a Range's content box
 // and the canvas text metrics of its computed font, is vertically centred within 1px of the link's
-// box, at 390 and 1440, light and dark, for the open and the closed segment.
+// box (the open one's fill above its ledge), at 390 and 1440, light and dark, for the open and the closed segment.
 async function inkOffsets(page: Page, selector: string) {
   return page.evaluate((sel) => {
     const ctx = document.createElement('canvas').getContext('2d')!;
@@ -24,7 +24,10 @@ async function inkOffsets(page: Page, selector: string) {
       const cap = ctx.measureText('H').actualBoundingBoxAscent;
       const inkCentre = baseline - cap / 2;
       const b = el.getBoundingClientRect();
-      return { text, offset: inkCentre - (b.top + b.height / 2) };
+      // The open segment is measured against its coloured fill: the box minus the 3px ledge drawn
+      // at its foot (Adrian 2026-11-11: centre on the fill).
+      const ledge = el.getAttribute('aria-current') === 'page' ? 3 : 0;
+      return { text, offset: inkCentre - (b.top + (b.height - ledge) / 2) };
     });
   }, selector);
 }
