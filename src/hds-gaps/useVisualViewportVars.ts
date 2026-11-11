@@ -1,8 +1,9 @@
 // HDS gap (sign-in, 2026-10-17; related: hds#690): HDS has no Sheet, and its Dialog centres on the layout viewport,
 // so on iOS the on-screen keyboard covers its lower half. This mirrors `window.visualViewport`
 // (the part of the page the keyboard leaves visible) into two CSS variables on an element:
-// `--rjb-vv-top` (px from the layout viewport's top) and `--rjb-vv-height` (px). CSS then keeps
-// the content in what is visible. Ask: a top-anchored / keyboard-aware Dialog or Sheet.
+// `--rjb-vv-top` (px from the layout viewport's top), `--rjb-vv-height` (px) and `--rjb-vv-bottom`
+// (px from the layout viewport's bottom up to the visible part's end: the keyboard, read by the
+// action dock, #593). CSS then keeps the content in what is visible. Ask: a top-anchored / keyboard-aware Dialog or Sheet.
 // Without visualViewport (jsdom, old browsers) nothing is set and the CSS fallbacks apply.
 //
 // `data-keyboard="open"` (2026-11-09, Adrian's iPhone recording): iOS sends visualViewport resize
@@ -19,6 +20,16 @@ export function keyboardOpen(vvHeight: number, innerHeight: number): boolean {
   return vvHeight < innerHeight * KEYBOARD_OPEN_RATIO;
 }
 
+/** How far the visible part of the page ends above the layout viewport's bottom (px, never
+ *  below 0): the on-screen keyboard's height when it is up. A fixed bottom box (the action dock)
+ *  sits this far up, so the keyboard never covers it (#593). */
+export function visibleBottomGap(
+  vv: { offsetTop: number; height: number },
+  innerHeight: number,
+): number {
+  return Math.max(0, Math.round(innerHeight - vv.offsetTop - vv.height));
+}
+
 export function useVisualViewportVars<T extends HTMLElement>(): (el: T | null) => void {
   const elRef = useRef<T | null>(null);
 
@@ -28,6 +39,7 @@ export function useVisualViewportVars<T extends HTMLElement>(): (el: T | null) =
     if (!el || !vv) return;
     el.style.setProperty('--rjb-vv-top', `${Math.round(vv.offsetTop)}px`); // hds-allow: a measured viewport offset, not a spacing value
     el.style.setProperty('--rjb-vv-height', `${Math.round(vv.height)}px`); // hds-allow: a measured viewport height, not a spacing value
+    el.style.setProperty('--rjb-vv-bottom', `${visibleBottomGap(vv, window.innerHeight)}px`); // hds-allow: a measured viewport offset, not a spacing value
     const state = keyboardOpen(vv.height, window.innerHeight) ? 'open' : 'closed';
     if (el.dataset.keyboard !== state) el.dataset.keyboard = state;
   }, []);

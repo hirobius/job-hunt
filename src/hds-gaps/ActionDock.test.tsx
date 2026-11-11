@@ -83,3 +83,68 @@ describe('ActionDock', () => {
     expect(isTypingField(null)).toBe(false);
   });
 });
+
+// #540 contract, #593: a state change from sync (another device) changes the keys. A focused key
+// that leaves hands focus to the new filled key, or to onKeysGone; a key that stays keeps it.
+describe('ActionDock focus when the keys change', () => {
+  beforeEach(() => vi.useRealTimers());
+
+  const dock = (keys: string[], docked: boolean, onKeysGone?: () => void) => (
+    <ActionDock docked={docked} label="Actions for X" onKeysGone={onKeysGone}>
+      {keys.map((k) => (
+        <Button key={k}>{k}</Button>
+      ))}
+    </ActionDock>
+  );
+
+  for (const docked of [true, false]) {
+    const where = docked ? 'docked' : 'inline';
+
+    it(`${where}: the focused key leaves, focus goes to the new filled key`, () => {
+      const { rerender } = render(dock(['Open application', 'Mark applied', 'Not a fit'], docked));
+      act(() => screen.getByRole('button', { name: 'Not a fit' }).focus());
+      rerender(dock(['Copy follow-up', 'Mark followed up', 'Close out'], docked));
+      expect(screen.getByRole('button', { name: 'Copy follow-up' })).toHaveFocus();
+    });
+
+    it(`${where}: a focused key that stays keeps its focus`, () => {
+      const { rerender } = render(dock(['Mark applied', 'Add link', 'Not a fit'], docked));
+      act(() => screen.getByRole('button', { name: 'Mark applied' }).focus());
+      rerender(dock(['Open application', 'Mark applied', 'Not a fit'], docked));
+      expect(screen.getByRole('button', { name: 'Mark applied' })).toHaveFocus();
+    });
+
+    it(`${where}: no key left, focus goes to onKeysGone`, () => {
+      const gone = vi.fn();
+      const { rerender } = render(dock(['Add interview'], docked, gone));
+      act(() => screen.getByRole('button', { name: 'Add interview' }).focus());
+      rerender(dock([], docked, gone));
+      expect(gone).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('focus elsewhere on the page is never moved', async () => {
+    const outside = document.createElement('button');
+    outside.textContent = 'Outside';
+    document.body.appendChild(outside);
+    const { rerender } = render(dock(['Open application', 'Mark applied'], true));
+    act(() => screen.getByRole('button', { name: 'Mark applied' }).focus());
+    act(() => outside.focus());
+    // The blur's check runs on the next frame.
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+    rerender(dock(['Copy follow-up'], true));
+    expect(outside).toHaveFocus();
+    // Focus left the dock for the page, then dropped to body: a later key change takes nothing.
+    act(() => outside.blur());
+    rerender(dock(['Open application'], true));
+    expect(document.body).toHaveFocus();
+    outside.remove();
+  });
+
+  it('reserves one row for one key and two for more', () => {
+    const { rerender } = render(dock(['Add interview'], true));
+    expect(document.querySelector('.rjb-dock')).toHaveAttribute('data-rows', '1');
+    rerender(dock(['Open application', 'Mark applied', 'Not a fit'], true));
+    expect(document.querySelector('.rjb-dock')).toHaveAttribute('data-rows', '2');
+  });
+});

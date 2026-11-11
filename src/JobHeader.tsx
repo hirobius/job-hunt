@@ -236,6 +236,7 @@ export default function JobHeader({
             variant={variant}
             size="md"
             iconLeft={<Icon icon={Copy} />}
+            aria-label={`Copy follow-up: ${title}`}
             onClick={copyFollowUp}
           >
             Copy follow-up
@@ -304,11 +305,11 @@ export default function JobHeader({
             onRetired={closed ? () => goBack(PIPELINE) : undefined}
           />
         </Box>
-        {keys.length > 0 && (
-          <ActionDock docked={!wide} label={`Actions for ${title}`}>
-            {keys}
-          </ActionDock>
-        )}
+        {/* With no keys it draws nothing; it stays mounted so a focused key that leaves with the
+            state (a sync from another device) hands focus to the new filled key, or the title. */}
+        <ActionDock docked={!wide} label={`Actions for ${title}`} onKeysGone={focusTitle}>
+          {keys}
+        </ActionDock>
         {ranked.some((k) => k.id === 'addLink') && (
           <AddLinkDialog job={job} open={addingLink} onOpenChange={setAddingLink} />
         )}

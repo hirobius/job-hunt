@@ -309,7 +309,7 @@ describe('editing a message changes what the fill paths use', () => {
     await renderApp();
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
-    await user.click(await screen.findByRole('button', { name: 'Copy follow-up' }));
+    await user.click(await screen.findByRole('button', { name: /^Copy follow-up: / }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('P.S. Acme Metals rocks.'));
     // Documents opens as a dialog over this job (#471 slice 4): closing it comes back here.
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
