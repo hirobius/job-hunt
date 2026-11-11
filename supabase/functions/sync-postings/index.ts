@@ -35,6 +35,7 @@ import {
   readAll,
   scoreBatch,
   TERM_FEEDS,
+  termsPerRun,
   type ReadOutcome,
   type ScoredPosting,
   type TermFeed,
@@ -56,6 +57,7 @@ import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
 import {
   SERVER_FEEDS,
   serverFeedOn,
+  serverFeedsForRun,
   serverFeedsOff,
   type ServerFeed,
 } from '../../../src/tracks/feeds/serverFeeds.ts';
@@ -114,13 +116,6 @@ const RUN_LEASE_MS = 14 * 60_000;
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
 const TILE_PAGE = 1000;
-/** Distinct titles searched per feed and run, across every user. */
-const TERMS_PER_RUN: Record<TermFeed, number> = {
-  hn: 20,
-  jobicy: 20,
-  // Remotive asks for at most ~4 requests a day; the feeds run once a day.
-  remotive: 2,
-};
 /** Each outbound read's cap: one hung board must not spend the slice's whole wall-clock budget. */
 const FETCH_TIMEOUT_MS = ROTATION.fetchTimeoutMs;
 const timedFetch = (u: string, init?: RequestInit) =>
@@ -472,7 +467,7 @@ async function loadPlans(
 async function chainNext(
   supabaseUrl: string,
   secret: string,
-  payload: { rss?: boolean; after: string; runStart: string },
+  payload: { rss?: boolean; keyed?: boolean; after: string; runStart: string },
 ): Promise<string | null> {
   let why = '';
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -839,6 +834,8 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as {
     rotate?: boolean;
     rss?: boolean;
+    /** False on the 14:23 feeds run: the keyed searches run on the morning run only (#576). */
+    keyed?: boolean;
     after?: string;
     runStart?: string;
   };
@@ -960,20 +957,22 @@ Deno.serve(async (req) => {
         await writeGroup(db, userId, plans.get(userId)!, answered, logs, totalsOf(userId));
     }
 
-    // The feeds, once a day (the morning run), on the last slice: each title once across users.
+    // The feeds, twice a day (06:23 and 14:23, #576), on the last slice: each title once across users.
     if (body.rss === true && last) {
       const terms: Partial<Record<TermFeed, string[]>> = {};
+      // Remotive on the morning run only (its ~4 a day): termsPerRun, #576 item 3.
+      const perRun = termsPerRun(body.keyed !== false);
       for (const feed of TERM_FEEDS) {
         const seen = new Map<string, string>();
         for (const plan of plans.values())
           if (plan.feeds.has(feed))
             for (const t of plan.terms)
               if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
-        terms[feed] = [...seen.values()].slice(0, TERMS_PER_RUN[feed]);
+        terms[feed] = [...seen.values()].slice(0, perRun[feed]);
       }
       const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
-      const server = SERVER_FEEDS.filter(
-        (f) => serverFeedOn(f, envOf) && [...plans.values()].some((p) => p.feeds.has(f)),
+      const server = serverFeedsForRun(envOf, body.keyed !== false).filter((f) =>
+        [...plans.values()].some((p) => p.feeds.has(f)),
       );
       const reads = await readAll([], {
         fetch: timedFetch,
@@ -1120,6 +1119,7 @@ Deno.serve(async (req) => {
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,
+      ...(body.keyed === false && { keyed: false }),
       after: next,
       runStart,
     });

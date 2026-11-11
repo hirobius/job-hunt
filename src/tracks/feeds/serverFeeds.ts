@@ -64,6 +64,15 @@ export function serverFeedOn(feed: ServerFeed, env: Env): boolean {
   return false;
 }
 
+/** True for a feed that spends a paid or capped key (TheirStack, Adzuna, Jooble). */
+export const isKeyed = (feed: ServerFeed) => 'env' in SERVER_FEED_GATES[feed];
+
+/** The server feeds one feeds run reads (#576 item 3). The 14:23 run sends `keyed: false`: it reads
+ *  the keyless feeds again but not the keyed ones, so each key's daily budget (theirstack.ts,
+ *  adzuna.ts, jooble.ts) is spent once a day, as before. */
+export const serverFeedsForRun = (env: Env, keyed: boolean): ServerFeed[] =>
+  SERVER_FEEDS.filter((f) => serverFeedOn(f, env) && (keyed || !isKeyed(f)));
+
 /** The feeds not running, each with what turns it on (env var names, never values). */
 export function serverFeedsOff(env: Env): Partial<Record<ServerFeed, string>> {
   const out: Partial<Record<ServerFeed, string>> = {};

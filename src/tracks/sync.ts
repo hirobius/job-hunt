@@ -38,6 +38,14 @@ type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 export type TermFeed = 'hn' | 'remotive' | 'jobicy';
 export const TERM_FEEDS: readonly TermFeed[] = ['hn', 'remotive', 'jobicy'];
 
+/** Distinct titles each feeds run searches per term feed, across every user (#576 item 3). The
+ *  feeds run twice a day: 06:23 and 14:23 (`keyed: false`). Remotive asks for at most ~4 requests a
+ *  day (remotive.ts), so it is read on the morning run only: 2 terms, and a retry of each (retry.ts)
+ *  still keeps the day at 4. The 14:23 run reads HN and Jobicy again, but not Remotive. */
+export function termsPerRun(keyed: boolean): Record<TermFeed, number> {
+  return { hn: 20, jobicy: 20, remotive: keyed ? 2 : 0 };
+}
+
 /** One read: a followed board (`company` set), a term feed (`term` set) or the RSS feed. A read
  *  that failed (`ok` false) never closes a posting. */
 export interface ReadOutcome<C extends WatchedCompany = WatchedCompany> {
