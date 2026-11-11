@@ -28,6 +28,17 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(claude);
   });
 
+  it('names the views as CLAUDE.md and pipelineView.ts do (#541)', () => {
+    const VIEW = fs.readFileSync('src/pipelineView.ts', 'utf8');
+    for (const name of ['To apply', 'Follow up', 'Interviewing', 'Applied', 'Recently closed']) {
+      expect(RULES).toContain(name);
+      expect(CLAUDE).toContain(`**${name}**`);
+      expect(VIEW).toContain(`'${name}'`);
+    }
+    expect(RULES).toMatch(/no Status select/i);
+    expect(CLAUDE).toMatch(/the Status select is gone/);
+  });
+
   it('names the two screens as CLAUDE.md does', () => {
     // The top tabs, as CLAUDE.md states them (#471, #475).
     expect(CLAUDE).toMatch(/Two screens: Find and Apply/);

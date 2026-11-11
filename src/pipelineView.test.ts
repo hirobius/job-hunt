@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_VIEW,
   FILTER_LABEL,
+  VIEWS,
+  VIEW_DESCRIPTION,
   filterCounts,
   getPipelineView,
   resetPipelineView,
   setPipelineView,
   visibleJobs,
+  type Filter,
 } from './pipelineView';
 import type { Job } from './types';
 import { ymd } from './jobEvents';
@@ -21,18 +24,16 @@ const all = [saved, applied, pinned, retired];
 beforeEach(resetPipelineView);
 
 describe('pipelineView', () => {
-  it('starts on Active, recently added, no search', () => {
+  it('starts on To apply, recently added, no search', () => {
     expect(getPipelineView()).toEqual(DEFAULT_VIEW);
-    expect(DEFAULT_VIEW).toEqual({ filter: 'active', sort: 'recent', q: '' });
+    expect(DEFAULT_VIEW).toEqual({ filter: 'toApply', sort: 'recent', q: '' });
   });
 
   it.each([
-    ['active', ['Alpha welder', 'Gamma']],
-    ['starred', ['Gamma']],
-    ['Applied', ['Beta fitter', 'Gamma']],
-    ['retired', ['Delta']],
+    ['toApply', ['Alpha welder']],
+    ['applied', ['Beta fitter', 'Gamma']],
     ['all', ['Alpha welder', 'Beta fitter', 'Delta', 'Gamma']],
-  ] as const)('filter %s', (filter, titles) => {
+  ] as const)('view %s', (filter, titles) => {
     expect(
       visibleJobs(all, { ...DEFAULT_VIEW, filter })
         .map((j) => j.label)
@@ -59,27 +60,63 @@ describe('pipelineView', () => {
     ).toEqual(['Gamma', 'Alpha welder', 'Beta fitter']); // pinned floats first;
   });
 
-  it('counts every filter', () => {
-    expect(filterCounts(all)).toMatchObject({
-      active: 2,
+  it('five named views, then All jobs, each with a label and a one-line description', () => {
+    expect(VIEWS.map((v) => FILTER_LABEL[v])).toEqual([
+      'To apply',
+      'Follow up',
+      'Interviewing',
+      'Applied',
+      'Recently closed',
+      'All jobs',
+    ]);
+    for (const v of VIEWS) expect(VIEW_DESCRIPTION[v]).toMatch(/^[^\n]{10,80}$/);
+  });
+
+  it('counts every view', () => {
+    expect(filterCounts(all)).toEqual({
+      toApply: 1,
+      followUp: 0,
+      interviewing: 0,
+      applied: 2,
+      closed: 0,
       all: 4,
-      Applied: 2,
-      retired: 1,
     });
-    // No Starred view (#534): it is not offered, so it is not counted.
-    expect(filterCounts(all).starred).toBeUndefined();
+  });
+
+  it('Follow up lists jobs whose follow-up is due; Interviewing holds offers too', () => {
+    const now = new Date(2026, 10, 11);
+    const due = job('https://i.example/9', {
+      label: 'Due',
+      status: 'Applied',
+      applied: '2026-11-01',
+    });
+    const fresh = job('https://j.example/10', {
+      label: 'Fresh',
+      status: 'Applied',
+      applied: '2026-11-10',
+    });
+    const offer = job('https://k.example/11', { label: 'Offer', status: 'Offer' });
+    const talks = job('https://l.example/12', { label: 'Talks', status: 'Interviewing' });
+    const list = [due, fresh, offer, talks];
+    const v = (filter: Filter) =>
+      visibleJobs(list, { ...DEFAULT_VIEW, filter }, now)
+        .map((j) => j.label)
+        .sort();
+    expect(v('followUp')).toEqual(['Due']);
+    expect(v('interviewing')).toEqual(['Offer', 'Talks']);
+    expect(filterCounts(list, now).followUp).toBe(1);
   });
 
   it('set merges into the shared state and reset restores the default', () => {
-    setPipelineView({ filter: 'Applied' });
+    setPipelineView({ filter: 'applied' });
     setPipelineView({ q: 'x' });
-    expect(getPipelineView()).toEqual({ filter: 'Applied', sort: 'recent', q: 'x' });
+    expect(getPipelineView()).toEqual({ filter: 'applied', sort: 'recent', q: 'x' });
     resetPipelineView();
     expect(getPipelineView()).toEqual(DEFAULT_VIEW);
   });
 });
 
-describe('Closing soon and Closed filters (#419)', () => {
+describe('To apply order and Recently closed (#541, #602)', () => {
   const inDays = (n: number) => {
     const d = new Date();
     return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
@@ -98,21 +135,20 @@ describe('Closing soon and Closed filters (#419)', () => {
   const past = job('https://h.example/8', { label: 'Past', status: 'Saved', deadline: inDays(-2) });
   const list = [...all, soon, later, gone, past];
 
-  it('Closing soon lists jobs still to apply to that close within 7 days', () => {
-    expect(
-      visibleJobs(list, { ...DEFAULT_VIEW, filter: 'closingSoon' }).map((j) => j.label),
-    ).toEqual(['Soon']);
+  it('To apply sorts by closing date first, then newest, and leaves closed jobs out', () => {
+    expect(visibleJobs(list, DEFAULT_VIEW).map((j) => j.label)).toEqual([
+      'Soon',
+      'Later',
+      'Alpha welder',
+    ]);
   });
-  it('Closed lists jobs gone from their board or past their closing day', () => {
+  it('Recently closed lists jobs gone from their board or past their closing day', () => {
     expect(
       visibleJobs(list, { ...DEFAULT_VIEW, filter: 'closed' })
         .map((j) => j.label)
         .sort(),
     ).toEqual(['Gone', 'Past']);
-  });
-  it('both are counted and labelled for the status menu', () => {
-    expect(filterCounts(list)).toMatchObject({ closingSoon: 1, closed: 2 });
-    expect(FILTER_LABEL.closingSoon).toBe('Closing soon');
-    expect(FILTER_LABEL.closed).toBe('Closed');
+    expect(filterCounts(list).closed).toBe(2);
+    expect(FILTER_LABEL.closed).toBe('Recently closed');
   });
 });

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView, { JobsList } from './TrackerView';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
-import { addJob, getAllJobs, markAppliedByUrl, removeJob } from './store';
+import { addJob, getAllJobs, markAppliedByUrl, removeJob, updateJob } from './store';
 
 afterEach(() => {
   cleanup();
@@ -117,31 +117,48 @@ describe('Add job dialog', () => {
 // #115 / #129: one compact toolbar (search · status · sort · add) instead of a full-width URL
 // field plus an 8-option status strip.
 describe('Pipeline toolbar', () => {
-  it('has no status strip; status is one menu button showing the current view', () => {
+  it('has no Status select: the named views are chips, To apply pressed (#541)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();
-    expect(screen.queryByRole('radiogroup', { name: /status/i })).toBeNull();
-    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Status:/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'To apply 1' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByText('Saved and still open, closing soonest first.')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
   });
 
-  it('groups the status options with counts, and picking one filters the list', async () => {
+  it('each view has a count, and picking one filters the list and says what it holds', async () => {
     const user = userEvent.setup();
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     addJob('https://acme.example/jobs/2', 'Product Designer');
     markAppliedByUrl('https://acme.example/jobs/2', 'Product Designer');
     renderList();
 
-    await user.click(screen.getByRole('button', { name: /^Status:/ }));
-    const menu = await screen.findByRole('menu');
-    for (const group of ['Views', 'In progress', 'Closing date', 'Ended'])
-      expect(within(menu).getByText(group)).toBeInTheDocument();
-    await user.click(within(menu).getByRole('menuitemradio', { name: /^Applied\s*1$/ }));
-
-    expect(screen.getByRole('button', { name: /^Status: Applied/ })).toBeInTheDocument();
-    // Also listed under Follow up, so more than one match.
+    await user.click(screen.getByRole('button', { name: 'Applied 1' }));
+    expect(screen.getByRole('button', { name: 'Applied 1' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByText('Sent, waiting to hear back.')).toBeInTheDocument();
     expect(screen.getAllByText('Product Designer').length).toBeGreaterThan(0);
     expect(screen.queryByText('Design Engineer')).toBeNull();
+  });
+
+  it('Follow up shows an amber count while a follow-up is due, a neutral one otherwise', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderList();
+    const neutral = within(screen.getByRole('button', { name: 'Follow up 0' })).getByText('0');
+    expect(neutral.className).not.toMatch(/warning/);
+    cleanup();
+    markAppliedByUrl('https://acme.example/jobs/1', 'Design Engineer');
+    const d = new Date();
+    d.setDate(d.getDate() - 10);
+    updateJob('https://acme.example/jobs/1', { applied: d.toISOString().slice(0, 10) });
+    renderList();
+    const due = within(screen.getByRole('button', { name: 'Follow up 1' })).getByText('1');
+    expect(due.className).toMatch(/warning/);
   });
 });
 
@@ -156,7 +173,7 @@ describe('Pipeline hierarchy', () => {
     const bar = screen.getByRole('region', { name: 'Filter jobs' });
     expect(within(bar).getByRole('button', { name: 'Filters' })).toBeInTheDocument();
     expect(within(bar).getByRole('button', { name: 'Add job' })).toBeInTheDocument();
-    expect(within(bar).getByText('Active · 1 job')).toBeInTheDocument();
+    expect(within(bar).getByText('To apply · 1 job')).toBeInTheDocument();
   });
 
   it('first use: no toolbar, a teaching empty state with Add job + sample data', () => {
@@ -200,15 +217,17 @@ describe('Pipeline filtered to nothing', () => {
     expect(screen.getByRole('link', { name: 'Design Engineer' })).toBeInTheDocument();
   });
 
-  it('a status with no jobs: Try another status, and Show active goes back', async () => {
+  it('a view with no jobs: Try another view, and Show to apply goes back', async () => {
     const user = userEvent.setup();
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();
-    await user.click(screen.getByRole('button', { name: /^Status:/ }));
-    await user.click(await screen.findByRole('menuitemradio', { name: /^Offer/ }));
-    expect(screen.getByText('Try another status.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Show active' }));
-    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Interviewing 0' }));
+    expect(screen.getByText('Try another view.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show to apply' }));
+    expect(screen.getByRole('button', { name: 'To apply 1' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('nothing left to apply to: a plain title, no em dash', async () => {
@@ -220,11 +239,10 @@ describe('Pipeline filtered to nothing', () => {
   });
 });
 
-describe('Status and Sort show only their value', () => {
+describe('Sort shows only its value', () => {
   it('the prefix lives in the name, not the visible text', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();
-    expect(screen.getByRole('button', { name: /^Status: Active/ }).textContent).toBe('Active');
     expect(screen.getByRole('button', { name: /^Sort:/ }).textContent).not.toMatch(/^Sort/);
   });
 });

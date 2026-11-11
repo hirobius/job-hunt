@@ -560,8 +560,11 @@ describe('job page two-pane (#130 slice 5)', () => {
     setPipelineView({ q: 'welder' });
     openJobPage(URL_B);
     expect(railRows()).toHaveLength(1);
-    // Status and Sort sit in the column itself (#471): no trip back to a list page.
-    expect(screen.getByRole('button', { name: 'Status: Active' })).toBeInTheDocument();
+    // The views and Sort sit in the column itself (#471, #541): no trip back to a list page.
+    expect(screen.getByRole('button', { name: /^To apply \d/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByRole('button', { name: /^Sort: / })).toBeInTheDocument();
   });
 
@@ -586,7 +589,7 @@ describe('job page two-pane (#130 slice 5)', () => {
 
   it('pins the open job at the top with a note when the filter hides it', () => {
     viewport(1280);
-    setPipelineView({ filter: 'retired' });
+    setPipelineView({ filter: 'closed' });
     openJobPage(URL_A);
     expect(railRows()[0]).toHaveAttribute('aria-current', 'page');
     expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();
@@ -608,9 +611,9 @@ describe('job page two-pane (#130 slice 5)', () => {
     const p = (n: number) => String(n).padStart(2, '0');
     updateJob(URL_B, {
       status: 'Applied',
-      priority: true,
       applied: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
     });
+    setPipelineView({ filter: 'followUp' });
     openJobPage(URL_A);
     expect(within(rail()).getByText('Follow-up due')).toBeInTheDocument();
   });
@@ -984,11 +987,11 @@ describe('the keys follow the state (#540)', () => {
 
   it('Close out opens the next job in the list and focuses its title (#593)', async () => {
     const user = userEvent.setup();
-    // Pinned, so the Active list shows them once applied: newest first, Beta then Alpha.
+    // Both due, so the Follow up view shows them: newest first, Beta then Alpha.
     addJob(URL_A, 'Alpha Designer');
     addJob(URL_B, 'Beta Designer');
-    for (const url of [URL_A, URL_B])
-      updateJob(url, { status: 'Applied', applied: daysAgo(10), priority: true });
+    for (const url of [URL_A, URL_B]) updateJob(url, { status: 'Applied', applied: daysAgo(10) });
+    setPipelineView({ filter: 'followUp' });
     openJobPage(URL_A);
     await user.click(screen.getByRole('button', { name: 'Close out: Alpha Designer' }));
     expect(getAllJobs().find((j) => j.url === URL_A)?.archived).toBe(true);

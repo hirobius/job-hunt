@@ -206,6 +206,8 @@ test('Apply list: every row and page action answers within 300 ms', async ({ pag
   await page.setViewportSize({ width: 800, height: 900 });
   await go(page, '#/apply');
   const sheet = await openAllJobs(page);
+  // Every job, not only To apply (#541): the rows below are applied ones too.
+  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
   await press(page, button(sheet, 'Mark applied: Design Technologist'), 'Mark applied');
   await expect(
     page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
@@ -222,10 +224,11 @@ test('Apply list: every row and page action answers within 300 ms', async ({ pag
   await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
   await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
 
-  for (const name of ['Status: Active', 'Sort: Newest']) {
-    await press(page, button(sheet, name), name);
-    await closeOverlay(page);
-  }
+  await press(page, button(sheet, 'Sort: Newest'), 'Sort: Newest');
+  await closeOverlay(page);
+  // The named views (#541): a press swaps the list at once; back to All jobs.
+  await press(page, button(sheet, /^Applied \d/), 'Applied view');
+  await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
   await press(page, button(sheet, 'Follow up: Design Systems Designer'), 'Follow up');
   await closeOverlay(page);
   // The sheet closes; the filter bar holds the page's own actions.
@@ -243,6 +246,8 @@ test('Apply cards (390): Remove collapses the card before it goes', async ({ pag
   await page.setViewportSize({ width: 390, height: 844 });
   await go(page, '#/apply');
   const sheet = await openAllJobs(page);
+  // Every job, not only To apply (#541): the rows below are applied ones too.
+  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
   await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove from Apply', sheet);
   await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
   await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
@@ -377,6 +382,9 @@ test.describe('reduced motion', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await go(page, '#/apply');
     const sheet = await openAllJobs(page);
+    await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
+  // Every job, not only To apply (#541): the rows below are applied ones too.
+  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
     await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove from Apply', sheet);
     await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();

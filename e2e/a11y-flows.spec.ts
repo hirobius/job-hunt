@@ -387,10 +387,7 @@ for (const width of [390, 1440] as const) {
         }).observe(document.body, { childList: true, subtree: true, characterData: true });
       });
       // From lg the Jobs tab is the list beside one job (#471): show a saved one, to apply to.
-      if (width > 1000) {
-        await page.getByRole('button', { name: /^Status:/ }).click();
-        await page.getByRole('menuitemradio', { name: /^Saved/ }).click();
-      }
+      if (width > 1000) await page.getByRole('button', { name: /^To apply \d/ }).click();
       const mark = page.getByRole('button', { name: /^Mark applied/ }).first();
       await mark.focus();
       await page.keyboard.press('Enter');
