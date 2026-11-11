@@ -14,7 +14,12 @@ import { sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
 import { SERVER_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
-import { designSystemsTrack, type TrackConfig } from './track-config.ts';
+import {
+  DESIGN_ENGINEER_STRONG,
+  DESIGN_TECHNOLOGIST_STRONG,
+  designSystemsTrack,
+  type TrackConfig,
+} from './track-config.ts';
 import { VERIFIED_COMPANIES } from './verified.ts';
 import { matchKey, textTermsOf } from './matchText.ts';
 
@@ -84,11 +89,14 @@ const phrase = (s: string) =>
 
 /** feed/mustInclude.ts RELATED_TITLES (not imported: that module is the app's store): the related
  *  titles a design systems rule lets in, by id, with the scorer pattern each one is. */
-const RELATED_ADJACENT: Record<string, string> = { 'design technologist': 'design technologist' };
+const RELATED_PATTERNS: Record<string, string> = {
+  'design technologist': DESIGN_TECHNOLOGIST_STRONG,
+  'design engineer': DESIGN_ENGINEER_STRONG,
+};
 
 /** What a profile reads as a scorer config. `scorer: 'design-systems'` gets the tuned design
- *  systems config, Review bucket included (related titles switched off are dropped from its
- *  adjacent titles); any other is scored on its own titles (strong), related titles (adjacent,
+ *  systems config, Review bucket included (related titles switched off are dropped from its title
+ *  patterns); any other is scored on its own titles (strong), related titles (adjacent,
  *  needing the body to say a title) and the title and must-include phrases in the body. Leave-out
  *  terms reject a title either way. Null: nothing to score against. */
 export function compileProfile(p: {
@@ -101,9 +109,10 @@ export function compileProfile(p: {
 }): TrackConfig | null {
   const leaveOut = (p.leaveOut ?? []).filter(Boolean).map(phrase);
   if (p.scorer === designSystemsTrack.slug) {
-    const off = new Set((p.relatedOff ?? []).map((id) => RELATED_ADJACENT[id.toLowerCase()]));
+    const off = new Set((p.relatedOff ?? []).map((id) => RELATED_PATTERNS[id.toLowerCase()]));
     return {
       ...designSystemsTrack,
+      titleStrong: designSystemsTrack.titleStrong.filter((t) => !off.has(t)),
       titleAdjacent: designSystemsTrack.titleAdjacent.filter((t) => !off.has(t)),
       titleNegative: [...designSystemsTrack.titleNegative, ...leaveOut],
     };
@@ -131,7 +140,7 @@ export function compileProfile(p: {
  *  app's rule: mustInclude.ts lets them in on a "design system(s)" rule only). */
 export function configForProfile(p: Profile): TrackConfig | null {
   const relatedOff =
-    p.include.related === false ? Object.keys(RELATED_ADJACENT) : (p.include.relatedOff ?? []);
+    p.include.related === false ? Object.keys(RELATED_PATTERNS) : (p.include.relatedOff ?? []);
   return compileProfile({
     titles: profileTitles(p),
     scorer: p.scorer,
