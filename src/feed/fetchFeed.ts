@@ -15,7 +15,8 @@ import { SOURCE_LABEL, type Posting } from './types';
 import { SOURCE_ENABLED } from './sourceEnabled';
 import { lightBoards } from './lightBoards';
 import { fillTexts } from './lightText';
-import { includeFields, passesInclude, type IncludeRule } from './mustInclude';
+import { passesInclude } from './include';
+import { includeFields, type IncludeRule } from './mustInclude';
 
 export { SOURCE_ENABLED };
 /** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */

@@ -6,18 +6,15 @@ import {
   normalizeForPhrase,
   cleanNaics,
   includeFields,
-  keepIncluded,
-  passesInclude,
-  mentionsAny,
   mergeMustInclude,
   readMustInclude,
-  relatedCounts,
   relatedIsOn,
   RELATED_TITLES,
   toggleRelated,
   sanitizeMustInclude,
   setMustInclude,
 } from './mustInclude';
+import { keepIncluded, mentionsAny, passesInclude, relatedCounts } from './include';
 import { emptyBlob, mergeBlob, readBlob, writeBlob } from '../syncBlob';
 
 beforeEach(() => localStorage.clear());

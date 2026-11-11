@@ -1,6 +1,8 @@
 // Track config (Muse handoff, 2026-10-24): what the scorer (score.ts) reads for one track. Ported
 // as given; a track is tuned here, never in the scorer. Pure, so the client and the sync edge
 // function (supabase/functions/sync-postings) share it.
+import { NOT_UI_DESIGN_SOURCE } from './designRoleGuard.ts';
+
 export interface DescriptionSignal {
   pattern: string;
   label: string;
@@ -19,17 +21,13 @@ export interface TrackConfig {
   aggregatorQueries: string[];
 }
 
-/** Title words of hardware, building and physical-product roles: a "design engineer" title with one
- *  of them is never a design-engineering (UI) role. */
-const NOT_UI =
-  'mechanical|electrical|industrial|hardware|structural|civil|chip|silicon|asic|fpga|pcb|rf|analog|optical|hvac|automotive|manufacturing|packaging|tooling|mold|piping|process|verification|validation|interior|lighting|landscape|product design engineer';
-
 /** Design engineering (Adrian 2026-11-11): Design Engineer, UX Engineer and Front-end Design
- *  Engineer titles are strong, unless the title names hardware or physical-product work (NOT_UI).
- *  The guard sits inside the pattern because a strong title overrides titleNegative. */
-export const DESIGN_ENGINEER_STRONG = `^(?!.*\\b(${NOT_UI})\\b).*\\b(design|ux) engineers?\\b`;
+ *  Engineer titles are strong, unless the title names hardware or physical-product work (the shared
+ *  guard, designRoleGuard.ts, which the Feed and the keyless feeds use too). The guard sits inside
+ *  the pattern because a strong title overrides titleNegative. */
+export const DESIGN_ENGINEER_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\b(design|ux) engineers?\\b`;
 /** Design Technologist titles, with the same guard. */
-export const DESIGN_TECHNOLOGIST_STRONG = `^(?!.*\\b(${NOT_UI})\\b).*\\bdesign technologists?\\b`;
+export const DESIGN_TECHNOLOGIST_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\bdesign technologists?\\b`;
 
 export const designSystemsTrack: TrackConfig = {
   slug: 'design-systems',

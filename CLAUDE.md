@@ -497,11 +497,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   inclusion check uses (`termRegex`, `passesInclude`: whole words, "systems" ↔ "design system", never "ecosystem";
   **phrases break at separators**: a spaced hyphen, en/em dash, `, | / : ; & · •`; a hyphen inside a word joins).
   **A design system rule reads the title only** (`hasRelatedTitles`), so Design Engineers never come in through a
-  description; **related titles** = Design Technologist only (`related` absent = on, `relatedOff` ids). The per-track
+  description; **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
+  `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
+  process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
+  by the related-title pass, `feeds/dsRole.ts` `isDsRole` and the scorer's `DESIGN_ENGINEER_STRONG` (a lookahead
+  built from `NOT_UI_DESIGN_SOURCE`); pinned in `tracks/designEngineer.test.ts`. The check itself (`passesInclude`,
+  `keepIncluded`, `relatedCounts`, `mentionsAny`) is `feed/include.ts`, so the guard stays out of the entry. The per-track
   store (`rjb_must_include`, blob **v11**, incl. `atsOff` and a Contracts track's stored `naics`, `cleanNaics`) stays
   readable and feeds the v12 move; its editors (Calibrate, Manage track) are gone. `App`'s `SystemsOnlyMigration`
   still runs `migrateSystemsOnly` on old pack tracks. Pinned in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`,
-  `systemsOnlyNotice.test.tsx`.
+  `systemsOnlyNotice.test.tsx`, `tracks/designEngineer.test.ts`.
 - **Track scorer (Muse handoff, 2026-10-24):** `src/tracks/` is pure and shared by the app and the sync edge
   function: `score.ts` + `track-config.ts` are ported as given; tune only through the config. `scoreForTrack` = scorer
   then `fitRejectReason` (no interns); a profile with `scorer: 'design-systems'` (onboarding sets it) or a must include
