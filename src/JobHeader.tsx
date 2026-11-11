@@ -1,10 +1,10 @@
 // The job page's header (#130; rev-3 mobile slice 2): Back, one badge row above the title (status,
 // a due follow-up, Closed, then fit), the title with its posting link beside it, company ·
-// location · applied date, then one row of actions: the star, the job's one primary next step (it
-// takes the row's room) and the menu of everything else (Remove included). The same column at
+// location · applied date, then one row of actions: the job's one primary next step (it takes the
+// row's room) and the menu of everything else (Remove included); no star (#534). The same column at
 // every width. Back goes to the page the job was opened from (the Pipeline by default).
 // An Interviewing job's primary is Add interview (opens its dialog, #416); a job with no next
-// step (Offer, Rejected, retired, applied and not yet due) has none, so Star and More sit together.
+// step (Offer, Rejected, retired, applied and not yet due) has none, so More stands alone.
 import { Banknote, Bell, CalendarClock, Clock, ExternalLink, Link2, MapPin } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Badge, Box, Button, Card, Icon, Stack, Text, useAtLeast } from '@hirobius/design-system';

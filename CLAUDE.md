@@ -102,8 +102,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   link Open application | Mark applied | Not a fit; **no link** (`applicationLink`: not http(s)) Mark applied | Add
   link (opens Details on Link, `editLinkRequest.ts`) | Not a fit, never an Open application; follow-up due Follow
   up; Interviewing Add interview; else no dock and no spacer. The dock hides at once on a field and comes back
-  only after focus has been out of every field for 150 ms (`SHOW_AFTER_MS`: no flash between fields). Star and
-  More sit beside the title. Not a fit is the dock's exit: "Marked not a fit: <title>" with Undo
+  only after focus has been out of every field for 150 ms (`SHOW_AFTER_MS`: no flash between fields). More
+  sits beside the title (no star, #534). Not a fit is the dock's exit: "Marked not a fit: <title>" with Undo
   (`applyActions.ts`: `undoPatch` puts every field back, no navigation; the toast survives navigation). After
   Mark applied / Not a fit the next job in the list opens (`applyNext.ts` `openNextAfter`, from any origin) and
   its title takes focus; with no next job the tab goes back to its list and that page's h1 takes focus. Pinned in
