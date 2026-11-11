@@ -39,6 +39,14 @@ describe('FIGMA-RULES.md', () => {
     expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
   });
 
+  it('pins the exit style (#537): underlined text, the one way out', () => {
+    const exit = fs.readFileSync('src/hds-gaps/ExitButton.tsx', 'utf8');
+    expect(exit).toContain('variant="link"');
+    expect(exit).toContain('hds-touch-target');
+    expect(RULES).toMatch(/An exit is underlined text/);
+    expect(CLAUDE).toMatch(/An exit is underlined text/);
+  });
+
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
     const css = fs.readFileSync('src/hds-gaps/PageShell.css', 'utf8');
     expect(css).toContain('--rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);');

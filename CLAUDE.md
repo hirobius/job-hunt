@@ -88,6 +88,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **Keys (redesign §3, Adrian 2026-11-10, #537):** one filled key per decision, a grey key for a real
+  second choice, and **An exit is underlined text** for every way out (Cancel, Not a fit, Continue
+  without an account): `src/hds-gaps/ExitButton.tsx` = HDS `Button variant="link"` + HDS's
+  `hds-touch-target` (44px at every width; G11, hds#1442). Its focus ring is on `::after`
+  (hds#1167), which the `e2e/a11y.spec.ts` walk reads. `e2e/exit-style.spec.ts` pins it at 390 and 1440.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
   (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and

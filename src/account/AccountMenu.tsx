@@ -34,6 +34,7 @@ import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 import { motionPaused, setMotionPaused } from '../motionPref';
+import { ExitButton } from '../hds-gaps/ExitButton';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -260,7 +261,7 @@ function ResetLocalData({
         </AlertDialog.Header>
         <AlertDialog.Footer>
           <AlertDialog.Cancel asChild>
-            <Button variant="secondary">Cancel</Button>
+            <ExitButton>Cancel</ExitButton>
           </AlertDialog.Cancel>
           <AlertDialog.Action asChild>
             {/* The app's one destructive style: HDS secondary + tone="danger". */}

@@ -190,6 +190,11 @@ describe('unsaved edits in the editor', () => {
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
     const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
     expect(within(ask).getByRole('button', { name: 'Keep editing' })).toHaveFocus();
+    // The ask's way out is the exit (#537); Discard is the danger key.
+    expect(within(ask).getByRole('button', { name: 'Keep editing' })).toHaveAttribute(
+      'data-variant',
+      'link',
+    );
     await userEvent.click(within(ask).getByRole('button', { name: 'Keep editing' }));
     expect(window.location.hash).toBe('#/find?documents=snippet-tpl-outreach');
     expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent(
