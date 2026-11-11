@@ -45,7 +45,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, selected rows, overlays and row dividers keep theirs.
 - Every action answers within 300 ms: a toast, a state change, or the item flashing in place.
-  Remove is soft: it collapses, then offers Undo.
+  Remove is soft: it collapses, then offers Undo. Undo never navigates: it puts the item back and
+  leaves the person on the page they are on.
 
 ## Layout
 

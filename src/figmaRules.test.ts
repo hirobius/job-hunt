@@ -86,6 +86,10 @@ describe('FIGMA-RULES.md', () => {
     // Copy follow-up copies; only Mark followed up and Close out have an Undo (#593).
     expect(RULES).toMatch(/Close out; the last two with Undo/);
     expect(RULES).not.toMatch(/Close out, each with Undo/);
+    // No Undo ever navigates (Adrian 2026-11-11, #593 item 8).
+    expect(RULES).toMatch(/Undo never navigates/);
+    expect(CLAUDE).toMatch(/Undo never navigates/);
+    expect(CLAUDE).not.toMatch(/Undo reopens/);
     expect(CLAUDE).not.toMatch(/fit first/);
   });
 

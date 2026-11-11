@@ -384,9 +384,13 @@ describe('job page remove (Recently removed)', () => {
     expect(getAllJobs()).toHaveLength(0);
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(screen.getByText('Removed from Apply: Design Engineer')).toBeInTheDocument();
+    const length = window.history.length;
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(getAllJobs().map((j) => j.notes)).toEqual(['Ask about the shop floor']);
     expect(screen.queryByText('Removed from Apply: Design Engineer')).toBeNull();
+    // #593: Undo puts the job back and never navigates.
+    expect(window.location.hash).toBe('#/apply');
+    expect(window.history.length).toBe(length);
   });
 
   it('Recently removed (in the Account menu) restores or deletes for good', async () => {

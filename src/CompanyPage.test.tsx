@@ -172,7 +172,7 @@ describe('Company page (#230)', () => {
     ).toBe(two);
   });
 
-  it("removing a notes-only company's last note goes back; Undo reopens the page (#305)", async () => {
+  it("removing a notes-only company's last note goes back; Undo puts it back in place (#305, #593)", async () => {
     const id = addCompanyNote('Bolt', 'Only');
     window.location.hash = '#/apply/company/bolt';
     render(
@@ -186,7 +186,9 @@ describe('Company page (#230)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
     expect(getAllDocuments().some((d) => d.id === id)).toBe(true);
-    await waitFor(() => expect(window.location.hash).toBe('#/apply/company/bolt'));
+    // No Undo navigates (Adrian 2026-11-11): the note is back, the person stays where they are.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(window.location.hash).toBe('#/apply');
   });
 
   it('an uploaded final copy is listed but not linked to the text editor', () => {
