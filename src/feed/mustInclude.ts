@@ -57,8 +57,8 @@ export type IncludeRule =
   string[] | Pick<MustInclude, 'terms' | 'inTitle' | 'inText' | 'related' | 'relatedOff'>;
 
 /** Related titles (Adrian 2026-10-23): on a rule that asks for "design system(s)", a posting
- *  titled one of these passes on its title alone. Design Technologist is the only one (Design
- *  Engineer, UI Platform, Component Library and Frontend Platform were cut the same day). */
+ *  titled one of these passes on its title alone: Design Technologist, and Design Engineer (with UX
+ *  Engineer; back on 2026-11-11). UI Platform, Component Library and Frontend Platform stay cut. */
 export interface RelatedTitle {
   id: string;
   /** Phrases the title is matched against (same phrase rules as must include). */
@@ -67,6 +67,8 @@ export interface RelatedTitle {
 
 export const RELATED_TITLES: RelatedTitle[] = [
   { id: 'Design Technologist', phrases: ['design technologist'] },
+  // Adrian 2026-11-11: design engineering roles too. The scorer still drops hardware ones.
+  { id: 'Design Engineer', phrases: ['design engineer', 'ux engineer'] },
 ];
 const RELATED_IDS = new Set(RELATED_TITLES.map((r) => r.id));
 

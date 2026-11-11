@@ -100,8 +100,8 @@ describe('phrase matching (design system)', () => {
 
   // Adrian's phone, 2026-10-23: these passed on a bare "systems" in the description.
   it.each([
-    ['Senior Design Engineer', 'Frontcareers builds scalable systems for our design team.'],
-    ['Staff Design Engineer', 'Mixpanel: own UI systems and design tooling.'],
+    ['Senior Product Engineer', 'Frontcareers builds scalable systems for our design team.'],
+    ['Staff Frontend Engineer', 'Mixpanel: own UI systems and design tooling.'],
   ])(
     '%s with "systems" (not the phrase) in its description is hidden, descriptions on or off',
     (t, d) => {
@@ -207,14 +207,13 @@ describe('related titles (2026-10-23)', () => {
     ['Design Technologist', '', true],
     ['Senior Design Technologist', 'Nothing about it.', true],
     ['Staff Design Engineer, Design Systems', '', true],
-    // Live postings (Adrian's phone) and Ashby's roles in Companies → Watched.
-    ['Senior Design Engineer', DS, false],
-    ['Staff Design Engineer', DS, false],
-    ['Design Engineer – Americas', DS, false],
-    ['Design Engineer – Canada', DS, false],
-    ['Design Engineer – EU', DS, false],
-    ['Design Engineer – UK', DS, false],
-    ['Design Engineer', DS, false],
+    // Live postings (Adrian's phone): Design Engineer is a related title again (2026-11-11).
+    ['Senior Design Engineer', DS, true],
+    ['Staff Design Engineer', DS, true],
+    ['Design Engineer – Americas', DS, true],
+    ['Design Engineer', '', true],
+    ['Senior UX Engineer', '', true],
+    ['Senior Software Engineer', DS, false],
     ['UI Platform Engineer', DS, false],
     ['Component Library Engineer', DS, false],
     ['Frontend Platform Engineer', DS, false],
@@ -224,8 +223,8 @@ describe('related titles (2026-10-23)', () => {
     expect(passesInclude({ terms: ['design system'] }, title, text)).toBe(want);
   });
 
-  it('Design Technologist is the only related title', () => {
-    expect(RELATED_TITLES.map((r) => r.id)).toEqual(['Design Technologist']);
+  it('Design Technologist and Design Engineer are the related titles', () => {
+    expect(RELATED_TITLES.map((r) => r.id)).toEqual(['Design Technologist', 'Design Engineer']);
   });
 
   it('a title switched off no longer passes; the control off turns them all off', () => {
@@ -254,7 +253,7 @@ describe('related titles (2026-10-23)', () => {
       { id: 'b', title: 'Backend Engineer', text: DS },
       { id: 'c', title: 'Staff Design Engineer', text: DS },
     ];
-    expect(keepIncluded(roles, rule).map((r) => r.id)).toEqual(['a']);
+    expect(keepIncluded(roles, rule).map((r) => r.id)).toEqual(['a', 'c']);
   });
 
   it('counts what each title would let in, on or off', () => {
@@ -266,6 +265,7 @@ describe('related titles (2026-10-23)', () => {
     ];
     expect(relatedCounts(ps, { ...rule, relatedOff: ['Design Technologist'] })).toEqual({
       'Design Technologist': 2,
+      'Design Engineer': 1,
     });
   });
 

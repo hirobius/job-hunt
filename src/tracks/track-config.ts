@@ -19,6 +19,18 @@ export interface TrackConfig {
   aggregatorQueries: string[];
 }
 
+/** Title words of hardware, building and physical-product roles: a "design engineer" title with one
+ *  of them is never a design-engineering (UI) role. */
+const NOT_UI =
+  'mechanical|electrical|industrial|hardware|structural|civil|chip|silicon|asic|fpga|pcb|rf|analog|optical|hvac|automotive|manufacturing|packaging|tooling|mold|piping|process|verification|validation|interior|lighting|landscape|product design engineer';
+
+/** Design engineering (Adrian 2026-11-11): Design Engineer, UX Engineer and Front-end Design
+ *  Engineer titles are strong, unless the title names hardware or physical-product work (NOT_UI).
+ *  The guard sits inside the pattern because a strong title overrides titleNegative. */
+export const DESIGN_ENGINEER_STRONG = `^(?!.*\\b(${NOT_UI})\\b).*\\b(design|ux) engineers?\\b`;
+/** Design Technologist titles, with the same guard. */
+export const DESIGN_TECHNOLOGIST_STRONG = `^(?!.*\\b(${NOT_UI})\\b).*\\bdesign technologists?\\b`;
+
 export const designSystemsTrack: TrackConfig = {
   slug: 'design-systems',
   name: 'Design Systems',
@@ -31,14 +43,16 @@ export const designSystemsTrack: TrackConfig = {
     'component (library|platform|systems?) (engineer|designer|developer|lead)',
     'design systems? (engineer|designer|developer|lead|manager|architect|specialist|consultant)',
     '(engineer|designer|developer|lead|manager|architect) — design systems?',
+    // Adrian 2026-11-11: design engineering roles are searched as well (this replaces the
+    // 2026-10-23 tune that left "design engineer" out).
+    DESIGN_ENGINEER_STRONG,
+    DESIGN_TECHNOLOGIST_STRONG,
   ],
-  // One tune (Adrian 2026-10-23): "design engineer" is left out. Design Engineer roles come in only
-  // when the title is clearly a design-system one (titleStrong).
+  // Creative technologist stays adjacent: it is often an agency or marketing role, so the body
+  // has to show design-system work.
   titleAdjacent: [
-    'design technologist',
     'creative technologist',
     'ui engineer',
-    'ux engineer',
     'front[- ]end (engineer|developer).*(design|ui|component)',
     '(product|ux|ui) designer.*(platform|infrastructure|systems|foundations|core)',
     'design.*foundations',
@@ -112,6 +126,9 @@ export const designSystemsTrack: TrackConfig = {
     '"design system" "product designer" remote',
     '"design technologist" remote',
     '"design engineer" "design systems" remote',
+    '"design engineer" remote',
+    '"ux engineer" remote',
+    '"front-end design engineer" remote',
     '"component library" engineer remote',
   ],
 };
