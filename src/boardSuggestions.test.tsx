@@ -1,4 +1,4 @@
-// #576 item 3: board suggestions are shown in Companies and followed only on a tap.
+// #576 item 5: board suggestions are shown in Companies and followed only on a tap.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

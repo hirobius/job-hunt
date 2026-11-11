@@ -69,7 +69,7 @@ export function trimForMatch(text: string, patterns: readonly RegExp[]): string 
 /** Change when the trim rules change: every stored match text then reads as stale. */
 const MATCH_RULES = 1;
 /** Related titles the Feed can add to a profile's titles (feed/mustInclude.ts RELATED_TITLES). */
-const RELATED = ['design technologist'];
+const RELATED = ['design technologist', 'design engineer', 'ux engineer'];
 
 /** Every term the Feed can test on a posting's text for this profile: include, leave out, every
  *  title and ATS role (on or off: a superset only keeps more text), the related titles. */

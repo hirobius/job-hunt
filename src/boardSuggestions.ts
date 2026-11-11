@@ -1,4 +1,4 @@
-// Board suggestions (#576 item 3): boards the sync found for companies seen in the feeds (HN,
+// Board suggestions (#576 item 5): boards the sync found for companies seen in the feeds (HN,
 // TheirStack, ...), stored per user in `board_suggestions` (20261111100200 migration). They are
 // SUGGESTIONS only: Companies lists them, and nothing is followed until the user taps Follow.
 // Signed out, or before the migration is applied, there is nothing to read.

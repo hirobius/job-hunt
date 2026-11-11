@@ -186,12 +186,6 @@ p {
   }
 }
 
-/* A filled icon (the on state of Star). HDS Icon's `weight="fill"` only sets the stroke width, so
- * the fill comes from here. Upstream ask: a real filled weight on HDS Icon. */
-.rjb-icon-filled {
-  fill: currentColor;
-}
-
 /* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
  * (HDS 0.31 TokenField's look, from the same tokens: a soft muted fill, no edge). A blank that fills in place is an HDS Tag set in
  * the line (`.rjb-blank`): its component tokens take the chip's shape, and on a phone its 40px hit
@@ -649,25 +643,6 @@ p {
   animation: rjb-flash calc(var(--hds-motion-spatial-duration) * 3)
     var(--hds-motion-productive-easing);
 }
-@keyframes rjb-pop {
-  50% {
-    transform: scale(1.3);
-  }
-}
-@keyframes rjb-pop-off {
-  50% {
-    transform: scale(0.8);
-  }
-}
-.rjb-pop,
-.rjb-pop-off {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: rjb-pop var(--hds-motion-expressive-duration) var(--hds-motion-spatial-easing);
-}
-.rjb-pop-off {
-  animation-name: rjb-pop-off;
-}
 @keyframes rjb-collapse {
   to {
     opacity: 0;
@@ -680,7 +655,7 @@ p {
     forwards;
 }
 /* Arrive (v1.5, #279, feedback.ts useArrived): what an action just made appears with a short rise
- * and fade (a posting's Saved status, Apply mode's Applied note); its check pops with .rjb-pop. */
+ * and fade (a posting's Saved status, Apply mode's Applied note). */
 @keyframes rjb-arrive {
   from {
     opacity: 0;
@@ -705,14 +680,12 @@ p {
     var(--hds-motion-productive-easing);
 }
 /* Reduced motion: the state change and the toast stay, the movement goes. A flash holds still for
- * its length (feedback.ts clears it); a pop and a collapse don't run. */
+ * its length (feedback.ts clears it); a collapse doesn't run. */
 @media (prefers-reduced-motion: reduce) {
   [data-motion='flash'] {
     animation: none;
     background-color: var(--semantic-color-surface-selected);
   }
-  .rjb-pop,
-  .rjb-pop-off,
   .rjb-arrive,
   .rjb-view-enter,
   [data-motion='collapse'] {

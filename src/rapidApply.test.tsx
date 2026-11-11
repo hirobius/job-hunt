@@ -79,7 +79,7 @@ describe('save notice', () => {
     renderApp();
     act(() => notifySaved([C], 'Cask Designer'));
     const notice = await findNotice();
-    expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    expect(within(notice).getByText(/^Added to Apply/)).toBeInTheDocument();
     // rev-3 #s-save-notice: one line, no job name under it (Open is one tap away).
     expect(within(notice).queryByText('Cask Designer')).toBeNull();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
@@ -150,6 +150,26 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
   });
 
+  it("the kit field editor's Cancel is the exit (#537): a link button with the 44px target", async () => {
+    const user = userEvent.setup();
+    setKitField('name', 'Sam');
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo');
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    expect(cancel).toHaveAttribute('data-variant', 'link');
+    expect(cancel).toHaveAttribute('data-rjb-exit');
+    expect(cancel.className).toContain('hds-touch-target');
+    expect(screen.getByRole('button', { name: 'Done' })).toHaveAttribute(
+      'data-variant',
+      'secondary',
+    );
+    await user.click(cancel);
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(getApplyKit().fields.name).toBe('Sam');
+  });
+
   it('Mark applied and Not a fit move on to the next job in the list, each with Undo', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
@@ -171,11 +191,14 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
     expect(pagerOf().getByText('2 of 2')).toBeInTheDocument();
     const region = await findNotice();
+    // #536: the toast names the job, and Undo restores it and its place.
+    expect(within(region).getByText('Marked not a fit: Cask Designer')).toBeInTheDocument();
     await user.click(within(region).getByRole('button', { name: 'Undo' }));
-    expect(findJobByUrl(C)?.archived).toBe(false);
-    // Undo reopens the job set aside, at its place in the list (return paths).
-    expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
-    expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
+    // Undo puts every field back and does not navigate (#536): the job is back in its place in
+    // the list, and the page stays on the job it moved on to.
+    expect(findJobByUrl(C)?.archived).toBeFalsy();
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`);
+    await waitFor(() => expect(pagerOf().getByText('3 of 3')).toBeInTheDocument());
   });
 
   it('Mark applied raises a notice with Undo that puts the job back in To apply (#212)', async () => {
@@ -302,6 +325,36 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
     const next = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
     await waitFor(() => expect(next).toHaveFocus());
+  });
+
+  it('after Not a fit on a job opened outside the walk (from Find), focus moves to the next title (#536)', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(C)}?from=%2Ffind`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
+    const next = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
+    await waitFor(() => expect(next).toHaveFocus());
+    // It stays in Apply (the next job), and keeps the way back to Find.
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}?from=%2Ffind`);
+  });
+
+  it('after Not a fit on the last job, the tab goes back to its list and its heading takes focus (#536)', async () => {
+    const user = userEvent.setup();
+    removeJob(B);
+    removeJob(C);
+    updateJob(A, { priority: false });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    expect(findJobByUrl(A)?.archived).toBe(true);
+    // No next job: the Apply tab opens on the first job there is (here the one just set aside,
+    // now Retired, with no dock), and its page heading takes focus, never <body>.
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await waitFor(() => expect(h1).toHaveFocus());
+    expect(screen.getByText('Retired')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
   });
 
   it('after the last job, the tab goes back to its first job, its heading focused', async () => {
@@ -547,7 +600,7 @@ describe('Application kit: a pick on a snippet not moved yet (#314 review)', () 
 });
 
 describe('the job header keeps to two items per dotted line (#192)', () => {
-  it('badges above the title, company on its line, the position in the pager', async () => {
+  it('title first, company on its line, facts on one line, the position in the pager (#538)', async () => {
     updateJob(A, { location: 'Remote', verdict: 'match' });
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
@@ -556,11 +609,16 @@ describe('the job header keeps to two items per dotted line (#192)', () => {
       .filter((e) => e.children.length === 0)
       .map((e) => e.textContent ?? '');
     const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
-    expect(header).toHaveTextContent(/Acme\s*·?\s*Remote/);
+    // Title, then the company, then one facts line (place, pay, date).
+    const h1 = screen.getByRole('heading', { name: 'Acme Designer' });
+    expect(header.textContent!.indexOf('Acme Designer')).toBeLessThan(
+      header.textContent!.indexOf('Remote'),
+    );
+    expect(h1.compareDocumentPosition(within(header).getByText('Remote')) & 4).toBeTruthy();
     expect(texts).toContain('1 of 3');
-    // Fit first, then status (#360, as CLAUDE.md says).
+    // No fit chip and no Saved chip (#538).
     const badges = texts.filter((t) => t === 'Strong fit' || t === 'Saved');
-    expect(badges).toEqual(['Strong fit', 'Saved']);
+    expect(badges).toEqual([]);
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });
@@ -587,7 +645,7 @@ describe('rapid apply follow-ups (#219)', () => {
     });
     expect(findJobByUrl(C)?.archived).toBe(false);
     const notice = await findNotice();
-    expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    expect(within(notice).getByText(/^Added to Apply/)).toBeInTheDocument();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)).toMatchObject({ archived: true, notes: 'kept' });
   });
@@ -601,7 +659,7 @@ describe('rapid apply follow-ups (#219)', () => {
     expect(within(notice).getByText('Already in your Pipeline')).toBeInTheDocument();
     expect(within(notice).getByText('Acme Designer')).toBeInTheDocument();
     expect(within(notice).getByRole('button', { name: 'Open' })).toBeInTheDocument();
-    expect(within(notice).queryByText('Saved to Pipeline · To apply')).toBeNull();
+    expect(within(notice).queryByText(/^Added to Apply/)).toBeNull();
   });
 
   it('an unnamed question’s remove button still says what it removes', async () => {

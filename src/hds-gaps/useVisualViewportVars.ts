@@ -10,6 +10,7 @@
 // brand has two states instead, keyboard closed and open (visible height < 80% of innerHeight),
 // and one eased transition between them in CSS. The attribute changes only when the state
 // changes, so the transition starts only then and never restarts mid-way.
+// hds-gap: hirobius/hds#1432 (G1: keyboard-aware bottom dock and sheet)
 import { useCallback, useEffect, useRef } from 'react';
 
 export const KEYBOARD_OPEN_RATIO = 0.8;
@@ -25,8 +26,8 @@ export function useVisualViewportVars<T extends HTMLElement>(): (el: T | null) =
     const el = elRef.current;
     const vv = window.visualViewport;
     if (!el || !vv) return;
-    el.style.setProperty('--rjb-vv-top', `${Math.round(vv.offsetTop)}px`);
-    el.style.setProperty('--rjb-vv-height', `${Math.round(vv.height)}px`);
+    el.style.setProperty('--rjb-vv-top', `${Math.round(vv.offsetTop)}px`); // hds-allow: a measured viewport offset, not a spacing value
+    el.style.setProperty('--rjb-vv-height', `${Math.round(vv.height)}px`); // hds-allow: a measured viewport height, not a spacing value
     const state = keyboardOpen(vv.height, window.innerHeight) ? 'open' : 'closed';
     if (el.dataset.keyboard !== state) el.dataset.keyboard = state;
   }, []);

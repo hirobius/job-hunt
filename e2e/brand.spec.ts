@@ -86,7 +86,7 @@ test('the logo names the product, the letters still: header and sign-in', async 
       .locator('.rjb-rf-l')
       .evaluateAll((ls) => ls.map((l) => (l as HTMLElement).style.cssText));
   const first = await letterPoses();
-  for (const pose of first) expect(pose).toMatch(/skewX\(0\.00deg\)/);
+  for (const pose of first) expect(pose).toMatch(/skewX\(0(\.0+)?deg\)/);
   await page.waitForTimeout(600);
   expect(await letterPoses()).toEqual(first);
 

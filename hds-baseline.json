@@ -66,14 +66,6 @@
       "why": "the Undo toasts rework; needs a polite HDS toast type"
     },
     {
-      "rule": "gap",
-      "file": "src/hds-gaps/useVisualViewportVars.ts",
-      "match": "stand-in has no hds-gap tag",
-      "count": 1,
-      "issue": "job-hunt#535",
-      "why": "the keyboard-aware action dock (G1, hds#1432)"
-    },
-    {
       "rule": "px",
       "file": "src/account/sheet.css",
       "match": "max-width: 440px",
@@ -104,22 +96,6 @@
       "count": 1,
       "issue": "job-hunt#548",
       "why": "the P4 shell rebuild; needs a Container shell width in HDS"
-    },
-    {
-      "rule": "px",
-      "file": "src/hds-gaps/useVisualViewportVars.ts",
-      "match": "concatenated px: el.style.setProperty('--rjb-vv-height', `${Math.round(vv.hei",
-      "count": 1,
-      "issue": "job-hunt#535",
-      "why": "the keyboard-aware action dock (G1, hds#1432)"
-    },
-    {
-      "rule": "px",
-      "file": "src/hds-gaps/useVisualViewportVars.ts",
-      "match": "concatenated px: el.style.setProperty('--rjb-vv-top', `${Math.round(vv.offset",
-      "count": 1,
-      "issue": "job-hunt#535",
-      "why": "the keyboard-aware action dock (G1, hds#1432)"
     },
     {
       "rule": "px",

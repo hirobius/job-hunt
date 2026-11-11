@@ -44,7 +44,7 @@ export function setStatusWithNotice(rawUrl: string, status: Status, label?: stri
 }
 
 /** A patch that puts a job back as it was: every field it had, and the ones it gained cleared. */
-function undoPatch(before: Job): Partial<Job> {
+export function undoPatch(before: Job): Partial<Job> {
   const now = getAllJobs().find((j) => j.url === before.url);
   const patch: Partial<Job> = { ...before };
   for (const k of Object.keys(now ?? {}) as (keyof Job)[])

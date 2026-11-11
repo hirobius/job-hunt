@@ -166,7 +166,7 @@ for (const width of [390, 800] as const) {
       await page.getByRole('button', { name: /^Status:/ }).click();
       await closesOnBack(page.getByRole('menu'), queue);
       await more.click();
-      await page.getByRole('menuitem', { name: 'Remove' }).click();
+      await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
       // Recently removed is in the Account menu (#416).
       await page.getByRole('button', { name: /^Account/ }).click();
       await page.getByRole('menuitem', { name: /^Recently removed/ }).click();
@@ -189,7 +189,7 @@ for (const width of [390, 800] as const) {
           .getByRole('button', { name: `More actions: ${title}` })
           .first()
           .click();
-        await page.getByRole('menuitem', { name: 'Remove' }).click();
+        await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
       };
       // Opened from its Company page, with Apply behind it.
       await go(page, '#/apply');

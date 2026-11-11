@@ -9,8 +9,9 @@ signed-in user follows **from their synced `tracker` blob** (`src/tracks/plan.ts
   boards of saved jobs across every track, the tiles under each "Watched companies" section (read
   through the `watched_tile_urls()` function), and the verified list for a design systems user.
 
-Then it reads every board once (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters,
-Teamtailor, Personio, with the app's own parsers), and on the morning run HN, Remotive and Jobicy for
+Then it reads every board once (all 13 kinds, #576: Greenhouse, Lever, Ashby, Workable, Recruitee,
+SmartRecruiters, Teamtailor, Personio, BambooHR, Rippling, Gem, Pinpoint, Breezy HR, with the app's
+own parsers; each kind's host is fixed and only a validated slug varies), and on the morning run HN, Remotive and Jobicy for
 the profile's titles plus designsystems.jobs: its whole catalog (sitemap + each job page, only
 pages not stored yet, at most 40 a run, 1 a second; its RSS fills in the rest) — and, for a design
 systems profile, the sync's own searches in `src/tracks/feeds/` once each is on in
@@ -87,7 +88,11 @@ Also run `supabase/migrations/20261029100000_postings_more_sources.sql` once (af
 lets `postings` store rows from TheirStack, Jooble and Into Design Systems, and adds
 `known_dsjobs_postings()` (the designsystems.jobs pages already stored, so each run reads only new
 ones). Then run `supabase/migrations/20261029100200_postings_keyless_aggregators.sql` once: it lets
-`postings` store rows from Arbeitnow, Remote OK and We Work Remotely.
+`postings` store rows from Arbeitnow, Remote OK and We Work Remotely. Then run
+`supabase/migrations/20261111100000_postings_all_board_kinds.sql` once, **before** deploying a
+function that reads all 13 board kinds (#576): it lets `postings` store BambooHR, Rippling, Gem,
+Pinpoint and Breezy HR rows under their own source (they were stored as `manual`, which the app
+never shows).
 
 ### 4. Deploy the function
 
@@ -184,6 +189,18 @@ is separate and unchanged. If a host answers 429s in `sync_log`, unschedule `syn
 
 To go back to twice a day: `select cron.unschedule('sync-postings-15min');
 select cron.unschedule('sync-postings-15min-23');` and run step 6's file again.
+
+### 7b. Feeds twice a day (#576)
+
+1. Deploy the function from the same PR first (it reads `"keyed": false`).
+2. Open `supabase/migrations/20261111100100_sync_feeds_twice_a_day.sql`, paste it and run it.
+3. Check that `sync-postings-afternoon` shows `23 14 * * *`.
+
+The 14:23 run reads HN, Jobicy, designsystems.jobs and the keyless feeds. TheirStack, Adzuna,
+Jooble and Remotive stay on the 06:23 run only, so their budgets do not change (Remotive asks for
+about 4 requests a day: 2 terms, and a retry of each, is 4; `termsPerRun` in `src/tracks/sync.ts`).
+
+To stop it: `select cron.unschedule('sync-postings-afternoon');`
 
 ## Scan rotation (bulk boards, #src-bulk)
 

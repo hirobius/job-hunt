@@ -1,4 +1,4 @@
--- Board suggestions (#576 item 3). On each feeds run the sync probes a few company names from the
+-- Board suggestions (#576 item 5). On each feeds run the sync probes a few company names from the
 -- feeds (HN, TheirStack, Adzuna, Jooble, ...) on Greenhouse, Lever and Ashby (src/tracks/boardSuggest.ts:
 -- fixed hosts, slugs only, at most 72 reads a run) and stores each live board as a suggestion for
 -- the users who saw that company. A suggestion is never followed by itself: Companies lists it and
@@ -19,10 +19,10 @@ alter table public.board_suggestions enable row level security;
 
 drop policy if exists "read own rows" on public.board_suggestions;
 create policy "read own rows" on public.board_suggestions
-  for select using (auth.uid() = user_id);
+  for select to authenticated using (auth.uid() = user_id);
 drop policy if exists "delete own rows" on public.board_suggestions;
 create policy "delete own rows" on public.board_suggestions
-  for delete using (auth.uid() = user_id);
+  for delete to authenticated using (auth.uid() = user_id);
 
 revoke all on public.board_suggestions from public, anon, authenticated;
 grant select, delete on public.board_suggestions to authenticated;

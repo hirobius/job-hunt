@@ -1,4 +1,4 @@
-// Board suggestions from the postings we already read (#576 item 3). HN, TheirStack, Adzuna,
+// Board suggestions from the postings we already read (#576 item 5). HN, TheirStack, Adzuna,
 // Jooble and the other feeds name companies whose own ATS board nobody follows yet. On each feeds
 // run the sync takes a few of those names, asks the three most common ATS APIs whether a board
 // answers for the name's slug, and stores each live one as a SUGGESTION for the users who saw the
