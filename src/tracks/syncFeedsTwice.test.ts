@@ -1,7 +1,8 @@
-// #576 item 4: the feeds run twice a day. Pinned by text, as syncSchedule.test.ts pins #448.
+// #576 item 3: the feeds run twice a day. Pinned by text, as syncSchedule.test.ts pins #448.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { serverFeedsForRun } from './feeds/serverFeeds';
+import { termsPerRun } from './sync';
 
 const sql = readFileSync('supabase/migrations/20261111100100_sync_feeds_twice_a_day.sql', 'utf8');
 const fn = readFileSync('supabase/functions/sync-postings/index.ts', 'utf8');
@@ -43,5 +44,13 @@ describe('feeds twice a day (#576)', () => {
     const afternoon = serverFeedsForRun(env, false);
     expect(morning).toEqual(expect.arrayContaining(['arbeitnow', 'remoteok', 'wwr', 'theirstack']));
     expect(afternoon).toEqual(['arbeitnow', 'remoteok', 'wwr']);
+  });
+
+  it('reads Remotive on the morning run only: 2 terms, at most 4 requests with a retry each', () => {
+    expect(termsPerRun(true)).toEqual({ hn: 20, jobicy: 20, remotive: 2 });
+    expect(termsPerRun(false)).toEqual({ hn: 20, jobicy: 20, remotive: 0 });
+    // 2 terms, each read at most twice (retry.ts), across the two runs: within Remotive's ~4 a day.
+    expect(2 * (termsPerRun(true).remotive + termsPerRun(false).remotive)).toBeLessThanOrEqual(4);
+    expect(fn).toMatch(/termsPerRun\(body\.keyed !== false\)/);
   });
 });

@@ -196,8 +196,9 @@ select cron.unschedule('sync-postings-15min-23');` and run step 6's file again.
 2. Open `supabase/migrations/20261111100100_sync_feeds_twice_a_day.sql`, paste it and run it.
 3. Check that `sync-postings-afternoon` shows `23 14 * * *`.
 
-The 14:23 run reads HN, Remotive, Jobicy, designsystems.jobs and the keyless feeds. TheirStack,
-Adzuna and Jooble stay on the 06:23 run only, so their budgets do not change.
+The 14:23 run reads HN, Jobicy, designsystems.jobs and the keyless feeds. TheirStack, Adzuna,
+Jooble and Remotive stay on the 06:23 run only, so their budgets do not change (Remotive asks for
+about 4 requests a day: 2 terms, and a retry of each, is 4; `termsPerRun` in `src/tracks/sync.ts`).
 
 To stop it: `select cron.unschedule('sync-postings-afternoon');`
 

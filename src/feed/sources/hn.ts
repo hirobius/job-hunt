@@ -169,7 +169,8 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
   if (!company && segs.length < 2) company = PROSE_RE.exec(firstLine)?.[1]?.trim() ?? '';
   if (!title) title = segs.length >= 2 ? HN_NO_ROLE : firstLine;
   const location = placeOf(where);
-  // HN pay is free text (#576): read the first yearly figure or range that names a currency.
+  // HN pay is free text (#576 item 2): a yearly figure or range that names a currency, never a
+  // bonus, equity or funding figure (hnPay.ts); unsure gives no pay, which passes the pay floor.
   const pay = parseHnPay(text);
 
   return {

@@ -35,6 +35,7 @@ import {
   readAll,
   scoreBatch,
   TERM_FEEDS,
+  termsPerRun,
   type ReadOutcome,
   type ScoredPosting,
   type TermFeed,
@@ -115,13 +116,6 @@ const RUN_LEASE_MS = 14 * 60_000;
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
 const TILE_PAGE = 1000;
-/** Distinct titles searched per feed and run, across every user. */
-const TERMS_PER_RUN: Record<TermFeed, number> = {
-  hn: 20,
-  jobicy: 20,
-  // Remotive asks for at most ~4 requests a day; the feeds run twice a day (06:23, 14:23): 2 × 2.
-  remotive: 2,
-};
 /** Each outbound read's cap: one hung board must not spend the slice's whole wall-clock budget. */
 const FETCH_TIMEOUT_MS = ROTATION.fetchTimeoutMs;
 const timedFetch = (u: string, init?: RequestInit) =>
@@ -966,13 +960,15 @@ Deno.serve(async (req) => {
     // The feeds, twice a day (06:23 and 14:23, #576), on the last slice: each title once across users.
     if (body.rss === true && last) {
       const terms: Partial<Record<TermFeed, string[]>> = {};
+      // Remotive on the morning run only (its ~4 a day): termsPerRun, #576 item 3.
+      const perRun = termsPerRun(body.keyed !== false);
       for (const feed of TERM_FEEDS) {
         const seen = new Map<string, string>();
         for (const plan of plans.values())
           if (plan.feeds.has(feed))
             for (const t of plan.terms)
               if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
-        terms[feed] = [...seen.values()].slice(0, TERMS_PER_RUN[feed]);
+        terms[feed] = [...seen.values()].slice(0, perRun[feed]);
       }
       const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
       const server = serverFeedsForRun(envOf, body.keyed !== false).filter((f) =>

@@ -1,9 +1,10 @@
--- #576 item 4 (Adrian 2026-11-11): the feeds (HN, Remotive, Jobicy, designsystems.jobs and the
--- keyless server feeds) are read twice a day, at 06:23 and 14:23 UTC, so HN and Remotive are at most
--- ~8 h stale in the working day instead of 24 h. The 14:23 run sends `"keyed": false`: TheirStack,
--- Adzuna and Jooble still run on the morning run only, so their daily budgets do not change.
--- Rate notes: Remotive asks for ~4 requests a day (2 terms × 2 runs = 4); Jobicy asks for no more
--- than hourly; HN Algolia, Arbeitnow, Remote OK and WWR are read 2 times a day.
+-- #576 item 3 (Adrian 2026-11-11): the feeds (HN, Jobicy, designsystems.jobs and the keyless server
+-- feeds) are read twice a day, at 06:23 and 14:23 UTC, so HN is at most ~8 h stale in the working
+-- day instead of 24 h. The 14:23 run sends `"keyed": false`: TheirStack, Adzuna, Jooble and Remotive
+-- still run on the morning run only, so their daily budgets do not change.
+-- Rate notes: Remotive asks for ~4 requests a day: 2 terms on the morning run, 4 with a retry each
+-- (sync.ts termsPerRun); Jobicy asks for no more than hourly; HN Algolia, Arbeitnow, Remote OK and
+-- WWR are read 2 times a day.
 -- 14:23 was a 15-minute boards-only tick (sync-postings-15min-23); this run reads the boards too,
 -- so that job now skips 14 as it skips 06. Do NOT apply before review. Safe to run twice.
 create extension if not exists pg_cron;
