@@ -10,6 +10,7 @@ import { collapseRow } from './feedback';
 import { FollowUpButton } from './FollowUp';
 import { openFollowUp } from './followUpFlow';
 import { openAddInterview } from './jobDialogs';
+import { askLinkForm, keepLinkFormFocus } from './jobLinkForm';
 import { buildHash, getRoute } from './route';
 import { closingOf } from './jobDates';
 import { primaryAction, rowView, titleOf } from './jobRow';
@@ -90,6 +91,7 @@ export function RowMenu({
   onRemoved,
   onRetired,
   research = false,
+  links = false,
 }: {
   job: Job;
   size?: Size;
@@ -100,6 +102,9 @@ export function RowMenu({
   onRetired?: () => void;
   /** The job page's menu also holds the research links (rev-3 review: off the Details panel). */
   research?: boolean;
+  /** The job page's menu adds the first document or deck link: those panels show only with a
+   *  link (#540, #593). */
+  links?: boolean;
 }) {
   const title = titleOf(job);
   // The row the menu sits in, for its feedback: a flash on a change, a collapse on Remove.
@@ -121,7 +126,7 @@ export function RowMenu({
           label={`More actions: ${title}`}
         />
       </Menu.Trigger>
-      <Menu.Content align="end">
+      <Menu.Content align="end" onCloseAutoFocus={keepLinkFormFocus}>
         {/* "Open posting", not the host: a long domain would widen the menu (rev-3 mock). */}
         <Menu.Item asChild>
           <a href={job.url} target="_blank" rel="noopener noreferrer">
@@ -165,6 +170,16 @@ export function RowMenu({
         <Menu.Item onSelect={() => openAddInterview(job.url, anchor.current)}>
           Add interview…
         </Menu.Item>
+        {links && (
+          <>
+            <Menu.Item onSelect={() => askLinkForm(job.url, 'docLinks', anchor.current)}>
+              Add a document link…
+            </Menu.Item>
+            <Menu.Item onSelect={() => askLinkForm(job.url, 'decks', anchor.current)}>
+              Add a deck link…
+            </Menu.Item>
+          </>
+        )}
         {/* A due follow-up's dialog (edit the message, snooze): the dock copies it (#540). */}
         {primaryAction(job) === 'followup' && (
           <Menu.Item onSelect={() => openFollowUp(job.url)}>Follow up…</Menu.Item>

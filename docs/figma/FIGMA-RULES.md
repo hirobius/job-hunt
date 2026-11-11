@@ -54,7 +54,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   list on the left, the selected job on the right. Below that, one job at a time: a filter bar
   (Filters, Add job), a sticky "‹ 3 of 55 ›" pager with All jobs (a bottom sheet with the list), then the
   job. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
-  then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
+  then Details, Notes, Documents and Decks. Documents and Decks show only with a link (no empty
+  card); the first link is added from the job's ⋯ menu. Pages with no tab: Documents, a Company, Legal.
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.

@@ -438,7 +438,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Account menu only. The **job page is one page** (`JobPage` → `JobHeader` + `JobOverview`): Details, Notes,
   then **Documents** (`Job.docLinks`, additive, same shape and `sanitizeDecks` rule as `decks`, CSV `doc_links`
   appended last, Back up, Recently removed merge) and **Decks**, both `JobLinks.tsx` `LinksPanel` (a label and
-  an http(s) link, Add, Remove with Undo). To-dos, Screening (Fit, JD screener), the Interviews log, Use
+  an http(s) link, Add, Remove with Undo). **Each shows only with a link (#540, #593):** no heading, no empty card;
+  the first link comes from the job's ⋯ menu (**Add a document link…** / **Add a deck link…**, `RowMenu links`,
+  `jobLinkForm.askLinkForm`), which opens the panel on its form; Cancel with nothing added closes it and focus goes
+  back to the menu; the last link's Remove takes the panel (Undo brings it back). To-dos, Screening (Fit, JD screener), the Interviews log, Use
   template and the per-job document library are off the page; **their data (`todos`, screening fields,
   `events`, documents) is never deleted** and stays in storage, sync, Back up and the CSV. An old
   `?section=` link opens the one page. **Add interview…** is one item in every job's ⋯ menu (`RowMenu`, now

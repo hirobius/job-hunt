@@ -6,6 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { openAllJobs } from './test/allJobs';
+import { jobMenuTrigger, openLinkForm } from './test/linkForm';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
@@ -117,7 +118,11 @@ describe('the Jobs page keeps only what Adrian listed', () => {
 describe('the job page is one page', () => {
   it('has no tabs: Details, Notes, Documents and Decks, and no To-dos, Fit or Interviews', () => {
     addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, { company: 'Acme' });
+    updateJob(URL_A, {
+      company: 'Acme',
+      docLinks: [{ id: 'a', url: 'https://docs.example/cv' }],
+      decks: [{ id: 'd', url: 'https://slides.example/x' }],
+    });
     openJobPage();
     expect(screen.queryByRole('tablist', { name: 'Job sections' })).toBeNull();
     for (const name of ['Overview', 'Screening', /Interviews/])
@@ -165,8 +170,7 @@ describe('Documents and Decks are plain lists of links', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
-    const panel = screen.getByRole('region', { name: 'Documents' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add a document link' }));
+    const panel = await openLinkForm('document');
     await userEvent.type(
       within(panel).getByRole('textbox', { name: 'Link' }),
       'https://docs.example/cv',
@@ -191,8 +195,7 @@ describe('Documents and Decks are plain lists of links', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
-    const panel = screen.getByRole('region', { name: 'Decks' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    const panel = await openLinkForm('deck');
     await userEvent.type(
       within(panel).getByRole('textbox', { name: 'Link' }),
       'javascript:alert(1)',
@@ -217,6 +220,52 @@ describe('Documents and Decks are plain lists of links', () => {
       'https://slides.example/x',
     );
     expect(findJobByUrl(URL_A)?.decks?.[0].sentOn).toBe('2026-10-01');
+  });
+
+  it('a job with no links shows no Documents or Decks panel, and no empty box (#540, #593)', () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    expect(screen.getByRole('region', { name: 'Details' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Documents' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Decks' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Add a (document|deck) link$/ })).toBeNull();
+  });
+
+  it('the job menu adds the first link: the panel opens on its form, focus in Link', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    const panel = await openLinkForm('deck');
+    await waitFor(() => expect(within(panel).getByRole('textbox', { name: 'Link' })).toHaveFocus());
+    await userEvent.type(document.activeElement!, 'https://pitch.com/v/acme{Enter}');
+    expect(findJobByUrl(URL_A)?.decks).toEqual([
+      expect.objectContaining({ url: 'https://pitch.com/v/acme' }),
+    ]);
+    // The panel stays with its link, and its own Add takes focus.
+    expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus();
+    expect(screen.queryByRole('region', { name: 'Documents' })).toBeNull();
+  });
+
+  it('Cancel with nothing added closes the panel and gives focus back to the menu', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    const panel = await openLinkForm('document');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('region', { name: 'Documents' })).toBeNull();
+    expect(jobMenuTrigger()).toHaveFocus();
+  });
+
+  it('removing the last link takes the panel away; Undo brings it back', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme', decks: [{ id: 'd1', url: 'https://slides.example/1' }] });
+    openJobPage();
+    const panel = screen.getByRole('region', { name: 'Decks' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Remove “slides.example”' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Decks' })).toBeNull());
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('region', { name: 'Decks' })).toBeInTheDocument();
   });
 
   it('document links sync with the job: unsafe ones are dropped on read', () => {

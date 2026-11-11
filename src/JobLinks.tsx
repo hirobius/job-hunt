@@ -3,7 +3,10 @@
 // Every change goes through updateJob, so the links sync with the job, ride in Back up and fill
 // the CSV (decks, doc_links). A deck's older Sent on day stays in storage; the page no longer
 // edits it. Remove is soft: the card collapses and a notice offers Undo, back in its place.
-import { useCallback, useState, type KeyboardEvent } from 'react';
+// A panel shows only with a link (#540: a section with no content does not show; #593 item 11):
+// the first link is added from the job's ⋯ menu ("Add a document link…"), which opens the panel
+// with its form; Cancel with nothing added closes it again and gives focus back to the menu.
+import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import { Box, Button, Icon, InlineLink, Input, Stack, Text } from '@hirobius/design-system';
 import { Plus, X } from 'lucide-react';
 import { addDeck, removeDeck, restoreDeck, type LinkKind } from './decks';
@@ -13,6 +16,7 @@ import { notifyRemoved } from './saveNotice';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { nextFocus, useFocusAfter } from './useFocusAfter';
 import type { Deck, Job } from './types';
+import { onLinkFormAsk, takeLinkFormOpener } from './jobLinkForm';
 import { ExitButton } from './hds-gaps/ExitButton';
 
 /** The link's name: its label, else the link's host. */
@@ -136,11 +140,15 @@ function LinkCard({
 export default function LinksPanel({ job, kind }: { job: Job; kind: LinkKind }) {
   const [adding, setAdding] = useState(false);
   const links = job[kind.field] ?? [];
+  // The job's menu asks for this panel's form.
+  useEffect(() => onLinkFormAsk(job.url, kind.field, () => setAdding(true)), [job.url, kind.field]);
   // Focus goes back to Add after the form closes; a removed link hands it to the next link's
-  // Remove (else Add).
+  // Remove (else Add). With no link the panel goes, so focus goes back to the menu that opened it.
   const { ref, focus } = useFocusAfter();
-  const close = () => {
-    focus('add');
+  const close = (added: boolean) => {
+    const opener = takeLinkFormOpener();
+    if (added || links.length > 0 || !opener) focus('add');
+    else opener.focus();
     setAdding(false);
   };
   const add = (url: string, label: string) => {
@@ -148,18 +156,24 @@ export default function LinksPanel({ job, kind }: { job: Job; kind: LinkKind }) 
     if (!next) return false;
     updateJob(job.url, { [kind.field]: next });
     highlightNew(next[next.length - 1].id);
-    close();
+    close(true);
     return true;
   };
+  // The last link's Remove: the panel goes with it, and the page's focus rescue hands focus to the
+  // control before it (main.tsx), so only a link with a neighbour names where focus goes.
   const removeFocus = (link: Deck) => {
+    if (links.length < 2) return;
     const ids = links.map((d) => `remove:${d.id}`);
     focus(nextFocus(ids, links.indexOf(link), 'add'));
   };
+  // No link and no form: no panel, no heading, no empty box (#540).
+  if (links.length === 0 && !adding) return null;
   return (
     <Panel
       label={kind.title}
       title={kind.title}
-      count={links.length}
+      // No "0" while the first link's form is open.
+      count={links.length || undefined}
       countLabel={`${links.length} ${kind.noun}s`}
     >
       <PanelBody>
@@ -179,7 +193,7 @@ export default function LinksPanel({ job, kind }: { job: Job; kind: LinkKind }) 
             </ItemList>
           )}
           {adding ? (
-            <LinkForm onAdd={add} onCancel={close} />
+            <LinkForm onAdd={add} onCancel={() => close(false)} />
           ) : (
             // Pulled left by the tertiary's padding: the plus sits on the panel's text edge.
             <Box sx={{ ml: -4 }}>

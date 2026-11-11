@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { openAllJobs } from './test/allJobs';
+import { openLinkForm } from './test/linkForm';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -706,8 +707,7 @@ describe('job page Decks (#287)', () => {
   it('adds a deck link with a label', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
-    const panel = decksPanel();
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    const panel = await openLinkForm('deck');
     await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme pitch');
     await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
@@ -721,8 +721,7 @@ describe('job page Decks (#287)', () => {
   it('refuses a link that is not http(s) and saves nothing', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
-    const panel = decksPanel();
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    const panel = await openLinkForm('deck');
     await userEvent.type(within(panel).getByLabelText('Link'), 'javascript:alert(1)');
     await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
     expect(within(panel).getByText(/starts with https:/)).toBeInTheDocument();
@@ -732,8 +731,7 @@ describe('job page Decks (#287)', () => {
   it('Enter in either field adds, and Escape cancels (#332)', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
-    const panel = decksPanel();
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    const panel = await openLinkForm('deck');
     await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme{Enter}');
     expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme' })]);
@@ -746,8 +744,7 @@ describe('job page Decks (#287)', () => {
   it('a new deck card flashes (#332, #212)', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
-    const panel = decksPanel();
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    const panel = await openLinkForm('deck');
     await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme');
     await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
@@ -824,8 +821,7 @@ describe('job page keeps focus where the work is', () => {
   it('the deck form gives focus back to Add a deck link, after Add and after Cancel', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
-    const panel = screen.getByRole('region', { name: 'Decks' });
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    const panel = await openLinkForm('deck');
     await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme');
     await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
@@ -835,7 +831,7 @@ describe('job page keeps focus where the work is', () => {
     expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus();
   });
 
-  it('removing a deck moves focus to the next deck, then to Add a deck link', async () => {
+  it('removing a deck moves focus to the next deck; the last one takes the panel', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, {
       decks: [
@@ -849,10 +845,9 @@ describe('job page keeps focus where the work is', () => {
     await waitFor(() =>
       expect(within(panel).getByRole('button', { name: 'Remove “Two”' })).toHaveFocus(),
     );
+    // The last one takes the panel with it (#540); the page's focus rescue (main.tsx) places focus.
     await userEvent.click(within(panel).getByRole('button', { name: 'Remove “Two”' }));
-    await waitFor(() =>
-      expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus(),
-    );
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Decks' })).toBeNull());
   });
 });
 
