@@ -16,6 +16,7 @@ import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import { designSystemsTrack, type TrackConfig } from './track-config.ts';
 import { VERIFIED_COMPANIES } from './verified.ts';
 import { matchKey, textTermsOf } from './matchText.ts';
+import { LABEL } from './boardFetch.ts';
 
 /** Boards read per user in one run (security review, 2026-10-27). Each one is an outbound read
  *  the sync makes on the user's behalf, and the blob is theirs to write; past this the rest wait.
@@ -34,8 +35,22 @@ const BOARD_KINDS: readonly BoardKind[] = [
   'smartrecruiters',
   'teamtailor',
   'personio',
+  // #576: the five the browser read alone. Their reads go through boardFetch.ts's guard.
+  'bamboohr',
+  'rippling',
+  'gem',
+  'pinpoint',
+  'breezy',
 ];
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+/** The new kinds whose slug is the host's first label (`<slug>.bamboohr.com`): one DNS label
+ *  only. Rippling and Gem put the slug in the path; it may not hold a dot either (no `..`). */
+const LABEL_KINDS = new Set<BoardKind>(['bamboohr', 'pinpoint', 'breezy', 'rippling', 'gem']);
+/** A board the sync may read: a known kind and a slug that cannot leave its fixed host (SSRF). */
+export const readableBoard = (b: Pick<Board, 'kind' | 'slug'>) =>
+  BOARD_KINDS.includes(b.kind) &&
+  SLUG.test(b.slug) &&
+  (!LABEL_KINDS.has(b.kind) || LABEL.test(b.slug));
 type Feed = TermFeed | 'rss' | ServerFeed;
 const FEEDS: readonly Feed[] = [...TERM_FEEDS, 'rss', ...SERVER_FEEDS];
 const isFeed = (s: string): s is Feed => (FEEDS as readonly string[]).includes(s);
@@ -161,7 +176,7 @@ function storedBoard(v: unknown): Board | undefined {
   const b = obj(v);
   const kind = str(b.kind) as BoardKind;
   const slug = str(b.slug);
-  return BOARD_KINDS.includes(kind) && SLUG.test(slug)
+  return readableBoard({ kind, slug })
     ? { kind, slug, ...(b.eu === true && { eu: true as const }) }
     : undefined;
 }
@@ -170,7 +185,8 @@ class Boards {
   readonly list: WatchedCompany[] = [];
   private seen = new Set<string>();
   add(b: Board | undefined | null, label: string) {
-    if (!b || this.list.length >= MAX_BOARDS_PER_USER) return;
+    // Every path in (v12 Sources, v11 tiles, dreams, saved jobs) meets the same kind and slug rule.
+    if (!b || !readableBoard(b) || this.list.length >= MAX_BOARDS_PER_USER) return;
     const key = `${b.kind}:${b.eu ? 'eu:' : ''}${b.slug.toLowerCase()}`;
     if (this.seen.has(key)) return;
     this.seen.add(key);

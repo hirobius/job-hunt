@@ -185,6 +185,15 @@ is separate and unchanged. If a host answers 429s in `sync_log`, unschedule `syn
 To go back to twice a day: `select cron.unschedule('sync-postings-15min');
 select cron.unschedule('sync-postings-15min-23');` and run step 6's file again.
 
+## Board kinds (#576)
+
+The sync reads all 13 board kinds the browser reads. BambooHR, Rippling, Gem, Pinpoint and Breezy
+HR go through `src/tracks/boardFetch.ts`: fixed hosts only, a one-label slug, `redirect: 'error'`
+and a 4 MB body cap. Their rows are stored under their own source names.
+
+1. Apply `20261111100000_postings_five_board_kinds.sql` first.
+2. Then deploy the function. If you deploy first, writes for these five kinds fail the check.
+
 ## Scan rotation (bulk boards, #src-bulk)
 
 Besides what each user follows, the function scans the **bulk board set**: every public company

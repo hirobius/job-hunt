@@ -314,3 +314,33 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
     );
   });
 });
+
+describe('planFromBlob: all 13 board kinds (#576)', () => {
+  it('reads BambooHR, Rippling, Gem, Pinpoint and Breezy boards from v12 Sources', () => {
+    const kinds = ['bamboohr', 'rippling', 'gem', 'pinpoint', 'breezy'] as const;
+    const plan = planFromBlob(
+      v12({ sources: kinds.map((kind) => ({ kind, ref: 'acme', label: `Acme ${kind}` })) }),
+    );
+    expect(plan?.boards.map((b) => b.ats)).toEqual([...kinds]);
+  });
+
+  it('reads them from v11 dreams too, and drops a slug that is not one DNS label', () => {
+    const plan = planFromBlob({
+      mustInclude: { ds: { terms: ['design systems'] } },
+      dreams: {
+        ds: [
+          { company: 'Acme', board: { kind: 'bamboohr', slug: 'acme' } },
+          { company: 'Nested', board: { kind: 'bamboohr', slug: 'a.evil' } },
+          { company: 'Dots', board: { kind: 'gem', slug: '..' } },
+          { company: 'Breezy', board: { kind: 'breezy', slug: 'acme-co' } },
+          { company: 'Bad kind', board: { kind: 'workday', slug: 'acme' } },
+        ],
+      },
+    });
+    const mine = plan!.boards.filter((b) => !['greenhouse', 'lever', 'ashby'].includes(b.ats));
+    expect(mine).toEqual([
+      { company: 'Acme', ats: 'bamboohr', slug: 'acme' },
+      { company: 'Breezy', ats: 'breezy', slug: 'acme-co' },
+    ]);
+  });
+});
