@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { seed } from './routes';
+import { seed, pressAllJobs } from './routes';
 
 // The filled key follows the state (#540): one filled key, then a grey key and an exit.
 const ranks = (page: Page) =>
@@ -12,7 +12,7 @@ const ranks = (page: Page) =>
 async function openTitled(page: Page, title: string, width: number) {
   await page.goto('/#/apply');
   await page.getByRole('heading', { level: 1 }).first().waitFor();
-  if (width < 1024) await page.getByRole('button', { name: 'All jobs' }).click();
+  if (width < 1024) await pressAllJobs(page);
   const scope =
     width < 1024
       ? page.getByRole('dialog', { name: 'All jobs' })

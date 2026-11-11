@@ -82,6 +82,11 @@ export function visibleJobs(jobs: Job[], view: PipelineView, now: Date = new Dat
   );
 }
 
+/** How many filters are on besides the view (#542): the search and Remote only. */
+export function filtersOn(view: PipelineView): number {
+  return (view.q.trim() ? 1 : 0) + (view.remoteOnly ? 1 : 0);
+}
+
 /** How many jobs each view would show. */
 export function filterCounts(jobs: Job[], now: Date = new Date()): Record<Filter, number> {
   return Object.fromEntries(

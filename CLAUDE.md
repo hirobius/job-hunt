@@ -220,10 +220,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
   screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
-  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search, the named views, Sort and "Check which
-  are still open"; Add job; a "Active · N jobs" status line), then a sticky row with the "‹ 3 of 55 ›" pager over the
-  filtered list (`ApplyPager.tsx`, label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways
-  swipe on the job steps it too) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
+  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search, Sort and "Check which
+  are still open"; Add job; a "Active · N jobs" status line), then the sticky **walk control** (#542, `ApplyWalk.tsx`:
+  one row, no box: the **view picker** (the open view's name, bold, caret, named "View: <name>"; an HDS Menu drawn as
+  a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the five views with counts and
+  "All jobs and filters"), a **"N filters" chip** only while a filter is on (`filtersOn`: search, Remote only; it opens
+  the sheet), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
+  label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways swipe on the job steps it too);
+  at 390 the view name truncates, never the pager; no pager at lg) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
   `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (Follow up, Next 7
   days, the Jobs panel, each job its own Card). A pick pops the sheet's entry, then replaces the page's, so Back leaves
   the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
@@ -366,9 +370,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Saved / Offer / Rejected / Retired / Closing soon filters went with the select). `VIEW_DESCRIPTION` is each one's
   one line. `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"` "Views", `aria-pressed`, a `Badge` count,
   amber on Follow up while one is due) with the open view's line under them: at the top of the lg list column
-  (`JobRail`), in the phone filter bar's Filters and in the Jobs list; `PipelineMenus` is Sort only. Default view
-  To apply; Clear filters goes back to it. Next: #542 puts a view picker in the phone walk row, #543 moves the
-  views into the All jobs sheet. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
+  (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the walk row's view picker picks them (#542, out
+  of Filters); `PipelineMenus` is Sort only. Default view To apply; Clear filters goes back to it. Next: #543 moves
+  search, filters, sort and Add job into the All jobs sheet. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`); full width under the logo below md, inline in the

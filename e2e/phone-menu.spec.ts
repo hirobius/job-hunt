@@ -54,3 +54,62 @@ test('closing Reset or Sign in returns focus to the Account button', async ({ pa
   await expect(signIn).toBeHidden();
   await expect(account).toBeFocused();
 });
+
+// The walk control (#542): view picker, "N filters" chip and pager in one row with no box. At 390
+// the worst case (the longest view name, both filters on) fits: the name truncates, never the
+// pager. The picker opens as a sheet from the bottom edge.
+test('the walk row fits at 390; the view picker is a sheet', async ({ page }) => {
+  await page.goto('/#/apply');
+  await page
+    .getByRole('button', { name: /Try with sample data/ })
+    .first()
+    .click();
+  const picker = page.getByRole('button', { name: /^View: / });
+  await picker.click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  const sheet = (await menu.boundingBox())!;
+  expect(Math.round(sheet.x)).toBe(0);
+  expect(Math.round(sheet.y + sheet.height)).toBe(844);
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(5);
+  await menu.getByRole('menuitemradio', { name: /^Recently closed/ }).click();
+  await expect(page.getByRole('button', { name: 'View: Recently closed' })).toBeVisible();
+  // Both filters on: search and Remote only.
+  await page.getByRole('switch', { name: 'Remote only' }).click();
+  await page.getByRole('button', { name: 'Filters' }).click();
+  await page.getByLabel('Search saved jobs').fill('zzz');
+  const chip = page.getByRole('button', { name: '2 filters, open All jobs' });
+  await expect(chip).toBeVisible();
+  const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
+  const p = (await pager.boundingBox())!;
+  const c = (await chip.boundingBox())!;
+  const k = (await picker.boundingBox())!;
+  expect(p.x + p.width).toBeLessThanOrEqual(390 - 16);
+  expect(c.x + c.width).toBeLessThanOrEqual(p.x);
+  expect(k.x + k.width).toBeLessThanOrEqual(c.x);
+  // The pager's text is whole; the row's targets are 44px tall.
+  expect(await pager.evaluate((n) => n.scrollWidth <= n.clientWidth + 1)).toBe(true);
+  for (const b of [picker, chip])
+    expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  // No box and no outline around the row.
+  const row = page.locator('.rjb-apply-pager');
+  const st = await row.evaluate((n) => {
+    const s = getComputedStyle(n);
+    return [s.borderTopWidth, s.outlineStyle, s.boxShadow];
+  });
+  expect(st).toEqual(['0px', 'none', 'none']);
+  await chip.click();
+  await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeVisible();
+});
+
+test('no pager or view picker at 1440', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#/apply');
+  await page
+    .getByRole('button', { name: /Try with sample data/ })
+    .first()
+    .click();
+  await expect(page.getByRole('group', { name: 'Views' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Jobs in the list' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
+});

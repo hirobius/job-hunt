@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, topTab } from './routes';
+import { seed, topTab, pressAllJobs } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
 // status with Scan now and Review new (the Browse list); New companies follow once a scan finds some
@@ -38,7 +38,7 @@ for (const width of [390, 1440]) {
     // Apply: the list (below lg) or the list beside the first job (lg), with Follow up in it.
     await topTab(page, 'Apply').click();
     // Below lg the tab is one job and its list is the All jobs sheet (Proposal A).
-    if (width < 1024) await page.getByRole('button', { name: 'All jobs' }).click();
+    if (width < 1024) await pressAllJobs(page);
     else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
     const follow = page.getByRole('region', { name: /^Follow up/ });
     await follow
