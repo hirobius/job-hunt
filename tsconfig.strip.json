@@ -1,0 +1,9 @@
+{
+  // The server-shared files Node loads with --experimental-strip-types (npm run sync:dry-run)
+  // and Deno loads in sync-postings: only erasable TypeScript (no enums, namespaces, parameter
+  // properties). Checked by src/tracks/stripTypes.test.ts.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "erasableSyntaxOnly": true },
+  "include": ["src/tracks/**/*.ts", "scripts/dry-run-sync.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}
