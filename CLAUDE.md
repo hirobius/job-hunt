@@ -88,6 +88,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
+  `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
+  `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
+  Follow-up due. `JobBadges` drops the fit chips and the Saved chip everywhere (the verdict stays in the data).
+  Pinned in `jobTitleBlock.test.tsx`, `e2e/title-block.spec.ts`.
 - **Keys (redesign §3, Adrian 2026-11-10, #537):** one filled key per decision, a grey key for a real
   second choice, and **An exit is underlined text** for every way out (Cancel, Not a fit, Continue
   without an account): `src/hds-gaps/ExitButton.tsx` = HDS `Button variant="link"` + HDS's

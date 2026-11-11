@@ -47,6 +47,12 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(/An exit is underlined text/);
   });
 
+  it('pins the title block (#538): title first, facts, amber only for a date', () => {
+    expect(RULES).toMatch(/A job leads with its title/);
+    expect(RULES).toMatch(/No fit chips, no Saved chip, no blue/);
+    expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<Card.Facts');
+  });
+
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
     const css = fs.readFileSync('src/hds-gaps/PageShell.css', 'utf8');
     expect(css).toContain('--rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);');

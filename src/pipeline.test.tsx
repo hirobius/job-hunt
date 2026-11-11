@@ -104,7 +104,7 @@ describe('Pipeline on a phone (#129)', () => {
     expect(title.closest('h3')!.textContent).toBe('Design Engineer');
   });
 
-  it('reads the badges fit first, then status, then Follow-up due (#360)', async () => {
+  it('reads the badges status, then Follow-up due; no fit chip (#360, #538)', async () => {
     updateJob(APPLIED, { verdict: 'match' });
     renderApp();
     await openListOnPhone();
@@ -112,7 +112,7 @@ describe('Pipeline on a phone (#129)', () => {
     const badges = [...card.querySelectorAll('[class*="--component-badge-height"]')].map((b) =>
       b.textContent?.trim(),
     );
-    expect(badges).toEqual(['Strong fit', 'Applied', 'Follow-up due']);
+    expect(badges).toEqual(['Applied', 'Follow-up due']);
   });
 
   it('opens the posting from its menu, no glyph by the title (Adrian 2026-10-22)', async () => {
@@ -402,7 +402,7 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
       within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Retired/ }),
     );
     const card = screen.getByRole('article', { name: 'Design Engineer' });
-    expect(within(card).getByText('Saved')).toBeInTheDocument();
+    expect(within(card).queryByText('Saved')).toBeNull(); // #538: no Saved chip
     expect(within(card).getByText('Retired')).toBeInTheDocument();
     expect(within(card).queryByText('Starred')).toBeNull();
   });
