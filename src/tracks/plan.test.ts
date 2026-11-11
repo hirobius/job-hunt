@@ -58,6 +58,28 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     expect(boardOf(plan!.boards[2])).toBe('lever.eu:eurocorp');
   });
 
+  it('drops a dotted slug for the subdomain kinds (BambooHR, Pinpoint, Breezy), never for a path kind', () => {
+    const plan = planFromBlob(
+      v12({
+        sources: [
+          { kind: 'bamboohr', ref: 'acme.inc', label: 'Acme Bamboo dotted' },
+          { kind: 'pinpoint', ref: 'acme.co', label: 'Acme Pin dotted' },
+          { kind: 'breezy', ref: 'acme.hr', label: 'Acme Breezy dotted' },
+          { kind: 'bamboohr', ref: 'acme', label: 'Acme Bamboo' },
+          { kind: 'pinpoint', ref: 'acme', label: 'Acme Pin' },
+          { kind: 'breezy', ref: 'acme', label: 'Acme Breezy' },
+          { kind: 'greenhouse', ref: 'acme.inc', label: 'Acme GH dotted' },
+        ],
+      }),
+    );
+    expect(plan?.boards.map((b) => `${b.ats}:${b.slug}`)).toEqual([
+      'bamboohr:acme',
+      'pinpoint:acme',
+      'breezy:acme',
+      'greenhouse:acme.inc',
+    ]);
+  });
+
   it("skips a muted Source; #411's feed refs mute their feed (designsystems-rss is rss)", () => {
     const plan = planFromBlob(
       v12({

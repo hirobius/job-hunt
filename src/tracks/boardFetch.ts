@@ -24,6 +24,9 @@ export const MAX_BOARD_BYTES = 4 * 1024 * 1024;
 /** A slug that is one DNS label: what a `<slug>.host` board may use (no dots, 63 chars max). */
 export const LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
 
+/** The guarded kinds whose slug is a subdomain (`<slug>.host`): it must be one DNS label. */
+export const SUBDOMAIN_KINDS: readonly GuardedKind[] = ['bamboohr', 'pinpoint', 'breezy'];
+
 /** Each kind's host rule: a fixed host, or one DNS label under a fixed domain. */
 const HOSTS: Record<GuardedKind, (host: string) => boolean> = {
   bamboohr: (h) => sub(h, 'bamboohr.com'),
@@ -55,11 +58,12 @@ export function allowedUrl(kind: GuardedKind, url: string): boolean {
 }
 
 export class BoardFetchError extends Error {
-  constructor(
-    message: string,
-    readonly status?: number,
-  ) {
+  // A plain field, not a parameter property: `node --experimental-strip-types` (the dry run)
+  // rejects parameter properties (stripTypes.test.ts).
+  readonly status?: number;
+  constructor(message: string, status?: number) {
     super(message);
+    this.status = status;
   }
 }
 

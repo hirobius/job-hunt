@@ -17,6 +17,7 @@ import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import { designSystemsTrack, type TrackConfig } from './track-config.ts';
 import { VERIFIED_COMPANIES } from './verified.ts';
 import { matchKey, textTermsOf } from './matchText.ts';
+import { LABEL, SUBDOMAIN_KINDS } from './boardFetch.ts';
 
 /** Boards read per user in one run (security review, 2026-10-27). Each one is an outbound read
  *  the sync makes on the user's behalf, and the blob is theirs to write; past this the rest wait.
@@ -31,6 +32,11 @@ const MAX_TERM = 60;
  *  that passes `BOARD_SLUG` varies, and it is URI-escaped into the path or one subdomain label. */
 const KINDS: readonly string[] = BOARD_KINDS;
 const SLUG = BOARD_SLUG;
+/** A slug the read can use: `BOARD_SLUG`, and one DNS label for a kind whose slug is the
+ *  subdomain (BambooHR, Pinpoint, Breezy), so a dotted one is dropped here instead of failing
+ *  at the fetch guard every run. */
+const slugOk = (kind: string, slug: string) =>
+  SLUG.test(slug) && (!(SUBDOMAIN_KINDS as readonly string[]).includes(kind) || LABEL.test(slug));
 type Feed = TermFeed | 'rss' | ServerFeed;
 const FEEDS: readonly Feed[] = [...TERM_FEEDS, 'rss', ...SERVER_FEEDS];
 const isFeed = (s: string): s is Feed => (FEEDS as readonly string[]).includes(s);
@@ -156,7 +162,7 @@ function storedBoard(v: unknown): Board | undefined {
   const b = obj(v);
   const kind = str(b.kind) as BoardKind;
   const slug = str(b.slug);
-  return KINDS.includes(kind) && SLUG.test(slug)
+  return KINDS.includes(kind) && slugOk(kind, slug)
     ? { kind, slug, ...(b.eu === true && { eu: true as const }) }
     : undefined;
 }
@@ -167,7 +173,7 @@ class Boards {
   add(b: Board | undefined | null, label: string) {
     // Every path (v12 Sources, v11 tiles, saved jobs, the stored board) meets the one rule: a
     // known kind and a SLUG, so the read goes to that kind's fixed host (no SSRF).
-    if (!b || !KINDS.includes(b.kind) || !SLUG.test(b.slug)) return;
+    if (!b || !KINDS.includes(b.kind) || !slugOk(b.kind, b.slug)) return;
     if (this.list.length >= MAX_BOARDS_PER_USER) return;
     const key = `${b.kind}:${b.eu ? 'eu:' : ''}${b.slug.toLowerCase()}`;
     if (this.seen.has(key)) return;
