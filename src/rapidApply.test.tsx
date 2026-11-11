@@ -191,11 +191,14 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
     expect(pagerOf().getByText('2 of 2')).toBeInTheDocument();
     const region = await findNotice();
+    // #536: the toast names the job, and Undo restores it and its place.
+    expect(within(region).getByText('Marked not a fit: Cask Designer')).toBeInTheDocument();
     await user.click(within(region).getByRole('button', { name: 'Undo' }));
-    expect(findJobByUrl(C)?.archived).toBe(false);
-    // Undo reopens the job set aside, at its place in the list (return paths).
-    expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
-    expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
+    // Undo puts every field back and does not navigate (#536): the job is back in its place in
+    // the list, and the page stays on the job it moved on to.
+    expect(findJobByUrl(C)?.archived).toBeFalsy();
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`);
+    await waitFor(() => expect(pagerOf().getByText('3 of 3')).toBeInTheDocument());
   });
 
   it('Mark applied raises a notice with Undo that puts the job back in To apply (#212)', async () => {
@@ -322,6 +325,36 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
     const next = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
     await waitFor(() => expect(next).toHaveFocus());
+  });
+
+  it('after Not a fit on a job opened outside the walk (from Find), focus moves to the next title (#536)', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(C)}?from=%2Ffind`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
+    const next = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
+    await waitFor(() => expect(next).toHaveFocus());
+    // It stays in Apply (the next job), and keeps the way back to Find.
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}?from=%2Ffind`);
+  });
+
+  it('after Not a fit on the last job, the tab goes back to its list and its heading takes focus (#536)', async () => {
+    const user = userEvent.setup();
+    removeJob(B);
+    removeJob(C);
+    updateJob(A, { priority: false });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    expect(findJobByUrl(A)?.archived).toBe(true);
+    // No next job: the Apply tab opens on the first job there is (here the one just set aside,
+    // now Retired, with no dock), and its page heading takes focus, never <body>.
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await waitFor(() => expect(h1).toHaveFocus());
+    expect(screen.getByText('Retired')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
   });
 
   it('after the last job, the tab goes back to its first job, its heading focused', async () => {
@@ -578,7 +611,9 @@ describe('the job header keeps to two items per dotted line (#192)', () => {
     const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
     // Title, then the company, then one facts line (place, pay, date).
     const h1 = screen.getByRole('heading', { name: 'Acme Designer' });
-    expect(header.textContent!.indexOf('Acme Designer')).toBeLessThan(header.textContent!.indexOf('Remote'));
+    expect(header.textContent!.indexOf('Acme Designer')).toBeLessThan(
+      header.textContent!.indexOf('Remote'),
+    );
     expect(h1.compareDocumentPosition(within(header).getByText('Remote')) & 4).toBeTruthy();
     expect(texts).toContain('1 of 3');
     // No fit chip and no Saved chip (#538).

@@ -3,7 +3,7 @@
 // takes an icon.
 // hds-gap: hirobius/hds#1437 (G6: Badge with a leading icon)
 import type { LucideIcon } from 'lucide-react';
-import { Badge, Icon } from '@hirobius/design-system';
+import { Badge, Box, Icon } from '@hirobius/design-system';
 
 export function IconBadge({
   icon,
@@ -16,8 +16,11 @@ export function IconBadge({
 }) {
   return (
     <Badge tone={tone}>
-      <Icon icon={icon} size="small" aria-hidden="true" />
-      {children}
+      {/* Badge sets no gap between children: 4px (space.scale.2xs) between icon and text. */}
+      <Box as="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+        <Icon icon={icon} size="small" aria-hidden="true" />
+        {children}
+      </Box>
     </Badge>
   );
 }
