@@ -30,9 +30,6 @@ export const RecentlyRemovedHost = lazyView(
 // found it before the chunk landed held a node the real dialog then replaced.
 export const DocumentsView = lazyView(importFresh(() => import('./DocumentsView')));
 export const LegalPage = lazyView(importFresh(() => import('./LegalPage')));
-export const JobPageLiveness = lazyView(
-  importFresh(async () => named((await import('./LivenessViews')).JobPageLiveness)),
-);
 
 /** Fetch both now (the test setup does, so a test sees a dialog on the render that opens it). */
 export const preloadDialogs = () =>
@@ -48,7 +45,6 @@ export const preloadDialogs = () =>
       FollowUpHost,
       AddInterviewHost,
       RecentlyRemovedHost,
-      JobPageLiveness,
       DocumentsView,
       LegalPage,
     ].map((v) => v.preload()),
