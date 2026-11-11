@@ -11,6 +11,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   The accent is HDS graphite. No local colour override.
 - **Type** is the HDS ramp: display, title, body, ui, caption, mono. Plus Jakarta Sans. No ALL CAPS.
   No italic. Secondary text is caption + secondary tone.
+- **Keys have three ranks.** One filled key (Button primary) per decision. A real second choice is a
+  grey key (Button secondary). **An exit is underlined text** (Button link: content.primary, no
+  fill, no ledge, 44 px hit area): Cancel, Not a fit, Continue without an account. An exit is never a
+  second choice, and never blue.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 

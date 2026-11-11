@@ -110,7 +110,11 @@ describe('an unsolicited sign-in link (no request from this browser)', () => {
   it('after the merge ask (Add or Don’t add), focus is on the page’s h1, never <body>', async () => {
     await boot(linkFor(ATTACKER), { job: true });
     await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
-    await userEvent.click(await screen.findByRole('button', { name: "Don't add" }));
+    const dontAdd = await screen.findByRole('button', { name: "Don't add" });
+    // The way out is the exit (#537), Add to account the primary.
+    expect(dontAdd).toHaveAttribute('data-variant', 'link');
+    expect(dontAdd).toHaveAttribute('data-rjb-exit');
+    await userEvent.click(dontAdd);
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Page' })),

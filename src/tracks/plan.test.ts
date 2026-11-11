@@ -11,6 +11,8 @@ import { boardOf, type ReadOutcome } from './sync';
 import { sanitizeProfiles } from '../profileModel';
 import { sanitizeSources } from '../sourcesModel';
 import { scorePosting } from './score';
+import { BOARD_KINDS } from '../feed/boardSet';
+import { boardApiUrl } from '../feed/sources/ats';
 import {
   DESIGN_ENGINEER_STRONG,
   DESIGN_TECHNOLOGIST_STRONG,
@@ -201,6 +203,79 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       ],
     });
     expect(plan?.boards).toEqual([]);
+  });
+});
+
+describe('planFromBlob: all 13 board kinds (#576)', () => {
+  const FIXED_HOST: Record<string, string> = {
+    greenhouse: 'boards-api.greenhouse.io',
+    lever: 'api.lever.co',
+    ashby: 'api.ashbyhq.com',
+    workable: 'apply.workable.com',
+    recruitee: '.recruitee.com',
+    smartrecruiters: 'api.smartrecruiters.com',
+    teamtailor: '.teamtailor.com',
+    personio: '.jobs.personio.de',
+    bamboohr: '.bamboohr.com',
+    rippling: 'api.rippling.com',
+    gem: 'api.gem.com',
+    pinpoint: '.pinpointhq.com',
+    breezy: '.breezy.hr',
+  };
+
+  it('plans a board of every kind the app reads, from v12 Sources', () => {
+    expect(BOARD_KINDS).toHaveLength(13);
+    const plan = planFromBlob(
+      v12({ sources: BOARD_KINDS.map((kind) => ({ kind, ref: 'acme', label: `Acme ${kind}` })) }),
+    );
+    expect(plan!.boards.map((b) => b.ats)).toEqual([...BOARD_KINDS]);
+  });
+
+  it('plans the five newer kinds from v11 tiles, dreams and saved jobs too', () => {
+    const plan = planFromBlob(
+      {
+        v: 11,
+        jobs: [{ url: 'https://acme.breezy.hr/p/0a1b2c-designer', company: 'Acme' }],
+        dreams: { t1: [{ company: 'Gem Co', board: { kind: 'gem', slug: 'gemco' } }] },
+        mustInclude: { t1: { terms: ['design system'], atsOff: [] } },
+      },
+      [
+        { url: 'https://acme.bamboohr.com/careers', name: 'Acme' },
+        { url: 'https://acme.pinpointhq.com/', name: 'Acme' },
+      ],
+    );
+    const keys = plan!.boards.map((b) => `${b.ats}:${b.slug}`);
+    expect(keys).toEqual(
+      expect.arrayContaining(['bamboohr:acme', 'pinpoint:acme', 'gem:gemco', 'breezy:acme']),
+    );
+  });
+
+  it('every read goes to its kind’s fixed host: only a SLUG varies (no SSRF)', () => {
+    for (const kind of BOARD_KINDS)
+      for (const slug of ['acme', 'evil.com', 'a.b-c_d', 'x.attacker.example']) {
+        const host = new URL(boardApiUrl({ kind, slug })).hostname;
+        const fixed = FIXED_HOST[kind];
+        expect(fixed.startsWith('.') ? host.endsWith(fixed) : host === fixed).toBe(true);
+      }
+  });
+
+  it('drops a stored board whose slug fails the SLUG rule or whose kind is unknown', () => {
+    const plan = planFromBlob({
+      v: 11,
+      jobs: [],
+      dreams: {
+        t1: [
+          { company: 'Bad', board: { kind: 'bamboohr', slug: 'evil.com/x?' } },
+          { company: 'Bad', board: { kind: 'bamboohr', slug: '@evil.com' } },
+          { company: 'Bad', board: { kind: 'bamboohr', slug: '-acme' } },
+          { company: 'Bad', board: { kind: 'workday', slug: 'acme' } },
+          { company: 'Good', board: { kind: 'rippling', slug: 'acme' } },
+        ],
+      },
+      mustInclude: { t1: { terms: ['design system'], atsOff: [] } },
+    });
+    const ours = plan!.boards.filter((b) => b.company === 'Bad' || b.company === 'Good');
+    expect(ours).toEqual([{ company: 'Good', ats: 'rippling', slug: 'acme' }]);
   });
 });
 

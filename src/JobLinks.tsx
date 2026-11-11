@@ -13,6 +13,7 @@ import { notifyRemoved } from './saveNotice';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { nextFocus, useFocusAfter } from './useFocusAfter';
 import type { Deck, Job } from './types';
+import { ExitButton } from './hds-gaps/ExitButton';
 
 /** The link's name: its label, else the link's host. */
 const linkName = (d: Deck) => d.label || new URL(d.url).host;
@@ -76,9 +77,7 @@ function LinkForm({
         onKeyDown={keys}
       />
       <Stack direction="row" gap="tight" justify="end">
-        <Button size="md" variant="tertiary" onClick={onCancel}>
-          Cancel
-        </Button>
+        <ExitButton onClick={onCancel}>Cancel</ExitButton>
         <Button size="md" variant="secondary" disabled={!url.trim()} onClick={add}>
           Add link
         </Button>

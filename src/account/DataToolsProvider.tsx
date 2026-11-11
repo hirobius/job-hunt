@@ -34,6 +34,7 @@ import { DataToolsContext, type DataToolsApi } from './accountContext';
 import { ExportLinksHost } from '../ExportLinksHost';
 import { LazyRecentlyRemovedHost } from '../lazyHosts';
 import { listWords, writesThatFailed } from './restoreWrites';
+import { ExitButton } from '../hds-gaps/ExitButton';
 
 const JSON_MIME = 'application/json';
 const BACKUP_PREFETCH_MS = 5000;
@@ -220,7 +221,7 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
           )}
           <Dialog.Footer>
             <Dialog.Close asChild>
-              <Button variant="secondary">Cancel</Button>
+              <ExitButton>Cancel</ExitButton>
             </Dialog.Close>
             <Button variant="secondary" onClick={() => restore('merge')}>
               Merge into my data

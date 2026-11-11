@@ -21,6 +21,7 @@ import { JobBadges, RowMenu, RowPrimaryAction, StarButton } from './JobRowParts'
 import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
+import { ExitButton } from './hds-gaps/ExitButton';
 
 const PIPELINE: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
 /** "← Apply": a quiet link-like button back to where the page was opened from (return paths):
@@ -142,14 +143,9 @@ export default function JobHeader({
             >
               Mark applied
             </Button>
-            <Button
-              variant="secondary"
-              size="md"
-              aria-label={`Not a fit: ${title}`}
-              onClick={notAFit}
-            >
+            <ExitButton aria-label={`Not a fit: ${title}`} onClick={notAFit}>
               Not a fit
-            </Button>
+            </ExitButton>
           </Box>
         )}
       </Stack>

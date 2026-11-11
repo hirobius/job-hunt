@@ -8,6 +8,7 @@
 // (profileModel.ts, sourcesModel.ts: pure, React-free), so the server sees exactly what the app
 // wrote. Pure, no React or storage: the edge function, the dry-run script and the tests load it.
 import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.ts';
+import { BOARD_KINDS, BOARD_SLUG } from '../feed/boardSet.ts';
 import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
 import { sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
@@ -30,17 +31,11 @@ export const MAX_BOARDS_PER_USER = 500;
 export const MAX_TERMS_PER_USER = 3;
 const MAX_TERM = 60;
 
-const BOARD_KINDS: readonly BoardKind[] = [
-  'greenhouse',
-  'lever',
-  'ashby',
-  'workable',
-  'recruitee',
-  'smartrecruiters',
-  'teamtailor',
-  'personio',
-];
-const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+/** Every board kind the app reads, all 13 (#576): the board set's list, so the sync, the rotation
+ *  and the browser never disagree. The host is fixed per kind (ats.ts `boardApiUrl`); only a slug
+ *  that passes `BOARD_SLUG` varies, and it is URI-escaped into the path or one subdomain label. */
+const KINDS: readonly string[] = BOARD_KINDS;
+const SLUG = BOARD_SLUG;
 type Feed = TermFeed | 'rss' | ServerFeed;
 const FEEDS: readonly Feed[] = [...TERM_FEEDS, 'rss', ...SERVER_FEEDS];
 const isFeed = (s: string): s is Feed => (FEEDS as readonly string[]).includes(s);
@@ -170,7 +165,7 @@ function storedBoard(v: unknown): Board | undefined {
   const b = obj(v);
   const kind = str(b.kind) as BoardKind;
   const slug = str(b.slug);
-  return BOARD_KINDS.includes(kind) && SLUG.test(slug)
+  return KINDS.includes(kind) && SLUG.test(slug)
     ? { kind, slug, ...(b.eu === true && { eu: true as const }) }
     : undefined;
 }
@@ -179,7 +174,10 @@ class Boards {
   readonly list: WatchedCompany[] = [];
   private seen = new Set<string>();
   add(b: Board | undefined | null, label: string) {
-    if (!b || this.list.length >= MAX_BOARDS_PER_USER) return;
+    // Every path (v12 Sources, v11 tiles, saved jobs, the stored board) meets the one rule: a
+    // known kind and a SLUG, so the read goes to that kind's fixed host (no SSRF).
+    if (!b || !KINDS.includes(b.kind) || !SLUG.test(b.slug)) return;
+    if (this.list.length >= MAX_BOARDS_PER_USER) return;
     const key = `${b.kind}:${b.eu ? 'eu:' : ''}${b.slug.toLowerCase()}`;
     if (this.seen.has(key)) return;
     this.seen.add(key);

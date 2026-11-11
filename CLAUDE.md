@@ -88,6 +88,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **Keys (redesign §3, Adrian 2026-11-10, #537):** one filled key per decision, a grey key for a real
+  second choice, and **An exit is underlined text** for every way out (Cancel, Not a fit, Continue
+  without an account): `src/hds-gaps/ExitButton.tsx` = HDS `Button variant="link"` + HDS's
+  `hds-touch-target` (44px at every width; G11, hds#1442). Its focus ring is on `::after`
+  (hds#1167), which the `e2e/a11y.spec.ts` walk reads. `e2e/exit-style.spec.ts` pins it at 390 and 1440.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
   (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
@@ -504,7 +509,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   **Server (Simplify 6/9, #387):** `sync-postings` reads each user's Sources and Search profile from their `tracker`
   blob (`tracks/plan.ts` `planFromBlob`: v12 `sources[]` + `profiles[0]`, else v11 dreams, targets, saved jobs'
   boards and the Watched tiles via the `watched_tile_urls()` RPC, + `verified.ts` for a DS user); `compileProfile`
-  gives the DS config when the profile asks for design systems, else one from its titles. Boards of every kind and
+  gives the DS config when the profile asks for design systems, else one from its titles. Boards of all 13 kinds
+  (#576: plan.ts takes `boardSet` `BOARD_KINDS` + `BOARD_SLUG` on every path, so each read goes to its kind's fixed
+  host; BambooHR/Rippling/Gem/Pinpoint/Breezy rows keep their own `source`, not `manual`, migration
+  `20261111100000`, applied before the function is redeployed; `tracks/sourceCheck.test.ts`) and
   HN/Remotive/Jobicy are read with the app's own parsers (`src/feed/sources/*` and their imports use explicit `.ts`
   specifiers so Deno and Node load them; `inferMode` lives in `feed/mode.ts`). No `watched_companies` or `skips`
   table: the blob is the one source of truth, and the sync never writes it. Migrations `2026102410*`: postings,
@@ -923,7 +931,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
   name the board states (Dice ≥ 0.9). A lone board that says nothing either way is kept; the rest are
   **unconfirmed** (`DiscoverResult.unconfirmed`, with why), listed with "Watch anyway", never
   auto-watched. Pasted board URLs skip the check. Evidence rides in `rjb_probe` (`e`); an older live
-  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds
+  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds (the server sync and rotation read them too since #576; shape fixtures in `src/tracks/fixtures`)
   (`sources/atsExtra.ts`, **unverified live**, CORS too; why JazzHR, Comeet, Freshteam, Workday aren't is
   in its header). Pinned in `feed/boardIdentity.test.ts`, `probe.test.ts`, `sources/atsExtra.test.ts`.
 - **Hidden-job discovery helpers (2026-10-15, `docs/specs/discovery-methods.md`; their screens went in #389).**
