@@ -64,6 +64,13 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
+  it('pins Copy into the form (#539)', () => {
+    expect(RULES).toMatch(/Copy into the form/);
+    const base = fs.readFileSync('src/theme/base.css', 'utf8');
+    expect(base).not.toMatch(/^\.rjb-blank \{/m);
+    expect(base).not.toContain('.rjb-template-row');
+  });
+
   it('pins the one saved list (#534)', () => {
     expect(RULES).toMatch(/One saved list/);
     expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).toContain('Remove from Apply');

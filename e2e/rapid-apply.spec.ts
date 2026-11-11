@@ -76,7 +76,7 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeHidden();
 
   // The kit: enter a name once (empty fields wait behind one row), copy it.
-  await page.getByRole('button', { name: /^Fill in \d+ more/ }).click();
+  await page.getByRole('button', { name: 'Add them' }).click();
   await page.getByRole('button', { name: 'Add Name' }).click();
   await page.getByRole('textbox', { name: 'Name' }).fill('Sam Placeholder');
   await page.getByRole('button', { name: 'Done' }).click();

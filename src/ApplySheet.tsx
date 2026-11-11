@@ -11,8 +11,10 @@ import {
   Input as HdsInput,
   Select,
   Stack,
+  Tag,
   Text,
   Textarea,
+  VisuallyHidden,
   useToast,
 } from '@hirobius/design-system';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
@@ -40,12 +42,13 @@ import { useOutreachTemplates } from './outreachTemplates';
 import { useSnippets } from './copyDeckStore';
 import { AddStarterMessages } from './StarterMessages';
 import { fillSnippet, previewText } from './templateFill';
-import { copyFilled } from './templateCopy';
+import { copyFailed, copyFilled } from './templateCopy';
 import { notifyRemoved } from './saveNotice';
 import { canWrite, useCloudSync } from './account/accountContext';
 import type { Job } from './types';
 import { useFocusAfter } from './useFocusAfter';
 import { collapseRow } from './feedback';
+import './ApplySheet.css';
 
 const previewOf = (text: string) => previewText(text);
 
@@ -57,7 +60,7 @@ function CopyButton({ label, value }: { label: string; value: string }) {
   useEffect(() => () => clearTimeout(timer.current), []);
   const copy = async () => {
     const r = await copyFilled(value);
-    if (!r.ok) return toast({ title: r.reason, tone: 'warning' });
+    if (!r.ok) return toast(copyFailed(label, value));
     setCopied(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 1500);
@@ -76,6 +79,38 @@ function CopyButton({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** One kit field as a flat chip with a copy icon (#539, redesign §5.5): a press copies the value
+ *  and shows "Copied" for a moment, said to screen readers too. It copies; it commits nothing. */
+// hds-gap: hirobius/hds#1435 (G4: Tag with a leading icon and a short "Copied" state)
+function CopyChip({ label, value }: { label: string; value: string }) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const copy = async () => {
+    const r = await copyFilled(value);
+    if (!r.ok) return toast(copyFailed(label, value));
+    setCopied(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <Box as="li">
+      <Tag
+        aria-pressed={undefined}
+        aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
+        onClick={copy}
+      >
+        <Box as="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+          <Icon icon={copied ? Check : Copy} size="small" aria-hidden="true" />
+          {copied ? 'Copied' : label}
+        </Box>
+      </Tag>
+      <VisuallyHidden role="status">{copied ? `Copied ${label}` : ''}</VisuallyHidden>
+    </Box>
+  );
+}
+
 /** One label + value with one-tap Copy and inline edit. Empty: a prompt to add it. */
 function CopyRow({
   label,
@@ -84,8 +119,11 @@ function CopyRow({
   remember,
   multiline = false,
   as = 'li',
+  copy = true,
 }: {
   as?: 'li' | 'div';
+  /** The kit's fields copy from their chips (#539), so their edit rows carry no Copy. */
+  copy?: boolean;
   label: string;
   value: string;
   onSave: (v: string) => void;
@@ -160,7 +198,7 @@ function CopyRow({
             >
               {value ? 'Edit' : 'Add'}
             </Button>
-            {value && <CopyButton label={label} value={value} />}
+            {copy && value && <CopyButton label={label} value={value} />}
           </Stack>
         </Stack>
       )}
@@ -397,9 +435,12 @@ export function ApplicationKit({ job }: { job: Job }) {
       value={kit.fields[f.key] ?? ''}
       onSave={(v) => setKitField(f.key, v)}
       remember={`field:${f.key}`}
+      copy={false}
     />
   );
   const answered = kit.answers.length;
+  // Edit opens every field's row (#539); the chips copy.
+  const [editing, setEditing] = useRemembered('kit-fields-editing', false);
   const sync = useCloudSync(); // signed out, the kit stays on this device
   const { user } = sync;
   const settled = canWrite(sync);
@@ -413,33 +454,55 @@ export function ApplicationKit({ job }: { job: Job }) {
     if (settled && !moving) clearStaleKitTemplates(snippets.map((s) => s.id));
   }, [settled, moving, snippets]);
   return (
-    <Panel
-      label="Application kit"
-      title="Application kit"
-      badge={`${have.length} of ${KIT_FIELDS.length}`}
-    >
+    <Panel label="Copy into the form" title="Copy into the form">
       <PanelBody>
-        <Text variant="caption" as="p" tone="secondary">
-          {user
-            ? 'Enter these once. They follow your account.'
-            : 'Enter these once. Saved on this device only.'}
-        </Text>
+        <Stack gap="tight">
+          <Stack direction="row" gap="tight" align="center" justify="space-between">
+            <Text variant="caption" as="p" tone="secondary">
+              {user
+                ? 'Enter these once. They follow your account.'
+                : 'Enter these once. Saved on this device only.'}
+            </Text>
+            <Button
+              size="md"
+              variant="tertiary"
+              iconLeft={<Icon icon={Pencil} />}
+              aria-expanded={editing}
+              onClick={() => setEditing(!editing)}
+            >
+              Edit
+            </Button>
+          </Stack>
+          {/* Flat chips with a copy icon, not keycaps (#539): copying commits nothing. */}
+          {have.length > 0 && (
+            <Box
+              as="ul"
+              aria-label="Fields to copy"
+              sx={{ listStyle: 'none', m: 0, p: 0, display: 'flex', flexWrap: 'wrap', gap: 'xs' }}
+            >
+              {have.map((f) => (
+                <CopyChip key={f.key} label={f.label} value={kit.fields[f.key] ?? ''} />
+              ))}
+            </Box>
+          )}
+          {/* Empty fields fold into one line (#539). */}
+          {missing.length > 0 && !editing && (
+            <Text variant="caption" as="p" tone="secondary">
+              {`${missing.length} more ${missing.length === 1 ? 'field is' : 'fields are'} empty. `}
+              <Button
+                variant="link"
+                size="sm"
+                className="hds-touch-target"
+                onClick={() => setEditing(true)}
+              >
+                Add them
+              </Button>
+            </Text>
+          )}
+        </Stack>
       </PanelBody>
       <Rows label="Profile">
-        {have.map((f) => fieldRow(f))}
-        {/* Empty fields fold into one row, so the filled ones stay in reach (rev-3 mock). */}
-        {missing.length > 0 && (
-          <DisclosureItem
-            remember="more"
-            label={`Fill in ${missing.length} more`}
-            preview={missing.map((f) => f.label).join(', ')}
-          >
-            {/* Rows, like the panel's own. */}
-            <ItemList label="More fields" inset="none">
-              {missing.map((f) => fieldRow(f))}
-            </ItemList>
-          </DisclosureItem>
-        )}
+        {editing && KIT_FIELDS.map((f) => fieldRow(f))}
         {(
           [
             ['whyTemplate', 'Why this company'],

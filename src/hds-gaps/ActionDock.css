@@ -49,8 +49,9 @@
   );
 }
 
-.rjb-dock-spacer {
-  height: var(--rjb-dock-height);
+/* Keeps the page's end clear of the dock (padding on main, not a spacer in the header). */
+body:has(.rjb-dock) main {
+  padding-bottom: var(--rjb-dock-height);
 }
 
 /* A toast (Undo) sits above the dock, never over its keys. */

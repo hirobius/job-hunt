@@ -21,6 +21,7 @@ import { splitVariables } from './templateEditor';
 import { previewText } from './templateFill';
 import { fillBlank, savesOnJob } from './fillBlank';
 import type { Job } from './types';
+import './BlankText.css';
 
 /** Text with its blanks as chips. With `onPick`, a chip is a button (a Tag) that names its blank. */
 export function WithChips({
