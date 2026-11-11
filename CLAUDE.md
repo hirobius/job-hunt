@@ -960,8 +960,10 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
     **Saved searches** (`feed/savedFilters.ts`, `rjb_feed_filters`) are v11 data, still synced, with no UI.
   - **Liveness** (`feed/liveness.ts`, `livenessStore.ts`, `LivenessViews.tsx`): re-reads a saved
     Saved/Applied board job's board (once per board), flags "Closed on the board", never changes
-    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
-    Pipeline and the job page from `App.tsx`.
+    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. **One quiet place (#601):** the Apply
+    list's status line ("Active · 33 jobs · 1 closed on the board", `useClosedOnBoard`) with `LivenessCheck` ("Check
+    which are still open") inside Filters on a phone and under the status line in the lg `JobRail`; no page-top line,
+    no "Checked live" date, no second link to a closed job (its Closed badge on the card and header says it).
   - **Starter boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; onboarding follows the design-systems
     list as Sources (`searchDefaults.seedSources`). `seedPack` / `topUpFromPack` (no app caller now) file the
     pack's boards as tiles (`addTiles`, upserts of `TILE_CHUNK` = 50 rows).

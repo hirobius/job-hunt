@@ -7,7 +7,8 @@ import { ListFilter, Search } from 'lucide-react';
 import { Box, Button, Icon, Input, Stack, Text, Toggle } from '@hirobius/design-system';
 import AddJobButton from './AddJob';
 import PipelineMenus from './PipelineMenus';
-import { PipelineLiveness } from './LivenessViews';
+import { LivenessCheck } from './LivenessViews';
+import { useClosedOnBoard } from './useClosedOnBoard';
 import { SampleBanner } from './demo/SampleData';
 import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
 import { useRemembered } from './viewMemory';
@@ -19,9 +20,10 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
   const shown = visibleJobs(jobs, view);
   const [open, setOpen] = useRemembered('apply:filters', false);
   const search = useRef<HTMLInputElement>(null);
+  const closedTail = useClosedOnBoard(jobs);
   const cleared = view.filter !== 'active' || view.q.trim() !== '';
   // Two items at most on a dotted line (#192): the search rides with the status.
-  const summary = `${FILTER_LABEL[view.filter]}${view.q.trim() ? ` “${view.q.trim()}”` : ''} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}`;
+  const summary = `${FILTER_LABEL[view.filter]}${view.q.trim() ? ` “${view.q.trim()}”` : ''} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}${closedTail}`;
   return (
     <Box as="section" aria-label="Filter jobs">
       <Stack gap="tight">
@@ -70,7 +72,7 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
                 </Box>
               )}
               {/* Quiet: one caption line with its action (Adrian 2026-11-08: not a list section). */}
-              <PipelineLiveness jobs={jobs} />
+              <LivenessCheck jobs={jobs} />
             </Stack>
           </Box>
         )}
