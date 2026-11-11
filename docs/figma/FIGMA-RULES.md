@@ -22,7 +22,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The action dock.** On a phone a job's keys sit in one dock at the bottom: one filled key, one grey
   key, one exit, in that order of rank, clear of the bottom safe area. It hides while a field has
   focus. At 1440 the same keys sit in one row under the title block. Not a fit is the dock's exit,
-  never inside More; it acts at once with "Marked not a fit: <title> · Undo".
+  never inside More; it acts at once with "Marked not a fit: <title> · Undo". A job with no link
+  never shows Open application: its keys are Mark applied (filled), Add link (grey), Not a fit.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 

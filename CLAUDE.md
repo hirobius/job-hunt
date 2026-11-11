@@ -92,8 +92,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
   transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
   (`hds.motion.spatial`; reduced motion = opacity); from lg an inline row under the title block. Keys: filled,
-  grey, exit. Star and More sit beside the title. Not a fit is the dock's exit: "Marked not a fit: <title>" with
-  Undo (`applyActions.ts`). Pinned in `ActionDock.test.tsx`, `e2e/action-dock.spec.ts`.
+  grey, exit, per state from one table, `src/dockKeys.ts` `dockKeys` (#540 adds its keys there): to apply with a
+  link Open application | Mark applied | Not a fit; **no link** (`applicationLink`: not http(s)) Mark applied | Add
+  link (opens Details on Link, `editLinkRequest.ts`) | Not a fit, never an Open application; follow-up due Follow
+  up; Interviewing Add interview; else no dock and no spacer. The dock hides at once on a field and comes back
+  only after focus has been out of every field for 150 ms (`SHOW_AFTER_MS`: no flash between fields). Star and
+  More sit beside the title. Not a fit is the dock's exit: "Marked not a fit: <title>" with Undo
+  (`applyActions.ts`: `undoPatch` puts every field back, no navigation; the toast survives navigation). After
+  Mark applied / Not a fit the next job in the list opens (`applyNext.ts` `openNextAfter`, from any origin) and
+  its title takes focus; with no next job the tab goes back to its list and that page's h1 takes focus. Pinned in
+  `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `e2e/action-dock.spec.ts`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or

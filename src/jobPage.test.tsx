@@ -24,7 +24,15 @@ import { viewport } from './test/viewport';
 import { setPipelineView } from './pipelineView';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
+import {
+  addJob,
+  findJobById,
+  getAllJobs,
+  jobIdOf,
+  removeJob,
+  replaceAll,
+  updateJob,
+} from './store';
 import { replaceTrash } from './trash';
 import { dismissNotice } from './saveNotice';
 import { ymd } from './jobEvents';
@@ -151,6 +159,26 @@ describe('job page header and Overview (#130 slice 1)', () => {
       'Mark applied',
       'Not a fit',
     ]);
+  });
+
+  it('a job with no link shows Add link, never Open application; Add link opens Link (#540)', async () => {
+    const NO_LINK = 'notes:designer';
+    replaceAll([{ url: NO_LINK, label: 'Design Engineer', company: 'Acme', status: 'Saved' }]);
+    openJobPage(NO_LINK);
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => k.textContent)).toEqual(['Mark applied', 'Add link', 'Not a fit']);
+    expect(keys.map((k) => k.getAttribute('data-variant'))).toEqual([
+      'primary',
+      'secondary',
+      'link',
+    ]);
+    expect(screen.queryByRole('link', { name: /Open application/ })).toBeNull();
+    expect(dock.querySelector('a[href]')).toBeNull();
+    // Details is closed (title and company are there); Add link opens its fields on Link.
+    expect(screen.queryByRole('textbox', { name: 'Link' })).toBeNull();
+    await userEvent.click(within(dock).getByRole('button', { name: 'Add link: Design Engineer' }));
+    expect(await screen.findByRole('textbox', { name: 'Link' })).toHaveFocus();
   });
 
   it('starring fills the star, says Starred and where starred jobs show', async () => {

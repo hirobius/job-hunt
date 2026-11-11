@@ -58,6 +58,10 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/Marked not a fit: <title> · Undo/);
     expect(fs.readFileSync('src/applyActions.ts', 'utf8')).toContain('Marked not a fit: ${');
     expect(fs.readFileSync('src/theme/base.css', 'utf8')).not.toContain('rjb-dock');
+    expect(RULES).toMatch(/A job with no link\s+never shows Open application/);
+    expect(fs.readFileSync('src/dockKeys.ts', 'utf8')).toContain(
+      "{ id: 'addLink', rank: 'secondary' }",
+    );
   });
 
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
