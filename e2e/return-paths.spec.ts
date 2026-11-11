@@ -145,7 +145,7 @@ for (const width of [390, 800] as const) {
       await signIn.getByLabel('Email').fill('typed@example.com');
       await closesOnBack(signIn, queue);
 
-      // The All jobs sheet, the job's menu, the Status filter, and Recently removed.
+      // The All jobs sheet, the job's menu, the Sort menu, and Recently removed.
       await openAllJobs(page);
       await closesOnBack(page.getByRole('dialog', { name: 'All jobs' }), queue);
       const title = (await h1(page).textContent())!.trim();
@@ -153,7 +153,7 @@ for (const width of [390, 800] as const) {
       await more.click();
       await closesOnBack(page.getByRole('menu'), queue);
       await openFilters(page);
-      await page.getByRole('button', { name: /^Status:/ }).click();
+      await page.getByRole('button', { name: /^Sort:/ }).click();
       await closesOnBack(page.getByRole('menu'), queue);
       await more.click();
       await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
@@ -292,8 +292,8 @@ for (const width of [390, 800] as const) {
       // A job still to apply to (Saved), so Not a fit is there: a double Save in a new document
       // from Edit documents saves one and comes back.
       await openFilters(page);
-      await page.getByRole('button', { name: /^Status:/ }).click();
-      await page.getByRole('menuitemradio', { name: /^Saved/ }).click();
+      // The To apply view (#541) holds only jobs still to apply to.
+      await page.getByRole('button', { name: /^To apply \d/ }).click();
       await page
         .getByRole('navigation', { name: 'Jobs in the list' })
         .getByRole('button', { name: 'Next page' })

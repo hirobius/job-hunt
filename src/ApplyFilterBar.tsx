@@ -1,11 +1,12 @@
 // The Apply screen's filter bar on a phone (Proposal A, Adrian 2026-11-08): one compact row at the
-// top (Filters and Add job, then what is shown; All jobs sits with the pager under it); Filters opens the search, Status and Sort
+// top (Filters and Add job, then what is shown; All jobs sits with the pager under it); Filters opens the search, the named views (#541) and Sort
 // (the shared pipelineView) and the quiet "Check which are still open" line. Open or closed is
 // kept for this page load (view memory).
 import { useRef } from 'react';
 import { ListFilter, Search } from 'lucide-react';
 import { Box, Button, Icon, Input, Stack, Text, Toggle } from '@hirobius/design-system';
 import AddJobButton from './AddJob';
+import JobViews from './JobViews';
 import PipelineMenus from './PipelineMenus';
 import { LivenessCheck } from './LivenessViews';
 import { useClosedOnBoard } from './useClosedOnBoard';
@@ -21,7 +22,7 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
   const [open, setOpen] = useRemembered('apply:filters', false);
   const search = useRef<HTMLInputElement>(null);
   const closedTail = useClosedOnBoard(jobs);
-  const cleared = view.filter !== 'active' || view.q.trim() !== '';
+  const cleared = view.filter !== 'toApply' || view.q.trim() !== '';
   // Two items at most on a dotted line (#192): the search rides with the status.
   const summary = `${FILTER_LABEL[view.filter]}${view.q.trim() ? ` “${view.q.trim()}”` : ''} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}${closedTail}`;
   return (
@@ -56,6 +57,7 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
                 onChange={(e) => setPipelineView({ q: e.target.value })}
                 leadingVisual={<Search size={16} />}
               />
+              <JobViews />
               <PipelineMenus />
               {cleared && (
                 <Box>
@@ -63,7 +65,7 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
                     size="md"
                     variant="tertiary"
                     onClick={() => {
-                      setPipelineView({ filter: 'active', q: '' });
+                      setPipelineView({ filter: 'toApply', q: '' });
                       search.current?.focus();
                     }}
                   >

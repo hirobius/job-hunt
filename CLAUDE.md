@@ -220,7 +220,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
   screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
-  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search, Status, Sort and "Check which
+  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search, the named views, Sort and "Check which
   are still open"; Add job; a "Active · N jobs" status line), then a sticky row with the "‹ 3 of 55 ›" pager over the
   filtered list (`ApplyPager.tsx`, label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways
   swipe on the job steps it too) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
@@ -356,6 +356,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   time, Ignore = `muteCompany`, Follow again = `unmuteCompany`, plus `followCompany` for one with no Source). Merges #426
   (Jobs keep list, one-page job page, no fit badge); "Find more like this" left the job menu with the ATS search. Pinned in `todayHome.test.tsx`, `review.test.tsx`,
   `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
+- **Named views (#541, redesign phase 2):** the Status select is gone. `pipelineView.ts` `Filter` is a named view:
+  **To apply** (Saved, not set aside, not closed; sorted by closing date first, then the Sort's order, newest by
+  default), **Follow up** (`deriveJobState(…).followUp.due`), **Interviewing** (Interviewing or Offer), **Applied**,
+  **Recently closed** (`isClosed`: gone from the board or past its day; #602, where closed jobs collect and each is
+  removed or kept; the automatic check is #602's own work), then **All jobs** (every job, set-aside ones too: the old
+  Saved / Offer / Rejected / Retired / Closing soon filters went with the select). `VIEW_DESCRIPTION` is each one's
+  one line. `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"` "Views", `aria-pressed`, a `Badge` count,
+  amber on Follow up while one is due) with the open view's line under them: at the top of the lg list column
+  (`JobRail`), in the phone filter bar's Filters and in the Jobs list; `PipelineMenus` is Sort only. Default view
+  To apply; Clear filters goes back to it. Next: #542 puts a view picker in the phone walk row, #543 moves the
+  views into the All jobs sheet. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`); full width under the logo below md, inline in the
@@ -369,7 +380,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   back as home and removed Companies.
 - **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**
   To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
-  `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
+  `Badge count`), 24 apart. The Jobs panel holds the full-width search, the named views (#541) and Sort as select-style
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
   metadata = badge row above the title: status, then Follow-up due, then the closing date (no fit chip, #538); `Card.Facts` with
   location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
@@ -431,7 +442,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Storage bucket (Adrian). Pinned in `decks.test.ts` and `jobPage.test.tsx`.
 - **Simplify Jobs (#416, Adrian 2026-10-28; spec `docs/specs/simplify.html` on `claude/rf-simplify-spec`):**
   the Jobs page (`TrackerView`) is To apply + Start applying, Follow up, Next 7 days and the Jobs list
-  (search, Status incl. Closing soon / Closed from #423, Sort) and nothing else: `GettingStarted`,
+  (search, the named views since #541 (was Status incl. Closing soon / Closed from #423), Sort) and nothing else: `GettingStarted`,
   `ScoredQueue` and Find the next company are deleted (`gettingStarted.ts` too, in #390; an old
   `rjb_ui_getting_started_done` key is ignored). **Recently removed** is an Account menu item ("Recently removed (N)", only when the trash
   has some; `RecentlyRemovedHost` in `DataToolsProvider`, open state in `jobDialogs.ts`); **Export links** is
@@ -748,8 +759,8 @@ trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run si
   date is the job's `deadline` (sources: Greenhouse `application_deadline`, read live; Teamtailor `end-date`,
   unverified; or the job page's "Applications close" date input, saved on blur), shown as a badge by `closingOf`:
   "Closes Nov 3" (warning within today + 6 days, while Saved), "Closed" (gone from the board while Saved/Applied, or
-  past its day while Saved). Pipeline filters **Closing soon** and **Closed** (group "Closing date"; the old "Closed"
-  group is "Ended"). Saved jobs closing in the window are in Next 7 days ("Applications close · …"), no longer in Follow
+  past its day while Saved). Closed jobs collect in the **Recently closed** view (#541; the Closing soon / Closed
+  filters went with the Status select), and To apply lists the soonest closing first. Saved jobs closing in the window are in Next 7 days ("Applications close · …"), no longer in Follow
   up; the calendar and Apply mode say "Apply by". Pinned in `jobDates.test.ts`, `jobDatesUi.test.tsx`,
   `pipelineView.test.ts`, `pipelineFollowUps.test.tsx`, `jobPage.test.tsx`, `feed/liveness.test.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,

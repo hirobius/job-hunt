@@ -10,6 +10,7 @@ import { useJobs, jobIdOf } from './store';
 import { getRoute, jobHash, navigate } from './route';
 import { inPlaceClick } from './back';
 import AddJobButton from './AddJob';
+import JobViews from './JobViews';
 import PipelineMenus from './PipelineMenus';
 import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import { useAgendaNow } from './useAgendaNow';
@@ -98,6 +99,8 @@ export default function JobRail({ openId }: { openId: string }) {
           </Text>
           <AddJobButton size="sm" />
         </Stack>
+        {/* The named views at the top of the list column (#541). */}
+        <JobViews />
         <Input
           size="sm"
           aria-label="Search jobs"

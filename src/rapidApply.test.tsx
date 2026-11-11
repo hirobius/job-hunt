@@ -196,13 +196,13 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     // In place: the next job, with no history step.
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(C)}`));
     expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
-    // Acme is starred, so it stays in the Active list, and Cask is second.
-    expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
+    // Acme is applied now, so it leaves To apply (#541): Cask is first of two.
+    expect(pagerOf().getByText('1 of 2')).toBeInTheDocument();
     resetAnswerGuard(); // a person reads the next job before answering it
     await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
     expect(findJobByUrl(C)?.archived).toBe(true);
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
-    expect(pagerOf().getByText('2 of 2')).toBeInTheDocument();
+    expect(pagerOf().getByText('1 of 1')).toBeInTheDocument();
     const region = await findNotice();
     // #536: the toast names the job, and Undo restores it and its place.
     expect(within(region).getByText('Marked not a fit: Cask Designer')).toBeInTheDocument();
@@ -211,7 +211,7 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     // the list, and the page stays on the job it moved on to.
     expect(findJobByUrl(C)?.archived).toBeFalsy();
     expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`);
-    await waitFor(() => expect(pagerOf().getByText('3 of 3')).toBeInTheDocument());
+    await waitFor(() => expect(pagerOf().getByText('2 of 2')).toBeInTheDocument());
   });
 
   it('Mark applied raises a notice with Undo that puts the job back in To apply (#212)', async () => {

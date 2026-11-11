@@ -24,6 +24,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { setPipelineView } from './pipelineView';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 
 const SAVED = 'https://acme.example/jobs/1';
@@ -78,7 +79,8 @@ beforeEach(() => {
   updateJob(SAVED, { company: 'Acme' });
   addJob(APPLIED, 'Zenith Product Designer');
   markAppliedByUrl(APPLIED, 'Zenith Product Designer');
-  // Applied 10 days ago and pinned, so it stays in the default Active view with a follow-up due.
+  // Applied 10 days ago (pinned in the old data), so its follow-up is due: it shows under Follow up
+  // and All jobs, not To apply (#541).
   updateJob(APPLIED, { applied: pastDays(10), priority: true, company: 'Zenith' });
 });
 afterEach(() => {
@@ -106,6 +108,7 @@ describe('Pipeline on a phone (#129)', () => {
 
   it('reads the badges status, then Follow-up due; no fit chip (#360, #538)', async () => {
     updateJob(APPLIED, { verdict: 'match' });
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
@@ -132,6 +135,7 @@ describe('Pipeline on a phone (#129)', () => {
   });
 
   it('each card has one primary action, the rest in its menu', async () => {
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     const saved = screen.getByRole('article', { name: 'Design Engineer' });
@@ -169,6 +173,7 @@ describe('Pipeline on a phone (#129)', () => {
 
   it('Follow up opens the follow-up message; closing it leaves the job alone', async () => {
     const user = userEvent.setup();
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     const before = getAllJobs().find((j) => j.url === APPLIED);
@@ -209,9 +214,9 @@ describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () =
     expect(document.activeElement).toBe(screen.getByRole('link', { name: nextName }));
   });
 
-  it('Mark applied on a starred job (it stays Active) keeps focus on its own card', async () => {
+  it('Mark applied in All jobs (the job stays shown) keeps focus on its own card', async () => {
     const user = userEvent.setup();
-    updateJob(SAVED, { priority: true });
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     const card = screen.getByRole('article', { name: 'Design Engineer' });
@@ -253,7 +258,7 @@ describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () =
     await user.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(document.activeElement).toBe(search);
     await waitFor(() =>
-      expect(screen.getAllByRole('status').some((s) => s.textContent === '3 jobs shown')).toBe(
+      expect(screen.getAllByRole('status').some((s) => s.textContent === '2 jobs shown')).toBe(
         true,
       ),
     );
@@ -273,10 +278,8 @@ describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () =
 describe('Retired jobs stay readable', () => {
   beforeEach(() => updateJob(SAVED, { archived: true, verdict: 'match' }));
   const showRetired = async () => {
-    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
-    await userEvent.click(
-      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Retired/ }),
-    );
+    // Set-aside jobs show under All jobs (#541: no Retired view since the Status select went).
+    await userEvent.click(screen.getByRole('button', { name: /^All jobs \d/ }));
   };
 
   it('a retired card says so in words, without fading its text', async () => {
@@ -307,17 +310,20 @@ describe('Retired jobs stay readable', () => {
 describe('Pipeline filter (#129)', () => {
   beforeEach(() => viewport(390));
 
-  it('a non-default status shows a quiet Clear that goes back to Active (rev-3 item 1)', async () => {
+  it('a view other than To apply shows a quiet Clear that goes back to To apply (rev-3 item 1)', async () => {
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
-    await userEvent.click(
-      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Applied/ }),
+    await userEvent.click(screen.getByRole('button', { name: /^Applied \d/ }));
+    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-    expect(screen.getByRole('button', { name: 'Status: Applied' })).toHaveTextContent('Applied');
     await userEvent.click(await screen.findByRole('button', { name: 'Clear filters' }));
-    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^To apply \d/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
   });
 
@@ -332,24 +338,20 @@ describe('Pipeline filter (#129)', () => {
     expect(clear).toHaveTextContent(/^Clear$/);
   });
 
-  it('All is demoted to the end of the status menu', async () => {
+  it('the five named views, then All jobs, replace the Status select (#541)', async () => {
     renderApp();
     await openListOnPhone();
-    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
-    const names = within(await screen.findByRole('menu'))
-      .getAllByRole('menuitemradio')
-      .map((i) => i.textContent?.replace(/\d+$/, '').trim());
+    expect(screen.queryByRole('button', { name: /^Status:/ })).toBeNull();
+    const names = within(screen.getByRole('group', { name: 'Views' }))
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'));
     expect(names).toEqual([
-      'Active',
-      'Saved',
-      'Applied',
-      'Interviewing',
-      'Offer',
-      'Closing soon',
-      'Closed',
-      'Rejected',
-      'Retired',
-      'All',
+      'To apply 1',
+      'Follow up 1',
+      'Interviewing 0',
+      'Applied 1',
+      'Recently closed 0',
+      'All jobs 2',
     ]);
   });
 });
@@ -359,6 +361,7 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
   beforeEach(() => viewport(800));
 
   it('is the card list, not a table: status, follow-up and one action per card', async () => {
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('table')).toBeNull();
@@ -392,15 +395,14 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
 
   it('shows no star on a starred card (#534), and marks retired ones', async () => {
     updateJob(SAVED, { archived: true });
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     const starredCard = screen.getByRole('article', { name: 'Zenith Product Designer' });
     expect(within(starredCard).queryByText('Starred')).toBeNull();
     // Retired jobs show under the Retired view, with their real status and a Retired note.
-    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
-    await userEvent.click(
-      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Retired/ }),
-    );
+    // Set-aside jobs show under All jobs (#541: no Retired view since the Status select went).
+    await userEvent.click(screen.getByRole('button', { name: /^All jobs \d/ }));
     const card = screen.getByRole('article', { name: 'Design Engineer' });
     expect(within(card).queryByText('Saved')).toBeNull(); // #538: no Saved chip
     expect(within(card).getByText('Retired')).toBeInTheDocument();
@@ -409,6 +411,7 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
 
   it('sorts through the toolbar Sort menu, and back', async () => {
     addJob('https://acme.example/jobs/3', 'Writer'); // the newest, but last A–Z
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     const titles = () =>
@@ -437,6 +440,7 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
 
 describe('shared list state (#130 slice 4)', () => {
   it('the filter, search and sort survive a jump to a job and opening the list again', async () => {
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Zenith');
@@ -487,16 +491,19 @@ describe('Active empty action and Star Undo (#361)', () => {
     await openListOnPhone();
     expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Show applied' }));
-    const status = screen.getByRole('button', { name: /^Status: Applied/ });
-    expect(status).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('article', { name: 'Zenith Product Designer' })).toBeInTheDocument();
-    // The empty state unmounted, but focus stayed in the panel — on the Status select.
-    expect(document.activeElement).toBe(status);
+    // The empty state unmounted, but focus stayed in the panel — on the search.
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search saved jobs' }));
   });
 
   it('a card menu has no Star or Unstar (#534): the stored star stays in the data', async () => {
     const user = userEvent.setup();
+    setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     const card = screen.getByRole('article', { name: 'Zenith Product Designer' });

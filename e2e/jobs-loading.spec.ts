@@ -74,7 +74,7 @@ for (const width of [390, 1440]) {
     for (let i = 0; i < 6; i++) {
       await page.waitForTimeout(250);
       await expect(page.getByText('Track your first job')).toHaveCount(0);
-      await expect(page.getByText(/^0 jobs|Active · 0 jobs/)).toHaveCount(0);
+      await expect(page.getByText(/^0 jobs|To apply · 0 jobs/)).toHaveCount(0);
     }
     for (const scheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme: scheme });

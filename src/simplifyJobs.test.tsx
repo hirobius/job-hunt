@@ -74,7 +74,7 @@ describe('the Jobs page keeps only what Adrian listed', () => {
     expect(screen.queryByRole('button', { name: /Start applying/ })).toBeNull();
     expect(screen.getByRole('region', { name: 'Jobs' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Status:/ })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Views' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Sort:/ })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /Getting started/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Export links' })).toBeNull();

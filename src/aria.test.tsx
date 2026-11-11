@@ -20,10 +20,14 @@ afterEach(() => {
 const withTheme = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 describe('aria wiring', () => {
-  it('Tracker status filter names the current view', () => {
+  it('Tracker views name their count and mark the current view (#541)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     withTheme(<JobsList />);
-    // The status filter is a menu button (#129) whose name carries the selected view.
-    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
+    // The named views are toggle chips in one group; the open one is pressed.
+    expect(screen.getByRole('group', { name: 'Views' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'To apply 1' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });

@@ -45,7 +45,7 @@ describe('Try with sample data (Tracker)', () => {
       // The tab is now the first job to apply to (Proposal A), under the filter bar.
       expect(getAllJobs()).toHaveLength(10);
       expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-      expect(screen.getByText(/^Active · \d+ jobs$/)).toBeInTheDocument();
+      expect(screen.getByText(/^To apply · \d+ jobs$/)).toBeInTheDocument();
       expect(tryButton()).toBeNull();
 
       await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));

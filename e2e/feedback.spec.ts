@@ -222,10 +222,11 @@ test('Apply list: every row and page action answers within 300 ms', async ({ pag
   await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
   await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
 
-  for (const name of ['Status: Active', 'Sort: Newest']) {
-    await press(page, button(sheet, name), name);
-    await closeOverlay(page);
-  }
+  await press(page, button(sheet, 'Sort: Newest'), 'Sort: Newest');
+  await closeOverlay(page);
+  // The named views (#541): a press swaps the list at once; back to To apply.
+  await press(page, button(sheet, /^Applied \d/), 'Applied view');
+  await press(page, button(sheet, /^To apply \d/), 'To apply view');
   await press(page, button(sheet, 'Follow up: Design Systems Designer'), 'Follow up');
   await closeOverlay(page);
   // The sheet closes; the filter bar holds the page's own actions.

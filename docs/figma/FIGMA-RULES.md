@@ -55,6 +55,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   (Filters, Add job), a sticky "‹ 3 of 55 ›" pager with All jobs (a bottom sheet with the list), then the
   job. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
+- **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
+  Interviewing, Applied, Recently closed, then All jobs. Each is a Tag chip with a count Badge, one
+  picked at a time, and the open view's one-line description sits under the chips in caption. Follow
+  up's count is amber while a follow-up is due; every other count is neutral. To apply sorts by
+  closing date first, then newest. At 1440 the chips sit at the top of the list column. Closed jobs
+  collect in Recently closed, where each is removed or kept.
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.

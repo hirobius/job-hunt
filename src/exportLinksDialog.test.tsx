@@ -129,8 +129,7 @@ describe('Export links', () => {
   it('follows the Jobs panel search', async () => {
     const user = userEvent.setup();
     renderApp();
-    await user.click(screen.getByRole('button', { name: 'Status: Active' }));
-    await user.click(await screen.findByRole('menuitemradio', { name: /^All/ }));
+    await user.click(screen.getByRole('button', { name: /^All jobs \d/ }));
     // At 1440 the list is the column beside the first job (#471): its search is the same view.
     await user.type(screen.getByRole('textbox', { name: /^Search (saved )?jobs$/ }), 'zenith');
     const dialog = await openOnThisView(user);

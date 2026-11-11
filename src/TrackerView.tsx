@@ -29,6 +29,7 @@ import type { Job } from './types';
 import { useListFocusKeeper } from './listFocus';
 import { focusAsHeading } from './focusRescue';
 import AddJobButton from './AddJob';
+import JobViews from './JobViews';
 import PipelineMenus from './PipelineMenus';
 import { CloudSyncContext } from './account/accountContext';
 import { needsClientAtBoot } from './supabase';
@@ -111,10 +112,9 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
   const searchField = useRef<HTMLInputElement>(null);
   const focusSearch = () => searchField.current?.focus();
   // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
-  const cleared = filter !== 'active' || q.trim() !== '';
+  const cleared = filter !== 'toApply' || q.trim() !== '';
   // The Status select: the Active empty's "Show applied" hands focus back to it, so focus
   // stays in the panel when the empty state unmounts (#361).
-  const statusTrigger = useRef<HTMLButtonElement>(null);
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const shownUrls = useMemo(() => shown.map((j) => j.url), [shown]);
   // Mark applied, Remove or a status change that takes a card out keeps focus in the list.
@@ -138,7 +138,7 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
               size="sm"
               label="Clear filters"
               onClick={() => {
-                setPipelineView({ filter: 'active', q: '' });
+                setPipelineView({ filter: 'toApply', q: '' });
                 focusSearch();
               }}
             >
@@ -158,7 +158,8 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
                 onChange={(e) => setQ(e.target.value)}
                 leadingVisual={<Search size={16} />}
               />
-              <PipelineMenus statusTrigger={statusTrigger} />
+              <JobViews />
+              <PipelineMenus />
             </Stack>
           </Box>
         </PanelBody>
@@ -186,7 +187,7 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
                     </UiButton>
                   }
                 />
-              ) : filter === 'active' ? (
+              ) : filter === 'toApply' ? (
                 <EmptyState
                   centered
                   icon={Search}
@@ -196,8 +197,8 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
                     <UiButton
                       variant="secondary"
                       onClick={() => {
-                        setFilter('Applied');
-                        statusTrigger.current?.focus();
+                        setFilter('applied');
+                        focusSearch();
                       }}
                     >
                       Show applied
@@ -209,16 +210,16 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
                   centered
                   icon={Search}
                   title={`Nothing under “${FILTER_LABEL[filter]}”`}
-                  description="Try another status."
+                  description="Try another view."
                   action={
                     <UiButton
                       variant="secondary"
                       onClick={() => {
-                        setFilter('active');
+                        setFilter('toApply');
                         focusSearch();
                       }}
                     >
-                      Show active
+                      Show to apply
                     </UiButton>
                   }
                 />

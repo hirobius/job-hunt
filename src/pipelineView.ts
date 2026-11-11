@@ -1,14 +1,16 @@
 // The Pipeline's view state (#130): which status filter, search text and sort order the list is
 // showing. It lives here, in memory, instead of inside TrackerView, so the job page's rail shows
 // the same jobs the list did and the list is as you left it after opening a job and going Back.
-// Pure rules plus one tiny store; nothing is persisted (a reload starts fresh on Active).
+// Pure rules plus one tiny store; nothing is persisted (a reload starts fresh on To apply).
 import { createStore } from './createStore';
-import { deriveJobState } from './jobState';
-import { isClosed, isClosingSoon } from './jobDates';
+import { deriveJobState, localDay } from './jobState';
+import { isClosed } from './jobDates';
 import { sortJobs, type SortKey } from './jobSort';
-import type { Job, Status } from './types';
+import type { Job } from './types';
 
-export type Filter = 'active' | 'starred' | 'all' | Status | 'retired' | 'closingSoon' | 'closed';
+/** The named views (#541, redesign phase 2): the Apply list is walked by view, not by a Status
+ *  select. Five named views, then All jobs (every job, set-aside ones too, so none is out of reach). */
+export type Filter = 'toApply' | 'followUp' | 'interviewing' | 'applied' | 'closed' | 'all';
 
 export interface PipelineView {
   filter: Filter;
@@ -19,69 +21,71 @@ export interface PipelineView {
   remoteOnly?: boolean;
 }
 
-export const DEFAULT_VIEW: PipelineView = { filter: 'active', sort: 'recent', q: '' };
+export const DEFAULT_VIEW: PipelineView = { filter: 'toApply', sort: 'recent', q: '' };
 
-// The status menu (#129): two views, then the stages grouped by where a job is.
 export const FILTER_LABEL: Record<Filter, string> = {
-  active: 'Active',
-  starred: 'Starred',
-  all: 'All',
-  Saved: 'Saved',
-  Applied: 'Applied',
-  Interviewing: 'Interviewing',
-  Offer: 'Offer',
-  Rejected: 'Rejected',
-  retired: 'Retired',
-  closingSoon: 'Closing soon',
-  closed: 'Closed',
+  toApply: 'To apply',
+  followUp: 'Follow up',
+  interviewing: 'Interviewing',
+  applied: 'Applied',
+  // #602: closed jobs collect here, where the person removes or keeps each one.
+  closed: 'Recently closed',
+  all: 'All jobs',
 };
 
-// Active first; All and Retired demoted to the end (#129). A group without a label is just a
-// separated section.
-export const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
-  // No Starred view (#534): Apply is the one saved list, and the star left the UI. A stored
-  // 'starred' filter still reads (the field stays in the data, backups and CSV).
-  { label: 'Views', items: ['active'] },
-  { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
-  // By closing date (#419): closes within 7 days, or gone from its board / past its day.
-  { label: 'Closing date', items: ['closingSoon', 'closed'] },
-  // Was "Closed"; renamed so it doesn't read as the Closed (closing date) filter (#419).
-  { label: 'Ended', items: ['Rejected', 'retired'] },
-  { items: ['all'] },
-];
+/** Each view's one-line description, shown under the chips for the open view. */
+export const VIEW_DESCRIPTION: Record<Filter, string> = {
+  toApply: 'Saved and still open, closing soonest first.',
+  followUp: 'A week since you applied or last followed up: time to check in.',
+  interviewing: 'In interviews or holding an offer.',
+  applied: 'Sent, waiting to hear back.',
+  closed: 'Gone from the board or past the closing date. Remove or keep each one.',
+  all: 'Every saved job, set-aside ones too.',
+};
 
-function matchesFilter(j: Job, f: Filter): boolean {
-  const s = deriveJobState(j);
-  if (f === 'active') return s.isActive;
+/** The five named views, in order; All jobs comes after them. */
+export const NAMED_VIEWS: Filter[] = ['toApply', 'followUp', 'interviewing', 'applied', 'closed'];
+export const VIEWS: Filter[] = [...NAMED_VIEWS, 'all'];
+
+function matchesFilter(j: Job, f: Filter, now: Date): boolean {
+  const s = deriveJobState(j, now);
   if (f === 'all') return true;
-  if (f === 'starred') return !!j.priority;
-  if (f === 'retired') return !!j.archived;
-  if (f === 'closingSoon') return isClosingSoon(j);
-  if (f === 'closed') return isClosed(j);
-  return !j.archived && s.status === f;
+  if (f === 'closed') return isClosed(j, now);
+  if (j.archived) return false;
+  if (f === 'toApply') return s.status === 'Saved' && !isClosed(j, now);
+  if (f === 'followUp') return s.followUp.due;
+  if (f === 'interviewing') return s.status === 'Interviewing' || s.status === 'Offer';
+  return s.status === 'Applied';
+}
+
+/** To apply's order (#541): a job with a closing day first, soonest first; then the sort's order
+ *  (newest by default). Stable, so ties keep the sort's order. */
+function closingFirst(jobs: Job[]): Job[] {
+  const key = (j: Job) => localDay(j.deadline) ?? '\uffff';
+  return [...jobs].sort((a, b) => key(a).localeCompare(key(b)));
 }
 
 /** The jobs a view shows, in its order. */
-export function visibleJobs(jobs: Job[], view: PipelineView): Job[] {
+export function visibleJobs(jobs: Job[], view: PipelineView, now: Date = new Date()): Job[] {
   const needle = view.q.trim().toLowerCase();
   const textMatch = (j: Job) =>
     !needle ||
     [j.label, j.company, j.location, j.note, j.notes, j.contact, j.url].some((f) =>
       (f || '').toLowerCase().includes(needle),
     );
-  return sortJobs(jobs, view.sort).filter(
+  const sorted = sortJobs(jobs, view.sort, now);
+  return (view.filter === 'toApply' ? closingFirst(sorted) : sorted).filter(
     (j) =>
-      matchesFilter(j, view.filter) && textMatch(j) && (!view.remoteOnly || j.mode === 'remote'),
+      matchesFilter(j, view.filter, now) &&
+      textMatch(j) &&
+      (!view.remoteOnly || j.mode === 'remote'),
   );
 }
 
-/** How many jobs each filter would show. */
-export function filterCounts(jobs: Job[]): Record<Filter, number> {
+/** How many jobs each view would show. */
+export function filterCounts(jobs: Job[], now: Date = new Date()): Record<Filter, number> {
   return Object.fromEntries(
-    FILTER_GROUPS.flatMap((g) => g.items).map((f) => [
-      f,
-      jobs.filter((j) => matchesFilter(j, f)).length,
-    ]),
+    VIEWS.map((f) => [f, jobs.filter((j) => matchesFilter(j, f, now)).length]),
   ) as Record<Filter, number>;
 }
 
