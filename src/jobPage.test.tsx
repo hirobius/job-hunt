@@ -80,8 +80,8 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(within(header).queryByText('Saved')).toBeNull();
     expect(within(header).getByText('Company not stated')).toBeInTheDocument();
     expect(within(header).getByText('Pay not stated')).toBeInTheDocument();
-    const star = within(header).getByRole('button', { name: 'Star' });
-    expect(star).not.toHaveAttribute('aria-pressed'); // the text carries the state
+    // No star (#534): every job on Apply is already saved.
+    expect(within(header).queryByRole('button', { name: /^Star/ })).toBeNull();
     // The keys sit in the dock (#535), outside the header on a phone.
     expect(screen.getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
@@ -126,11 +126,10 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(screen.queryByRole('button', { name: /^Mark applied/ })).toBeNull();
   });
 
-  it('with no next step there is no dock: Star and More sit by the title, no empty slot (#535)', () => {
+  it('with no next step there is no dock: More sits by the title, no empty slot (#535)', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { status: 'Offer', applied: todayYmd() });
     openJobPage();
-    expect(screen.getByRole('button', { name: 'Star' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
     expect(document.querySelector('[data-rjb-actions]')).toBeNull();
     expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
@@ -153,16 +152,16 @@ describe('job page header and Overview (#130 slice 1)', () => {
     ]);
   });
 
-  it('starring fills the star, says Starred and where starred jobs show', async () => {
+  it('no star anywhere on the job page; a stored star stays in the data (#534)', async () => {
     addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { priority: true });
     openJobPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Star' }));
+    expect(screen.queryByRole('button', { name: /^Star/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).queryByRole('menuitem', { name: /Star/ })).toBeNull();
+    expect(within(menu).getByRole('menuitem', { name: 'Remove from Apply' })).toBeInTheDocument();
     expect(findJobById(jobIdOf(URL_A), getAllJobs())?.priority).toBe(true);
-    const on = screen.getByRole('button', { name: 'Starred' });
-    expect(on.querySelector('svg')).toHaveClass('rjb-icon-filled');
-    expect(await screen.findByText('Shows first in your Pipeline')).toBeInTheDocument();
-    await userEvent.click(on);
-    expect(findJobById(jobIdOf(URL_A), getAllJobs())?.priority).toBe(false);
   });
 
   it('Overview lists the facts the job has as a definition list', () => {
@@ -336,7 +335,7 @@ describe('job page remove (Recently removed)', () => {
     openJobPage();
     expect(screen.queryByRole('button', { name: /Remove this job/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
-    expect(screen.getByRole('menuitem', { name: 'Remove' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Remove from Apply' })).toBeInTheDocument();
   });
 
   it('removes without asking, returns to the list, and Undo brings it back whole', async () => {
@@ -344,13 +343,13 @@ describe('job page remove (Recently removed)', () => {
     updateJob(URL_A, { notes: 'Ask about the shop floor' });
     openJobPage();
     await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Remove from Apply' }));
     expect(getAllJobs()).toHaveLength(0);
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    expect(screen.getByText('Removed “Design Engineer”')).toBeInTheDocument();
+    expect(screen.getByText('Removed from Apply: Design Engineer')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(getAllJobs().map((j) => j.notes)).toEqual(['Ask about the shop floor']);
-    expect(screen.queryByText('Removed “Design Engineer”')).toBeNull();
+    expect(screen.queryByText('Removed from Apply: Design Engineer')).toBeNull();
   });
 
   it('Recently removed (in the Account menu) restores or deletes for good', async () => {
@@ -362,7 +361,7 @@ describe('job page remove (Recently removed)', () => {
     await openAllJobs();
     for (const name of ['Design Engineer', 'Welder']) {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     }
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
@@ -386,7 +385,7 @@ describe('job page remove (Recently removed)', () => {
     await openAllJobs();
     for (const name of ['Design Engineer', 'Welder']) {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     }
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
@@ -412,7 +411,7 @@ describe('job page remove (Recently removed)', () => {
     window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await openRecentlyRemoved(1);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(

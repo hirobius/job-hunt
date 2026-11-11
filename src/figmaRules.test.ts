@@ -60,6 +60,12 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/theme/base.css', 'utf8')).not.toContain('rjb-dock');
   });
 
+  it('pins the one saved list (#534)', () => {
+    expect(RULES).toMatch(/One saved list/);
+    expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).toContain('Remove from Apply');
+    expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).not.toContain('StarButton');
+  });
+
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
     const css = fs.readFileSync('src/hds-gaps/PageShell.css', 'utf8');
     expect(css).toContain('--rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);');

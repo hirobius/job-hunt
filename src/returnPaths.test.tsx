@@ -117,7 +117,7 @@ describe('a job page goes back to where it was opened from', () => {
     await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await at('#/apply/company/acme-metals');
     await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
     expect(await heading('Fabricator')).toBeInTheDocument();
@@ -353,7 +353,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     await over('#/find', `#/apply/${idA}`);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await at('#/apply');
     await new Promise((r) => setTimeout(r, 80));
     window.history.back();
@@ -409,7 +409,7 @@ describe('one navigation per Remove, Delete or double click', () => {
   };
   const remove = async (title: string) => {
     await userEvent.click(screen.getByRole('button', { name: `More actions: ${title}` }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
   };
   /** A double click, both clicks in one tick: before the first one's way back has landed. */
   const doubleClick = (el: HTMLElement) => {

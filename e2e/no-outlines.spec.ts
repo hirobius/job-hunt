@@ -60,6 +60,8 @@ function probe(page: Page) {
       '[role=tooltip]',
       '[data-radix-popper-content-wrapper]',
       '[data-sonner-toast]',
+      // HDS toasts float over the page (an overlay); since #534 they survive navigation.
+      '.hds-toast',
       '.rjb-avatar',
     ].join(',');
     for (const el of document.querySelectorAll('body *')) {

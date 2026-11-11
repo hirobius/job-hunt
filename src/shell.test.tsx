@@ -486,7 +486,7 @@ describe('routes keep working (#115 Phase 1)', () => {
   it('a ?add= quick-add link says where the job went (the landing does not drop the notice)', async () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
-    expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    expect(await screen.findByText(/^Added to Apply/)).toBeInTheDocument();
   });
 
   it('a quick-add link that is not a web link says so instead of landing in silence', async () => {

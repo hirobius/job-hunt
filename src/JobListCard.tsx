@@ -42,7 +42,7 @@ export default function JobListCard({
             facts and the actions' line (12 above the actions). Card's own parts pad 16 apiece and
             Card.Facts adds its own block, which made the card about 205px tall instead of ~180,
             so the facts sit in the header and the parts take tighter padding. */}
-      <Card.Header metadata={<JobBadges job={job} star />} className="px-0 py-3 gap-2">
+      <Card.Header metadata={<JobBadges job={job} />} className="px-0 py-3 gap-2">
         <Stack gap="px8">
           {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
           <Stack gap="px4">

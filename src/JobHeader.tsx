@@ -17,7 +17,7 @@ import BackLink from './BackLink';
 import { focusNewHeading, pageHeadingNow } from './focusRescue';
 import { tooSoon } from './answerGuard';
 import { checkFor, useLiveness } from './livenessStore';
-import { RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
+import { RowMenu, RowPrimaryAction } from './JobRowParts';
 import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
@@ -172,17 +172,23 @@ export default function JobHeader({
     <Box as="header" sx={{ mb: 'lg' }}>
       <Stack gap="normal">
         {showBack && <BackToPipeline />}
-        {/* The title block, with the star and More at its top end: they do not commit. */}
+        {/* The title block, with More at its top end: it does not commit. No star (#534). */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 'xs' }}>
           <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
             <JobTitleBlock job={job} />
           </Box>
-          <StarButton job={job} />
           <RowMenu
             job={job}
             size="md"
             research
-            onRemoved={() => goBack(PIPELINE)}
+            onRemoved={() => {
+              // Back to where the job was opened from (return paths); the Apply tab opens its
+              // next job there. #534: focus then goes to the new page's title (the next job's,
+              // or the list heading or empty state).
+              const from = pageHeadingNow();
+              goBack(PIPELINE);
+              focusNewHeading(from);
+            }}
             onRetired={closed ? () => goBack(PIPELINE) : undefined}
           />
         </Box>

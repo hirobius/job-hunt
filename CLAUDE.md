@@ -88,6 +88,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **One saved list (redesign §5.3, #534):** Apply is the saved list. Find's Save (primary, plus icon) toasts
+  "Added to Apply: <title>" with Open and Undo; a double Save is a no-op (`alreadyInApply`); Undo toasts survive
+  navigation for their full timeout (no route dismissal in `saveNotice.ts`). The star
+  left the UI (StarButton, the menu's Star/Unstar, the Starred view, `.rjb-icon-filled`, `.rjb-pop*`); the
+  `priority` field stays in the data, backups and CSV (and still sorts). More's last item is "Remove from Apply"
+  ("Removed from Apply: <title>", Undo; focus to the next title). Pinned in `e2e/saved-list.spec.ts`, `e2e/review.spec.ts`.
 - **Action dock (redesign §5.5, #535/#536):** `src/hds-gaps/ActionDock.tsx` (+ `.css`, `fieldFocus.ts`; G1,
   hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
   transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
