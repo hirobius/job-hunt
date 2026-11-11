@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { FILL_ONLY, selectionStyle } from './selectedFill';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
@@ -124,6 +125,11 @@ for (const width of [390, 1440]) {
       // Its action row has the posting's own Open posting icon link (Adrian 2026-11-08).
       const detail = page.locator('section[aria-labelledby="rjb-posting-title"]');
       await expect(detail.getByRole('link', { name: /^Open posting for / })).toBeVisible();
+      // The selected card is a stronger fill, never a ring or edge (#603, #546).
+      const selected = list.locator('.rjb-selected');
+      await expect(selected).toHaveAttribute('aria-current', 'true');
+      const unselected = list.locator('article:not(.rjb-selected)').first();
+      expect(await selectionStyle(selected, unselected)).toEqual(FILL_ONLY);
       await page.screenshot({ path: `test-results/review-selected-${width}.png` });
       await expect(list).toBeVisible();
       await page.evaluate(() => (location.hash = '#/find'));

@@ -790,8 +790,6 @@ p {
   text-decoration: underline;
 }
 
-/* Find (#471 slice 3): the posting selected in the list column is marked current, as a list row
- * is (selected/current keeps its edge: "No outlines on surfaces" spares it). */
 /* Find at lg: the selected posting stays in view beside a long list (its own scroll when taller
  * than the window). */
 .rjb-find-detail {
@@ -802,8 +800,16 @@ p {
   overflow-y: auto;
 }
 
-.rjb-selected {
-  box-shadow: inset 0 0 0 var(--semantic-focus-ring-width) var(--semantic-color-border-accent);
+/* Selected / current list items (#603, #546): HDS surface-selected only, never an edge or a ring.
+ * Find's selected posting card and the Apply rail's open job share it. It differs from hover and
+ * from the raised card in both themes (dark: neutral-725 between raised 825 and hover 700; sunken
+ * equalled hover there), and keeps content-secondary at AA (theme.contrast.test.ts). */
+:root {
+  --rjb-selected-fill: var(--semantic-color-surface-selected);
+}
+.rjb-selected,
+.rjb-selected:hover {
+  background-color: var(--rjb-selected-fill);
 }
 
 /* The animated logo (src/brand/RoleFlame.tsx, loaded by LazyRoleFlameLogo): the flame's three layers

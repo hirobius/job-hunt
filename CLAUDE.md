@@ -477,8 +477,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   at 1048 in all (Adrian 2026-10-24, was 1180) with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
   is at most 920; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
-  Inputs, focus, selected/current, overlays, row dividers and feedback tones keep theirs.
-  `e2e/no-outlines.spec.ts` fails on a Card or container box that draws an edge.
+  Inputs, focus, overlays, row dividers and feedback tones keep theirs. **Selected is a fill, never an
+  edge (#603, #546):** a selected / current item (the Apply rail's open job, Find's `.rjb-selected`
+  card) takes `--rjb-selected-fill` (base.css: HDS surface-selected in both themes, distinct from hover and raised; kept on hover;
+  content-secondary stays AA), no edge marker or ring. `e2e/no-outlines.spec.ts` fails on a Card or
+  container box that draws an edge, and on a rail open job that is not fill only (`e2e/selectedFill.ts`,
+  also in `e2e/review.spec.ts` for Find).
 - **Pipeline rows (#129):** the Pipeline uses the shell width; the job page and Documents sit at
 - **Discover (#131), Live postings, Calibrate, wide sweep (#213), title filter (#223), Contracts / SAM.gov (#275),
   Find boards, Check a list, Teams, Add a company, dream company rows, the tile board and Manage track** were deleted

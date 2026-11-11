@@ -9,6 +9,7 @@
 // Local only: `npm run test:e2e`.
 import { test, expect, type Page } from '@playwright/test';
 import { seed, visitAll } from './routes';
+import { FILL_ONLY, selectionStyle } from './selectedFill';
 
 /** One line per surface that draws an outline. */
 function probe(page: Page) {
@@ -98,3 +99,19 @@ for (const theme of ['light', 'dark'] as const)
       });
       expect(offences, offences.join('\n')).toEqual([]);
     });
+
+// The Apply rail's open job (#603): a stronger surface fill, never an edge marker.
+for (const theme of ['light', 'dark'] as const)
+  test(`${theme} 1440: the open job in the rail is a fill, not an edge`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ colorScheme: theme });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
+    await seed(page);
+    await page.goto('/#/apply');
+    const rows = page.locator('.job-rail li');
+    const open = page.locator('.job-rail li:has(> [aria-current="page"])');
+    await expect(open).toHaveCount(1);
+    const other = rows.filter({ hasNot: page.locator(':scope > [aria-current="page"]') }).first();
+    expect(await selectionStyle(open, other)).toEqual(FILL_ONLY);
+  });
