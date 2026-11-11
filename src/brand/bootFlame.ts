@@ -20,10 +20,24 @@ export function runBootFlame(doc: Document = document): () => void {
 }
 
 // The script is async and in the head, so it can run before the body is parsed: wait for the
-// splash (a few frames at most), and give up if React has already replaced it.
+// splash (a few frames at most), and give up if React has already replaced it. With no document
+// (a test environment torn down while a retry was queued) it gives up too.
+let retry: ReturnType<typeof setTimeout> | undefined;
+let running: (() => void) | undefined;
 function whenSplash(tries = 120) {
-  if (document.querySelector('.rjb-boot .rjb-flame svg')) runBootFlame();
+  retry = undefined;
+  if (typeof document === 'undefined') return;
+  if (document.querySelector('.rjb-boot .rjb-flame svg')) running = runBootFlame();
   else if (tries > 0 && !document.querySelector('#root > :not(.rjb-boot)'))
-    setTimeout(() => whenSplash(tries - 1), 16);
+    retry = setTimeout(() => whenSplash(tries - 1), 16);
+}
+
+/** Cancel the start-up wait (and stop a splash flame it started). For tests that import this
+ *  module: the wait would otherwise outlive the test's document. */
+export function cancelBootFlame(): void {
+  if (retry !== undefined) clearTimeout(retry);
+  retry = undefined;
+  running?.();
+  running = undefined;
 }
 whenSplash();

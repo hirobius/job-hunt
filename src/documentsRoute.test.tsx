@@ -87,8 +87,9 @@ describe('the Documents page', () => {
   it('with no documents, no subtitle repeats the empty state; with some, it says what goes here', async () => {
     replaceSnippets([]);
     await renderApp();
-    const dialog = await screen.findByRole('dialog', { name: 'Documents' });
-    expect(await within(dialog).findByText('No documents yet')).toBeInTheDocument();
+    // Found by its content: the dialog it is in is the loaded one, not a hold before it.
+    expect(await screen.findByText('No documents yet')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Documents' });
     const subtitle = /^Résumés, cover letters, outreach messages and notes\.$/;
     expect(within(dialog).queryByText(subtitle)).toBeNull();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add starter messages' }));
