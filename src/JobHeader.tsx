@@ -10,7 +10,7 @@ import { Fragment } from 'react';
 import { Badge, Box, Button, Card, Icon, Stack, Text, useAtLeast } from '@hirobius/design-system';
 import { ActionDock } from './hds-gaps/ActionDock';
 import { closingOf, dateLabel, dueBadgeOf } from './jobDates';
-import { primaryAction, titleOf } from './jobRow';
+import { primaryAction, rowView, titleOf } from './jobRow';
 import { goBack, type Route } from './route';
 import { markAppliedWithUndo, setAsideWithUndo } from './applyActions';
 import BackLink from './BackLink';
@@ -21,9 +21,9 @@ import { RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
 import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
+import { ExitButton } from './hds-gaps/ExitButton';
 import { IconBadge } from './hds-gaps/IconBadge';
 import { normStatus } from './jobState';
-import { rowView } from './jobRow';
 
 /** The title block (#538, redesign §5.5): the title (typography.title, 24px, wraps in full), the
  *  company (or "Company not stated"), one facts line (place, pay, date; 16px icons) and, under it,
@@ -78,7 +78,6 @@ export function JobTitleBlock({ job }: { job: Job }) {
     </Stack>
   );
 }
-import { ExitButton } from './hds-gaps/ExitButton';
 
 const PIPELINE: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
 /** "← Apply": a quiet link-like button back to where the page was opened from (return paths):

@@ -144,14 +144,6 @@
       "count": 1,
       "issue": "job-hunt#548",
       "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"
-    },
-    {
-      "rule": "version",
-      "file": "package.json",
-      "match": ".npmrc maps @hirobius to https://npm.pkg.github.com (behind public npm)",
-      "count": 1,
-      "issue": "job-hunt#564",
-      "why": ".npmrc still maps @hirobius to GitHub Packages for hds-toolkit; needs a decision"
     }
   ]
 }
