@@ -23,7 +23,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, dedupKey, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
+import { addJob, dedupKey, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { replaceCurationState } from './curation/curationStore';
 import { setOutreachMessages } from './test/outreach';
 import { liveness } from './livenessStore';
@@ -110,7 +110,7 @@ describe('a job page goes back to where it was opened from', () => {
     await at('#/apply/company/acme-metals');
   });
 
-  it('Remove goes back to the origin; Undo reopens the job page', async () => {
+  it('Remove goes back to the origin; Undo puts the job back and stays there (#593)', async () => {
     window.location.hash = '#/apply/company/acme-metals';
     renderApp();
     await heading('Acme Metals');
@@ -119,13 +119,50 @@ describe('a job page goes back to where it was opened from', () => {
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await at('#/apply/company/acme-metals');
+    expect(findJobByUrl(A)).toBeUndefined();
+    const length = window.history.length;
     await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
-    expect(await heading('Fabricator')).toBeInTheDocument();
-    expect(getRoute()).toMatchObject({
-      tab: 'apply',
-      jobId: idA,
-      from: '/apply/company/acme-metals',
+    await waitFor(() => expect(findJobByUrl(A)).toBeDefined());
+    // Adrian 2026-11-11: no Undo ever navigates.
+    expect(window.location.hash).toBe('#/apply/company/acme-metals');
+    expect(window.history.length).toBe(length);
+    expect(await heading('Acme Metals')).toBeInTheDocument();
+  });
+
+  it('Undo of a job page Remove pressed on Find stays on Find (#593)', async () => {
+    window.location.hash = `#/apply/${idA}`;
+    renderApp();
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
+    await waitFor(() => expect(findJobByUrl(A)).toBeUndefined());
+    window.location.hash = '#/find';
+    await at('#/find');
+    await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(findJobByUrl(A)).toBeDefined());
+    expect(getRoute()).toMatchObject({ tab: 'find' });
+    expect(window.location.hash).toBe('#/find');
+  });
+
+  it('a list Remove: Undo brings the row back in place with its flash, no route change (#593)', async () => {
+    addJob(B, 'Welder');
+    window.location.hash = '#/apply';
+    renderApp();
+    const sheet = await openAllJobs();
+    const before = window.location.hash;
+    await userEvent.click(within(sheet).getByRole('button', { name: 'More actions: Welder' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
+    await waitFor(() => expect(findJobByUrl(B)).toBeUndefined());
+    const undo = await screen.findByRole('button', { name: 'Undo' });
+    await userEvent.click(undo);
+    await waitFor(() => expect(findJobByUrl(B)).toBeDefined());
+    const row = await waitFor(() => {
+      const r = document.querySelector(`[data-pipeline-job="${B}"]`);
+      expect(r).not.toBeNull();
+      return r!;
     });
+    await waitFor(() => expect(row).toHaveAttribute('data-motion', 'flash'));
+    expect(window.location.hash).toBe(before);
   });
 
   it('retiring a job closed on the board goes back to the tab', async () => {

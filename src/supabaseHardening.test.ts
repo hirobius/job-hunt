@@ -30,7 +30,7 @@ describe('client_errors: per-client limit (#319, #391)', () => {
   });
 
   it('keys a bucket on the caller, not one global bucket', () => {
-    expect(body).toContain("request.headers");
+    expect(body).toContain('request.headers');
     expect(body).toContain('x-forwarded-for');
     // A salted one-way code, never the address itself.
     expect(body).toMatch(/sha256\(/);
@@ -53,7 +53,9 @@ describe('client_errors: per-client limit (#319, #391)', () => {
 
   it('keeps the rate table private and short-lived', () => {
     expect(body).toMatch(/alter table public\.client_error_rate enable row level security/);
-    expect(body).toMatch(/revoke all on public\.client_error_rate from public, anon, authenticated/);
+    expect(body).toMatch(
+      /revoke all on public\.client_error_rate from public, anon, authenticated/,
+    );
     expect(body).toMatch(/cron\.schedule\( 'client-error-rate-sweep'/);
   });
 
@@ -75,8 +77,15 @@ describe('user-writable tables: caps and same-user parents (#320, #391)', () => 
   });
 
   it('caps text and array sizes on the curation tables', () => {
-    for (const c of ['categories_label_len', 'categories_titles_size', 'categories_ats_roles_size',
-      'groups_label_len', 'tiles_name_len', 'tiles_url_len', 'tiles_meta_len'])
+    for (const c of [
+      'categories_label_len',
+      'categories_titles_size',
+      'categories_ats_roles_size',
+      'groups_label_len',
+      'tiles_name_len',
+      'tiles_url_len',
+      'tiles_meta_len',
+    ])
       expect(body).toContain(`add constraint ${c}`);
   });
 
@@ -87,8 +96,12 @@ describe('user-writable tables: caps and same-user parents (#320, #391)', () => 
   });
 
   it('ties a group to a category, and a tile to a group, of the same user', () => {
-    expect(body).toMatch(/foreign key \(category_id, user_id\) references public\.categories \(id, user_id\)/);
-    expect(body).toMatch(/foreign key \(group_id, user_id\) references public\.groups \(id, user_id\)/);
+    expect(body).toMatch(
+      /foreign key \(category_id, user_id\) references public\.categories \(id, user_id\)/,
+    );
+    expect(body).toMatch(
+      /foreign key \(group_id, user_id\) references public\.groups \(id, user_id\)/,
+    );
   });
 
   it('measures the tracker blob by its text, not its compressed size', () => {
@@ -258,13 +271,17 @@ describe('least-privilege grants (L1, L2, L4)', () => {
     expect(body).toContain('revoke all on all tables in schema public from anon, authenticated;');
     expect(body).not.toMatch(/grant [a-z, ]+ on public\.\w+ to [a-z_, ]*\banon\b/);
     for (const t of ['tracker', 'categories', 'groups', 'tiles'])
-      expect(body).toContain(`grant select, insert, update, delete on public.${t} to authenticated;`);
+      expect(body).toContain(
+        `grant select, insert, update, delete on public.${t} to authenticated;`,
+      );
     for (const t of ['postings', 'sync_log', 'daily_picks'])
       expect(body).toContain(`grant select on public.${t} to authenticated;`);
   });
 
   it('makes new tables in public grant nothing to anon', () => {
-    expect(body).toMatch(/alter default privileges for role postgres in schema public revoke all on tables from anon/);
+    expect(body).toMatch(
+      /alter default privileges for role postgres in schema public revoke all on tables from anon/,
+    );
   });
 
   it('moves the user-owned policies to authenticated', () => {
@@ -273,7 +290,11 @@ describe('least-privilege grants (L1, L2, L4)', () => {
   });
 
   it('takes net.* from anon and authenticated, and keeps report_client_error for anon', () => {
-    expect(body).toContain('revoke execute on all functions in schema net from public, anon, authenticated;');
-    expect(body).toContain('grant execute on function public.report_client_error to anon, authenticated;');
+    expect(body).toContain(
+      'revoke execute on all functions in schema net from public, anon, authenticated;',
+    );
+    expect(body).toContain(
+      'grant execute on function public.report_client_error to anon, authenticated;',
+    );
   });
 });

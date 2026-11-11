@@ -306,8 +306,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   page's unknown-id fallback (StrictMode runs it twice in dev), goes back once. An editor's Save
   that goes back ignores a second click. Finishing the key action returns there: a Save
   in an editor opened from a job page or Apply mode (`DocumentsView` `returnTarget`, toast "Back to
-  …"), Remove from a job page (Undo reopens it), Retire of a job closed on the board, Undo on Not
-  a fit. Never global state: back/forward and reload keep it. **Scroll** (`scrollMemory.ts`, set
+  …"), Remove from a job page, Retire of a job closed on the board. **Undo never navigates (Adrian
+  2026-11-11, #593):** every Undo puts the item back and leaves the person on the page they are on
+  (Remove's Undo pressed on Find stays on Find; a list that shows the item again flashes its row,
+  `saveNotice.jobHighlightKey`). Never global state: back/forward and reload keep it. **Scroll** (`scrollMemory.ts`, set
   up in `main.tsx`): browser restoration is off; each page's position (by hash, sessionStorage)
   comes back on a revisit (Back/Forward), an in-app Back, a top tab or a reload, once the page is
   tall enough, or as far as it goes once its height has held for 150 ms (a row left the list on
@@ -460,7 +462,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   An unknown slug shows a skeleton until `useCloudSync().settled`, then "No company here" (#303).
   Each Documents row links to its editor via `linkTo` (Back says "← <Company>"; an uploaded final copy is
   text only, #304). Notes are "Note 2 of 3" when several, each with a soft Remove + Undo; a notes-only
-  company's last note goes back from the page and Undo reopens it (#305).
+  company's last note goes back from the page and its Undo puts the note back without reopening it (#305, #593).
 - **First run: no setup screen (Adrian 2026-10-29; was the Search profile form, #388):** after sync settles, App's
   `V12Migration` runs the v11 move, then `searchDefaults.ts` `ensureProfile`: with no profile it calls `finishSetup`
   with `NEW_PROFILE` (the design-systems titles, remote only, the broad ATS terms, include "design system", scorer
@@ -697,7 +699,7 @@ trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run si
   raise a notice with Undo; **Remove is soft everywhere**: every Remove (a Pipeline job, a job's to-do or interview,
   a final copy, a company note, a Base document (Documents' row and editor Delete, #329, `documentRemove.ts`)) collapses the row first, then a notice
   (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place (`restoreTodo` / `restoreEvent` /
-  `documents.restoreDocument`). Review new's Skip and Not this company say so with Undo too. Inside a modal dialog the notice is
+  `documents.restoreDocument`), never opening a page (#593). Review new's Skip and Not this company say so with Undo too. Inside a modal dialog the notice is
   `inDialog`: the dialog's footer shows it (`NoticeHost.DialogNotice`, reachable by keyboard and screen reader,
   which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
   ATS search's Copy the query toasts "Copied the query"; Duplicate and Pin flash the row they land on. Pinned

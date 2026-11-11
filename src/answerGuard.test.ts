@@ -13,7 +13,8 @@ describe('the double-tap guard', () => {
 
   it('swallows presses inside main for 700 ms after an answer, then lets them through', () => {
     vi.useFakeTimers();
-    document.body.innerHTML = '<main><button id="in">In</button></main><button id="out">Out</button>';
+    document.body.innerHTML =
+      '<main><button id="in">In</button></main><button id="out">Out</button>';
     const hits: string[] = [];
     for (const id of ['in', 'out'])
       document.getElementById(id)!.addEventListener('click', () => hits.push(id));

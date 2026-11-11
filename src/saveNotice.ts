@@ -18,7 +18,8 @@ import {
 import { restoreJob, trashJob } from './trash';
 import { titleOf } from './jobRow';
 import type { Job } from './types';
-import { getRoute, navigate, openJob, parseHash, withOrigin } from './route';
+import { highlightNew } from './feedback';
+import { getRoute, navigate, openJob, withOrigin } from './route';
 
 export interface NoticeAction {
   label: string;
@@ -189,21 +190,20 @@ export function notifyRemoved(
   });
 }
 
-/** Remove a job to Recently removed, with Undo. Removed from its own page (`reopen`, that page's
- *  hash), Undo also reopens the page as it was: its section, its origin, its scroll. */
-export function removeWithUndo(job: Job, reopen?: string) {
+/** Remove a job to Recently removed, with Undo. Undo puts the job back and leaves the person
+ *  where they are (Adrian 2026-11-11, #593: no Undo ever navigates); a list that shows it again
+ *  flashes its row (`highlightNew`, JobListCard). */
+export function removeWithUndo(job: Job) {
   trashJob(job.url);
   // #534: Apply is the one saved list; Remove takes a job off it (to Recently removed).
   notifyRemoved(`Removed from Apply: ${titleOf(job)}`, () => {
     restoreWithNotice(job.url);
-    if (reopen) {
-      const r = parseHash(reopen);
-      navigate({ ...r, from: r.from ?? null, section: r.section ?? null }, false, {
-        restore: true,
-      });
-    }
+    highlightNew(jobHighlightKey(job.url));
   });
 }
+
+/** The highlight key of a job's list row (feedback.highlightNew / useHighlight). */
+export const jobHighlightKey = (url: string) => `job:${jobIdOf(url)}`;
 
 /** True when this link is already a job in Apply (not set aside): Save then does nothing (#534). */
 export function alreadyInApply(url: string): boolean {
