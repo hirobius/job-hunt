@@ -58,11 +58,19 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/Marked not a fit: <title> · Undo/);
     expect(fs.readFileSync('src/applyActions.ts', 'utf8')).toContain("verb = 'Marked not a fit'");
     expect(fs.readFileSync('src/theme/base.css', 'utf8')).not.toContain('rjb-dock');
+    expect(RULES).toMatch(/A job with no link\s+never shows Open application/);
+    expect(fs.readFileSync('src/dockKeys.ts', 'utf8')).toContain(
+      "{ id: 'addLink', rank: 'secondary' }",
+    );
   });
 
   it('pins the keys by state (#540)', () => {
     expect(RULES).toMatch(/The filled key follows the state/);
-    expect(fs.readFileSync('src/dockKeys.ts', 'utf8')).toContain("grey: 'addLink'");
+    const keys = fs.readFileSync('src/dockKeys.ts', 'utf8');
+    expect(keys).toContain("{ id: 'copyFollowUp', rank: 'primary' }");
+    expect(keys).toContain("{ id: 'closeOut', rank: 'exit' }");
+    // One table of keys per state: no second module.
+    expect(fs.existsSync('src/editLinkRequest.ts')).toBe(false);
     expect(fs.existsSync('src/templatesOpen.ts')).toBe(false);
   });
 

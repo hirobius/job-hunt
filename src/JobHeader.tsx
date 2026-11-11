@@ -1,10 +1,10 @@
 // The job page's header (#130; rev-3 mobile slice 2): Back, one badge row above the title (status,
 // a due follow-up, Closed, then fit), the title with its posting link beside it, company ·
-// location · applied date, then one row of actions: the star, the job's one primary next step (it
-// takes the row's room) and the menu of everything else (Remove included). The same column at
+// location · applied date, then one row of actions: the job's one primary next step (it takes the
+// row's room) and the menu of everything else (Remove included); no star (#534). The same column at
 // every width. Back goes to the page the job was opened from (the Pipeline by default).
 // An Interviewing job's primary is Add interview (opens its dialog, #416); a job with no next
-// step (Offer, Rejected, retired, applied and not yet due) has none, so Star and More sit together.
+// step (Offer, Rejected, retired, applied and not yet due) has none, so More stands alone.
 import {
   Banknote,
   Bell,
@@ -12,10 +12,11 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  Link2,
   Link2Off,
   MapPin,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Badge,
   Box,
@@ -37,7 +38,7 @@ import {
   markFollowedUpWithUndo,
   setAsideWithUndo,
 } from './applyActions';
-import { dockKeysFor, hasApplicationLink, type DockKey } from './dockKeys';
+import { applicationLink, dockKeys, type DockKey } from './dockKeys';
 import AddLinkDialog from './AddLinkDialog';
 import { useOutreachTemplates } from './outreachTemplates';
 import { useApplyKit } from './applyKit';
@@ -46,6 +47,7 @@ import { fillSnippet } from './templateFill';
 import { copyFailed, copyFilled } from './templateCopy';
 import BackLink from './BackLink';
 import { focusAsHeading, focusNewHeading, pageHeadingNow } from './focusRescue';
+import { openNextAfter } from './applyNext';
 import { tooSoon } from './answerGuard';
 import { checkFor, useLiveness } from './livenessStore';
 import { RowMenu } from './JobRowParts';
@@ -74,7 +76,7 @@ export function JobTitleBlock({ job }: { job: Job }) {
     { icon: Banknote, label: job.salary?.trim() || 'Pay not stated' },
     ...(when ? [{ icon: Clock, label: when }] : []),
     // #540: a job with no application link says so as a fact (no dashed box).
-    ...(hasApplicationLink(job) ? [] : [{ icon: Link2Off, label: 'No application link' }]),
+    ...(applicationLink(job) ? [] : [{ icon: Link2Off, label: 'No application link' }]),
   ];
   return (
     <Stack gap="tight" data-rjb-title-block="">
@@ -130,28 +132,27 @@ export default function JobHeader({
   /** After Mark applied or Not a fit (the Apply view, #471): the page moves on to the next job. */
   onAnswered?: () => void;
 }) {
-  // The keys follow the state (#540): exactly one filled key, then a grey key and an exit.
-  const ranks = dockKeysFor(job);
   const [addingLink, setAddingLink] = useState(false);
   const templates = useOutreachTemplates();
   const kitName = useApplyKit().fields.name;
   const { toast } = useToast();
   const title = titleOf(job);
   // The view moves on first, while the job still has its place in the list, then the answer
-  // lands (its notice is raised on the page it stays on).
+  // lands (its notice is raised on the page it stays on). Opened from anywhere (the walk, Find, a
+  // Company page), the next job in the list opens and its title takes focus; after the last job
+  // the list (or the page it was opened from) opens and its heading takes focus (#536).
+  const moveOn = onAnswered ?? (() => openNextAfter(job));
   const markApplied = () => {
     if (tooSoon()) return;
     const from = pageHeadingNow();
-    onAnswered?.();
+    moveOn();
     markAppliedWithUndo(job);
     focusNewHeading(from);
   };
   const notAFit = () => {
     if (tooSoon()) return;
     const from = pageHeadingNow();
-    // The next title takes focus; with no next job the list (its heading or empty state) does.
-    if (onAnswered) onAnswered();
-    else goBack(PIPELINE);
+    moveOn();
     // Undo puts every field back; it does not navigate (#536).
     setAsideWithUndo(job);
     focusNewHeading(from);
@@ -160,8 +161,10 @@ export default function JobHeader({
   // opened from (the Pipeline's closed list), like Remove does for any job.
   const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
   const wide = useAtLeast('lg');
-  // One filled key, one grey key, one exit, in that order of rank (#535, #540). On a phone they
-  // sit in the dock at the bottom; from lg in one row under the title block.
+  // One filled key, one grey key, one exit, in that order of rank (#535), per the job's state
+  // (`dockKeys`, #540). On a phone they sit in the dock at the bottom; from lg in one row under
+  // the title block.
+  const link = applicationLink(job);
   const focusTitle = () =>
     requestAnimationFrame(() => {
       const h = pageHeadingNow();
@@ -185,17 +188,17 @@ export default function JobHeader({
   const closeOut = () => {
     if (tooSoon()) return;
     const from = pageHeadingNow();
-    if (onAnswered) onAnswered();
-    else goBack(PIPELINE);
+    moveOn();
     closeOutWithUndo(job);
     focusNewHeading(from);
   };
-  const key = (k: DockKey, rank: 'primary' | 'secondary') => {
-    switch (k) {
+  const render = ({ id, rank }: DockKey): ReactNode => {
+    const variant = rank === 'primary' ? 'primary' : 'secondary';
+    switch (id) {
       case 'openApplication':
         return (
-          <Button key={k} asChild variant={rank} size="md">
-            <a href={job.url} target="_blank" rel="noopener noreferrer">
+          <Button key={id} asChild variant={variant} size="md">
+            <a href={link} target="_blank" rel="noopener noreferrer">
               <Icon icon={ExternalLink} />
               Open application
             </a>
@@ -204,8 +207,8 @@ export default function JobHeader({
       case 'markApplied':
         return (
           <Button
-            key={k}
-            variant={rank}
+            key={id}
+            variant={variant}
             size="md"
             aria-label={`Mark applied: ${title}`}
             onClick={markApplied}
@@ -215,15 +218,22 @@ export default function JobHeader({
         );
       case 'addLink':
         return (
-          <Button key={k} variant={rank} size="md" onClick={() => setAddingLink(true)}>
+          <Button
+            key={id}
+            variant={variant}
+            size="md"
+            iconLeft={<Icon icon={Link2} />}
+            aria-label={`Add link: ${title}`}
+            onClick={() => setAddingLink(true)}
+          >
             Add link
           </Button>
         );
       case 'copyFollowUp':
         return (
           <Button
-            key={k}
-            variant={rank}
+            key={id}
+            variant={variant}
             size="md"
             iconLeft={<Icon icon={Copy} />}
             onClick={copyFollowUp}
@@ -234,8 +244,8 @@ export default function JobHeader({
       case 'markFollowedUp':
         return (
           <Button
-            key={k}
-            variant={rank}
+            key={id}
+            variant={variant}
             size="md"
             aria-label={`Mark followed up: ${title}`}
             onClick={markFollowedUp}
@@ -246,8 +256,8 @@ export default function JobHeader({
       case 'addInterview':
         return (
           <Button
-            key={k}
-            variant={rank}
+            key={id}
+            variant={variant}
             size="md"
             onClick={(e) => openAddInterview(job.url, e.currentTarget)}
           >
@@ -256,25 +266,20 @@ export default function JobHeader({
         );
       case 'notAFit':
         return (
-          <ExitButton key={k} aria-label={`Not a fit: ${title}`} onClick={notAFit}>
+          <ExitButton key={id} aria-label={`Not a fit: ${title}`} onClick={notAFit}>
             Not a fit
           </ExitButton>
         );
       case 'closeOut':
         return (
-          <ExitButton key={k} aria-label={`Close out: ${title}`} onClick={closeOut}>
+          <ExitButton key={id} aria-label={`Close out: ${title}`} onClick={closeOut}>
             Close out
           </ExitButton>
         );
     }
   };
-  const keys = ranks
-    ? [
-        key(ranks.filled, 'primary'),
-        ranks.grey && key(ranks.grey, 'secondary'),
-        ranks.exit && key(ranks.exit, 'secondary'),
-      ].filter(Boolean)
-    : [];
+  const ranked = dockKeys(job);
+  const keys = ranked.map(render);
   return (
     <Box as="header" sx={{ mb: 'lg' }}>
       <Stack gap="normal">
@@ -304,7 +309,7 @@ export default function JobHeader({
             {keys}
           </ActionDock>
         )}
-        {ranks?.grey === 'addLink' && (
+        {ranked.some((k) => k.id === 'addLink') && (
           <AddLinkDialog job={job} open={addingLink} onOpenChange={setAddingLink} />
         )}
       </Stack>

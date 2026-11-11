@@ -57,8 +57,8 @@ export type IncludeRule =
   string[] | Pick<MustInclude, 'terms' | 'inTitle' | 'inText' | 'related' | 'relatedOff'>;
 
 /** Related titles (Adrian 2026-10-23): on a rule that asks for "design system(s)", a posting
- *  titled one of these passes on its title alone. Design Technologist is the only one (Design
- *  Engineer, UI Platform, Component Library and Frontend Platform were cut the same day). */
+ *  titled one of these passes on its title alone: Design Technologist, and Design Engineer (with UX
+ *  Engineer; back on 2026-11-11). UI Platform, Component Library and Frontend Platform stay cut. */
 export interface RelatedTitle {
   id: string;
   /** Phrases the title is matched against (same phrase rules as must include). */
@@ -67,6 +67,9 @@ export interface RelatedTitle {
 
 export const RELATED_TITLES: RelatedTitle[] = [
   { id: 'Design Technologist', phrases: ['design technologist'] },
+  // Adrian 2026-11-11: design engineering roles too, never hardware or physical-product ones
+  // (tracks/designRoleGuard.ts, shared with the scorer and the keyless feeds).
+  { id: 'Design Engineer', phrases: ['design engineer', 'ux engineer'] },
 ];
 const RELATED_IDS = new Set(RELATED_TITLES.map((r) => r.id));
 
@@ -230,14 +233,13 @@ const PHRASE_CACHE_MAX = 500;
 const phraseCache = new Map<string, RegExp | null>();
 
 // A bare list is a plain phrase test over both fields: no related titles.
-const ruleOf = (rule: IncludeRule) =>
+export const ruleOf = (rule: IncludeRule) =>
   Array.isArray(rule) ? { terms: rule, inTitle: true, inText: true, related: false } : rule;
 
-const regexesOf = (terms: string[]) =>
+export const regexesOf = (terms: string[]) =>
   terms.map(phraseRegex).filter((r): r is RegExp => r !== null);
 
 const DS_RE = phraseRegex('design system') as RegExp;
-const RELATED_RES = RELATED_TITLES.map((r) => regexesOf(r.phrases));
 
 /** Says the phrase "design system(s)", hyphen or not, never "system design". */
 export const saysDesignSystem = (s: string) => DS_RE.test(normalizeForPhrase(s));
@@ -269,58 +271,8 @@ export function toggleRelated(
   return { relatedOff: relatedIsOn(rule, id) ? [...off, id] : off };
 }
 
-/** The related titles a title names that are on (none on a rule without a design system phrase
- *  or with the control off). */
-function relatedPass(rule: IncludeRule, title: string): RelatedTitle[] {
-  if (!hasRelatedTitles(rule) || ruleOf(rule).related === false) return [];
-  const t = normalizeForPhrase(title);
-  return RELATED_TITLES.filter(
-    (h, i) => relatedIsOn(rule, h.id) && RELATED_RES[i].some((re) => re.test(t)),
-  );
-}
-
-/** True when the title or description (whichever the rule searches) says one of its phrases, or
- *  a related title that is on names the title. No terms: true. */
-export function passesInclude(rule: IncludeRule, title: string, text = ''): boolean {
-  const res = regexesOf(ruleOf(rule).terms);
-  if (!res.length) return true;
-  const f = includeFields(rule);
-  const fields = [f.title ? normalizeForPhrase(title) : '', f.text ? normalizeForPhrase(text) : ''];
-  if (res.some((re) => fields.some((t) => t && re.test(t)))) return true;
-  return relatedPass(rule, title).length > 0;
-}
-
-/** Per related title, how many postings it lets in (or would, when off): those that pass with
- *  its chip on and not with it off. */
-export function relatedCounts(
-  postings: { title: string; text: string }[],
-  rule: IncludeRule,
-): Record<string, number> {
-  const out = Object.fromEntries(RELATED_TITLES.map((r) => [r.id, 0]));
-  if (!hasRelatedTitles(rule) || Array.isArray(rule)) return out;
-  for (const h of RELATED_TITLES) {
-    const on = { ...rule, related: true, relatedOff: [] };
-    const off = { ...on, relatedOff: [h.id] };
-    out[h.id] = postings.filter(
-      (p) => passesInclude(on, p.title, p.text) && !passesInclude(off, p.title, p.text),
-    ).length;
-  }
-  return out;
-}
-
-/** Any of `terms` in any of `texts` (both fields on). */
-export function mentionsAny(terms: string[], ...texts: string[]): boolean {
-  return passesInclude(terms, texts[0] ?? '', texts.slice(1).join('\n'));
-}
-
-/** Postings (or roles) that pass the must-include rule. */
-export function keepIncluded<P extends { title: string; text: string }>(
-  postings: P[],
-  rule: IncludeRule,
-): P[] {
-  if (!ruleOf(rule).terms.some((t) => t.trim())) return postings;
-  return postings.filter((p) => passesInclude(rule, p.title, p.text));
-}
+// The include check itself (passesInclude, keepIncluded, relatedCounts, mentionsAny) is
+// feed/include.ts: it holds the design engineer guard, which first paint never needs.
 
 /** Every track's entry, live. */
 export function useAllMustInclude(): Record<string, MustInclude> {

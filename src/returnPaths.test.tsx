@@ -497,6 +497,22 @@ describe('one navigation per Remove, Delete or double click', () => {
     expect(pops.count()).toBe(1);
   });
 
+  it('a double click on Back to Find goes back once, even when the page stalls past the grace', async () => {
+    await startAt('#/find', `#/apply/${idA}?from=%2Ffind`);
+    await heading('Fabricator');
+    const pops = countPops();
+    doubleClick(screen.getByRole('button', { name: 'Back to Find' }));
+    // A busy machine: the main thread stalls past the 2 s grace before the pop's task runs. The
+    // grace timer then fired first and let the second click pop again (route.ts startPop).
+    const stalled = Date.now();
+    while (Date.now() - stalled < 2100) {
+      // stalled
+    }
+    await staysAt('#/find');
+    pops.stop();
+    expect(pops.count()).toBe(1);
+  });
+
   it('a double tap on the open Pipeline tab goes to its root once', async () => {
     await startAt('#/discover/apply', '#/apply');
     await openFromList();

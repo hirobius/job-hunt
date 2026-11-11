@@ -74,6 +74,12 @@ describe('hostOf: the registrable domain of the board read (feed/hostKey.ts)', (
     [board('ashby', 'ramp'), 'ashbyhq.com'],
     [board('recruitee', 'acme'), 'recruitee.com'],
     [board('teamtailor', 'acme'), 'teamtailor.com'],
+    // The five newer kinds (#576): a subdomain board shares its ATS's one politeness budget.
+    [board('bamboohr', 'acme'), 'bamboohr.com'],
+    [board('rippling', 'acme'), 'rippling.com'],
+    [board('gem', 'acme'), 'gem.com'],
+    [board('pinpoint', 'acme'), 'pinpointhq.com'],
+    [board('breezy', 'acme'), 'breezy.hr'],
   ])('%o → %s', (b, host) => expect(hostOf(b)).toBe(host));
 });
 

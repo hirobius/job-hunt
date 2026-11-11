@@ -157,6 +157,28 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
   });
 
+  it("the kit field editor's Cancel is the exit (#537): a link button with the 44px target", async () => {
+    const user = userEvent.setup();
+    setKitField('name', 'Sam');
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    // Edit opens the field rows (#539); the chips only copy.
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo');
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    expect(cancel).toHaveAttribute('data-variant', 'link');
+    expect(cancel).toHaveAttribute('data-rjb-exit');
+    expect(cancel.className).toContain('hds-touch-target');
+    expect(screen.getByRole('button', { name: 'Done' })).toHaveAttribute(
+      'data-variant',
+      'secondary',
+    );
+    await user.click(cancel);
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(getApplyKit().fields.name).toBe('Sam');
+  });
+
   it('Mark applied and Not a fit move on to the next job in the list, each with Undo', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
@@ -312,6 +334,36 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
     const next = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
     await waitFor(() => expect(next).toHaveFocus());
+  });
+
+  it('after Not a fit on a job opened outside the walk (from Find), focus moves to the next title (#536)', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(C)}?from=%2Ffind`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Not a fit/ }));
+    const next = await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
+    await waitFor(() => expect(next).toHaveFocus());
+    // It stays in Apply (the next job), and keeps the way back to Find.
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}?from=%2Ffind`);
+  });
+
+  it('after Not a fit on the last job, the tab goes back to its list and its heading takes focus (#536)', async () => {
+    const user = userEvent.setup();
+    removeJob(B);
+    removeJob(C);
+    updateJob(A, { priority: false });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    expect(findJobByUrl(A)?.archived).toBe(true);
+    // No next job: the Apply tab opens on the first job there is (here the one just set aside,
+    // now Retired, with no dock), and its page heading takes focus, never <body>.
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    await waitFor(() => expect(h1).toHaveFocus());
+    expect(screen.getByText('Retired')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
   });
 
   it('after the last job, the tab goes back to its first job, its heading focused', async () => {

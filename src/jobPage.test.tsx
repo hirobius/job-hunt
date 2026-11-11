@@ -24,7 +24,15 @@ import { viewport } from './test/viewport';
 import { setPipelineView } from './pipelineView';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
+import {
+  addJob,
+  findJobById,
+  getAllJobs,
+  jobIdOf,
+  removeJob,
+  replaceAll,
+  updateJob,
+} from './store';
 import { replaceTrash } from './trash';
 import { dismissNotice } from './saveNotice';
 import { ymd } from './jobEvents';
@@ -157,6 +165,28 @@ describe('job page header and Overview (#130 slice 1)', () => {
       'Mark applied',
       'Not a fit',
     ]);
+  });
+
+  it('a job with no link shows Add link, never Open application; Add link focuses its Link field (#540)', async () => {
+    const NO_LINK = 'notes:designer';
+    replaceAll([{ url: NO_LINK, label: 'Design Engineer', company: 'Acme', status: 'Saved' }]);
+    openJobPage(NO_LINK);
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => k.textContent)).toEqual(['Mark applied', 'Add link', 'Not a fit']);
+    expect(keys.map((k) => k.getAttribute('data-variant'))).toEqual([
+      'primary',
+      'secondary',
+      'link',
+    ]);
+    expect(screen.queryByRole('link', { name: /Open application/ })).toBeNull();
+    expect(dock.querySelector('a[href]')).toBeNull();
+    // Add link opens its dialog with focus on the Link field.
+    await userEvent.click(within(dock).getByRole('button', { name: 'Add link: Design Engineer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add the application link' });
+    await waitFor(() =>
+      expect(within(dialog).getByRole('textbox', { name: 'Application link' })).toHaveFocus(),
+    );
   });
 
   it('no star anywhere on the job page; a stored star stays in the data (#534)', async () => {
@@ -883,7 +913,7 @@ describe('the keys follow the state (#540)', () => {
       ['Add link', 'secondary'],
       ['Not a fit', 'link'],
     ]);
-    await user.click(within(dock).getByRole('button', { name: 'Add link' }));
+    await user.click(within(dock).getByRole('button', { name: 'Add link: Designer' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add the application link' });
     await user.type(
       within(dialog).getByRole('textbox', { name: 'Application link' }),

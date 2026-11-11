@@ -17,6 +17,7 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
+import { ExitButton } from './hds-gaps/ExitButton';
 import BlankText from './BlankText';
 import { documentsHash, useRoute } from './route';
 import { useRemembered } from './viewMemory';
@@ -165,9 +166,7 @@ function CopyRow({
             <Button size="md" variant="secondary" onClick={done}>
               Done
             </Button>
-            <Button size="md" variant="tertiary" onClick={cancel}>
-              Cancel
-            </Button>
+            <ExitButton onClick={cancel}>Cancel</ExitButton>
           </Stack>
         </Stack>
       ) : (
