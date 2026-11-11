@@ -10,7 +10,7 @@
 import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.ts';
 import { BOARD_KINDS, BOARD_SLUG } from '../feed/boardSet.ts';
 import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
-import { sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
+import { nameKey, sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
 import { SERVER_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
@@ -64,6 +64,9 @@ export interface SyncPlan {
   /** The profile's match key (matchText.ts): stored with each match text. Null for a v11 plan
    *  (no profile the browser could key on): its rows keep no match text. */
   matchKey: string | null;
+  /** Companies the user ignored (muted Sources), as `sourcesModel.nameKey`: never suggested to
+   *  them (board suggestions, #576 item 5). Empty for a v11 plan. */
+  ignored: string[];
 }
 
 /** A curation tile under a "Watched companies" section (v11). */
@@ -223,13 +226,18 @@ function planV12(o: O): SyncPlan | null | undefined {
   if (!config) return null;
   const boards = new Boards();
   const feeds = new Set<Feed>(FEEDS);
+  const ignored = new Set<string>();
   for (const s of sanitizeSources(o.sources)) {
     if (s.kind === 'feed') {
       const feed = FEED_OF_REF[s.ref as FeedRef];
       if (feed && s.muted) feeds.delete(feed);
       continue;
     }
-    if (s.muted) continue;
+    if (s.muted) {
+      const k = nameKey(s.label);
+      if (k) ignored.add(k);
+      continue;
+    }
     boards.add(sourceBoard(s), s.label);
   }
   // designsystems.jobs and the sync's own searches are about design systems: only that config
@@ -249,6 +257,7 @@ function planV12(o: O): SyncPlan | null | undefined {
     feeds,
     textTerms: textTermsOf(p),
     matchKey: matchKey(p),
+    ignored: [...ignored],
   };
 }
 
@@ -290,6 +299,7 @@ function planV11(o: O, tiles: WatchedTile[]): SyncPlan | null {
     feeds,
     textTerms: [...includeTerms, ...titles],
     matchKey: null,
+    ignored: [],
   };
 }
 

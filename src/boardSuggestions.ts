@@ -48,7 +48,9 @@ export async function loadSuggestions(): Promise<BoardSuggestion[]> {
   }
 }
 
-/** Drop one suggestion (followed or dismissed): it is not shown again. */
+/** Drop one suggestion (followed or dismissed). Deleting the row is all a user may do (select and
+ *  delete grants only), so a dismissed board can be suggested again once its name is next probed
+ *  (RECHECK_DAYS, 30 days) and the board still answers; a followed one never is. */
 export async function dismissSuggestion(b: Board): Promise<void> {
   try {
     const db = await loadSupabase();

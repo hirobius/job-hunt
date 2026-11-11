@@ -27,8 +27,16 @@ export const LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
 /** The guarded kinds whose slug is a subdomain (`<slug>.host`): it must be one DNS label. */
 export const SUBDOMAIN_KINDS: readonly GuardedKind[] = ['bamboohr', 'pinpoint', 'breezy'];
 
+/** The three kinds the board-suggestion probe asks (boardSuggest.ts, #576 item 5): their reads go
+ *  through the same guard, on their fixed API hosts. */
+export type ProbeHostKind = 'greenhouse' | 'lever' | 'ashby';
+export type HostKind = GuardedKind | ProbeHostKind;
+
 /** Each kind's host rule: a fixed host, or one DNS label under a fixed domain. */
-const HOSTS: Record<GuardedKind, (host: string) => boolean> = {
+const HOSTS: Record<HostKind, (host: string) => boolean> = {
+  greenhouse: (h) => h === 'boards-api.greenhouse.io',
+  lever: (h) => h === 'api.lever.co',
+  ashby: (h) => h === 'api.ashbyhq.com',
   bamboohr: (h) => sub(h, 'bamboohr.com'),
   rippling: (h) => h === 'api.rippling.com',
   gem: (h) => h === 'api.gem.com',
@@ -41,7 +49,7 @@ function sub(host: string, domain: string) {
 }
 
 /** True when `url` is a read the guard lets out for this kind. */
-export function allowedUrl(kind: GuardedKind, url: string): boolean {
+export function allowedUrl(kind: HostKind, url: string): boolean {
   let u: URL;
   try {
     u = new URL(url);
@@ -67,8 +75,8 @@ export class BoardFetchError extends Error {
   }
 }
 
-/** The body as text, failing past `max` bytes. */
-async function readCapped(r: Response, max: number): Promise<string> {
+/** The body as text, failing past `max` bytes (counted in bytes, read as a stream). */
+export async function readCapped(r: Response, max: number): Promise<string> {
   const len = Number(r.headers.get('content-length'));
   if (Number.isFinite(len) && len > max) throw new BoardFetchError(`board list over ${max} bytes`);
   if (!r.body) return '';
@@ -97,7 +105,7 @@ async function readCapped(r: Response, max: number): Promise<string> {
 /** A fetch for one guarded kind: refuses a URL off its hosts, never follows a redirect, caps the
  *  body. Returns a Response so it drops into the sync's JSON reader unchanged. */
 export const guardedFetch =
-  (kind: GuardedKind, f: Fetch, max = MAX_BOARD_BYTES): Fetch =>
+  (kind: HostKind, f: Fetch, max = MAX_BOARD_BYTES): Fetch =>
   async (url, init) => {
     if (!allowedUrl(kind, url)) throw new BoardFetchError(`${kind}: refused URL off its hosts`);
     const r = await f(url, { ...init, redirect: 'error' });

@@ -421,9 +421,14 @@ async function suggestBoards(
   logs: Log[],
 ) {
   if (!seen.length) return;
-  const followed = new Set<string>();
-  for (const plan of plans.values())
-    for (const b of plan.boards) followed.add(suggestNameKey(b.company));
+  // Per user: the names they follow (a board's company) or ignored (a muted Source). Their own rows
+  // are not probed for them, and nothing for those names is suggested to them.
+  const skip = new Map<string, Set<string>>();
+  for (const [u, plan] of plans) {
+    const names = new Set(plan.ignored.map(suggestNameKey));
+    for (const b of plan.boards) names.add(suggestNameKey(b.company));
+    skip.set(u, names);
+  }
   const keys = [...new Set(seen.map((r) => suggestNameKey(r.company)))].slice(0, 1000);
   const checkedAt = new Map<string, string>();
   for (let i = 0; i < keys.length; i += LOOKUP) {
@@ -435,36 +440,49 @@ async function suggestBoards(
     for (const r of (data ?? []) as { name_key: string; checked_at: string }[])
       checkedAt.set(r.name_key, r.checked_at);
   }
-  const names = namesToProbe(seen, followed, checkedAt, new Date());
+  const names = namesToProbe(seen, skip, checkedAt, new Date());
   if (!names.length) return;
   const run = await probeNames(names, {
     fetch: timedFetch,
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
     deadline: Date.now() + SUGGEST_BUDGET_MS,
   });
-  const rows = run.suggestions.flatMap((sg) =>
-    sg.users
-      // A board the user already follows is no suggestion.
-      .filter(
-        (u) =>
-          !plans
-            .get(u)
-            ?.boards.some((b) => b.ats === sg.board.kind && b.slug.toLowerCase() === sg.board.slug),
+  const byUser = new Map<string, Record<string, unknown>[]>();
+  for (const sg of run.suggestions)
+    for (const u of sg.users) {
+      const plan = plans.get(u);
+      // A board the user already follows, or a company they ignored, is no suggestion.
+      if (skip.get(u)?.has(sg.key)) continue;
+      if (
+        plan?.boards.some((b) => b.ats === sg.board.kind && b.slug.toLowerCase() === sg.board.slug)
       )
-      .map((u) => ({
+        continue;
+      const rows = byUser.get(u) ?? [];
+      rows.push({
         user_id: u,
         kind: sg.board.kind,
         slug: sg.board.slug,
         company: sg.company,
         jobs: sg.jobs,
         found_at: new Date().toISOString(),
-      })),
-  );
-  if (rows.length) {
+      });
+      byUser.set(u, rows);
+    }
+  // One write per user: a user at the row cap (500, the migration's trigger) fails alone.
+  let stored = 0;
+  for (const [u, rows] of byUser) {
     const { error } = await db
       .from('board_suggestions')
       .upsert(rows, { onConflict: 'user_id,kind,slug', ignoreDuplicates: true });
-    if (error) throw new Error(error.message);
+    if (error)
+      logs.push({
+        user_id: u,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message: `board suggestions: ${error.message}`.slice(0, 2000),
+      });
+    else stored += rows.length;
   }
   if (run.checked.length) {
     const { error } = await db.from('board_probe_names').upsert(
@@ -482,7 +500,7 @@ async function suggestBoards(
     kind: 'run',
     board: null,
     status: null,
-    message: `board suggestions: ${names.length} names, ${run.reads} reads, ${run.suggestions.length} boards`,
+    message: `board suggestions: ${names.length} names, ${run.reads} reads, ${run.suggestions.length} confirmed boards, ${stored} rows`,
   });
 }
 
@@ -1094,6 +1112,7 @@ Deno.serve(async (req) => {
                 user_id: userId,
                 company: sp.posting.company,
                 source: sp.posting.source,
+                url: sp.posting.url,
               });
       }
       try {
