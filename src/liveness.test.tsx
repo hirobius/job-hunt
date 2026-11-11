@@ -10,10 +10,11 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
   liveFetchJson: (u: string) => feed.fetchJson(u),
 }));
 
-import { JobLivenessNote, PipelineLiveness } from './LivenessViews';
+import { LivenessCheck } from './LivenessViews';
+import { useClosedOnBoard } from './useClosedOnBoard';
 import { liveness, resetLivenessSession } from './livenessStore';
 import { JobBadges } from './JobRowParts';
-import { dedupKey, jobIdOf } from './store';
+import { dedupKey } from './store';
 
 const A = 'https://jobs.ashbyhq.com/ramp/aaaa';
 const B = 'https://jobs.ashbyhq.com/ramp/bbbb';
@@ -30,84 +31,62 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('PipelineLiveness', () => {
-  it('renders nothing when no saved job is on a supported board', () => {
-    const { container } = render(<PipelineLiveness jobs={[job('https://x.example/1', 'x')]} />);
-    expect(container).toBeEmptyDOMElement();
+/** The list's status line as Apply draws it: the count, then the closed tail (#601). */
+function StatusLine({ jobs }: { jobs: Job[] }) {
+  const tail = useClosedOnBoard(jobs);
+  return (
+    <>
+      <p role="status">
+        Active · {jobs.length} jobs{tail}
+      </p>
+      <LivenessCheck jobs={jobs} />
+    </>
+  );
+}
+
+describe('liveness on Apply (#601)', () => {
+  it('renders no action when no saved job is on a supported board', () => {
+    render(<StatusLine jobs={[job('https://x.example/1', 'x')]} />);
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByText('Active · 1 jobs')).toBeInTheDocument();
   });
 
-  it('checks on open, then names the closed jobs and links to their pages', async () => {
+  it('checks on open, then counts the closed jobs on the status line, with no second link', async () => {
     feed.fetchJson.mockResolvedValue(board('aaaa'));
-    const { container } = render(
-      <PipelineLiveness jobs={[job(A, 'Open role'), job(B, 'Gone role')]} />,
-    );
-    const link = await screen.findByRole('link', { name: 'Gone role' });
-    expect(link).toHaveAttribute('href', `#/apply/${jobIdOf(B)}`);
-    expect(screen.getByText(/1 closed on the board/i)).toBeInTheDocument();
-    expect(screen.getByText(/Checked live/i)).toBeInTheDocument();
+    const { container } = render(<StatusLine jobs={[job(A, 'Open role'), job(B, 'Gone role')]} />);
+    expect(await screen.findByText('Active · 2 jobs · 1 closed on the board')).toBeInTheDocument();
+    // The closed job is already in the list with its Closed badge: no link, no date line.
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Closed on the board' })).toBeNull();
+    expect(screen.queryByText(/Checked live/i)).toBeNull();
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
   });
 
-  it('each closed job also links to its posting, to confirm it is gone (Adrian 2026-10-22)', async () => {
-    feed.fetchJson.mockResolvedValue(board('aaaa'));
-    render(<PipelineLiveness jobs={[job(A, 'Open role'), job(B, 'Gone role')]} />);
-    const posting = await screen.findByRole('link', { name: 'Open posting for Gone role' });
-    expect(posting).toHaveAttribute('href', B);
-    expect(posting).toHaveAttribute('target', '_blank');
-  });
-
-  it('a closed job saved from a bare link still shows a title, not an empty link', async () => {
-    feed.fetchJson.mockResolvedValue(board('aaaa'));
-    render(<PipelineLiveness jobs={[job(A, 'Open role'), job(B, '')]} />);
-    // The derived title (the board's company first), as on every other row.
-    const link = await screen.findByRole('link', { name: /^Ramp/ });
-    expect(link).toHaveAttribute('href', `#/apply/${jobIdOf(B)}`);
-  });
-
   it('the button re-checks on demand', async () => {
     feed.fetchJson.mockResolvedValue(board('aaaa', 'bbbb'));
-    render(<PipelineLiveness jobs={[job(A, 'a'), job(B, 'b')]} />);
+    render(<StatusLine jobs={[job(A, 'a'), job(B, 'b')]} />);
     await waitFor(() => expect(feed.fetchJson).toHaveBeenCalledTimes(1));
-    await screen.findByText(/Checked live/i);
+    expect(screen.queryByText(/closed on the board/i)).toBeNull();
     feed.fetchJson.mockResolvedValue(board('aaaa'));
     await userEvent.click(screen.getByRole('button', { name: /check which are still open/i }));
-    expect(await screen.findByRole('link', { name: 'b' })).toBeInTheDocument();
+    expect(await screen.findByText(/1 closed on the board/)).toBeInTheDocument();
   });
 
   it('says it could not check when the board is unreachable, and flags nothing', async () => {
     feed.fetchJson.mockRejectedValue(new Error('offline'));
-    render(<PipelineLiveness jobs={[job(A, 'a')]} />);
+    render(<StatusLine jobs={[job(A, 'a')]} />);
     await userEvent.click(screen.getByRole('button', { name: /check which are still open/i }));
     expect(await screen.findByText(/could not check/i)).toBeInTheDocument();
     expect(screen.queryByText(/closed on the board/i)).not.toBeInTheDocument();
   });
-});
 
-describe('JobLivenessNote', () => {
-  it('shows nothing for a job with no check', () => {
-    const { container } = render(<JobLivenessNote url={A} />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('shows the date; the Closed badge sits in the badge row (rev-3 B)', () => {
+  it('the Closed badge stays in the badge row (#419)', () => {
     liveness.set({ [dedupKey(A)]: { state: 'closed', checkedAt: '2026-10-15T12:00:00.000Z' } });
-    render(<JobLivenessNote url={A} />);
-    expect(screen.getByText(/Checked live Oct 15/)).toBeInTheDocument();
-    expect(screen.queryByText('Closed on the board')).toBeNull();
-    cleanup();
-    // The badge reads the job's synced closedAt, which the check stamps (#419).
     render(<JobBadges job={{ ...job(A, 'Designer'), closedAt: '2026-10-15T12:00:00.000Z' }} />);
     const badges = [...document.querySelectorAll('span')].map((s) => s.textContent);
-    expect(badges.indexOf('Saved')).toBeLessThan(badges.indexOf('Closed')); // #419: one word
-  });
-
-  it('an open job shows the date only', () => {
-    liveness.set({ [dedupKey(A)]: { state: 'open', checkedAt: '2026-10-15T12:00:00.000Z' } });
-    render(<JobLivenessNote url={A} />);
-    expect(screen.getByText(/Checked live Oct 15/)).toBeInTheDocument();
-    expect(screen.queryByText('Closed on the board')).not.toBeInTheDocument();
+    expect(badges.indexOf('Saved')).toBeLessThan(badges.indexOf('Closed'));
   });
 });

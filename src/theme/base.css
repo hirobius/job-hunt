@@ -710,8 +710,8 @@ p {
 .rjb-flame .flame-3 {
   fill: var(--rjb-flame-3);
 }
-/* The logo's name is Sora 800 (Adrian 2026-11-10: heavier than HDS's display Sora 700). HDS ships
-   only 700, so the logo carries its one face (src/brand/fonts, SIL OFL); nothing else uses it. */
+/* The logo's name is Sora 800 (Adrian 2026-11-10: heavier than HDS's display Sora 700). HDS's
+   variable Sora covers 400–700, so the logo keeps its own Sora 800 face (src/brand/fonts, SIL OFL); nothing else uses it. */
 @font-face {
   font-family: 'Roleflame Sora';
   src: url('../brand/fonts/sora-800.woff2') format('woff2');
@@ -797,7 +797,7 @@ p {
 }
 
 /* The animated logo (src/brand/RoleFlame.tsx, loaded by LazyRoleFlameLogo): the flame's three layers
-   take the same HDS primitives as .rjb-flame (light and dark), the name is HDS's display type token (Sora 700 from HDS's fonts.css, ADR-063, hds#847; no font of its own).
+   take the same HDS primitives as .rjb-flame (light and dark), the name is Sora 800 from the logo's own face (HDS's variable Sora covers 400–700; ADR-063, hds#847).
    Size is set per use from --rjb-rf-size; "stacked" puts the flame above the name (sign-in). */
 .rjb-rf {
   --rjb-rf-1: var(--primitive-color-blue-500);

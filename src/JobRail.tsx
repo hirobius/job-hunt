@@ -14,7 +14,8 @@ import PipelineMenus from './PipelineMenus';
 import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import { useAgendaNow } from './useAgendaNow';
 import { SampleBanner } from './demo/SampleData';
-import { PipelineLiveness } from './LivenessViews';
+import { LivenessCheck } from './LivenessViews';
+import { useClosedOnBoard } from './useClosedOnBoard';
 import { focusAsHeading } from './focusRescue';
 import { rowView } from './jobRow';
 import { JobBadges } from './JobRowParts';
@@ -63,6 +64,7 @@ export default function JobRail({ openId }: { openId: string }) {
   const jobs = useJobs();
   const view = usePipelineView();
   const shown = visibleJobs(jobs, view);
+  const closedTail = useClosedOnBoard(jobs);
   const open = jobs.find((j) => jobIdOf(j.url) === openId);
   // The open job stays on screen even when the filter or search would hide it.
   const hidden = !!open && !shown.some((j) => j.url === open.url);
@@ -107,10 +109,12 @@ export default function JobRail({ openId }: { openId: string }) {
         <SampleBanner jobs={jobs} onCleared={focusNewHeading} />
         <PipelineMenus size="sm" />
         <RemoteOnlySwitch />
-        <PipelineLiveness jobs={jobs} />
         <Text variant="caption" as="p" tone="secondary" role="status">
           {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
+          {closedTail}
         </Text>
+        {/* The check sits with the line it updates (#601). */}
+        <LivenessCheck jobs={jobs} />
         <nav aria-label="Jobs">
           <Stack gap="normal">
             {hidden && open && (

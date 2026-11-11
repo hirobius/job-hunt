@@ -54,7 +54,7 @@ copy, max 4 s.
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
 (`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
-`BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: HDS 0.41.0 ships Sora 100-800 variable but its ramp uses 400/600/700; the logo keeps its own 800 file; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
+`BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: the HDS variable Sora covers 400–700 and the logo keeps its own Sora 800; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
 inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** / Play animations (WCAG 2.2.2;
 `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
@@ -960,8 +960,10 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
     **Saved searches** (`feed/savedFilters.ts`, `rjb_feed_filters`) are v11 data, still synced, with no UI.
   - **Liveness** (`feed/liveness.ts`, `livenessStore.ts`, `LivenessViews.tsx`): re-reads a saved
     Saved/Applied board job's board (once per board), flags "Closed on the board", never changes
-    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
-    Pipeline and the job page from `App.tsx`.
+    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. **One quiet place (#601):** the Apply
+    list's status line ("Active · 33 jobs · 1 closed on the board", `useClosedOnBoard`) with `LivenessCheck` ("Check
+    which are still open") inside Filters on a phone and under the status line in the lg `JobRail`; no page-top line,
+    no "Checked live" date, no second link to a closed job (its Closed badge on the card and header says it).
   - **Starter boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; onboarding follows the design-systems
     list as Sources (`searchDefaults.seedSources`). `seedPack` / `topUpFromPack` (no app caller now) file the
     pack's boards as tiles (`addTiles`, upserts of `TILE_CHUNK` = 50 rows).
