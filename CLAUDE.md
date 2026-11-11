@@ -88,11 +88,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **Keys by state, sections with content (redesign §5.5 States, #540):** `src/dockKeys.ts` `dockKeysFor` is the one
+  table (filled / grey / exit): to apply with a link, to apply with no link (`hasApplicationLink`: the stored URL
+  does not parse as http(s); a "No application link" fact, `AddLinkDialog.tsx` → `setJobUrl`, then focus on Open
+  application), follow-up due (Copy follow-up, Mark followed up and Close out, both with Undo, in `applyActions.ts`;
+  More keeps "Follow up…" for the dialog), Interviewing (Add interview), else no dock. The "Templates (N)"
+  disclosure (`ApplyTemplates`, `templatesOpen.ts`, `.rjb-template-row`) is deleted; the kit links to Documents and,
+  with no messages, shows no message rows. Pinned in `dockKeys.test.ts`, `jobPage.test.tsx`, `e2e/job-states.spec.ts`.
 - **Copy into the form (redesign §5.5, #539):** the Application kit panel is "Copy into the form": filled fields
   are HDS `Tag` chips with a copy icon (`CopyChip` in `ApplySheet.tsx`, G4 hds#1435), "Copied" for 1.5 s and a
   polite status; empty fields fold into "N more fields are empty. Add them"; Edit (aria-expanded) opens the field
   rows. A failed copy toasts the text itself (`copyFailed`, `templateCopy.ts`). `.rjb-blank` moved to
-  `BlankText.css` and `.rjb-template-row` to `ApplySheet.css` (lazy, off base.css). Pinned in `e2e/copy-chips.spec.ts`.
+  `BlankText.css` (lazy, off base.css); `.rjb-template-row` went with the Templates disclosure (#540). Pinned in `e2e/copy-chips.spec.ts`.
 - **One saved list (redesign §5.3, #534):** Apply is the saved list. Find's Save (primary, plus icon) toasts
   "Added to Apply: <title>" with Open and Undo; a double Save is a no-op (`alreadyInApply`); Undo toasts survive
   navigation for their full timeout (no route dismissal in `saveNotice.ts`). The star
@@ -206,11 +213,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (Follow up, Next 7
   days, the Jobs panel, each job its own Card). A pick pops the sheet's entry, then replaces the page's, so Back leaves
   the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
-  elsewhere keeps its "← Back". **Templates** (`ApplySheet.tsx` `ApplyTemplates`): a Disclosure "Templates (N)", closed
-  by default and remembered per device (`templatesOpen.ts`, `rjb_ui_templates_open`; tests open it by default), only
-  documents with a `[blank]` (a plain note like a study plan is not a template); each row is its name, a one-line
-  filled preview, the blanks-left chip and a Copy icon button; the row opens a dialog with the full filled text
-  (`BlankText`: a blank filled there saves on the job), Copy and Edit template (Documents at that document). No posting
+  elsewhere keeps its "← Back". The **Templates** disclosure is gone (#540): the job's messages are rows in Copy into the
+  form (only when there are messages), with Edit documents beside them. No posting
   glyph by a title on Apply (the header's Open application, or the menu's Open posting). A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`

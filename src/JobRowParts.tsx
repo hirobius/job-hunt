@@ -8,6 +8,7 @@ import { removeWithUndo } from './saveNotice';
 import { changeWithUndo } from './jobUndo';
 import { collapseRow } from './feedback';
 import { FollowUpButton } from './FollowUp';
+import { openFollowUp } from './followUpFlow';
 import { openAddInterview } from './jobDialogs';
 import { buildHash, getRoute } from './route';
 import { closingOf } from './jobDates';
@@ -164,6 +165,10 @@ export function RowMenu({
         <Menu.Item onSelect={() => openAddInterview(job.url, anchor.current)}>
           Add interview…
         </Menu.Item>
+        {/* A due follow-up's dialog (edit the message, snooze): the dock copies it (#540). */}
+        {primaryAction(job) === 'followup' && (
+          <Menu.Item onSelect={() => openFollowUp(job.url)}>Follow up…</Menu.Item>
+        )}
         <Menu.Separator />
         <Menu.Item
           onSelect={() => {

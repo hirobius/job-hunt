@@ -19,6 +19,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   stated" in secondary), then one facts line with 16 px icons (place, pay, date; "Pay not stated"
   on a job page). An amber Badge with an icon sits under the facts only for Closing soon or
   Follow-up due. All other status is neutral. No fit chips, no Saved chip, no blue.
+- **The filled key follows the state.** To apply: Open application / Mark applied / Not a fit. No
+  application link (a fact says so, never a dashed box): Mark applied / Add link / Not a fit.
+  Follow-up due: Copy follow-up / Mark followed up / Close out, each with Undo. A section shows
+  only when it has content: no messages, no message rows; no Templates disclosure.
 - **Copy into the form.** Each filled field is a flat Tag chip with a copy icon, never a keycap: a
   press copies and shows "Copied". Empty fields fold into one line: "8 more fields are empty. Add
   them". If the copy fails, a toast shows the text to copy by hand.

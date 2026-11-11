@@ -295,6 +295,8 @@ for (const width of WIDTHS) {
       await go(page, '#/apply');
       await page.locator('a[href^="#/apply/"]').first().click();
       await page.waitForTimeout(500);
+      // The job page is a lazy chunk: walk it once it has its heading.
+      await expect(page.locator('main h1')).toHaveCount(1, { timeout: 15_000 });
       await check('job page');
       expect([...new Set(bad)]).toEqual([]);
     });

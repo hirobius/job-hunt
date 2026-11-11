@@ -21,7 +21,7 @@ import ApplyFilterBar from './ApplyFilterBar';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
 import ApplyPager from './ApplyPager';
-import { ApplicationKit, ApplyTemplates } from './ApplySheet';
+import { ApplicationKit } from './ApplySheet';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
@@ -45,8 +45,9 @@ function JobDetail({
   return (
     <Box>
       <JobHeader job={job} showBack={showBack} onAnswered={onAnswered} />
+      {/* #540: sections show only with content. The "Templates (N)" disclosure is gone; a job's
+          messages live in Copy into the form, and every template stays in Documents. */}
       <Stack gap="px24">
-        <ApplyTemplates job={job} />
         <ApplicationKit job={job} />
         <JobOverview job={job} />
       </Stack>

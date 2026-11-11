@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { openAllJobs } from './test/allJobs';
-import { setTemplatesOpenByDefault } from './templatesOpen';
 import { ToastProvider } from '@hirobius/design-system';
 
 const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
@@ -354,150 +353,42 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
 });
 
 // The templates are the library's Outreach messages (#227).
-describe("Apply sheet: templates in a job's Apply view (#239)", () => {
+describe("a job's messages (#540: sections only with content)", () => {
   beforeEach(() => {
     setOutreachMessages([
       { id: 'intro', label: 'Cold intro', body: 'Hi, the [Role] role at [Company]. [Your name]' },
-      { id: 'thanks', label: 'Thank you', body: 'Thanks, [Contact].', pinned: true },
     ]);
   });
   afterEach(() => setOutreachMessages([]));
 
-  it('lists each template filled for the job, one copy row each', async () => {
-    const user = userEvent.setup();
-    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
-    setKitField('name', 'Sam Placeholder');
+  it('has no Templates disclosure; Edit documents opens Documents over the job', async () => {
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    const filled = 'Hi, the Acme Designer role at Acme. Sam Placeholder';
-    // Templates, not Documents: the job's own Documents links panel sits on the same view (#471).
-    expect(await screen.findByRole('region', { name: 'Templates' })).toBeInTheDocument();
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    const rows = within(list).getAllByRole('listitem');
-    expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual(['Thank you', 'Cold intro']);
-    expect(within(list).getByText(filled)).toBeInTheDocument();
-    await user.click(within(list).getByRole('button', { name: 'Copy Cold intro' }));
-    expect(writeText).toHaveBeenCalledWith(filled);
-    expect(
-      await within(list).findByRole('button', { name: 'Copied Cold intro' }),
-    ).toBeInTheDocument();
-    // Documents remembers the job, so its Back and a Save come back here (return paths).
+    await screen.findByRole('link', { name: 'Open application' });
+    expect(screen.queryByRole('button', { name: /^Templates \(/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Templates' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
       `#/apply/${jobIdOf(A)}?documents=`,
     );
-    expect(
-      screen.getByRole('link', { name: 'Edit documents' }).querySelector('svg'),
-    ).not.toBeNull();
+    // With a message, the message rows show.
+    expect(screen.getByRole('button', { name: /^Why this company/ })).toBeInTheDocument();
   });
 
-  it('a row is its name, a one-line preview, the blanks left and Copy, which copies all of it', async () => {
-    const user = userEvent.setup();
-    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
-    const long = 'Dear [Company] team, ' + 'I build things that last. '.repeat(20) + 'The end.';
-    setOutreachMessages([{ id: 'cover', label: 'Cover letter', body: long }]);
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    expect(within(list).queryByText(/The end\./)).toBeNull();
-    expect(within(list).getByText(/^Dear Acme team, I build things/)).toBeInTheDocument();
-    await user.click(within(list).getByRole('button', { name: 'Copy Cover letter' }));
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('The end.'));
-    const row = within(list).getByRole('listitem', { name: 'Cover letter' });
-    expect(
-      within(row)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['Open Cover letter', 'Copied Cover letter']);
-  });
-
-  it('tapping a row opens the whole filled text: blanks fill in place, Copy, Edit template', async () => {
-    const user = userEvent.setup();
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    const row = within(list).getByRole('listitem', { name: 'Thank you' });
-    expect(within(row).getByText('1 blank left')).toBeInTheDocument();
-    await user.click(within(list).getByRole('button', { name: 'Open Thank you' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Thank you' });
-    await user.click(within(dialog).getByRole('button', { name: 'Fill Contact' }));
-    await user.type(within(dialog).getByRole('textbox', { name: 'Contact' }), 'Dana');
-    await user.click(within(dialog).getByRole('button', { name: 'Fill' }));
-    expect(findJobByUrl(A)?.contact).toBe('Dana');
-    expect(await within(dialog).findByText(/Thanks, Dana\./)).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Copy Thank you' })).toBeInTheDocument();
-    expect(within(dialog).getByRole('link', { name: 'Edit template' })).toHaveAttribute(
-      'href',
-      expect.stringMatching(/\?documents=/),
-    );
-  });
-
-  it('Templates is closed by default and stays as left on this device', async () => {
-    setTemplatesOpenByDefault(false);
-    const user = userEvent.setup();
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    const first = renderApp();
-    const toggle = await screen.findByRole('button', { name: 'Templates (2)' });
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('list', { name: 'Your templates' })).toBeNull();
-    await user.click(toggle);
-    expect(screen.getByRole('list', { name: 'Your templates' })).toBeInTheDocument();
-    first.unmount();
-    renderApp();
-    expect(await screen.findByRole('list', { name: 'Your templates' })).toBeInTheDocument();
-  });
-
-  it('a message with no blanks is a personal note, not a job template', async () => {
-    setOutreachMessages([
-      { id: 'plan', label: 'Study plan — 80/20', body: 'Read two chapters a day.' },
-      { id: 'ty', label: 'Thank you', body: 'Thanks, [Contact].' },
-    ]);
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    expect(within(list).queryByText('Study plan — 80/20')).toBeNull();
-    expect(within(list).getByText('Thank you')).toBeInTheDocument();
-  });
-
-  it('with no messages, opens a new one in Documents instead', async () => {
-    setOutreachMessages([]);
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    await screen.findByRole('link', { name: 'Open application' });
-    expect(screen.queryByRole('list', { name: 'Your templates' })).toBeNull();
-    // A new message, remembering the job: saving it comes back here (return paths).
-    expect(screen.getByRole('link', { name: 'Write a message' })).toHaveAttribute(
-      'href',
-      `#/apply/${jobIdOf(A)}?documents=new%2Foutreach`,
-    );
-  });
-
-  it('with no messages, one tap adds the starters and lists them filled for the job', async () => {
-    const user = userEvent.setup();
-    setOutreachMessages([]);
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const docs = await screen.findByRole('region', { name: 'Templates' });
-    await user.click(within(docs).getByRole('button', { name: 'Add starter messages' }));
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    expect(within(list).getByRole('listitem', { name: 'Outreach note' })).toHaveTextContent(
-      'the Acme Designer opening at Acme',
-    );
-    expect(within(docs).queryByRole('button', { name: 'Add starter messages' })).toBeNull();
-  });
-
-  it('the kit letters with no templates offer the same one-tap add, never an empty picker', async () => {
+  it('with no messages: no message rows, one tap adds the starters, or write one', async () => {
     const user = userEvent.setup();
     setOutreachMessages([]);
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     const kit = await screen.findByRole('region', { name: 'Copy into the form' });
-    await user.click(within(kit).getByRole('button', { name: /^Cover note/ }));
-    expect(within(kit).queryByRole('combobox', { name: /^Cover note template/ })).toBeNull();
-    await user.click(within(kit).getAllByRole('button', { name: 'Add starter messages' })[0]);
-    expect(
-      await within(kit).findByRole('combobox', { name: /^Cover note template/ }),
-    ).toBeInTheDocument();
+    expect(within(kit).queryByRole('button', { name: /^Why this company/ })).toBeNull();
+    expect(within(kit).queryByRole('button', { name: /^Cover note/ })).toBeNull();
+    expect(within(kit).getByRole('link', { name: 'Write a message' })).toHaveAttribute(
+      'href',
+      `#/apply/${jobIdOf(A)}?documents=new%2Foutreach`,
+    );
+    await user.click(within(kit).getByRole('button', { name: 'Add starter messages' }));
+    expect(await within(kit).findByRole('button', { name: /^Cover note/ })).toBeInTheDocument();
   });
 });
 
@@ -650,20 +541,6 @@ describe('Custom answers: Remove is soft (#212)', () => {
     await user.click(within(region).getByRole('button', { name: 'Undo' }));
     expect(getApplyKit().answers.map((a) => a.id)).toEqual(['qa-1', 'qa-2']);
     expect(getApplyKit().answers[0].a).toBe('No sponsorship needed');
-  });
-});
-
-describe('Apply sheet previews keep line breaks', () => {
-  afterEach(() => setOutreachMessages([]));
-  it('the dialog keeps the greeting on its own line, not run into the next sentence', async () => {
-    const user = userEvent.setup();
-    setOutreachMessages([{ id: 'ty', label: 'Thanks', body: 'Hi [Contact],\n\nThank you.' }]);
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    await user.click(within(list).getByRole('button', { name: 'Open Thanks' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Thanks' });
-    expect(within(dialog).getByText(/Thank you\./).textContent).toMatch(/Contact,\n+Thank you\./);
   });
 });
 

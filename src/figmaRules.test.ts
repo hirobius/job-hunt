@@ -56,8 +56,14 @@ describe('FIGMA-RULES.md', () => {
   it('pins the action dock (#535, #536)', () => {
     expect(RULES).toMatch(/The action dock/);
     expect(RULES).toMatch(/Marked not a fit: <title> · Undo/);
-    expect(fs.readFileSync('src/applyActions.ts', 'utf8')).toContain('Marked not a fit: ${');
+    expect(fs.readFileSync('src/applyActions.ts', 'utf8')).toContain("verb = 'Marked not a fit'");
     expect(fs.readFileSync('src/theme/base.css', 'utf8')).not.toContain('rjb-dock');
+  });
+
+  it('pins the keys by state (#540)', () => {
+    expect(RULES).toMatch(/The filled key follows the state/);
+    expect(fs.readFileSync('src/dockKeys.ts', 'utf8')).toContain("grey: 'addLink'");
+    expect(fs.existsSync('src/templatesOpen.ts')).toBe(false);
   });
 
   it('pins Copy into the form (#539)', () => {

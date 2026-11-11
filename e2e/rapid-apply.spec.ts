@@ -103,39 +103,26 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   ).toBeVisible();
 });
 
-// The Apply sheet (#239): the starter templates show filled for the job, one copy row each, and the
-// sheet fits a 390 phone with no sideways scroll and 40px copy targets.
-test('Apply sheet: templates filled for the job, copyable at 390', async ({ page }) => {
+// #540: sections show only with content. A first run has no messages: no message rows and no
+// Templates disclosure, one tap adds the starters, and then the message rows show. It fits 390.
+test('a job with no messages: no message rows; one tap adds the starters, at 390', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto(
     '/?add=' + encodeURIComponent('https://acme.example/jobs/1') + '&t=Acme+Designer',
   );
-  // The quick add lands on Apply, which below lg is the job itself (Proposal A).
   await expect(page.getByRole('heading', { level: 1, name: 'Acme Designer' })).toBeVisible();
-  // Templates start closed on a new device (Proposal A); open them.
-  await page.getByRole('button', { name: /^Templates \(/ }).click();
-  // A first run has no messages (Adrian 2026-10-22): one tap adds the starters here.
-  await page
-    .getByRole('region', { name: 'Templates' })
-    .getByRole('button', { name: 'Add starter messages' })
-    .click();
-
-  const list = page.getByRole('list', { name: 'Your templates' });
-  await expect(list.getByRole('listitem').first()).toBeVisible();
-  const intro = list.getByRole('listitem', { name: 'Outreach note' });
-  await intro.getByRole('button', { name: 'Copy Outreach note' }).click();
-  await expect(intro.getByRole('button', { name: 'Copied Outreach note' })).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Acme Designer');
-
+  await expect(page.getByRole('button', { name: /^Templates \(/ })).toHaveCount(0);
+  const kit = page.getByRole('region', { name: 'Copy into the form' });
+  await expect(kit.getByRole('button', { name: /^Why this company/ })).toHaveCount(0);
+  await kit.getByRole('button', { name: 'Add starter messages' }).click();
+  await expect(kit.getByRole('button', { name: /^Why this company/ })).toBeVisible();
   const sideways = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(sideways).toBe(false);
-  for (const box of await list
-    .getByRole('button')
-    .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height)))
-    expect(box).toBeGreaterThanOrEqual(40);
   const edit = await page.getByRole('link', { name: 'Edit documents' }).boundingBox();
   expect(edit?.height).toBeGreaterThanOrEqual(40);
 });
