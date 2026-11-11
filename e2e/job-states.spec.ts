@@ -48,6 +48,10 @@ for (const width of [390, 1440]) {
           ['Mark followed up', 'secondary'],
           ['Close out', 'link'],
         ]);
+      // Each key is named with the job's title (#593).
+      await expect(
+        page.getByRole('button', { name: 'Copy follow-up: Design Systems Lead' }),
+      ).toBeVisible();
       await page.getByRole('button', { name: 'Mark followed up: Design Systems Lead' }).click();
       const toast = page.getByRole('region', { name: /^Notifications/ });
       await expect(toast.getByText('Marked followed up: Design Systems Lead')).toBeVisible();

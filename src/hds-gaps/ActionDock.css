@@ -9,7 +9,8 @@
 .rjb-dock {
   position: fixed;
   inset-inline: 0;
-  bottom: 0;
+  /* Above an on-screen keyboard, also when no field has focus (useVisualViewportVars, #593). */
+  bottom: var(--rjb-vv-bottom, 0px);
   z-index: 20;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -23,7 +24,8 @@
     opacity var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
 }
 
-/* The filled key takes the first row; the grey key and the exit share the second. */
+/* The filled key takes the first row; the grey key and the exit share the second. A dock with one
+   key has one row (data-rows), and reserves one. */
 .rjb-dock > :first-child {
   grid-column: 1 / -1;
 }
@@ -45,6 +47,14 @@
 :root {
   --rjb-dock-height: calc(
     2 * var(--component-button-size-md-height) + 3 * var(--semantic-space-scale-sm) +
+      env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/* One key, one row (#593): Add interview alone does not reserve the second row. */
+:root:has(.rjb-dock[data-rows='1']) {
+  --rjb-dock-height: calc(
+    var(--component-button-size-md-height) + 2 * var(--semantic-space-scale-sm) +
       env(safe-area-inset-bottom, 0px)
   );
 }

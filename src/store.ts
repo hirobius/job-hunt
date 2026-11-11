@@ -1,6 +1,6 @@
 import { createStore } from './createStore';
 import { cleanPlace } from './cleanPlace';
-import { safeJobUrl } from './httpUrl';
+import { httpUrl, safeJobUrl } from './httpUrl';
 import { mergeByKey } from './mergeByKey';
 import { type Job, type JobMode, type Status } from './types';
 import {
@@ -354,6 +354,21 @@ export function setStatus(url: string, status: Status) {
 }
 /** Point a job at a new link. Returns the stored URL, or null when the link is not a URL or
  *  another saved job already has it (the job keeps its old link). */
+/** What a new link for the job at `url` would be, checked before anything is written (#593): the
+ *  link as the store keeps it, or why it cannot be the job's link: `invalid` (not a web address a
+ *  browser can open: no dot, or it does not parse as http(s), like `https://a b.c`) or `duplicate`
+ *  (another saved job already has it; `job` is that one). */
+export type JobLinkCheck =
+  | { ok: true; next: string }
+  | { ok: false; reason: 'invalid' }
+  | { ok: false; reason: 'duplicate'; job: Job };
+export function checkJobLink(url: string, rawNext: string): JobLinkCheck {
+  const next = normalizeJobUrl(rawNext);
+  if (!next || !/\./.test(next) || !httpUrl(next)) return { ok: false, reason: 'invalid' };
+  const key = dedupKey(next);
+  const other = store.get().find((j) => j.url !== url && dedupKey(j.url) === key);
+  return other ? { ok: false, reason: 'duplicate', job: other } : { ok: true, next };
+}
 export function setJobUrl(url: string, rawNext: string): string | null {
   const next = normalizeJobUrl(rawNext);
   if (!next || !/\./.test(next)) return null;

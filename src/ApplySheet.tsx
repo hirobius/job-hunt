@@ -1,5 +1,6 @@
-// The Apply sheet (#239) and the Application kit (blob v6): the job's filled templates and the
-// profile fields as copy rows. Shown in the job's Apply view (#471) and in Apply mode.
+// The Application kit (blob v6) on the job's Apply view (#471): "Copy into the form" (#539), the
+// profile fields as copy chips, the letter picks filled from the Documents library and the custom
+// answers. The job's messages live in Documents (#540: the Templates disclosure is gone).
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
@@ -75,7 +76,8 @@ function CopyButton({ label, value }: { label: string; value: string }) {
 }
 
 /** One kit field as a flat chip with a copy icon (#539, redesign §5.5): a press copies the value
- *  and shows "Copied" for a moment, said to screen readers too. It copies; it commits nothing. */
+ *  and shows "Copied" for a moment. Its name stays "Copy <label>"; the status region alone says
+ *  "Copied <label>", so a screen reader hears it once (#593). It copies; it commits nothing. */
 // hds-gap: hirobius/hds#1435 (G4: Tag with a leading icon and a short "Copied" state)
 function CopyChip({ label, value }: { label: string; value: string }) {
   const { toast } = useToast();
@@ -91,11 +93,10 @@ function CopyChip({ label, value }: { label: string; value: string }) {
   };
   return (
     <Box as="li">
-      <Tag
-        aria-pressed={undefined}
-        aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
-        onClick={copy}
-      >
+      {/* HDS Tag is a toggle: it sets aria-pressed itself, then spreads our props over it, so
+          this undefined removes the attribute. A copy chip is a plain button, never "not
+          pressed" (#593; copy-chips e2e and rapidApply pin it). Part of the G4 ask. */}
+      <Tag aria-pressed={undefined} aria-label={`Copy ${label}`} onClick={copy}>
         <Box as="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
           <Icon icon={copied ? Check : Copy} size="small" aria-hidden="true" />
           {copied ? 'Copied' : label}
@@ -246,9 +247,9 @@ function DisclosureItem({
   );
 }
 
-/** A job template uses at least one blank ([Contact], [Role]): a message with none is a personal
- *  note filed as an Outreach message (an old Copy Deck snippet such as "Study plan — 80/20"), not a
- *  template for this job. It stays in Documents. */
+/** "Copy into the form" (#539): the kit's filled fields as copy chips, Edit for every field's row,
+ *  the Why this company / Cover note picks (only when there is a message to pick, #540) and the
+ *  custom answers. */
 export function ApplicationKit({ job }: { job: Job }) {
   const kit = useApplyKit();
   const snippets = useOutreachTemplates();
@@ -275,8 +276,9 @@ export function ApplicationKit({ job }: { job: Job }) {
     />
   );
   const answered = kit.answers.length;
-  // Edit opens every field's row (#539); the chips copy.
-  const [editing, setEditing] = useRemembered('kit-fields-editing', false);
+  // Edit opens every field's row (#539); the chips copy. Remembered per job for the page load
+  // (#593): opened on one job, it is not open on every other job.
+  const [editing, setEditing] = useRemembered(`kit-fields-editing:${job.url}`, false);
   const sync = useCloudSync(); // signed out, the kit stays on this device
   const { user } = sync;
   const settled = canWrite(sync);

@@ -1,9 +1,11 @@
-// Add link (#540): a job with no application link gets one here. The link becomes the job's URL
-// (setJobUrl), the page moves to the job's new address, "Link added" is said, and focus goes to
-// the new filled key, Open application.
+// Add link (#540): a job with no application link gets one here. The link is checked first
+// (`checkJobLink`, #593: a web address a browser can open, not another saved job's), then becomes
+// the job's URL (setJobUrl), the page moves to the job's new address, "Link added" is said, and
+// focus goes to the new filled key, Open application. Nothing saved, nothing said: an invalid or
+// duplicate link keeps the dialog open with its own error.
 import { useState } from 'react';
 import { Button, Dialog, Input, Stack } from '@hirobius/design-system';
-import { setJobUrl, jobIdOf } from './store';
+import { checkJobLink, jobIdOf, setJobUrl } from './store';
 import { openJob } from './route';
 import { showNotice } from './saveNotice';
 import { titleOf } from './jobRow';
@@ -25,9 +27,19 @@ export default function AddLinkDialog({
   const [link, setLink] = useState('');
   const [error, setError] = useState('');
   const save = () => {
-    const next = setJobUrl(job.url, link.trim());
-    if (!next || !/^https?:\/\//.test(next)) {
-      setError('Paste the full link to the job posting, starting with https://.');
+    const check = checkJobLink(job.url, link.trim());
+    if (!check.ok) {
+      setError(
+        check.reason === 'duplicate'
+          ? `That link is already saved: ${titleOf(check.job)}.`
+          : 'That is not a web address. Paste the full link to the job posting, starting with https://.',
+      );
+      return;
+    }
+    const next = setJobUrl(job.url, check.next);
+    // The store changed between the check and the write (a sync): say so, save nothing.
+    if (next !== check.next) {
+      setError('That link could not be saved. Try again.');
       return;
     }
     onOpenChange(false);

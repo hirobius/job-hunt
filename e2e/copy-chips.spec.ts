@@ -33,7 +33,9 @@ for (const width of [390, 1440]) {
       expect(await chip.evaluate((e) => getComputedStyle(e).boxShadow)).toBe('none');
       expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(width === 390 ? 44 : 24);
       await chip.click();
-      await expect(kit.getByRole('button', { name: 'Copied Name' })).toHaveText('Copied');
+      // The name stays "Copy Name"; the status alone says "Copied Name", so it is said once.
+      await expect(chip).toHaveText('Copied');
+      await expect(chip).not.toHaveAttribute('aria-pressed', /.*/);
       await expect(kit.getByRole('status').filter({ hasText: 'Copied Name' })).toHaveCount(1);
       expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('Sam Placeholder');
     });

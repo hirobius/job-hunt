@@ -131,8 +131,12 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(chip).not.toHaveAttribute('data-variant'); // a Tag, not a keycap Button
     await user.click(chip);
     expect(writeText).toHaveBeenCalledWith('Sam Placeholder');
-    expect(await screen.findByRole('button', { name: 'Copied Name' })).toHaveTextContent('Copied');
+    // The name stays "Copy Name" and the status alone says "Copied Name", so it is said once (#593).
+    await waitFor(() => expect(chip).toHaveTextContent('Copied'));
+    expect(chip).toHaveAccessibleName('Copy Name');
     expect(screen.getAllByRole('status').some((s) => s.textContent === 'Copied Name')).toBe(true);
+    // A copy chip is a plain button, not a toggle: no aria-pressed (#593).
+    expect(chip).not.toHaveAttribute('aria-pressed');
   });
 
   it('Escape cancels a kit field edit: the value stays, focus returns to its button (#312)', async () => {

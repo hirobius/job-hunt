@@ -68,5 +68,3 @@ globalThis.ResizeObserver ??= class {
   unobserve() {}
   disconnect() {}
 };
-// The Apply view's Templates (Adrian 2026-11-08) is closed by default, kept per device; most suites
-// test what is inside it, so they start with it open (rapidApply.test.tsx pins the default).
