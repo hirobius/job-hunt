@@ -247,18 +247,22 @@ describe('NewCompanies', () => {
       'href',
       'https://acme.com',
     );
-    // The open roles, titles only, from the postings the scan kept (no read).
+    // The open roles, titles only, from the postings the scan kept (no read). The Disclosure fades
+    // its content in from opacity 0 on animation frames: wait for the first one (under load the
+    // click can resolve before it runs).
     await user.click(within(list).getByRole('button', { name: 'Preview open roles (1)' }));
-    expect(
-      within(screen.getByRole('list', { name: 'Open roles at Acme' })).getByText(
-        'Design Systems Engineer',
-      ),
-    ).toBeVisible();
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('list', { name: 'Open roles at Acme' })).getByText(
+          'Design Systems Engineer',
+        ),
+      ).toBeVisible(),
+    );
     // Forward has no matching job: folded under one disclosure, its board not confirmed.
     expect(within(list).queryByText('Forward')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Show 1 with no matching jobs' }));
     const empty = screen.getByRole('list', { name: 'New companies with no matching jobs' });
-    expect(within(empty).getByText('Forward')).toBeVisible();
+    await waitFor(() => expect(within(empty).getByText('Forward')).toBeVisible());
     expect(within(empty).getByText(/Board not confirmed/)).toBeVisible();
   });
 
