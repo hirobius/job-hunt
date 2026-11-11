@@ -29,7 +29,6 @@ import { NotesPanel } from './TodosNotes';
 import LinksPanel from './JobLinks';
 import { DECK_LINKS, DOC_LINKS } from './decks';
 import { useFocusAfter } from './useFocusAfter';
-import { subscribeEditLink, takeEditLink } from './editLinkRequest';
 import type { Job } from './types';
 
 /** A text field that writes straight through to the job and tells the page it saved. */
@@ -234,18 +233,6 @@ function DetailsPanel({ job }: { job: Job }) {
   useEffect(() => {
     if (relinked === job.url) relinked = null;
   }, [job.url]);
-  // The dock's Add link (#540): open the fields with focus on Link. A new key remounts the editor,
-  // so the field takes focus even when the fields were already open.
-  const [opened, setOpened] = useState(0);
-  useEffect(
-    () =>
-      subscribeEditLink(() => {
-        if (!takeEditLink(job.url)) return;
-        setEditing({ focus: 'link' });
-        setOpened((n) => n + 1);
-      }),
-    [job.url],
-  );
   // Done gives focus back to Edit.
   const { ref, focus } = useFocusAfter();
   const route = useRoute();
@@ -272,7 +259,6 @@ function DetailsPanel({ job }: { job: Job }) {
       <PanelBody>
         {editing ? (
           <DetailsEditor
-            key={opened}
             job={job}
             focus={editing.focus}
             onDone={() => {

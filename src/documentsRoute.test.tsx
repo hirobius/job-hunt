@@ -302,15 +302,14 @@ describe('editing a message changes what the fill paths use', () => {
     expect(dialog).toHaveTextContent('P.S. Acme Metals rocks.');
   });
 
-  it('the Apply sheet, with a link to edit them in Documents', async () => {
+  it('the job page: Copy follow-up uses it, with a link to edit them in Documents (#540)', async () => {
     await editFollowUp();
+    updateJob(JOB, { status: 'Applied', applied: '2026-01-01' });
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;
     await renderApp();
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    // The row previews the edited text; Copy copies all of it.
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
-    await user.click(within(list).getByRole('button', { name: 'Copy Follow-up after applying' }));
+    await user.click(await screen.findByRole('button', { name: 'Copy follow-up' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('P.S. Acme Metals rocks.'));
     // Documents opens as a dialog over this job (#471 slice 4): closing it comes back here.
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(

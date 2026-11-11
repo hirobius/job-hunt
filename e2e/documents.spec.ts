@@ -1,4 +1,4 @@
-import { JOB_LINK, openApply, openTemplates, currentTab } from './routes';
+import { JOB_LINK, openApply, currentTab } from './routes';
 import { test, expect } from '@playwright/test';
 
 // The Documents library end to end (#227, #230): it opens from the Menu, an edited Outreach message
@@ -45,27 +45,10 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Version history (2)' })).toBeVisible();
 
-  // The Apply sheet fills the edited message for the job.
   // Documents is a dialog over Apply (#471 slice 4): Close goes back to it.
   await docs.getByRole('button', { name: 'Close' }).click();
   await expect(docs).toBeHidden();
   await openApply(page);
-  await openTemplates(page);
-  const list = page.getByRole('list', { name: 'Your templates' });
-  // The row opens a dialog with the edited message filled for the job (Proposal A).
-  await list.getByRole('button', { name: 'Open Follow-up after applying' }).click();
-  const view = page.getByRole('dialog', { name: 'Follow-up after applying' });
-  await expect(view.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
-  await expect(view.getByText(/See you soon\./)).toBeVisible();
-  // A blank fills in place and saves on the job (rev-3 A).
-  await view.getByRole('button', { name: 'Fill Contact' }).click();
-  await view.getByRole('textbox', { name: 'Contact' }).fill('Dana');
-  await view.getByRole('button', { name: 'Fill', exact: true }).click();
-  await expect(view.getByText(/Hi Dana,/).first()).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(view).toBeHidden();
-  // The row's one-line preview now reads the filled name.
-  await expect(list.getByText(/Hi Dana,/).first()).toBeVisible();
   // Documents opens as a dialog over this job (#471 slice 4), so closing it or a Save comes back here.
   await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
     'href',

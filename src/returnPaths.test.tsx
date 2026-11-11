@@ -211,8 +211,8 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await at(`#/apply/${jobIdOf(C)}`);
     await heading('Machinist');
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    expect(within(list).getByText(/Thanks!/)).toBeInTheDocument();
+    // Back on the job, with its link to Documents (#540: no Templates list on the page).
+    expect(screen.getByRole('link', { name: 'Edit documents' })).toBeInTheDocument();
   });
 });
 
@@ -268,8 +268,9 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     window.location.hash = '#/apply';
     renderApp();
     await heading('Fabricator');
-    const followUp = await screen.findAllByRole('button', { name: /^Follow up/ });
-    await userEvent.click(followUp[0]);
+    // From the job's More menu (#540: the dock copies the follow-up).
+    await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Follow up…' }));
     await screen.findByRole('dialog');
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

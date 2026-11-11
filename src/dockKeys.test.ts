@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { applicationLink, dockKeys } from './dockKeys';
 import type { Job } from './types';
 
-// The dock's keys per job state (#535, #540): one row per state, exactly one filled key in each
-// state that has keys, and a job with no link never gets Open application.
-const NOW = new Date(2026, 10, 11);
+// The dock's keys per job state (#535, #540): one table, one row per state, exactly one filled key
+// in each state that has keys, and a job with no link never gets Open application.
+const NOW = new Date(2026, 10, 11, 12);
 const job = (patch: Partial<Job>): Job => ({
   url: 'https://acme.example/jobs/1',
   label: 'Design Systems Lead',
@@ -30,8 +30,8 @@ const ROWS: { state: string; job: Job; keys: string[] }[] = [
   },
   {
     state: 'follow-up due',
-    job: job({ status: 'Applied', applied: '2026-11-01' }),
-    keys: ['followUp:primary'],
+    job: job({ status: 'Applied', applied: '2026-10-30' }),
+    keys: ['copyFollowUp:primary', 'markFollowedUp:secondary', 'closeOut:exit'],
   },
   {
     state: 'Interviewing, nothing due',
@@ -53,5 +53,11 @@ describe('dockKeys', () => {
     expect(got.map((k) => `${k.id}:${k.rank}`)).toEqual(keys);
     if (got.length) expect(got.filter((k) => k.rank === 'primary')).toHaveLength(1);
     if (!applicationLink(j)) expect(got.map((k) => k.id)).not.toContain('openApplication');
+  });
+
+  it('a job with no link never offers Open application', () => {
+    const j = job({ url: 'notes:designer' });
+    expect(applicationLink(j)).toBeUndefined();
+    expect(dockKeys(j, NOW).map((k) => k.id)).not.toContain('openApplication');
   });
 });

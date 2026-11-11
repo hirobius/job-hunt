@@ -1,11 +1,10 @@
 // The Apply sheet (#239) and the Application kit (blob v6): the job's filled templates and the
 // profile fields as copy rows. Shown in the job's Apply view (#471) and in Apply mode.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   Box,
   Button,
-  Dialog,
   Disclosure,
   Icon,
   Input as HdsInput,
@@ -19,16 +18,13 @@ import {
 } from '@hirobius/design-system';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { ExitButton } from './hds-gaps/ExitButton';
-import BlankText, { BlanksLeft } from './BlankText';
-import { useBackCloses } from './useBackCloses';
-import { readTemplatesOpen, writeTemplatesOpen } from './templatesOpen';
+import BlankText from './BlankText';
 import { documentsHash, useRoute } from './route';
 import { useRemembered } from './viewMemory';
 import {
   KIT_FIELDS,
   addAnswer,
   clearStaleKitTemplates,
-  filledTemplates,
   getApplyKit,
   removeAnswer,
   restoreAnswer,
@@ -48,7 +44,6 @@ import { canWrite, useCloudSync } from './account/accountContext';
 import type { Job } from './types';
 import { useFocusAfter } from './useFocusAfter';
 import { collapseRow } from './feedback';
-import './ApplySheet.css';
 
 const previewOf = (text: string) => previewText(text);
 
@@ -254,169 +249,10 @@ function DisclosureItem({
 /** A job template uses at least one blank ([Contact], [Role]): a message with none is a personal
  *  note filed as an Outreach message (an old Copy Deck snippet such as "Study plan — 80/20"), not a
  *  template for this job. It stays in Documents. */
-const isJobTemplate = (body: string) => /\[[^\]\n]{1,60}\]/.test(body);
-
-/** The Apply view's templates (#239; Adrian 2026-11-08): one "Templates (N)" disclosure under the
- *  job's actions, closed by default and remembered on this device. A row is the template's name,
- *  its first line, the blanks still open and Copy; tapping it opens the whole filled text in a
- *  dialog, where a blank fills in place (saved for this job) and Edit template opens Documents at
- *  that message. */
-export function ApplyTemplates({ job }: { job: Job }) {
-  const kit = useApplyKit();
-  const snippets = useOutreachTemplates();
-  const route = useRoute();
-  const rows = useMemo(
-    () =>
-      filledTemplates(
-        snippets.filter((s) => isJobTemplate(s.body)),
-        job,
-        kit.fields.name,
-      ),
-    [snippets, job, kit.fields.name],
-  );
-  const [open, setOpenState] = useState(readTemplatesOpen);
-  const setOpen = (v: boolean) => {
-    setOpenState(v);
-    writeTemplatesOpen(v);
-  };
-  const [shown, setShown] = useState<string | null>(null);
-  useBackCloses(!!shown, () => setShown(null), 'template-view');
-  const current = rows.find((r) => r.id === shown) ?? null;
-  const docOf = (id: string) => snippets.find((s) => s.id === id)?.documentId;
-  // Documents opens as a dialog over this job (#471 slice 4): closing it, or saving a message,
-  // comes straight back here with the row refilled. With no message yet, the link opens a new one.
-  const editHref = documentsHash(rows.length ? '' : 'new/outreach', route);
-  return (
-    <Box as="section" aria-label="Templates">
-      <Disclosure label={`Templates (${rows.length})`} open={open} onOpenChange={setOpen}>
-        {open &&
-          (rows.length ? (
-            <Stack gap="tight">
-              <ItemList label="Your templates">
-                {rows.map((r) => (
-                  <ItemRow key={r.id} label={r.label}>
-                    <Stack direction="row" gap="tight" align="center">
-                      <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
-                        <Button
-                          variant="tertiary"
-                          size="md"
-                          className="rjb-template-row"
-                          aria-label={`Open ${r.label}`}
-                          onClick={() => setShown(r.id)}
-                        >
-                          <Stack gap="px4" align="start">
-                            <Text variant="ui" as="span" className="rjb-semibold">
-                              {r.label}
-                            </Text>
-                            <Text
-                              variant="caption"
-                              as="span"
-                              tone="secondary"
-                              className="rjb-truncate"
-                            >
-                              {previewText(r.text, 80)}
-                            </Text>
-                            <BlanksLeft text={r.text} />
-                          </Stack>
-                        </Button>
-                      </Box>
-                      <CopyIconButton label={r.label} value={r.text} />
-                    </Stack>
-                  </ItemRow>
-                ))}
-              </ItemList>
-              <Box>
-                <Button asChild variant="secondary" size="md">
-                  <a href={editHref}>
-                    <Icon icon={Pencil} />
-                    Edit documents
-                  </a>
-                </Button>
-              </Box>
-            </Stack>
-          ) : (
-            // A clean first run has no messages: one tap adds the starters (Adrian 2026-10-22).
-            <Stack gap="tight">
-              <Text variant="caption" as="p" tone="secondary">
-                No messages yet. Add the starters or write your own; each shows here filled for this
-                job.
-              </Text>
-              <Stack direction="row" gap="tight" wrap="wrap">
-                <AddStarterMessages />
-                <Button asChild variant="secondary" size="md">
-                  <a href={editHref}>
-                    <Icon icon={Pencil} />
-                    Write a message
-                  </a>
-                </Button>
-              </Stack>
-            </Stack>
-          ))}
-      </Disclosure>
-      <Dialog open={!!current} onOpenChange={(o) => !o && setShown(null)}>
-        {current && (
-          <Dialog.Content className="rjb-dialog">
-            <Dialog.Header>
-              <Dialog.Title>{current.label}</Dialog.Title>
-              <Dialog.Description>
-                <Text variant="caption" as="span" tone="secondary">
-                  Filled for this job. Tap a blank to fill it.
-                </Text>
-              </Dialog.Description>
-            </Dialog.Header>
-            <Box className="rjb-dialog-body">
-              <BlankText text={current.text} job={job} documentId={docOf(current.id)} />
-            </Box>
-            <Dialog.Footer>
-              <Stack direction="row" gap="tight" wrap="wrap">
-                <CopyButton label={current.label} value={current.text} />
-                {docOf(current.id) && (
-                  <Button asChild variant="secondary" size="md">
-                    <a href={documentsHash(docOf(current.id)!, route)}>
-                      <Icon icon={Pencil} />
-                      Edit template
-                    </a>
-                  </Button>
-                )}
-              </Stack>
-            </Dialog.Footer>
-          </Dialog.Content>
-        )}
-      </Dialog>
-    </Box>
-  );
-}
-
-/** Copy as an icon button (a template row): "Copied" shows in its tooltip-free label for a beat. */
-function CopyIconButton({ label, value }: { label: string; value: string }) {
-  const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const copy = async () => {
-    const r = await copyFilled(value);
-    if (!r.ok) return toast({ title: r.reason, tone: 'warning' });
-    setCopied(true);
-    toast({ title: `Copied ${label}`, tone: 'success' });
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopied(false), 1500);
-  };
-  return (
-    <Button
-      size="md"
-      variant="secondary"
-      iconOnly
-      disabled={!value}
-      iconLeft={<Icon icon={copied ? Check : Copy} />}
-      label={copied ? `Copied ${label}` : `Copy ${label}`}
-      onClick={copy}
-    />
-  );
-}
-
 export function ApplicationKit({ job }: { job: Job }) {
   const kit = useApplyKit();
   const snippets = useOutreachTemplates();
+  const route = useRoute();
   const options = [
     { value: '', label: 'No template' },
     ...snippets.map((s) => ({ value: s.id, label: s.label || 'Untitled' })),
@@ -485,6 +321,17 @@ export function ApplicationKit({ job }: { job: Job }) {
               ))}
             </Box>
           )}
+          {/* The messages live in Documents (#540: the Templates disclosure is gone). With none
+              yet, one tap adds the starters; then the message rows show. */}
+          <Stack direction="row" gap="tight" wrap="wrap" align="center">
+            {snippets.length === 0 && <AddStarterMessages />}
+            <Button asChild variant="tertiary" size="md">
+              <a href={documentsHash(snippets.length ? '' : 'new/outreach', route)}>
+                <Icon icon={Pencil} />
+                {snippets.length ? 'Edit documents' : 'Write a message'}
+              </a>
+            </Button>
+          </Stack>
           {/* Empty fields fold into one line (#539). */}
           {missing.length > 0 && !editing && (
             <Text variant="caption" as="p" tone="secondary">
@@ -503,11 +350,13 @@ export function ApplicationKit({ job }: { job: Job }) {
       </PanelBody>
       <Rows label="Profile">
         {editing && KIT_FIELDS.map((f) => fieldRow(f))}
-        {(
-          [
-            ['whyTemplate', 'Why this company'],
-            ['coverTemplate', 'Cover note'],
-          ] as const
+        {/* #540: no messages, no message rows. They come back once there is a message to pick. */}
+        {(snippets.length > 0
+          ? ([
+              ['whyTemplate', 'Why this company'],
+              ['coverTemplate', 'Cover note'],
+            ] as const)
+          : []
         ).map(([slot, label]) => {
           const text = filled(kit[slot]);
           return (

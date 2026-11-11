@@ -5,22 +5,52 @@
 // every width. Back goes to the page the job was opened from (the Pipeline by default).
 // An Interviewing job's primary is Add interview (opens its dialog, #416); a job with no next
 // step (Offer, Rejected, retired, applied and not yet due) has none, so More stands alone.
-import { Banknote, Bell, CalendarClock, Clock, ExternalLink, Link2, MapPin } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { Badge, Box, Button, Card, Icon, Stack, Text, useAtLeast } from '@hirobius/design-system';
+import {
+  Banknote,
+  Bell,
+  CalendarClock,
+  Clock,
+  Copy,
+  ExternalLink,
+  Link2,
+  Link2Off,
+  MapPin,
+} from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Icon,
+  Stack,
+  Text,
+  useAtLeast,
+  useToast,
+} from '@hirobius/design-system';
 import { ActionDock } from './hds-gaps/ActionDock';
 import { closingOf, dateLabel, dueBadgeOf } from './jobDates';
 import { rowView, titleOf } from './jobRow';
 import { goBack, type Route } from './route';
-import { markAppliedWithUndo, setAsideWithUndo } from './applyActions';
-import BackLink from './BackLink';
-import { focusNewHeading, pageHeadingNow } from './focusRescue';
-import { openNextAfter } from './applyNext';
+import {
+  closeOutWithUndo,
+  markAppliedWithUndo,
+  markFollowedUpWithUndo,
+  setAsideWithUndo,
+} from './applyActions';
 import { applicationLink, dockKeys, type DockKey } from './dockKeys';
-import { requestEditLink } from './editLinkRequest';
+import AddLinkDialog from './AddLinkDialog';
+import { useOutreachTemplates } from './outreachTemplates';
+import { useApplyKit } from './applyKit';
+import { openFollowUp, pickFollowUpTemplate } from './followUpFlow';
+import { fillSnippet } from './templateFill';
+import { copyFailed, copyFilled } from './templateCopy';
+import BackLink from './BackLink';
+import { focusAsHeading, focusNewHeading, pageHeadingNow } from './focusRescue';
+import { openNextAfter } from './applyNext';
 import { tooSoon } from './answerGuard';
 import { checkFor, useLiveness } from './livenessStore';
-import { RowMenu, RowPrimaryAction } from './JobRowParts';
+import { RowMenu } from './JobRowParts';
 import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
@@ -45,6 +75,8 @@ export function JobTitleBlock({ job }: { job: Job }) {
     // On the job page a missing pay says so: you need it to decide.
     { icon: Banknote, label: job.salary?.trim() || 'Pay not stated' },
     ...(when ? [{ icon: Clock, label: when }] : []),
+    // #540: a job with no application link says so as a fact (no dashed box).
+    ...(applicationLink(job) ? [] : [{ icon: Link2Off, label: 'No application link' }]),
   ];
   return (
     <Stack gap="tight" data-rjb-title-block="">
@@ -100,6 +132,10 @@ export default function JobHeader({
   /** After Mark applied or Not a fit (the Apply view, #471): the page moves on to the next job. */
   onAnswered?: () => void;
 }) {
+  const [addingLink, setAddingLink] = useState(false);
+  const templates = useOutreachTemplates();
+  const kitName = useApplyKit().fields.name;
+  const { toast } = useToast();
   const title = titleOf(job);
   // The view moves on first, while the job still has its place in the list, then the answer
   // lands (its notice is raised on the page it stays on). Opened from anywhere (the walk, Find, a
@@ -129,6 +165,33 @@ export default function JobHeader({
   // (`dockKeys`, #540). On a phone they sit in the dock at the bottom; from lg in one row under
   // the title block.
   const link = applicationLink(job);
+  const focusTitle = () =>
+    requestAnimationFrame(() => {
+      const h = pageHeadingNow();
+      if (h) focusAsHeading(h);
+    });
+  const copyFollowUp = async () => {
+    const t = pickFollowUpTemplate(templates);
+    // No follow-up message yet: the Follow up dialog writes one.
+    if (!t) return openFollowUp(job.url);
+    const text = fillSnippet(t, job, kitName);
+    const r = await copyFilled(text);
+    if (!r.ok) return toast(copyFailed('the follow-up', text));
+    toast({ title: 'Follow-up copied', description: title });
+  };
+  const markFollowedUp = () => {
+    if (tooSoon()) return;
+    markFollowedUpWithUndo(job);
+    // The keys change with the state: focus stays on the page, on its title.
+    focusTitle();
+  };
+  const closeOut = () => {
+    if (tooSoon()) return;
+    const from = pageHeadingNow();
+    moveOn();
+    closeOutWithUndo(job);
+    focusNewHeading(from);
+  };
   const render = ({ id, rank }: DockKey): ReactNode => {
     const variant = rank === 'primary' ? 'primary' : 'secondary';
     switch (id) {
@@ -161,19 +224,35 @@ export default function JobHeader({
             size="md"
             iconLeft={<Icon icon={Link2} />}
             aria-label={`Add link: ${title}`}
-            onClick={() => requestEditLink(job.url)}
+            onClick={() => setAddingLink(true)}
           >
             Add link
           </Button>
         );
-      case 'notAFit':
+      case 'copyFollowUp':
         return (
-          <ExitButton key={id} aria-label={`Not a fit: ${title}`} onClick={notAFit}>
-            Not a fit
-          </ExitButton>
+          <Button
+            key={id}
+            variant={variant}
+            size="md"
+            iconLeft={<Icon icon={Copy} />}
+            onClick={copyFollowUp}
+          >
+            Copy follow-up
+          </Button>
         );
-      case 'followUp':
-        return <RowPrimaryAction key={id} job={job} variant={variant} size="md" />;
+      case 'markFollowedUp':
+        return (
+          <Button
+            key={id}
+            variant={variant}
+            size="md"
+            aria-label={`Mark followed up: ${title}`}
+            onClick={markFollowedUp}
+          >
+            Mark followed up
+          </Button>
+        );
       case 'addInterview':
         return (
           <Button
@@ -185,9 +264,22 @@ export default function JobHeader({
             Add interview
           </Button>
         );
+      case 'notAFit':
+        return (
+          <ExitButton key={id} aria-label={`Not a fit: ${title}`} onClick={notAFit}>
+            Not a fit
+          </ExitButton>
+        );
+      case 'closeOut':
+        return (
+          <ExitButton key={id} aria-label={`Close out: ${title}`} onClick={closeOut}>
+            Close out
+          </ExitButton>
+        );
     }
   };
-  const keys = dockKeys(job).map(render);
+  const ranked = dockKeys(job);
+  const keys = ranked.map(render);
   return (
     <Box as="header" sx={{ mb: 'lg' }}>
       <Stack gap="normal">
@@ -216,6 +308,9 @@ export default function JobHeader({
           <ActionDock docked={!wide} label={`Actions for ${title}`}>
             {keys}
           </ActionDock>
+        )}
+        {ranked.some((k) => k.id === 'addLink') && (
+          <AddLinkDialog job={job} open={addingLink} onOpenChange={setAddingLink} />
         )}
       </Stack>
     </Box>

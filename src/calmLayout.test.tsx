@@ -156,7 +156,7 @@ describe('Pipeline panels (rev-3)', () => {
     const { container } = renderApp();
     // From lg the Jobs tab is the list beside the first job (#471).
     await screen.findByRole('navigation', { name: 'Jobs' });
-    await screen.findByRole('region', { name: 'Templates' });
+    await screen.findByRole('region', { name: 'Copy into the form' });
     expect(nestedCards(container)).toEqual([]);
   });
 });
