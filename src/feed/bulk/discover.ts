@@ -52,6 +52,9 @@ export interface Validated {
   };
   /** Unknown answers per host, so a run says which hosts it could not reach. */
   unknownByHost: Record<string, number>;
+  /** Keys of the candidates that answered none (a 404) this run: the refresh counts a miss for
+   *  each one already in the set (refresh.ts `carryForward`). */
+  noneKeys: string[];
 }
 
 /** Candidates worked on at once; the limiter, not this, bounds the requests per host. */
@@ -171,6 +174,7 @@ export async function validateCandidates(
     hiring: 0,
   };
   const unknownByHost: Record<string, number> = {};
+  const noneKeys: string[] = [];
   for (const c of candidates) {
     const o = answers.get(candidateKey(c.board)) ?? { result: 'unknown' as const };
     if (o.result === 'live') {
@@ -179,14 +183,16 @@ export async function validateCandidates(
       if ((o.jobs ?? 0) > 0) counts.hiring++;
       const cached = cache.get(candidateKey(c.board));
       boards.push(toSetBoard(c, o, cached?.at ?? today));
-    } else if (o.result === 'none') counts.none++;
-    else {
+    } else if (o.result === 'none') {
+      counts.none++;
+      noneKeys.push(candidateKey(c.board));
+    } else {
       counts.unknown++;
       const host = hostKey(boardApiUrl(c.board));
       unknownByHost[host] = (unknownByHost[host] ?? 0) + 1;
     }
   }
-  return { boards, counts, unknownByHost };
+  return { boards, counts, unknownByHost, noneKeys };
 }
 
 export const BOARD_SET_NOTE =

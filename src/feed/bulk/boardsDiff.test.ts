@@ -45,6 +45,57 @@ describe('diffBoardSets', () => {
   });
 });
 
+describe('diffBoardSets blockers (PR #584 review)', () => {
+  const src = (id: string, error = '') => ({ id, label: id, candidates: error ? 0 : 10, error });
+
+  it('blocks when a source that read last time failed, as unsafe', () => {
+    const d = diffBoardSets(
+      { boards: many(10), sources: [src('hn'), src('github')] },
+      { boards: [...many(10), b('ashby', 'x')], sources: [src('hn', 'HTTP 503'), src('github')] },
+    );
+    expect(d.blockers).toEqual(['source hn failed (HTTP 503)']);
+    expect(d.unsafe).toBe(true);
+  });
+
+  it('only reports a source that failed last time too (Common Crawl from a blocked network)', () => {
+    const d = diffBoardSets(
+      { boards: many(10), sources: [src('commoncrawl', 'HTTP unreachable')] },
+      { boards: [...many(10), b('ashby', 'x')], sources: [src('commoncrawl', 'HTTP unreachable')] },
+    );
+    expect(d.blockers).toEqual([]);
+    expect(d.failedSources).toEqual(['commoncrawl: HTTP unreachable']);
+  });
+
+  it('blocks when one kind loses over 25% of its boards, even under the 10% overall cap', () => {
+    const lever = Array.from({ length: 8 }, (_, i) => b('lever', `l${i}`));
+    const d = diffBoardSets(
+      { boards: [...many(100), ...lever] },
+      { boards: [...many(100), ...lever.slice(0, 5)] },
+    );
+    expect(d.removed).toHaveLength(3);
+    expect(d.blockers).toEqual(['lever lost 3 of 8 boards (over 25% of one kind)']);
+    expect(d.unsafe).toBe(true);
+    // 2 of 8 (25%) is not over the line.
+    expect(
+      diffBoardSets(
+        { boards: [...many(100), ...lever] },
+        { boards: [...many(100), ...lever.slice(0, 6)] },
+      ).blockers,
+    ).toEqual([]);
+  });
+
+  it('a changed line (a miss counted, roles moved a step) is a change; no change is not unsafe', () => {
+    const d = diffBoardSets(
+      { boards: [b('greenhouse', 'a', { jobs: 10 })] },
+      { boards: [b('greenhouse', 'a', { jobs: 10, misses: 1 })] },
+    );
+    expect(d).toMatchObject({ changed: 1, blockers: [] });
+    expect(d.missing.map((x) => x.slug)).toEqual(['a']);
+    const same = diffBoardSets({ boards: many(3) }, { boards: many(3) });
+    expect(same).toMatchObject({ blockers: ['no change'], unsafe: false });
+  });
+});
+
 describe('diffMarkdown', () => {
   it('gives counts, a kind table and samples', () => {
     const md = diffMarkdown(
@@ -54,7 +105,7 @@ describe('diffMarkdown', () => {
       ),
       '2026-11-15',
     );
-    expect(md).toContain('Boards: 1 → 1 (+1, −1).');
+    expect(md).toContain('Boards: 1 → 1 (+1, −1, 0 lines changed).');
     expect(md).toContain('| ashby | 1 | 0 |');
     expect(md).toContain('- lever: `old` (Old)');
     expect(md).toContain('Every source was read.');
