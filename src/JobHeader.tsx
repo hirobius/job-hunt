@@ -294,6 +294,7 @@ export default function JobHeader({
             job={job}
             size="md"
             research
+            links
             onRemoved={() => {
               // Back to where the job was opened from (return paths); the Apply tab opens its
               // next job there. #534: focus then goes to the new page's title (the next job's,

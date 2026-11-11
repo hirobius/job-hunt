@@ -274,9 +274,11 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
   await expect(page.getByRole('dialog', { name: 'Add interview' })).toBeVisible();
   await closeOverlay(page);
 
-  // A document link (#416): Add opens the form; Remove collapses its card, then offers Undo.
+  // A document link (#416): the panel shows only with a link (#540, #593), so the job's menu
+  // opens it on its form; Remove collapses its card, then offers Undo.
   const docs = page.getByRole('region', { name: 'Documents' });
-  await press(page, button(page, 'Add a document link'), 'Add a document link');
+  await expect(docs).toHaveCount(0);
+  await menu(page, more, 'Add a document link…');
   await docs.getByLabel('Link').fill('https://docs.example/cv');
   await docs.getByRole('button', { name: 'Add link' }).click();
   const removeLink = button(page, 'Remove “docs.example”');

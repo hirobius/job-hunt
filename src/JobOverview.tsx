@@ -1,5 +1,5 @@
 // The job page's body (#130; one page since #416, Adrian's Q5): Details, Notes, then Documents and
-// Decks as plain lists of external links. To-dos, screening and interviews left the page; their
+// Decks as plain lists of external links, each only with a link (#540; the menu adds the first). To-dos, screening and interviews left the page; their
 // data stays on the Job (storage, sync, Back up, CSV). Details reads as a facts list; Edit turns the same panel into its fields (title,
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
