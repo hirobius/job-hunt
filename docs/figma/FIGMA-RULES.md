@@ -45,8 +45,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.
 - **Selected is a fill, never an edge (#603).** A selected or current item (the Apply list's open job,
-  Find's selected posting) takes a stronger HDS surface fill (surface-selected in light, surface-sunken
-  in dark); no left edge, ring or outline.
+  Find's selected posting) takes the HDS surface-selected fill (distinct from hover and the card fill in
+  both themes); no left edge, ring or outline.
 - Every action answers within 300 ms: a toast, a state change, or the item flashing in place.
   Remove is soft: it collapses, then offers Undo.
 

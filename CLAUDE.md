@@ -477,7 +477,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
   Inputs, focus, overlays, row dividers and feedback tones keep theirs. **Selected is a fill, never an
   edge (#603, #546):** a selected / current item (the Apply rail's open job, Find's `.rjb-selected`
-  card) takes `--rjb-selected-fill` (base.css: HDS surface-selected in light, surface-sunken in dark,
+  card) takes `--rjb-selected-fill` (base.css: HDS surface-selected in both themes, distinct from hover and raised; kept on hover;
   content-secondary stays AA), no edge marker or ring. `e2e/no-outlines.spec.ts` fails on a Card or
   container box that draws an edge, and on a rail open job that is not fill only (`e2e/selectedFill.ts`,
   also in `e2e/review.spec.ts` for Find).

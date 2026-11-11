@@ -790,15 +790,12 @@ p {
   overflow-y: auto;
 }
 
-/* Selected / current list items (#603, #546): a stronger HDS surface fill only, never an edge or a
- * ring. Find's selected posting card and the Apply rail's open job share it. Light: surface-selected
- * (stronger than hover and raised). Dark: surface-selected is darker than hover, so sunken, the
- * strongest surface that keeps content-secondary at AA (5.0:1). */
+/* Selected / current list items (#603, #546): HDS surface-selected only, never an edge or a ring.
+ * Find's selected posting card and the Apply rail's open job share it. It differs from hover and
+ * from the raised card in both themes (dark: neutral-725 between raised 825 and hover 700; sunken
+ * equalled hover there), and keeps content-secondary at AA (theme.contrast.test.ts). */
 :root {
   --rjb-selected-fill: var(--semantic-color-surface-selected);
-}
-:root[data-theme='dark'] {
-  --rjb-selected-fill: var(--semantic-color-surface-sunken);
 }
 .rjb-selected,
 .rjb-selected:hover {
