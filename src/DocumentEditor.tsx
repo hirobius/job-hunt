@@ -57,6 +57,7 @@ import { dropDocDraft, keepDocDraft, readDocDraft } from './docDrafts';
 import { scrollToTop } from './scrollMemory';
 import { BackGuard } from './back';
 import { useBackCloses, useBackSheet } from './useBackCloses';
+import { ExitButton } from './hds-gaps/ExitButton';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -354,7 +355,7 @@ export default function DocumentEditor({
           </AlertDialog.Header>
           <AlertDialog.Footer>
             <AlertDialog.Cancel asChild>
-              <Button variant="secondary">Keep editing</Button>
+              <ExitButton>Keep editing</ExitButton>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <Button tone="danger" onClick={discard}>
