@@ -14,6 +14,7 @@ import { inferMode } from '../mode.ts';
 import { matchTerm } from '../term.ts';
 import type { Posting } from '../types.ts';
 import { arr, num, obj, stampSeen, str, type FetchJson } from './http.ts';
+import { parseHnPay } from './hnPay.ts';
 
 const API = 'https://hn.algolia.com/api/v1';
 /** "Who is hiring?" threads to read — the last three months (openings stay live for weeks; DS
@@ -168,8 +169,11 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
   if (!company && segs.length < 2) company = PROSE_RE.exec(firstLine)?.[1]?.trim() ?? '';
   if (!title) title = segs.length >= 2 ? HN_NO_ROLE : firstLine;
   const location = placeOf(where);
+  // HN pay is free text (#576): read the first yearly figure or range that names a currency.
+  const pay = parseHnPay(text);
 
   return {
+    ...pay,
     id: `hn:${id}`,
     source: 'hn',
     company: company.slice(0, 80),

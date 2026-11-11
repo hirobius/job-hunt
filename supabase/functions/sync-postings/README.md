@@ -185,6 +185,17 @@ is separate and unchanged. If a host answers 429s in `sync_log`, unschedule `syn
 To go back to twice a day: `select cron.unschedule('sync-postings-15min');
 select cron.unschedule('sync-postings-15min-23');` and run step 6's file again.
 
+### 7b. Feeds twice a day (#576)
+
+1. Deploy the function from the same PR first (it reads `"keyed": false`).
+2. Open `supabase/migrations/20261111100100_sync_feeds_twice_a_day.sql`, paste it and run it.
+3. Check that `sync-postings-afternoon` shows `23 14 * * *`.
+
+The 14:23 run reads HN, Remotive, Jobicy, designsystems.jobs and the keyless feeds. TheirStack,
+Adzuna and Jooble stay on the 06:23 run only, so their budgets do not change.
+
+To stop it: `select cron.unschedule('sync-postings-afternoon');`
+
 ## Scan rotation (bulk boards, #src-bulk)
 
 Besides what each user follows, the function scans the **bulk board set**: every public company
