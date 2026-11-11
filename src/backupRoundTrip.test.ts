@@ -240,19 +240,9 @@ function gen(seed: number): AccountState {
       : [],
     sources: maybe()
       ? [
-          {
-            kind: 'greenhouse',
-            ref: 'acme',
-            label: 'Acme',
-            ...(maybe() && { star: true as const }),
-          },
+          { kind: 'greenhouse', ref: 'acme', label: 'Acme', ...(maybe() && { star: true as const }) },
           { kind: 'lever', ref: 'globex', label: 'Globex', eu: true, muted: true },
-          {
-            kind: 'company',
-            ref: 'initech',
-            label: 'Initech',
-            website: 'https://initech.example.org/',
-          },
+          { kind: 'company', ref: 'initech', label: 'Initech', website: 'https://initech.example.org/' },
           { kind: 'github', ref: 'acme', label: 'Acme', repo: 'acme/ds' },
           { kind: 'feed', ref: 'hn', label: 'Hacker News' },
         ]

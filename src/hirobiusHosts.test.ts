@@ -10,9 +10,8 @@ const EXPECTED_HOST: Record<string, string> = {
 
 describe('@hirobius registry hosts (job-hunt#567)', () => {
   const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
-  const entries = Object.entries(
-    lock.packages as Record<string, { resolved?: string; link?: boolean }>,
-  ).filter(([path]) => /(^|\/)node_modules\/@hirobius\//.test(path));
+  const entries = Object.entries(lock.packages as Record<string, { resolved?: string; link?: boolean }>)
+    .filter(([path]) => /(^|\/)node_modules\/@hirobius\//.test(path));
 
   it('finds the @hirobius packages', () => {
     expect(entries.length).toBeGreaterThanOrEqual(2);

@@ -129,8 +129,7 @@ describe('addFinalCopy', () => {
       const before = getAllDocuments();
       expect(addFinalCopy({ kind: 'cover', jobUrl: JOB, file: file() })).toEqual({
         ok: false,
-        error:
-          "This device's storage is full, so the file wasn't saved. Remove a final copy first.",
+        error: "This device's storage is full, so the file wasn't saved. Remove a final copy first.",
       });
       expect(getAllDocuments()).toEqual(before);
     } finally {

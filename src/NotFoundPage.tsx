@@ -13,7 +13,10 @@ export default function NotFoundPage() {
         <Text variant="body" as="p" tone="secondary">
           This link doesn&apos;t match a page here. It may be old or mistyped.
         </Text>
-        <Button variant="primary" onClick={() => navigate({ tab: 'find', sub: null, jobId: null })}>
+        <Button
+          variant="primary"
+          onClick={() => navigate({ tab: 'find', sub: null, jobId: null })}
+        >
           Go to Find
         </Button>
       </Stack>
