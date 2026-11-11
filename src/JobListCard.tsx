@@ -15,6 +15,8 @@ import { dateLabel } from './jobDates';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
 import { JOB_ATTR } from './listFocus';
+import { useHighlight } from './feedback';
+import { jobHighlightKey } from './saveNotice';
 
 export default function JobListCard({
   job,
@@ -25,6 +27,8 @@ export default function JobListCard({
   onOpen?: (job: Job) => void;
 }) {
   const titleId = useId();
+  // A Remove's Undo (#593) asks for this row: it scrolls into view and flashes.
+  const highlight = useHighlight<HTMLElement>(jobHighlightKey(job.url));
   const row = rowView(job);
   // One date per job (Adrian 2026-10-28): posted, else found; the closing date is a badge.
   const when = dateLabel(job);
@@ -37,7 +41,7 @@ export default function JobListCard({
     // HDS entity anatomy (0.30): Header (badges above the title), the company, Facts, then Footer
     // with the actions. One row of the Jobs panel's list: no card of its own, since the panel is
     // the one card (Adrian 2026-11-01, #449: no cards within cards).
-    <Box as="article" aria-labelledby={titleId} {...{ [JOB_ATTR]: job.url }}>
+    <Box as="article" ref={highlight} aria-labelledby={titleId} {...{ [JOB_ATTR]: job.url }}>
       {/* Rev-3 card rhythm: 12 top and bottom, 8 between the badge row, the title block, the
             facts and the actions' line (12 above the actions). Card's own parts pad 16 apiece and
             Card.Facts adds its own block, which made the card about 205px tall instead of ~180,

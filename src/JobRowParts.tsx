@@ -10,7 +10,6 @@ import { collapseRow } from './feedback';
 import { FollowUpButton } from './FollowUp';
 import { openFollowUp } from './followUpFlow';
 import { openAddInterview } from './jobDialogs';
-import { buildHash, getRoute } from './route';
 import { closingOf } from './jobDates';
 import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
@@ -198,11 +197,12 @@ export function RowMenu({
         )}
         <Menu.Separator />
         {/* Remove goes to Recently removed, with Undo, so it needs no confirm. A list row
-            collapses first (#212); the job page goes back to the Pipeline at once. */}
+            collapses first (#212); the job page goes back to the list at once. Undo puts the
+            job back and stays on the page it is pressed on (#593). */}
         <Menu.Item
           onSelect={() => {
             if (onRemoved) {
-              removeWithUndo(job, buildHash(getRoute()));
+              removeWithUndo(job);
               onRemoved();
             } else collapseRow(anchor.current, () => removeWithUndo(job));
           }}

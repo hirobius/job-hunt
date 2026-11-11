@@ -31,7 +31,7 @@ import {
 } from './documents';
 import { collapseRow } from './feedback';
 import { notifyRemoved, showNotice } from './saveNotice';
-import { buildHash, linkTo, navigate, parseHash, useRoute, type Route } from './route';
+import { linkTo, useRoute, type Route } from './route';
 import BackLink from './BackLink';
 import { backClick, useBack } from './back';
 import { jobIdOf } from './store';
@@ -104,8 +104,9 @@ const Quiet = ({ children }: { children: ReactNode }) => (
 
 /** Remove a company Note (#305, soft like every Remove): its row collapses, then it goes, and a
  *  notice offers Undo, which puts it back in its place. Read when the removal lands. A notes-only
- *  company's last note takes its page with it: `last` goes back from there, and Undo reopens it. */
-function removeNote(id: string, from: Element, last?: { back: () => void; reopen: string }) {
+ *  company's last note takes its page with it: `last` goes back from there. Undo puts the note back
+ *  and stays where it is pressed (#593: no Undo navigates). */
+function removeNote(id: string, from: Element, last?: { back: () => void }) {
   collapseRow(from, () => {
     const all = getAllDocuments();
     const at = all.findIndex((x) => x.id === id);
@@ -119,7 +120,6 @@ function removeNote(id: string, from: Element, last?: { back: () => void; reopen
           description: "This device's storage is full.",
           actions: [],
         });
-      if (last) navigate(parseHash(last.reopen), false, { restore: true });
     });
   });
 }
@@ -133,7 +133,7 @@ function NoteEditor({
 }: {
   note: Document;
   name: string;
-  last?: { back: () => void; reopen: string };
+  last?: { back: () => void };
 }) {
   const text = latest(note).text;
   const [draft, setDraft] = useState(text);
@@ -347,7 +347,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
                       <NoteEditor
                         note={n}
                         name={all.length > 1 ? `Note ${i + 1} of ${all.length}` : 'Note'}
-                        last={onlyNote ? { back: back.go, reopen: buildHash(route) } : undefined}
+                        last={onlyNote ? { back: back.go } : undefined}
                       />
                     </li>
                   ))}
