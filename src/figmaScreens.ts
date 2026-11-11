@@ -2,8 +2,9 @@
 // it and the source files that render it. Plain links, not Code Connect (that needs a Figma
 // Organization plan). Docs: docs/figma/README.md. Shots: docs/figma/<shot>-{1440,390}.png.
 
-// "HDS Apps", page Job Hunt: frames built 1:1 from code with HDS library instances.
-export const FIGMA_FILE_URL = 'https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr';
+// "roleflame_working", pages Phone 390 (9:2) and Desktop 1440 (9:3): frames built 1:1 from code with HDS library instances.
+export const FIGMA_FILE_URL =
+  'https://www.figma.com/design/9VCvYGN0pz9faveIhSn6Kn/roleflame_working';
 
 export interface FigmaScreen {
   id: string;
@@ -30,8 +31,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/TrackerView.tsx', component: 'TrackerView' },
       { file: 'src/JobListCard.tsx', component: 'JobListCard' },
     ],
-    nodeId: '23:4039',
-    phoneNodeId: '23:4122',
+    nodeId: '13:7940',
+    phoneNodeId: '13:7611',
     shot: 'pipeline',
   },
   {
@@ -40,8 +41,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
     route: '#/apply/sample',
     tab: 'apply',
     sources: [{ file: 'src/JobPage.tsx', component: 'JobPage' }],
-    nodeId: '26:4057',
-    phoneNodeId: '20:3868',
+    nodeId: '23:13239',
+    phoneNodeId: '13:7047',
     shot: 'job-page',
   },
   {
@@ -56,8 +57,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/DocumentsLibrary.tsx', component: 'DocumentsLibrary' },
       { file: 'src/DocumentEditor.tsx', component: 'DocumentEditor' },
     ],
-    nodeId: '23:6494',
-    phoneNodeId: '23:6267',
+    nodeId: '14:7954',
+    phoneNodeId: '14:7827',
     shot: 'templates',
   },
 ];
