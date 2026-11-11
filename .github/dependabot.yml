@@ -1,9 +1,23 @@
 version: 2
+# Automatic HDS updates (M2, #566). Daily check; @hirobius/design-system comes from
+# public npm, @hirobius/hds-toolkit from GitHub Packages.
+registries:
+  npmjs:
+    type: npm-registry
+    url: https://registry.npmjs.org
+  github-packages:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    # Dependabot secret (Settings > Secrets > Dependabot): classic PAT with read:packages.
+    token: ${{secrets.HDS_PACKAGES_TOKEN}}
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
+    registries:
+      - npmjs
+      - github-packages
     schedule:
-      interval: 'weekly'
+      interval: 'daily'
     open-pull-requests-limit: 5
     # HDS 0.x minors are breaking and upgrade through its own CLI
     # (`npx @hirobius/design-system@latest upgrade`, epic #89), so dependabot only
@@ -12,6 +26,8 @@ updates:
       - dependency-name: '@hirobius/design-system'
         update-types: ['version-update:semver-minor', 'version-update:semver-major']
     groups:
+      hds:
+        patterns: ['@hirobius/design-system']
       minor-and-patch:
         update-types: ['minor', 'patch']
         exclude-patterns: ['@hirobius/design-system']
