@@ -50,10 +50,10 @@ describe('neutral badges on desktop (rev-3 B)', () => {
     expect(nonNeutral(container)).toEqual([]);
   });
 
-  it('the job rail uses the shared badge row: neutral status and fit', () => {
+  it('the job rail uses the shared badge row: neutral status, no fit chips (#538)', () => {
     seed();
     const { container } = render(<JobRail openId={jobIdOf(URL_A)} />);
-    expect(container.textContent).toContain('Strong fit');
+    expect(container.textContent).not.toContain('Strong fit');
     expect(nonNeutral(container)).toEqual([]);
   });
 

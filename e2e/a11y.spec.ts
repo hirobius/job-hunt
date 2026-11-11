@@ -208,6 +208,11 @@ async function tabWalk(page: Page): Promise<string[]> {
             cs.outlineStyle === 'none' ? 'none' : `${cs.outlineStyle} ${cs.outlineColor}`;
           o.push(`${ring} ${cs.boxShadow} ${cs.borderColor} ${cs.backgroundColor}`);
         }
+        // HDS's link button (the exit, #537) paints its ring on ::after (hds#1167).
+        if (e) {
+          const after = getComputedStyle(e, '::after');
+          o.push(`${after.outlineStyle} ${after.boxShadow}`);
+        }
         return o.join('|');
       };
       const prev = prevKey ? document.querySelector(`[data-walk="${prevKey}"]`) : null;

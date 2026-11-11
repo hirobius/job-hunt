@@ -10,6 +10,7 @@ import { importFresh } from './staleBuild';
 import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
 import './account/sheet.css';
 import { useBackCloses } from './useBackCloses';
+import { ExitButton } from './hds-gaps/ExitButton';
 
 // The Find box (#384) loads when Add job turns into it: the board probe stays out of the Pipeline.
 const loadFindBox = importFresh(() => import('./FindBox'));
@@ -105,7 +106,7 @@ export default function AddJobButton({
                 onDone={() => onAddOpenChange(false)}
                 footer={
                   <Dialog.Close asChild>
-                    <UiButton variant="secondary">Cancel</UiButton>
+                    <ExitButton>Cancel</ExitButton>
                   </Dialog.Close>
                 }
               />
@@ -151,7 +152,7 @@ export default function AddJobButton({
                     Add job
                   </UiButton>
                   <Dialog.Close asChild>
-                    <UiButton variant="secondary">Cancel</UiButton>
+                    <ExitButton>Cancel</ExitButton>
                   </Dialog.Close>
                 </Box>
               </Stack>

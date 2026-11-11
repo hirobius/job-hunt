@@ -13,7 +13,11 @@ import { sanitizeSources } from '../sourcesModel';
 import { scorePosting } from './score';
 import { BOARD_KINDS } from '../feed/boardSet';
 import { boardApiUrl } from '../feed/sources/ats';
-import { designSystemsTrack } from './track-config';
+import {
+  DESIGN_ENGINEER_STRONG,
+  DESIGN_TECHNOLOGIST_STRONG,
+  designSystemsTrack,
+} from './track-config';
 
 // Fixtures in #411's real v12 shapes: what its sanitizers keep is what the app writes.
 const profile = (o: Record<string, unknown> = {}) =>
@@ -132,14 +136,16 @@ describe('planFromBlob: v12 (sources + profile)', () => {
 
   it('related titles switched off leave the design systems config without them', () => {
     const on = planFromBlob(v12())!.config;
-    expect(on.titleAdjacent).toContain('design technologist');
+    expect(on.titleStrong).toContain(DESIGN_TECHNOLOGIST_STRONG);
+    expect(on.titleStrong).toContain(DESIGN_ENGINEER_STRONG);
     for (const include of [
       { terms: ['design systems'], related: false },
-      { terms: ['design systems'], relatedOff: ['Design Technologist'] },
+      { terms: ['design systems'], relatedOff: ['Design Technologist', 'Design Engineer'] },
     ]) {
       const off = planFromBlob(v12({ profiles: [dsProfile({ include })] }))!.config;
-      expect(off.titleAdjacent).not.toContain('design technologist');
-      expect(off.titleAdjacent).toContain('ux engineer');
+      expect(off.titleStrong).not.toContain(DESIGN_TECHNOLOGIST_STRONG);
+      expect(off.titleStrong).not.toContain(DESIGN_ENGINEER_STRONG);
+      expect(off.titleAdjacent).toContain('ui engineer');
     }
   });
 

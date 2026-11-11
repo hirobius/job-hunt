@@ -1,0 +1,59 @@
+/* hds-gap: hirobius/hds#1432 (G1). ActionDock (#535): in the JobPage chunk, not base.css. */
+.rjb-dock-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--semantic-space-scale-xs);
+}
+
+.rjb-dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--semantic-space-scale-xs);
+  padding: var(--semantic-space-scale-sm) var(--rjb-shell-gutter, var(--semantic-space-scale-md));
+  padding-bottom: calc(var(--semantic-space-scale-sm) + env(safe-area-inset-bottom, 0px));
+  background: var(--semantic-color-surface-page);
+  box-shadow: var(--semantic-elevation-floating-shadow);
+  transition:
+    transform var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing),
+    opacity var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing);
+}
+
+/* The filled key takes the first row; the grey key and the exit share the second. */
+.rjb-dock > :first-child {
+  grid-column: 1 / -1;
+}
+
+.rjb-dock[data-hidden='true'] {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rjb-dock {
+    transition: opacity var(--hds-motion-spatial-duration) linear;
+  }
+  .rjb-dock[data-hidden='true'] {
+    transform: none;
+  }
+}
+
+:root {
+  --rjb-dock-height: calc(
+    2 * var(--component-button-size-md-height) + 3 * var(--semantic-space-scale-sm) +
+      env(safe-area-inset-bottom, 0px)
+  );
+}
+
+.rjb-dock-spacer {
+  height: var(--rjb-dock-height);
+}
+
+/* A toast (Undo) sits above the dock, never over its keys. */
+body:has(.rjb-dock[data-hidden='false']) [role='region'][aria-label^='Notifications'] > ol {
+  translate: 0 calc(-1 * var(--rjb-dock-height));
+}

@@ -264,8 +264,16 @@ describe('trimForMatch (#499)', () => {
     const again = sanitizeProfile(JSON.parse(JSON.stringify(stored)))!;
     expect(matchKey(again)).toBe(matchKey(stored));
     expect(
-      matchKey(sanitizeProfile({ ...stored, titles: [...stored.titles, 'UX Engineer'] })!),
+      matchKey(sanitizeProfile({ ...stored, titles: [...stored.titles, 'Motion Designer'] })!),
     ).not.toBe(matchKey(stored));
     expect(matchKey(sanitizeProfile({ ...stored, scorer: undefined })!)).not.toBe(matchKey(stored));
+  });
+});
+
+describe('textTermsOf related titles', () => {
+  it('holds every related title phrase (feed/mustInclude.ts RELATED_TITLES)', async () => {
+    const { RELATED_TITLES } = await import('../feed/mustInclude');
+    const terms = textTermsOf(stored);
+    for (const phrase of RELATED_TITLES.flatMap((r) => r.phrases)) expect(terms).toContain(phrase);
   });
 });

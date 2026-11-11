@@ -88,6 +88,30 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **Action dock (redesign §5.5, #535/#536):** `src/hds-gaps/ActionDock.tsx` (+ `.css`, `fieldFocus.ts`; G1,
+  hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
+  transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
+  (`hds.motion.spatial`; reduced motion = opacity); from lg an inline row under the title block. Keys: filled,
+  grey, exit, per state from one table, `src/dockKeys.ts` `dockKeys` (#540 adds its keys there): to apply with a
+  link Open application | Mark applied | Not a fit; **no link** (`applicationLink`: not http(s)) Mark applied | Add
+  link (opens Details on Link, `editLinkRequest.ts`) | Not a fit, never an Open application; follow-up due Follow
+  up; Interviewing Add interview; else no dock and no spacer. The dock hides at once on a field and comes back
+  only after focus has been out of every field for 150 ms (`SHOW_AFTER_MS`: no flash between fields). Star and
+  More sit beside the title. Not a fit is the dock's exit: "Marked not a fit: <title>" with Undo
+  (`applyActions.ts`: `undoPatch` puts every field back, no navigation; the toast survives navigation). After
+  Mark applied / Not a fit the next job in the list opens (`applyNext.ts` `openNextAfter`, from any origin) and
+  its title takes focus; with no next job the tab goes back to its list and that page's h1 takes focus. Pinned in
+  `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `e2e/action-dock.spec.ts`.
+- **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
+  `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
+  `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
+  Follow-up due. `JobBadges` drops the fit chips and the Saved chip everywhere (the verdict stays in the data).
+  Pinned in `jobTitleBlock.test.tsx`, `e2e/title-block.spec.ts`.
+- **Keys (redesign §3, Adrian 2026-11-10, #537):** one filled key per decision, a grey key for a real
+  second choice, and **An exit is underlined text** for every way out (Cancel, Not a fit, Continue
+  without an account): `src/hds-gaps/ExitButton.tsx` = HDS `Button variant="link"` + HDS's
+  `hds-touch-target` (44px at every width; G11, hds#1442). Its focus ring is on `::after`
+  (hds#1167), which the `e2e/a11y.spec.ts` walk reads. `e2e/exit-style.spec.ts` pins it at 390 and 1440.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
   (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
@@ -492,11 +516,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   inclusion check uses (`termRegex`, `passesInclude`: whole words, "systems" ↔ "design system", never "ecosystem";
   **phrases break at separators**: a spaced hyphen, en/em dash, `, | / : ; & · •`; a hyphen inside a word joins).
   **A design system rule reads the title only** (`hasRelatedTitles`), so Design Engineers never come in through a
-  description; **related titles** = Design Technologist only (`related` absent = on, `relatedOff` ids). The per-track
+  description; **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
+  `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
+  process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
+  by the related-title pass, `feeds/dsRole.ts` `isDsRole` and the scorer's `DESIGN_ENGINEER_STRONG` (a lookahead
+  built from `NOT_UI_DESIGN_SOURCE`); pinned in `tracks/designEngineer.test.ts`. The check itself (`passesInclude`,
+  `keepIncluded`, `relatedCounts`, `mentionsAny`) is `feed/include.ts`, so the guard stays out of the entry. The per-track
   store (`rjb_must_include`, blob **v11**, incl. `atsOff` and a Contracts track's stored `naics`, `cleanNaics`) stays
   readable and feeds the v12 move; its editors (Calibrate, Manage track) are gone. `App`'s `SystemsOnlyMigration`
   still runs `migrateSystemsOnly` on old pack tracks. Pinned in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`,
-  `systemsOnlyNotice.test.tsx`.
+  `systemsOnlyNotice.test.tsx`, `tracks/designEngineer.test.ts`.
 - **Track scorer (Muse handoff, 2026-10-24):** `src/tracks/` is pure and shared by the app and the sync edge
   function: `score.ts` + `track-config.ts` are ported as given; tune only through the config. `scoreForTrack` = scorer
   then `fitRejectReason` (no interns); a profile with `scorer: 'design-systems'` (onboarding sets it) or a must include

@@ -136,7 +136,7 @@ describe('buildFeed', () => {
     const tech = p('2', 'Design Technologist', 'Beta', { postedAt: '2026-10-20' });
     const mid = p('3', 'Senior Designer, Design System', 'Kite', { postedAt: '2026-10-10' });
     const other = p('4', 'Product Designer', 'Quill', { postedAt: '2026-10-27' });
-    const body = p('5', 'UX Engineer', 'Orbit', { text: 'our design system' });
+    const body = p('5', 'Frontend Platform Engineer', 'Orbit', { text: 'our design system' });
     const view = build([old, tech, mid, other, body]);
     expect(view.rows.map((x) => x.id)).toEqual(['2', '3', '1']);
     expect(view.hidden.include).toBe(2);

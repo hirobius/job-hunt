@@ -38,8 +38,8 @@ describe('scorePosting — design systems track', () => {
   });
 
   it('promotes an adjacent title only with body evidence', () => {
-    expect(verdict('Design Technologist', DS_BODY)).toBe('queue');
-    expect(verdict('Design Technologist', 'General product work.')).toBe('reject');
+    expect(verdict('Creative Technologist', DS_BODY)).toBe('queue');
+    expect(verdict('Creative Technologist', 'General product work.')).toBe('reject');
   });
 
   it('holds an adjacent title with one signal for review', () => {

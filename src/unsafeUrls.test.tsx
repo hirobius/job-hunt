@@ -45,7 +45,6 @@ describe.each(BAD)('a %j link', (bad) => {
     expect(jobs.map((j) => j.label)).toEqual(['Fine']);
   });
 
-
   it('fails both checks', () => {
     expect(httpUrl(bad)).toBeUndefined();
     expect(safeJobUrl(bad)).toBe(false);
@@ -82,5 +81,4 @@ describe('web links still work', () => {
       ]),
     ).toHaveLength(2);
   });
-
 });
