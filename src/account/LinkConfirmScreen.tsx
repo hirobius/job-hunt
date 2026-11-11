@@ -168,11 +168,7 @@ export default function LinkConfirmScreen({
               >
                 {pending ? 'Signing in…' : 'Sign in'}
               </Button>
-              <ExitButton
-                className="sign-in-dialog__primary"
-                disabled={pending}
-                onClick={onCancel}
-              >
+              <ExitButton className="sign-in-dialog__primary" disabled={pending} onClick={onCancel}>
                 Cancel
               </ExitButton>
             </Stack>

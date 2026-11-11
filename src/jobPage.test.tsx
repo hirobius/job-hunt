@@ -95,10 +95,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(within(header).queryByRole('link', { name: /^Open posting for / })).toBeNull();
-    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute(
-      'href',
-      URL_A,
-    );
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', URL_A);
     await userEvent.click(
       within(header).getByRole('button', { name: 'More actions: Design Engineer' }),
     );
@@ -112,10 +109,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     openJobPage();
     // Details opens as fields (no link fact), so the header is the one-tap way out.
     expect(screen.getByRole('textbox', { name: 'Link' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute(
-      'href',
-      URL_A,
-    );
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', URL_A);
   });
 
   it('the primary action is Follow up when one is due, and Mark applied is gone', () => {

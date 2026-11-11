@@ -26,4 +26,3 @@ export function useFieldFocused(): boolean {
   }, []);
   return on;
 }
-
