@@ -29,6 +29,7 @@
     "verify:ui": "npm run hds:check && playwright test e2e/layout-rules.spec.ts && npm run test:visual",
     "seed:companies": "node scripts/seed-companies.mjs",
     "boards:discover": "node scripts/discover-boards.mjs",
+    "discover:boards": "node scripts/discover-boards-refresh.mjs",
     "check:exact-pins": "node scripts/check-exact-pins.mjs",
     "prepare": "husky",
     "learned:check": "node scripts/check-learned-trailer.mjs"
