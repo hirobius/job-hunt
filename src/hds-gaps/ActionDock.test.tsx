@@ -56,13 +56,13 @@ describe('ActionDock', () => {
     expect(dock()).toHaveAttribute('data-hidden', 'true');
   });
 
-  it('with no keys shows no dock and no spacer', () => {
+  it('with no keys shows no dock (so main keeps no dock padding)', () => {
     render(
       <ActionDock docked label="Actions for X">
         {[false, null]}
       </ActionDock>,
     );
-    expect(document.querySelector('.rjb-dock, .rjb-dock-spacer')).toBeNull();
+    expect(document.querySelector('.rjb-dock')).toBeNull();
   });
 
   it('sits inline (no dock) from lg', () => {

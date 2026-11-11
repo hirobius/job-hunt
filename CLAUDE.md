@@ -88,6 +88,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **Copy into the form (redesign §5.5, #539):** the Application kit panel is "Copy into the form": filled fields
+  are HDS `Tag` chips with a copy icon (`CopyChip` in `ApplySheet.tsx`, G4 hds#1435), "Copied" for 1.5 s and a
+  polite status; empty fields fold into "N more fields are empty. Add them"; Edit (aria-expanded) opens the field
+  rows. A failed copy toasts the text itself (`copyFailed`, `templateCopy.ts`). `.rjb-blank` moved to
+  `BlankText.css` and `.rjb-template-row` to `ApplySheet.css` (lazy, off base.css). Pinned in `e2e/copy-chips.spec.ts`.
 - **One saved list (redesign §5.3, #534):** Apply is the saved list. Find's Save (primary, plus icon) toasts
   "Added to Apply: <title>" with Open and Undo; a double Save is a no-op (`alreadyInApply`); Undo toasts survive
   navigation for their full timeout (no route dismissal in `saveNotice.ts`). The star

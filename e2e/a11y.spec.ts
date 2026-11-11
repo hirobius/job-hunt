@@ -37,6 +37,8 @@ async function seed(page: Page) {
 async function go(page: Page, hash: string) {
   await page.evaluate((h) => (location.hash = h), hash);
   await page.waitForTimeout(500);
+  // A lazy page (job, Company) may still show its Loading hold: check the page, not the hold.
+  await expect(page.locator('[aria-label="Loading"]')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function axeViolations(page: Page) {

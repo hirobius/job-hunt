@@ -29,6 +29,16 @@ test.describe('dock 390', () => {
     expect(await dock.evaluate((e) => getComputedStyle(e).position)).toBe('fixed');
     const box = (await dock.boundingBox())!;
     expect(Math.round(box.y + box.height)).toBe(844);
+    // No gap under the title block, and the page's end scrolls clear of the dock.
+    const facts = (await page.locator('[data-rjb-title-block] ul').boundingBox())!;
+    const header = (await page.locator('main header').first().boundingBox())!;
+    expect(header.y + header.height - (facts.y + facts.height)).toBeLessThan(48);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const last = await page.evaluate(() => {
+      const els = [...document.querySelectorAll('main *')].filter((e) => e.getClientRects().length);
+      return Math.max(...els.map((e) => e.getBoundingClientRect().bottom));
+    });
+    expect(last).toBeLessThanOrEqual((await dock.boundingBox())!.y + 1);
     for (const k of await dock.locator('a, button').all()) {
       const b = (await k.boundingBox())!;
       expect(b.height).toBeGreaterThanOrEqual(44);

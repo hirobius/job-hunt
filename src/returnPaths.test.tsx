@@ -180,7 +180,7 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     window.location.hash = `#/apply/${idA}`;
     renderApp();
     await heading('Fabricator');
-    await userEvent.click(await screen.findByRole('button', { name: /^Fill in \d+ more/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Add them' }));
     await userEvent.click(screen.getByRole('button', { name: 'Add Name' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Pla');
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
