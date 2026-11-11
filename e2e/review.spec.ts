@@ -4,12 +4,16 @@ import { test, expect, type Page } from '@playwright/test';
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
 // other posting stays), Save lands in the Pipeline's To apply, and the Deck shows one card at a
 // time. The feed is synthetic Hacker News posts (no real people); every other host answers empty.
+// Kite's UX Engineer is in the list: Design Engineer (with UX Engineer) is a related title on by
+// default (#581). Ferro's Mechanical Design Engineer is read (it says a searched title) but the
+// design engineer guard (tracks/designRoleGuard.ts) keeps it out, so it is the one counted.
 const POSTS = [
   ['1', 'Orbit | Design Systems Engineer | Remote<p>Own our design system and design tokens.</p>'],
   ['2', 'Orbit | Design Systems Designer | Remote<p>Figma library and design tokens.</p>'],
   ['3', 'Lumen | Design Systems Lead | Remote<p>Lead the design system and Storybook.</p>'],
   ['4', 'Kite | UX Engineer | Remote<p>Work on our design system.</p>'],
   ['5', 'Nimbus | Backend Engineer | Remote<p>Go and Postgres.</p>'],
+  ['6', 'Ferro | Mechanical Design Engineer | Remote<p>Enclosures, CAD and sheet metal.</p>'],
 ];
 
 async function feed(page: Page) {
@@ -92,7 +96,9 @@ for (const width of [390, 1440]) {
       ),
     ).toHaveCount(0);
     const list = page.getByRole('list', { name: 'New postings' });
-    await expect(list.getByRole('listitem')).toHaveCount(3);
+    await expect(list.getByRole('listitem')).toHaveCount(4);
+    await expect(list.getByRole('heading', { name: 'UX Engineer', exact: true })).toBeVisible();
+    await expect(list.getByRole('heading', { name: /Mechanical Design Engineer/ })).toHaveCount(0);
     // No fit tiers: every design-system posting is in the one list; the rest are counted. (The
     // HN source keeps a post only when it says a searched title, so Nimbus's is never read.)
     // The count is in the Account menu's Scan details (Adrian 2026-11-08), not on the page.
@@ -136,7 +142,7 @@ for (const width of [390, 1440]) {
 
     // Skip hides only that posting: Orbit's other one stays.
     await list.getByRole('button', { name: 'Skip Design Systems Engineer at Orbit' }).click();
-    await expect(list.getByRole('listitem')).toHaveCount(2);
+    await expect(list.getByRole('listitem')).toHaveCount(3);
     await expect(
       list.getByRole('heading', { name: 'Design Systems Designer', exact: true }),
     ).toBeVisible();
@@ -146,18 +152,25 @@ for (const width of [390, 1440]) {
     await list.getByRole('button', { name: 'Save Design Systems Lead at Lumen' }).click();
     const notice = page.getByRole('region', { name: /^Notifications/ }).getByRole('listitem');
     await expect(notice.getByText('Saved to Pipeline · To apply')).toBeVisible();
-    await expect(list.getByRole('listitem')).toHaveCount(1);
+    await expect(list.getByRole('listitem')).toHaveCount(2);
 
-    // The deck: one card at a time.
-    await page.getByRole('button', { name: 'Deck' }).click();
+    // The deck: one card at a time, Skip each of the two left. Past the double-tap guard first: it
+    // swallows any press inside the page for 700 ms after Save, Deck's too.
+    await page.waitForTimeout(800);
+    const deck = page.getByRole('button', { name: 'Deck' });
+    await deck.click();
+    await expect(deck).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('article')).toHaveCount(1);
     await page.screenshot({ path: `test-results/review-deck-${width}.png`, fullPage: true });
-    // Past the double-tap guard again.
-    await page.waitForTimeout(800);
-    await page
-      .getByRole('article')
-      .getByRole('button', { name: /^Skip / })
-      .click();
+    for (let left = 2; left > 0; left--) {
+      // Past the double-tap guard again.
+      await page.waitForTimeout(800);
+      await page
+        .getByRole('article')
+        .getByRole('button', { name: /^Skip / })
+        .click();
+      if (left > 1) await expect(page.getByRole('article')).toHaveCount(1);
+    }
     await expect(page.getByText('You’re all caught up')).toBeVisible();
 
     // Back on the Pipeline, the save is in To apply.

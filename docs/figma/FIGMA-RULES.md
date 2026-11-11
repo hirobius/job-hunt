@@ -11,6 +11,19 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   The accent is HDS graphite. No local colour override.
 - **Type** is the HDS ramp: display, title, body, ui, caption, mono. Plus Jakarta Sans. No ALL CAPS.
   No italic. Secondary text is caption + secondary tone.
+- **Keys have three ranks.** One filled key (Button primary) per decision. A real second choice is a
+  grey key (Button secondary). **An exit is underlined text** (Button link: content.primary, no
+  fill, no ledge, 44 px hit area): Cancel, Not a fit, Continue without an account. An exit is never a
+  second choice, and never blue.
+- **A job leads with its title** (title, 24 px, wraps in full), then the company ("Company not
+  stated" in secondary), then one facts line with 16 px icons (place, pay, date; "Pay not stated"
+  on a job page). An amber Badge with an icon sits under the facts only for Closing soon or
+  Follow-up due. All other status is neutral. No fit chips, no Saved chip, no blue.
+- **The action dock.** On a phone a job's keys sit in one dock at the bottom: one filled key, one grey
+  key, one exit, in that order of rank, clear of the bottom safe area. It hides while a field has
+  focus. At 1440 the same keys sit in one row under the title block. Not a fit is the dock's exit,
+  never inside More; it acts at once with "Marked not a fit: <title> · Undo". A job with no link
+  never shows Open application: its keys are Mark applied (filled), Add link (grey), Not a fit.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 

@@ -6,17 +6,9 @@ import { Box, Button, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobi
 import { findJobById, jobIdOf, useJobs } from './store';
 import { titleOf } from './jobRow';
 import { usePageTitle } from './pageTitle';
-import {
-  getRoute,
-  goBack,
-  goBackTo,
-  navigate,
-  openJob,
-  originOf,
-  useRoute,
-  type Route,
-} from './route';
-import { getPipelineView, nearestShown, usePipelineView, visibleJobs } from './pipelineView';
+import { goBackTo, openJob, originOf, useRoute } from './route';
+import { nearestShown, usePipelineView, visibleJobs } from './pipelineView';
+import { openNextAfter } from './applyNext';
 import ApplyFilterBar from './ApplyFilterBar';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
@@ -53,24 +45,6 @@ function JobDetail({
     </Box>
   );
 }
-
-/** After Mark applied or Not a fit (#471), open the job after this one in the list as it shows
- *  now (else the one before it). Called before the answer lands, so the job still has its place.
- *  In place: Back does not walk every job. */
-function openNextAfter(job: Job, jobs: Job[]) {
-  const shown = visibleJobs(jobs, getPipelineView());
-  const at = shown.findIndex((j) => j.url === job.url);
-  const next = at < 0 ? shown[0] : (shown[at + 1] ?? shown[at - 1]);
-  // The last one in the list: back to the list (or wherever the job was opened from).
-  if (!next || next.url === job.url) return goBack(APPLY_LIST);
-  const { from, section } = getRoute();
-  navigate(
-    { tab: 'apply', jobId: jobIdOf(next.url), from: from ?? null, section: section ?? null },
-    true,
-  );
-}
-
-const APPLY_LIST: Route = { tab: 'apply', sub: null, pillar: null, jobId: null };
 
 function JobPageSkeleton() {
   return (

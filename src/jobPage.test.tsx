@@ -24,7 +24,15 @@ import { viewport } from './test/viewport';
 import { setPipelineView } from './pipelineView';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
+import {
+  addJob,
+  findJobById,
+  getAllJobs,
+  jobIdOf,
+  removeJob,
+  replaceAll,
+  updateJob,
+} from './store';
 import { replaceTrash } from './trash';
 import { dismissNotice } from './saveNotice';
 import { ymd } from './jobEvents';
@@ -76,10 +84,14 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(header).not.toBeNull();
-    expect(within(header).getByText('Saved')).toBeInTheDocument();
+    // #538: no Saved chip; the company and facts line say what is missing.
+    expect(within(header).queryByText('Saved')).toBeNull();
+    expect(within(header).getByText('Company not stated')).toBeInTheDocument();
+    expect(within(header).getByText('Pay not stated')).toBeInTheDocument();
     const star = within(header).getByRole('button', { name: 'Star' });
     expect(star).not.toHaveAttribute('aria-pressed'); // the text carries the state
-    expect(within(header).getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
+    // The keys sit in the dock (#535), outside the header on a phone.
+    expect(screen.getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
   });
 
@@ -91,10 +103,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(within(header).queryByRole('link', { name: /^Open posting for / })).toBeNull();
-    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
-      'href',
-      URL_A,
-    );
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', URL_A);
     await userEvent.click(
       within(header).getByRole('button', { name: 'More actions: Design Engineer' }),
     );
@@ -108,11 +117,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     openJobPage();
     // Details opens as fields (no link fact), so the header is the one-tap way out.
     expect(screen.getByRole('textbox', { name: 'Link' })).toBeInTheDocument();
-    const header = screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement;
-    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
-      'href',
-      URL_A,
-    );
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', URL_A);
   });
 
   it('the primary action is Follow up when one is due, and Mark applied is gone', () => {
@@ -129,20 +134,51 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(screen.queryByRole('button', { name: /^Mark applied/ })).toBeNull();
   });
 
-  it('with no next step the action row is just Star and More, no empty slot between', () => {
+  it('with no next step there is no dock: Star and More sit by the title, no empty slot (#535)', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { status: 'Offer', applied: todayYmd() });
     openJobPage();
-    const star = screen.getByRole('button', { name: 'Star' });
-    const row = star.closest('[data-rjb-actions]') as HTMLElement;
-    expect(row).not.toBeNull();
-    // (The menu's hidden portal anchor is not a slot.)
-    expect([...row.children].filter((c) => !(c as HTMLElement).hidden)).toHaveLength(2);
-    expect(
-      within(row)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label') ?? b.textContent),
-    ).toEqual(['Star', expect.stringMatching(/^More actions/)]);
+    expect(screen.getByRole('button', { name: 'Star' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-rjb-actions]')).toBeNull();
+    expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
+  });
+
+  it('a job to apply to: the dock holds the filled key, the grey key, then the exit (#535)', () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => k.getAttribute('data-variant'))).toEqual([
+      'primary',
+      'secondary',
+      'link',
+    ]);
+    expect(keys.map((k) => k.textContent)).toEqual([
+      'Open application',
+      'Mark applied',
+      'Not a fit',
+    ]);
+  });
+
+  it('a job with no link shows Add link, never Open application; Add link opens Link (#540)', async () => {
+    const NO_LINK = 'notes:designer';
+    replaceAll([{ url: NO_LINK, label: 'Design Engineer', company: 'Acme', status: 'Saved' }]);
+    openJobPage(NO_LINK);
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => k.textContent)).toEqual(['Mark applied', 'Add link', 'Not a fit']);
+    expect(keys.map((k) => k.getAttribute('data-variant'))).toEqual([
+      'primary',
+      'secondary',
+      'link',
+    ]);
+    expect(screen.queryByRole('link', { name: /Open application/ })).toBeNull();
+    expect(dock.querySelector('a[href]')).toBeNull();
+    // Details is closed (title and company are there); Add link opens its fields on Link.
+    expect(screen.queryByRole('textbox', { name: 'Link' })).toBeNull();
+    await userEvent.click(within(dock).getByRole('button', { name: 'Add link: Design Engineer' }));
+    expect(await screen.findByRole('textbox', { name: 'Link' })).toHaveFocus();
   });
 
   it('starring fills the star, says Starred and where starred jobs show', async () => {
@@ -829,7 +865,8 @@ describe('job dates on the job page (#419)', () => {
     expect(getAllJobs()[0].deadline).toBeUndefined(); // saved on leaving the field, not per key
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(getAllJobs()[0].deadline).toBe(ymd(soon));
-    const label = `Closes ${soon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    // #538: the amber badge under the facts names the weekday and the days left.
+    const label = `Closes ${soon.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · 3 days`;
     const badge = screen.getAllByText(label).find((el) => el.closest('[data-tone]'));
     expect(badge?.closest('[data-tone]')).toHaveAttribute('data-tone', 'warning');
 

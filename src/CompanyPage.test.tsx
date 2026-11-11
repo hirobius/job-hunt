@@ -62,8 +62,8 @@ describe('Company page (#230)', () => {
     expect(within(jobs).getByText('2')).toBeInTheDocument();
     const rows = within(jobs).getAllByRole('listitem');
     expect(rows).toHaveLength(2);
-    // Each row: its status badge above the title, and the one next step.
-    expect(within(rows[0]).getByText('Saved')).toBeInTheDocument();
+    // Each row: no Saved chip (#538: every job here is saved), and the one next step.
+    expect(within(rows[0]).queryByText('Saved')).toBeNull();
     expect(within(rows[0]).getByRole('button', { name: /^Mark applied: / })).toBeInTheDocument();
     const docs = screen.getByRole('region', { name: 'Documents' });
     expect(within(docs).getByText('1')).toBeInTheDocument();

@@ -24,7 +24,8 @@ export function tooSoon(): boolean {
 function swallow(e: Event) {
   if (!lastAnswer || Date.now() - lastAnswer >= DOUBLE_TAP_MS) return;
   const t = e.target as Element | null;
-  if (!t?.closest?.('main')) return;
+  // The action dock (#535) sits on body, outside main: it is part of the page too.
+  if (!t?.closest?.('main, .rjb-dock')) return;
   e.preventDefault();
   e.stopPropagation();
 }

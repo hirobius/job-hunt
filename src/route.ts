@@ -244,10 +244,16 @@ function startPop(pop: () => void) {
   pendingBack++;
   clearTimeout(popTimer);
   popTimer = setTimeout(() => {
-    if (pendingBack === 0) return;
-    pendingBack = 1;
-    awaitingHash = false;
-    popLanded();
+    // One more task before giving up: when the main thread was stalled past the grace (a busy
+    // machine), this timer can run before the pop's own task, still queued behind it, and dropping
+    // the wait then let a double click's second Back pop again from the page being left (an
+    // overshoot). The hop lets that task run first; a pop that never lands is dropped right after.
+    popTimer = setTimeout(() => {
+      if (pendingBack === 0) return;
+      pendingBack = 1;
+      awaitingHash = false;
+      popLanded();
+    }, 0);
   }, POP_GRACE_MS);
   pop();
 }
@@ -666,8 +672,7 @@ export function dialogStepBack(to: Route): void {
   if (h !== window.location.hash) replaceRoute(h);
 }
 
-const hasDialog = (r: Route) =>
-  (r.documents !== null && r.documents !== undefined) || !!r.legal;
+const hasDialog = (r: Route) => (r.documents !== null && r.documents !== undefined) || !!r.legal;
 
 /** Close the open dialog: back to the entry of this page without it when that is just behind (so
  *  Back never reopens it), else the same page without it, in place. */

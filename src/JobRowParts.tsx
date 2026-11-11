@@ -44,8 +44,8 @@ export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
   const closing = closingOf(job);
   return (
     <Stack direction="row" wrap="wrap" gap="px8" align="center">
-      {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
-      <StatusBadge job={job} />
+      {/* No fit chips and no Saved chip (#538): every job here is saved, and fit is not a status. */}
+      {normStatus(job.status) !== 'Saved' && <StatusBadge job={job} />}
       {row.retired && <Badge>Retired</Badge>}
       {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
       {closing && (

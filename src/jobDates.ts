@@ -107,3 +107,39 @@ export function recordLiveness(jobs: Job[], results: ReadonlyMap<string, LiveChe
   });
   return changed ? out : jobs;
 }
+
+const dayCount = (n: number) => (n <= 0 ? 'today' : n === 1 ? '1 day' : `${n} days`);
+
+/** "Fri, Nov 13" for a YYYY-MM-DD (local calendar day). */
+function weekdayDate(s: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (!m) return shortDate(s);
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+/** The one amber badge under a job's facts (#538, redesign §5.5): a closing date within the week
+ *  ("Closes Fri, Nov 13 · 3 days") or a due follow-up ("Follow-up due · 12 days since you
+ *  applied"). Null when no date needs action: a missing deadline is not a status. */
+export function dueBadgeOf(
+  job: Job,
+  now: Date = new Date(),
+): { kind: 'closing' | 'followup'; label: string } | null {
+  const closing = closingOf(job, now);
+  if (closing?.kind === 'soon' && job.deadline) {
+    const d = daysUntil(job.deadline, now) ?? 0;
+    return { kind: 'closing', label: `Closes ${weekdayDate(job.deadline)} · ${dayCount(d)}` };
+  }
+  const state = deriveJobState(job, now);
+  if (!job.archived && state.followUp?.due) {
+    const since = state.appliedDaysAgo;
+    return {
+      kind: 'followup',
+      label:
+        since != null && since > 0
+          ? `Follow-up due · ${dayCount(since)} since you applied`
+          : 'Follow-up due',
+    };
+  }
+  return null;
+}

@@ -1,0 +1,19 @@
+[
+  {
+    "uuid": "abc-123",
+    "name": "Senior Design Systems Engineer",
+    "url": "https://ats.rippling.com/acme/jobs/abc-123",
+    "department": { "label": "Design" },
+    "workLocation": { "label": "Remote (US)" },
+    "locationType": "REMOTE",
+    "createdAt": "2026-10-19T00:00:00Z"
+  },
+  {
+    "uuid": "abc-456",
+    "name": "Account Executive",
+    "url": "https://ats.rippling.com/acme/jobs/abc-456",
+    "department": { "label": "Sales" },
+    "workLocation": { "label": "New York, NY" },
+    "locationType": "ON_SITE"
+  }
+]

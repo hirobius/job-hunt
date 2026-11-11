@@ -10,6 +10,7 @@ import { saveProfile, useProfile } from './profile';
 import { TitlesField, WhereFields } from './ProfileFields';
 import { NEW_PROFILE, draftOf, fieldsOf, finishSetup, type ProfileDraft } from './searchDefaults';
 import { showNotice } from './saveNotice';
+import { ExitButton } from './hds-gaps/ExitButton';
 
 export default function SearchProfileDialog({
   onDone,
@@ -69,7 +70,7 @@ export default function SearchProfileDialog({
       )}
       <Dialog.Footer>
         <Dialog.Close asChild>
-          <Button variant="secondary">Cancel</Button>
+          <ExitButton>Cancel</ExitButton>
         </Dialog.Close>
         <Button variant="primary" onClick={save} disabled={waiting}>
           Save

@@ -21,6 +21,7 @@ import { titleOf } from './jobRow';
 import { findJobByUrl, updateJob, useJobs } from './store';
 import { useBackCloses } from './useBackCloses';
 import type { Job, JobEventKind } from './types';
+import { ExitButton } from './hds-gaps/ExitButton';
 
 const KINDS: { value: JobEventKind; label: string }[] = [
   { value: 'interview', label: 'Interview' },
@@ -107,7 +108,7 @@ function AddInterviewContent({ job }: { job: Job }) {
       </Stack>
       <Dialog.Footer>
         <Dialog.Close asChild>
-          <Button variant="secondary">Cancel</Button>
+          <ExitButton>Cancel</ExitButton>
         </Dialog.Close>
         <Button variant="primary" disabled={!date} onClick={add}>
           Add interview
