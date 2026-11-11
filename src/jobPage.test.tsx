@@ -926,6 +926,89 @@ describe('the keys follow the state (#540)', () => {
     await waitFor(() => expect(open).toHaveFocus());
   });
 
+  // #593: the link is checked before anything is written.
+  const openAddLink = async (user: ReturnType<typeof userEvent.setup>) => {
+    addJob(URL_A, 'Designer');
+    updateJob(URL_A, { url: 'notes:designer' });
+    openJobPage('notes:designer');
+    const dock = screen.getByRole('group', { name: 'Actions for Designer' });
+    await user.click(within(dock).getByRole('button', { name: 'Add link: Designer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add the application link' });
+    return { dialog, field: within(dialog).getByRole('textbox', { name: 'Application link' }) };
+  };
+
+  it('Add link: an address a browser cannot open saves nothing and says so, never "Link added"', async () => {
+    const user = userEvent.setup();
+    const { dialog, field } = await openAddLink(user);
+    const before = getAllJobs().map((j) => j.url);
+    await user.type(field, 'https://a b.c');
+    await user.click(within(dialog).getByRole('button', { name: 'Add link' }));
+    expect(
+      await within(dialog).findByText(/^That is not a web address\. Paste the full link/),
+    ).toBeInTheDocument();
+    expect(getAllJobs().map((j) => j.url)).toEqual(before);
+    expect(screen.getByRole('dialog', { name: 'Add the application link' })).toBeInTheDocument();
+    expect(screen.queryByText(/^Link added/)).toBeNull();
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf('notes:designer')}`);
+    // No dot is no address either.
+    await user.clear(field);
+    await user.type(field, 'designer{Enter}');
+    expect(await within(dialog).findByText(/^That is not a web address/)).toBeInTheDocument();
+    expect(getAllJobs().map((j) => j.url)).toEqual(before);
+  });
+
+  it('Add link: another saved job’s link saves nothing and names that job', async () => {
+    const user = userEvent.setup();
+    addJob(URL_B, 'Zenith Designer');
+    const { dialog, field } = await openAddLink(user);
+    await user.type(field, URL_B);
+    await user.click(within(dialog).getByRole('button', { name: 'Add link' }));
+    expect(
+      await within(dialog).findByText('That link is already saved: Zenith Designer.'),
+    ).toBeInTheDocument();
+    expect(getAllJobs().filter((j) => j.url === URL_B)).toHaveLength(1);
+    expect(getAllJobs().some((j) => j.url === 'notes:designer')).toBe(true);
+    expect(screen.queryByText(/^Link added/)).toBeNull();
+    // Typing again clears the error; a good link then saves.
+    await user.clear(field);
+    expect(within(dialog).queryByText(/already saved/)).toBeNull();
+    await user.type(field, 'boards.example.com/jobs/9');
+    await user.click(within(dialog).getByRole('button', { name: 'Add link' }));
+    expect(await screen.findByText('Link added: Designer')).toBeInTheDocument();
+    expect(getAllJobs().some((j) => j.url === 'https://boards.example.com/jobs/9')).toBe(true);
+  });
+
+  it('Close out opens the next job in the list and focuses its title (#593)', async () => {
+    const user = userEvent.setup();
+    // Pinned, so the Active list shows them once applied: newest first, Beta then Alpha.
+    addJob(URL_A, 'Alpha Designer');
+    addJob(URL_B, 'Beta Designer');
+    for (const url of [URL_A, URL_B])
+      updateJob(url, { status: 'Applied', applied: daysAgo(10), priority: true });
+    openJobPage(URL_A);
+    await user.click(screen.getByRole('button', { name: 'Close out: Alpha Designer' }));
+    expect(getAllJobs().find((j) => j.url === URL_A)?.archived).toBe(true);
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`));
+    const next = await screen.findByRole('heading', { level: 1, name: 'Beta Designer' });
+    await waitFor(() => expect(next).toHaveFocus());
+  });
+
+  it('Close out on the last job goes back to the list, its heading focused (#593)', async () => {
+    const user = userEvent.setup();
+    addJob(URL_A, 'Alpha Designer');
+    updateJob(URL_A, { status: 'Applied', applied: daysAgo(10) });
+    openJobPage(URL_A);
+    await user.click(screen.getByRole('button', { name: 'Close out: Alpha Designer' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    expect(getAllJobs().find((j) => j.url === URL_A)?.archived).toBe(true);
+    // The tab's page heading takes focus, never <body>.
+    await waitFor(() => {
+      const h1 = screen.getByRole('heading', { level: 1 });
+      expect(h1).toHaveFocus();
+    });
+    expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
+  });
+
   it('Mark followed up restarts the clock with Undo; focus stays on the title', async () => {
     const user = userEvent.setup();
     addJob(URL_A, 'Design Engineer');
@@ -970,7 +1053,7 @@ describe('the keys follow the state (#540)', () => {
     updateJob(URL_A, { status: 'Applied', applied: daysAgo(10) });
     vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValueOnce(new Error('denied'));
     openJobPage();
-    await user.click(screen.getByRole('button', { name: 'Copy follow-up' }));
+    await user.click(screen.getByRole('button', { name: 'Copy follow-up: Design Engineer' }));
     expect(await screen.findByText(/^Couldn’t copy the follow-up\./)).toBeInTheDocument();
     expect(screen.getAllByText(/Checking in on/).length).toBeGreaterThan(0);
     setOutreachMessages([]);
