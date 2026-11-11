@@ -7,6 +7,9 @@
 //   node scripts/discover-boards.mjs [--dry] [--only=hn,github,aggregator,commoncrawl,seed] [--limit=N]
 //     [--from-year=2014] [--cc-indexes=2] [--cached-only] [--reuse-harvest]
 // --dry prints counts and writes nothing. Takes ~20-60 minutes for ~10,000 candidates.
+// The committed set is laid under the run (src/feed/bulk/refresh.ts): every board in it is asked
+// again, one that does not answer (or is not asked) is kept as it is, and one that answers 404 is
+// dropped only after MAX_MISSES weekly misses in a row (`misses` on its line).
 // Behind a proxy: NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=<bundle>.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -174,7 +177,16 @@ if ((cachedOnly || reuseHarvest) && !lists.length) {
   await writeFile(candFile, JSON.stringify(candidates));
   await writeFile(`${candFile}.sources`, JSON.stringify(reports));
 }
-console.log(`candidates: ${candidates.length} distinct boards`);
+// The committed set: each of its boards is a candidate too, so it is asked again this run.
+const setFile = `${root}src/feed/data/boards.json`;
+let prev = { boards: [] };
+try {
+  prev = JSON.parse(await readFile(setFile, 'utf8'));
+} catch {
+  /* first run */
+}
+candidates = H.mergeCandidates([candidates, M.previousCandidates(prev)]);
+console.log(`candidates: ${candidates.length} distinct boards (${prev.boards.length} in the set)`);
 if (candidates.length > limit) candidates = candidates.slice(0, limit);
 
 const cacheFile = `${root}node_modules/.cache/boards-discover.json`;
@@ -210,25 +222,18 @@ const validated = await D.validateCandidates(candidates, {
 clearInterval(timer);
 await saveCache();
 
-const set = D.buildBoardSet(validated, reports, new Date());
+const today = new Date();
+const carry = M.carryForward(prev, validated, today.toISOString().slice(0, 10));
+const set = D.buildBoardSet({ ...validated, boards: carry.boards }, reports, today);
 console.log(JSON.stringify(set.counts));
 console.log(`unknown by host: ${JSON.stringify(validated.unknownByHost)}`);
-console.log(`confirmed live boards: ${set.boards.length}`);
+console.log(
+  `boards: ${set.boards.length} (${validated.boards.length} live this run, ${carry.carried} kept with no answer, ` +
+    `${carry.missed.length} missed and kept, ${carry.dropped.length} dropped after ${M.MAX_MISSES} misses)`,
+);
 if (!dry) {
   // One board per line keeps the diff of a re-run readable.
-  const body = [
-    '{',
-    ` "generated": ${JSON.stringify(set.generated)},`,
-    ` "note": ${JSON.stringify(set.note)},`,
-    ` "sources": ${JSON.stringify(set.sources)},`,
-    ` "counts": ${JSON.stringify(set.counts)},`,
-    ' "boards": [',
-    set.boards.map((b) => `  ${JSON.stringify(b)}`).join(',\n'),
-    ' ]',
-    '}',
-    '',
-  ].join('\n');
-  await writeFile(`${root}src/feed/data/boards.json`, body);
+  await writeFile(setFile, M.serializeBoardSet(set));
   await writeFile(
     `${root}src/feed/data/board-keys.json`,
     `${JSON.stringify(M.compactKeys(set))}\n`,

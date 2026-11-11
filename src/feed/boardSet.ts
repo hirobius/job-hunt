@@ -17,10 +17,15 @@ export interface SetBoard {
   company: string;
   /** The company's own site (a bare domain), when a source or the board names it. */
   website?: string;
-  /** Open roles at the last check. */
+  /** Open roles, rounded up to a step of `jobsBucket` (bulk/refresh.ts) so a weekly refresh only
+   *  rewrites a line when the count moves a step. The rotation reads it as an estimate. */
   jobs?: number;
-  /** YYYY-MM-DD of the last live check. */
+  /** YYYY-MM-DD the board was found live, or its `jobs` step last moved (not every check, so
+   *  the weekly diff stays small). */
   lastChecked: string;
+  /** Weekly refreshes in a row that found no board here (a 404); omitted when 0. The refresh
+   *  drops the board at `MAX_MISSES` (bulk/refresh.ts), never on one answer. */
+  misses?: number;
   /** Why the board is the company's: where its URL was found, or how its name matched. */
   evidence: string;
 }
@@ -89,6 +94,7 @@ export function parseSetBoard(raw: unknown): SetBoard | null {
     ...(typeof o.jobs === 'number' && o.jobs >= 0 && { jobs: Math.floor(o.jobs) }),
     lastChecked: DAY.test(lastChecked) ? lastChecked : '',
     evidence: text(o.evidence, 300),
+    ...(typeof o.misses === 'number' && o.misses >= 1 && { misses: Math.floor(o.misses) }),
   };
 }
 
