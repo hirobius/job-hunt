@@ -72,6 +72,10 @@ describe('FIGMA-RULES.md', () => {
     // One table of keys per state: no second module.
     expect(fs.existsSync('src/editLinkRequest.ts')).toBe(false);
     expect(fs.existsSync('src/templatesOpen.ts')).toBe(false);
+    // Copy follow-up copies; only Mark followed up and Close out have an Undo (#593).
+    expect(RULES).toMatch(/Close out; the last two with Undo/);
+    expect(RULES).not.toMatch(/Close out, each with Undo/);
+    expect(CLAUDE).not.toMatch(/fit first/);
   });
 
   it('pins Copy into the form (#539)', () => {

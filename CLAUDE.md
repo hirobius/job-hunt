@@ -92,7 +92,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   table of keys per state (`{ id, rank }` rows: filled / grey / exit; #575's table and #540's merged into it): to
   apply with a link, to apply with no link (`applicationLink`: the stored URL does not parse as http(s); a "No
   application link" fact, `AddLinkDialog.tsx` (its Link field takes focus) → `setJobUrl`, then focus on Open
-  application), follow-up due (Copy follow-up, Mark followed up and Close out, both with Undo, in `applyActions.ts`;
+  application; `checkJobLink` in `store.ts` refuses a link a browser cannot open or another job's before anything is
+  saved, #593), follow-up due (Copy follow-up, then Mark followed up and Close out, those two with Undo, in `applyActions.ts`;
   More keeps "Follow up…" for the dialog), Interviewing (Add interview), else no dock. The "Templates (N)"
   disclosure (`ApplyTemplates`, `templatesOpen.ts`, `.rjb-template-row`, `ApplySheet.css`) is deleted; the kit links
   to Documents and, with no messages, shows no message rows. Pinned in `dockKeys.test.ts`, `jobPage.test.tsx`,
@@ -121,7 +122,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (`applyActions.ts`: `undoPatch` puts every field back, no navigation; the toast survives navigation). After
   Mark applied / Not a fit / Close out the next job in the list opens (`applyNext.ts` `openNextAfter`, from any
   origin) and its title takes focus; with no next job the tab goes back to its list and that page's h1 takes focus.
-  Pinned in `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `e2e/action-dock.spec.ts`.
+  When the keys change under a focused key (a sync from another device), focus goes to the new filled key, or the
+  title when none is left. The dock sits above an on-screen keyboard (`--rjb-vv-bottom` from
+  `useVisualViewportVars`) and reserves one row for one key (`data-rows`) (#593).
+  Pinned in `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `jobPage.test.tsx`, `e2e/action-dock.spec.ts`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
@@ -264,7 +268,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
   **Job page (#130; rev-3 mobile slice 2):** `JobPage.tsx` = `JobHeader` ("← Pipeline", one
-  `JobBadges` row above the title (fit first, status, Follow-up due), company · location, then one
+  `JobBadges` row above the title (status, Follow-up due; no fit chip since #538), company · location, then one
   row: 40px icon Star ("Star"/"Starred"), the one primary next step, the menu, which holds Remove)
   over **one page, no tabs since #416** (see Simplify Jobs below; the rest of this paragraph is
   the older three-tab layout, kept for history): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
@@ -367,7 +371,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
   `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
-  metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
+  metadata = badge row above the title: status, then Follow-up due, then the closing date (no fit chip, #538); `Card.Facts` with
   location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
   margins. **No cards within cards, ever (Adrian 2026-11-01, #449; replaced 2026-10-23's "lists are cards"):**
   one card level max. A list inside a panel (New companies, the Account menu's Companies

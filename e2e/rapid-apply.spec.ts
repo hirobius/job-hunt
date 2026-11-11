@@ -81,7 +81,8 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await page.getByRole('textbox', { name: 'Name' }).fill('Sam Placeholder');
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Copy Name' }).click();
-  await expect(page.getByRole('button', { name: 'Copied Name' })).toBeVisible();
+  // The chip keeps its name; it shows "Copied" and the status says it (#593).
+  await expect(page.getByRole('button', { name: 'Copy Name' })).toHaveText('Copied');
 
   // Mark applied moves on to the next job in the list, in place; the last goes back to the list.
   for (let n = 1; n <= 3; n++) {
