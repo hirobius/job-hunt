@@ -16,7 +16,7 @@ import { openTab, type TopTab } from './tabMemory';
 import { Box, Stack, useAtLeast, useToast } from '@hirobius/design-system';
 import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
 import { CompanyPage, JobPage, Today, TrackerView } from './routeViews';
-import { JobPageLiveness } from './lazyDialogs';
+import { DocumentsView, JobPageLiveness, LegalPage } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
 import { useViewEnter } from './viewEnter';
 import { BrandLogo } from './brand/Flame';
@@ -49,8 +49,6 @@ import DialogHold from './DialogHold';
 // Code-split every route view: Documents and the rest here, the Apply list, the job view and
 // the Company page through routeViews.ts (they render without a Suspense step once
 // loaded, so moving between them never flashes a skeleton).
-const DocumentsView = lazy(importFresh(() => import('./DocumentsView')));
-const LegalPage = lazy(importFresh(() => import('./LegalPage')));
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
 // The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan

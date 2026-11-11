@@ -25,6 +25,11 @@ export const AddInterviewHost = lazyView(
 export const RecentlyRemovedHost = lazyView(
   importFresh(async () => named((await import('./RecentlyRemoved')).RecentlyRemovedHost)),
 );
+// The Documents and Privacy and terms dialogs (#471 slice 4), rendered under App's Suspense with a
+// DialogHold fallback. Preloaded in tests: the hold is a dialog of the same name, so a test that
+// found it before the chunk landed held a node the real dialog then replaced.
+export const DocumentsView = lazyView(importFresh(() => import('./DocumentsView')));
+export const LegalPage = lazyView(importFresh(() => import('./LegalPage')));
 export const JobPageLiveness = lazyView(
   importFresh(async () => named((await import('./LivenessViews')).JobPageLiveness)),
 );
@@ -44,6 +49,8 @@ export const preloadDialogs = () =>
       AddInterviewHost,
       RecentlyRemovedHost,
       JobPageLiveness,
+      DocumentsView,
+      LegalPage,
     ].map((v) => v.preload()),
   );
 
