@@ -58,6 +58,10 @@ async function prepare(page: Page, theme: 'light' | 'dark') {
     NOW.getTime(),
   );
   await seed(page);
+  // Undo toasts survive navigation (#534): let the seed's toasts time out before any shot.
+  await expect(
+    page.getByRole('region', { name: /^Notifications/ }).getByRole('listitem'),
+  ).toHaveCount(0, { timeout: 20_000 });
 }
 
 async function shoot(page: Page, name: string) {

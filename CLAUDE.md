@@ -88,6 +88,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **One saved list (redesign §5.3, #534):** Apply is the saved list. Find's Save (primary, plus icon) toasts
+  "Added to Apply: <title>" with Open and Undo; a double Save is a no-op (`alreadyInApply`); Undo toasts survive
+  navigation for their full timeout (no route dismissal in `saveNotice.ts`). The star
+  left the UI (StarButton, the menu's Star/Unstar, the Starred view, `.rjb-icon-filled`, `.rjb-pop*`); the
+  `priority` field stays in the data, backups and CSV (and still sorts). More's last item is "Remove from Apply"
+  ("Removed from Apply: <title>", Undo; focus to the next title). Pinned in `e2e/saved-list.spec.ts`, `e2e/review.spec.ts`.
 - **Action dock (redesign §5.5, #535/#536):** `src/hds-gaps/ActionDock.tsx` (+ `.css`, `fieldFocus.ts`; G1,
   hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
   transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
@@ -96,8 +102,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   link Open application | Mark applied | Not a fit; **no link** (`applicationLink`: not http(s)) Mark applied | Add
   link (opens Details on Link, `editLinkRequest.ts`) | Not a fit, never an Open application; follow-up due Follow
   up; Interviewing Add interview; else no dock and no spacer. The dock hides at once on a field and comes back
-  only after focus has been out of every field for 150 ms (`SHOW_AFTER_MS`: no flash between fields). Star and
-  More sit beside the title. Not a fit is the dock's exit: "Marked not a fit: <title>" with Undo
+  only after focus has been out of every field for 150 ms (`SHOW_AFTER_MS`: no flash between fields). More
+  sits beside the title (no star, #534). Not a fit is the dock's exit: "Marked not a fit: <title>" with Undo
   (`applyActions.ts`: `undoPatch` puts every field back, no navigation; the toast survives navigation). After
   Mark applied / Not a fit the next job in the list opens (`applyNext.ts` `openNextAfter`, from any origin) and
   its title takes focus; with no next job the tab goes back to its list and that page's h1 takes focus. Pinned in

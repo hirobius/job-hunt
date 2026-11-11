@@ -1,15 +1,17 @@
 // Daily picks on Today (2026-11-05): the scheduled run's hand-picked roles (src/picks.ts), above
 // Review new. Each row: the title (the link out to the posting), the company, employee or
 // contract, pay and posted day, the one-line why-it-fits, and the drafted note to the hiring manager
-// behind one Disclosure row with Copy beside it. Save works like Review new's (Saved to Pipeline ·
+// behind one Disclosure row with Copy beside it. Save works like Review new's (Added to Apply ·
 // To apply, Undo) and puts the draft note and the fit line in the Job's Notes; Skip hides the pick
 // by posting fingerprint (the synced Decided store), with Undo. Hidden when there is nothing to show.
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import {
   Badge,
   Box,
   Button,
   Disclosure,
+  Icon,
   InlineLink,
   Stack,
   Text,
@@ -19,7 +21,7 @@ import { ItemList, ItemRow, Panel } from './PipelinePanel';
 import { addJobDetailed, useJobs } from './store';
 import { decided } from './decided';
 import { collapseRow } from './feedback';
-import { notifyRemoved, notifySaved, showNotice } from './saveNotice';
+import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
 import { loadPicks, openPicks, pickFacts, pickJobFields, shortDay, type DailyPick } from './picks';
@@ -83,6 +85,8 @@ function PickRow({ pick: p }: { pick: OpenPick }) {
   // The row collapses first, then the job is saved (a saved pick leaves the list).
   const save = (from: Element) =>
     collapseRow(from, () => {
+      // A double Save is a no-op, with no second toast (#534).
+      if (alreadyInApply(p.url)) return;
       const url = addJobDetailed(p.url, pickJobFields(p));
       if (!url) {
         showNotice({
@@ -158,10 +162,11 @@ function PickRow({ pick: p }: { pick: OpenPick }) {
         <Stack direction="row" wrap="wrap" gap="tight" align="center">
           <Button
             size="sm"
-            variant="secondary"
+            variant="primary"
             aria-label={`Save ${name}`}
             onClick={(e) => save(e.currentTarget)}
           >
+            <Icon icon={Plus} />
             Save
           </Button>
           <Button

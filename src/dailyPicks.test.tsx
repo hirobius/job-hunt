@@ -116,7 +116,7 @@ describe('Daily picks', () => {
       'Draft note to the hiring manager:\nHi, I would like to be considered',
     );
     expect(job.notes).toContain('Why it fits: Best pay found');
-    expect(await screen.findByText('Saved to Pipeline · To apply')).toBeTruthy();
+    expect(await screen.findByText(/^Added to Apply/)).toBeTruthy();
     expect(
       screen.queryByRole('listitem', { name: 'Design Systems Designer at Onward Search' }),
     ).toBeNull();

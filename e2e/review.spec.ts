@@ -149,9 +149,21 @@ for (const width of [390, 1440]) {
 
     // Past the double-tap guard (answerGuard.ts), so the next decision is a new one.
     await page.waitForTimeout(800);
-    await list.getByRole('button', { name: 'Save Design Systems Lead at Lumen' }).click();
+    // #534: Skip says so with Undo (no confirm), and Save is the filled key with a plus icon.
+    await expect(
+      page.getByRole('region', { name: /^Notifications/ }).getByRole('button', { name: 'Undo' }),
+    ).toBeVisible();
+    const save = list.getByRole('button', { name: 'Save Design Systems Lead at Lumen' });
+    await expect(save).toHaveAttribute('data-variant', 'primary');
+    await expect(save.locator('svg')).toHaveCount(1);
+    // A double Save saves once, with one toast (#534).
+    await save.dblclick();
     const notice = page.getByRole('region', { name: /^Notifications/ }).getByRole('listitem');
-    await expect(notice.getByText('Saved to Pipeline · To apply')).toBeVisible();
+    await expect(notice.getByText('Added to Apply: Design Systems Lead')).toBeVisible();
+    await expect(notice).toHaveCount(1);
+    await expect(notice.getByRole('button', { name: 'Open' })).toBeVisible();
+    await expect(notice.getByRole('button', { name: 'Undo' })).toBeVisible();
+    await expect(page.getByText(/shortlist/i)).toHaveCount(0);
     await expect(list.getByRole('listitem')).toHaveCount(2);
 
     // The deck: one card at a time, Skip each of the two left. Past the double-tap guard first: it

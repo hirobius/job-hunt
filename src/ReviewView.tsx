@@ -35,6 +35,7 @@ import {
   ExternalLink,
   MapPin,
   MousePointerClick,
+  Plus,
   SearchX,
   Layers,
   List,
@@ -69,7 +70,7 @@ import { jobFieldsFor } from './feed/toJob';
 import { postedAgo } from './feed/format';
 import { SOURCE_LABEL } from './feed/types';
 import { addJobDetailed } from './store';
-import { notifyRemoved, notifySaved, showNotice } from './saveNotice';
+import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
 import { usePostingText } from './feed/postingText';
@@ -455,6 +456,8 @@ const rowActions: RowActions = {
   // The row collapses first, then the job is saved (a saved posting leaves the list).
   save: (r, from) =>
     collapseRow(from, () => {
+      // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
+      if (alreadyInApply(r.url)) return;
       const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
       if (!url) {
         showNotice({
@@ -607,6 +610,7 @@ function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
         aria-label={`Save ${rowName(r)}`}
         onClick={(e) => actions.save(r, e.currentTarget)}
       >
+        <Icon icon={Plus} />
         Save
       </Button>
       <Button

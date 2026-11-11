@@ -19,6 +19,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   stated" in secondary), then one facts line with 16 px icons (place, pay, date; "Pay not stated"
   on a job page). An amber Badge with an icon sits under the facts only for Closing soon or
   Follow-up due. All other status is neutral. No fit chips, no Saved chip, no blue.
+- **One saved list.** Apply is the saved list. Save (filled key with a plus icon) on Find adds a
+  posting to Apply: "Added to Apply: <title> · Open · Undo". A toast stays across pages until it
+  times out. More on a job has "Remove from Apply" (to
+  Recently removed, with Undo). Skip shows a toast with Undo, never a confirm. No star, and the
+  word "shortlist" never shows.
 - **The action dock.** On a phone a job's keys sit in one dock at the bottom: one filled key, one grey
   key, one exit, in that order of rank, clear of the bottom safe area. It hides while a field has
   focus. At 1440 the same keys sit in one row under the title block. Not a fit is the dock's exit,

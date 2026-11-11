@@ -79,7 +79,7 @@ describe('save notice', () => {
     renderApp();
     act(() => notifySaved([C], 'Cask Designer'));
     const notice = await findNotice();
-    expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    expect(within(notice).getByText(/^Added to Apply/)).toBeInTheDocument();
     // rev-3 #s-save-notice: one line, no job name under it (Open is one tap away).
     expect(within(notice).queryByText('Cask Designer')).toBeNull();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
@@ -645,7 +645,7 @@ describe('rapid apply follow-ups (#219)', () => {
     });
     expect(findJobByUrl(C)?.archived).toBe(false);
     const notice = await findNotice();
-    expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    expect(within(notice).getByText(/^Added to Apply/)).toBeInTheDocument();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)).toMatchObject({ archived: true, notes: 'kept' });
   });
@@ -659,7 +659,7 @@ describe('rapid apply follow-ups (#219)', () => {
     expect(within(notice).getByText('Already in your Pipeline')).toBeInTheDocument();
     expect(within(notice).getByText('Acme Designer')).toBeInTheDocument();
     expect(within(notice).getByRole('button', { name: 'Open' })).toBeInTheDocument();
-    expect(within(notice).queryByText('Saved to Pipeline · To apply')).toBeNull();
+    expect(within(notice).queryByText(/^Added to Apply/)).toBeNull();
   });
 
   it('an unnamed question’s remove button still says what it removes', async () => {

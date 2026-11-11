@@ -60,9 +60,10 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   const notice = page
     .getByRole('region', { name: /^Notifications/ })
     .getByRole('listitem')
-    .filter({ hasText: 'Saved to Pipeline · To apply' });
+    .filter({ hasText: /^Added to Apply: / });
+  // #534: the toast says where it went, with Open and Undo; the Apply tab has all three in To apply.
   await expect(notice).toBeVisible();
-  // A single save's Open opens that job's page; the Jobs tab has all three in To apply.
+  await expect(notice.getByRole('button', { name: 'Undo' })).toBeVisible();
   await notice.getByRole('button', { name: 'Open' }).click();
   await expect(page).toHaveURL(/#\/apply\/[^/?]+/);
   await topTab(page, 'Apply').click();

@@ -62,11 +62,12 @@ describe('pipelineView', () => {
   it('counts every filter', () => {
     expect(filterCounts(all)).toMatchObject({
       active: 2,
-      starred: 1,
       all: 4,
       Applied: 2,
       retired: 1,
     });
+    // No Starred view (#534): it is not offered, so it is not counted.
+    expect(filterCounts(all).starred).toBeUndefined();
   });
 
   it('set merges into the shared state and reset restores the default', () => {

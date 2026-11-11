@@ -1,21 +1,12 @@
 // The pieces one job row is made of (#129), shared by the Pipeline's job cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
-import { useRef, useState } from 'react';
-import { Check, Ellipsis, Star } from 'lucide-react';
-import {
-  Badge,
-  Box,
-  Button,
-  Icon,
-  Menu,
-  Stack,
-  VisuallyHidden,
-  useToast,
-} from '@hirobius/design-system';
+import { useRef } from 'react';
+import { Check, Ellipsis } from 'lucide-react';
+import { Badge, Box, Button, Icon, Menu, Stack } from '@hirobius/design-system';
 import { setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
 import { changeWithUndo } from './jobUndo';
-import { collapseRow, starClass } from './feedback';
+import { collapseRow } from './feedback';
 import { FollowUpButton } from './FollowUp';
 import { openAddInterview } from './jobDialogs';
 import { buildHash, getRoute } from './route';
@@ -35,10 +26,10 @@ export function StatusBadge({ job }: { job: Job }) {
   return <Badge tone="neutral">{normStatus(job.status)}</Badge>;
 }
 
-/** One badge row above a job's title: fit first, then status, Retired, a due follow-up, the closing
- *  date (#360, as CLAUDE.md says), and the star on a card. Status and fit are neutral; only what
- *  needs attention is a warning. Pipeline cards, the job page and Apply mode share it. */
-export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
+/** One badge row above a job's title: status (not Saved), Retired, a due follow-up and the closing
+ *  date (#360). Status is neutral; only what needs attention is a warning. No fit chip and no star
+ *  (#534, #538). Pipeline cards, the rail and the Company page share it. */
+export function JobBadges({ job }: { job: Job }) {
   const row = rowView(job);
   // The closing date (#419), from the synced job (closedAt, deadline), so it matches the filters.
   const closing = closingOf(job);
@@ -51,54 +42,7 @@ export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
       {closing && (
         <Badge tone={closing.kind === 'soon' ? 'warning' : 'neutral'}>{closing.label}</Badge>
       )}
-      {star && row.pinned && (
-        <>
-          <StarIcon on />
-          <VisuallyHidden>Starred</VisuallyHidden>
-        </>
-      )}
     </Stack>
-  );
-}
-
-/** The star: outline when off, filled when on. `animate` (once the user has toggled it) pops it
- *  on each change (#212); a star already on when the page opens holds still. */
-export function StarIcon({ on, animate = false }: { on: boolean; animate?: boolean }) {
-  return <Icon icon={Star} size="small" className={starClass(on, animate)} />;
-}
-
-/** Star or unstar a job, and say so: starring says where starred jobs show. */
-function useToggleStar() {
-  const { toast } = useToast();
-  return (job: Job) => {
-    updateJob(job.url, { priority: !job.priority });
-    toast(
-      job.priority
-        ? { title: 'Unstarred', description: titleOf(job) }
-        : { title: 'Starred', description: 'Shows first in your Pipeline' },
-    );
-  };
-}
-
-/** The job page's star toggle: a 40px icon button named Star or Starred, so the state reads
- *  from its name and the filled icon. The name carries the state, so there is no aria-pressed
- *  (both would announce it twice). */
-export function StarButton({ job }: { job: Job }) {
-  const toggle = useToggleStar();
-  const [touched, setTouched] = useState(false);
-  const on = !!job.priority;
-  return (
-    <Button
-      size="md"
-      variant="secondary"
-      iconOnly
-      iconLeft={<StarIcon on={on} animate={touched} />}
-      label={on ? 'Starred' : 'Star'}
-      onClick={() => {
-        setTouched(true);
-        toggle(job);
-      }}
-    />
   );
 }
 
@@ -221,21 +165,6 @@ export function RowMenu({
           Add interview…
         </Menu.Item>
         <Menu.Separator />
-        {/* Star is a row change like the rest (#212, #361): the shared notice with Undo, not a
-            plain toast — under Starred an Unstar takes the card out with no way back otherwise.
-            changeWithUndo flashes the card when the change keeps it in the list. */}
-        <Menu.Item
-          onSelect={() =>
-            changeWithUndo(
-              job,
-              job.priority ? 'Unstarred' : 'Starred',
-              () => updateJob(job.url, { priority: !job.priority }),
-              anchor.current,
-            )
-          }
-        >
-          {job.priority ? 'Unstar' : 'Star'}
-        </Menu.Item>
         <Menu.Item
           onSelect={() => {
             changeWithUndo(
@@ -274,7 +203,7 @@ export function RowMenu({
           }}
           tone="danger"
         >
-          Remove
+          Remove from Apply
         </Menu.Item>
       </Menu.Content>
     </Menu>

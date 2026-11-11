@@ -149,7 +149,8 @@ describe('Pipeline on a phone (#129)', () => {
     const items = within(await screen.findByRole('menu'))
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
-    expect(items).toEqual(['Open posting', 'Add interview…', 'Star', 'Retire', 'Remove']);
+    // No Star (#534); Remove says what it takes the job off.
+    expect(items).toEqual(['Open posting', 'Add interview…', 'Retire', 'Remove from Apply']);
     // One inset for every item: the stages are plain items marked by a trailing check, still
     // radio items for assistive tech (rev-3 mock).
     const stages = within(screen.getByRole('menu')).getAllByRole('menuitemradio');
@@ -231,7 +232,7 @@ describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () =
     const lastName = within(last).getByRole('heading').textContent!;
     const prevName = within(all[all.length - 2]).getByRole('heading').textContent!;
     await user.click(within(last).getByRole('button', { name: /^More actions:/ }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await waitFor(() => expect(screen.queryByRole('article', { name: lastName })).toBeNull());
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole('link', { name: prevName })),
@@ -340,7 +341,6 @@ describe('Pipeline filter (#129)', () => {
       .map((i) => i.textContent?.replace(/\d+$/, '').trim());
     expect(names).toEqual([
       'Active',
-      'Starred',
       'Saved',
       'Applied',
       'Interviewing',
@@ -390,12 +390,12 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
     ).toHaveAttribute('href', SAVED);
   });
 
-  it('marks starred cards (they float in every sort) and retired ones', async () => {
+  it('shows no star on a starred card (#534), and marks retired ones', async () => {
     updateJob(SAVED, { archived: true });
     renderApp();
     await openListOnPhone();
     const starredCard = screen.getByRole('article', { name: 'Zenith Product Designer' });
-    expect(within(starredCard).getByText('Starred')).toBeInTheDocument();
+    expect(within(starredCard).queryByText('Starred')).toBeNull();
     // Retired jobs show under the Retired view, with their real status and a Retired note.
     await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
     await userEvent.click(
@@ -477,13 +477,6 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
 
 describe('Active empty action and Star Undo (#361)', () => {
   beforeEach(() => viewport(390));
-  // In the All jobs sheet (a modal) the notice is its footer's (DialogNotice), the last status.
-  const notice = () => {
-    const sheet = screen.queryByRole('dialog', { name: 'All jobs' });
-    return sheet
-      ? within(sheet).getAllByRole('status').slice(-1)[0]
-      : screen.getByRole('region', { name: /^Notifications/ });
-  };
 
   it('the Active empty offers Show applied: it sets the filter to Applied and keeps focus in the panel', async () => {
     const user = userEvent.setup();
@@ -502,43 +495,16 @@ describe('Active empty action and Star Undo (#361)', () => {
     expect(document.activeElement).toBe(status);
   });
 
-  it('Unstar from a card menu under Starred raises the shared notice, and Undo brings the card back', async () => {
+  it('a card menu has no Star or Unstar (#534): the stored star stays in the data', async () => {
     const user = userEvent.setup();
     renderApp();
     await openListOnPhone();
-    await user.click(screen.getByRole('button', { name: /^Status:/ }));
-    await user.click(
-      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Starred/ }),
-    );
     const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
     await user.click(
       within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }),
     );
-    await user.click(
-      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Unstar' }),
-    );
-    expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBeFalsy();
-    expect(screen.queryByRole('article', { name: 'Zenith Product Designer' })).toBeNull();
-    expect(within(notice()).getByText('Unstarred')).toBeInTheDocument();
-    await user.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).queryByRole('menuitem', { name: /Star/ })).toBeNull();
     expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBe(true);
-    expect(screen.getByRole('article', { name: 'Zenith Product Designer' })).toBeInTheDocument();
-  });
-
-  it('Star from a card menu raises the shared notice with Undo, and the card flashes and stays', async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await openListOnPhone();
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
-    await user.click(within(card).getByRole('button', { name: 'More actions: Design Engineer' }));
-    await user.click(
-      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Star' }),
-    );
-    expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBe(true);
-    expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
-    expect(card.getAttribute('data-motion')).toBe('flash');
-    expect(within(notice()).getByText('Starred')).toBeInTheDocument();
-    await user.click(within(notice()).getByRole('button', { name: 'Undo' }));
-    expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBeFalsy();
   });
 });

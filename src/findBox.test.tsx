@@ -92,7 +92,7 @@ describe('Find box from the Pipeline', () => {
     const dialog = await openFind(user);
     await find(user, dialog, 'https://jobs.lever.co/northwind/1a2b');
     expect(getAllJobs().map((j) => j.url)).toEqual(['https://jobs.lever.co/northwind/1a2b']);
-    expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    expect(await screen.findByText(/^Added to Apply/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
