@@ -567,7 +567,7 @@ describe('Application kit: a pick on a snippet not moved yet (#314 review)', () 
 });
 
 describe('the job header keeps to two items per dotted line (#192)', () => {
-  it('badges above the title, company on its line, the position in the pager', async () => {
+  it('title first, company on its line, facts on one line, the position in the pager (#538)', async () => {
     updateJob(A, { location: 'Remote', verdict: 'match' });
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
@@ -576,11 +576,14 @@ describe('the job header keeps to two items per dotted line (#192)', () => {
       .filter((e) => e.children.length === 0)
       .map((e) => e.textContent ?? '');
     const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
-    expect(header).toHaveTextContent(/Acme\s*·?\s*Remote/);
+    // Title, then the company, then one facts line (place, pay, date).
+    const h1 = screen.getByRole('heading', { name: 'Acme Designer' });
+    expect(header.textContent!.indexOf('Acme Designer')).toBeLessThan(header.textContent!.indexOf('Remote'));
+    expect(h1.compareDocumentPosition(within(header).getByText('Remote')) & 4).toBeTruthy();
     expect(texts).toContain('1 of 3');
-    // Fit first, then status (#360, as CLAUDE.md says).
+    // No fit chip and no Saved chip (#538).
     const badges = texts.filter((t) => t === 'Strong fit' || t === 'Saved');
-    expect(badges).toEqual(['Strong fit', 'Saved']);
+    expect(badges).toEqual([]);
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });

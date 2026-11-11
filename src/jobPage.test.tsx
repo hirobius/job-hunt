@@ -76,7 +76,10 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(header).not.toBeNull();
-    expect(within(header).getByText('Saved')).toBeInTheDocument();
+    // #538: no Saved chip; the company and facts line say what is missing.
+    expect(within(header).queryByText('Saved')).toBeNull();
+    expect(within(header).getByText('Company not stated')).toBeInTheDocument();
+    expect(within(header).getByText('Pay not stated')).toBeInTheDocument();
     const star = within(header).getByRole('button', { name: 'Star' });
     expect(star).not.toHaveAttribute('aria-pressed'); // the text carries the state
     expect(within(header).getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
@@ -829,7 +832,8 @@ describe('job dates on the job page (#419)', () => {
     expect(getAllJobs()[0].deadline).toBeUndefined(); // saved on leaving the field, not per key
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(getAllJobs()[0].deadline).toBe(ymd(soon));
-    const label = `Closes ${soon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    // #538: the amber badge under the facts names the weekday and the days left.
+    const label = `Closes ${soon.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · 3 days`;
     const badge = screen.getAllByText(label).find((el) => el.closest('[data-tone]'));
     expect(badge?.closest('[data-tone]')).toHaveAttribute('data-tone', 'warning');
 
