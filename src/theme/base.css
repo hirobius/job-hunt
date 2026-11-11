@@ -79,7 +79,7 @@ p {
 }
 
 .rjb-semibold {
-  font-weight: 600;
+  font-weight: var(--primitive-typography-weight-semibold);
 }
 
 /* A form whose fields share one edge (job Details, Screening, Interviews, the Pipeline toolbar):
@@ -413,7 +413,7 @@ p {
   background: transparent;
   color: var(--semantic-color-content-primary);
   font: inherit;
-  font-weight: 500;
+  font-weight: var(--primitive-typography-weight-semibold);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -541,7 +541,7 @@ p {
  * Button has no link variant (HDS gap, docs/hds-upstream-asks-0.9.md). */
 .rjb-inline-link {
   padding-inline: 0;
-  font-weight: 500;
+  font-weight: var(--primitive-typography-weight-semibold);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

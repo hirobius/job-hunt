@@ -112,7 +112,7 @@ function LinkCard({
     <ItemRow>
       <Stack direction="row" gap="px8" align="center" wrap="nowrap" ref={flashCard}>
         <Box sx={{ flex: '1 1 0%', minWidth: 0, overflowWrap: 'anywhere' }}>
-          <Text variant="ui" as="span" weight="medium">
+          <Text variant="ui" as="span" className="rjb-semibold">
             <InlineLink href={link.url}>{name}</InlineLink>
           </Text>
         </Box>

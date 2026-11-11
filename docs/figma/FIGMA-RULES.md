@@ -9,7 +9,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   Input, Textarea, Menu, Dialog, Disclosure, Alert, EmptyState, Avatar, NavList. No custom controls.
 - **HDS tokens only.** Colours are token roles (content, surface, border, feedback, accent). No hex.
   The accent is HDS graphite. No local colour override.
-- **Type** is the HDS ramp: display, title, body, ui, caption, mono. Plus Jakarta Sans. No ALL CAPS.
+- **Type** is the HDS ramp: display, title, body, ui, caption, mono. Sora. No ALL CAPS.
   No italic. Secondary text is caption + secondary tone.
 - **Keys have three ranks.** One filled key (Button primary) per decision. A real second choice is a
   grey key (Button secondary). **An exit is underlined text** (Button link: content.primary, no

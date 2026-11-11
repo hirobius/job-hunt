@@ -54,7 +54,7 @@ copy, max 4 s.
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
 (`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
-`BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: HDS ships only Sora 700, which stays the fallback; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
+`BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: HDS 0.41.0 ships Sora 100-800 variable but its ramp uses 400/600/700; the logo keeps its own 800 file; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
 inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** / Play animations (WCAG 2.2.2;
 `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
@@ -137,11 +137,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `hds-touch-target` (44px at every width; G11, hds#1442). Its focus ring is on `::after`
   (hds#1167), which the `e2e/a11y.spec.ts` walk reads. `e2e/exit-style.spec.ts` pins it at 390 and 1440.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
-  (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
+  (`fonts.css`, Sora since HDS 0.41.0 (regular 400, semibold 600, bold 700), the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.40.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.41.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `package.json` pins it by its full tarball URL and `.npmrc` keeps only the auth line (no `@hirobius` scope
   mapping, job-hunt#567), so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`) and design-system
