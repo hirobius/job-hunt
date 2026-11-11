@@ -1,0 +1,23 @@
+# Gitleaks fingerprints for known, reviewed findings in the history.
+# Format: commit:file:rule:line. Add only exact fingerprints here.
+
+# Old SYNC_SECRET sha256 fallback. Removed in 2a0c4e5. SYNC_SECRET was rotated, so this hash is dead.
+bde010914285107d32123a56242ff7e8f525b961:supabase/functions/sync-postings/index.ts:generic-api-key:23
+
+# False positive: company slug list ("headoutlinkedin") in the board-keys data.
+269652474308bbbb989c6ec066862d066ff1accc:src/feed/data/board-keys.json:linkedin-client-secret:1
+
+# False positive: company slug list ("headoutlinkedin") in the board-keys data.
+9339f822c939b4b9720207521ddb7331f559c592:src/feed/data/board-keys.json:linkedin-client-secret:1
+
+# Fake test JWT for the scrubText test.
+aad35499917461a2d2640ed2b57316c9ff7cf97c:src/errorReport.test.ts:jwt:36
+
+# Fake test API key in the AI client test.
+63e06ddd208f8c4439de29769e37617e99efa0ff:src/ai/client.test.ts:generic-api-key:16
+
+# Supabase publishable key. It is public by design (RLS protects the data).
+cd9e3fffdf84a8e50c43849b583625137f21ce81:src/config.ts:generic-api-key:4
+
+# Supabase publishable key in the old index.html. It is public by design.
+d22c251c3ea6f9d19c8ee63bfd5314a4fe1d4f5e:index.html:generic-api-key:805
