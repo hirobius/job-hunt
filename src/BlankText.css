@@ -1,0 +1,21 @@
+/* A blank that fills in place (moved out of base.css by #539: it loads with BlankText, a lazy
+ * chunk). See base.css `.rjb-chip` for the read-only blank. */
+.rjb-blank {
+  --component-tag-minHeight: 0;
+  --component-tag-minWidth: 0;
+  --component-tag-radius: var(--semantic-radius-control);
+  --component-tag-paddingX: var(--semantic-space-subgrid-gap);
+  --component-tag-paddingY: 0;
+  --component-tag-border: var(--semantic-color-surface-muted);
+  --component-tag-background: var(--semantic-color-surface-muted);
+  --component-tag-text: var(--semantic-color-content-primary);
+  min-width: 0;
+  margin-inline: 1px;
+  vertical-align: middle;
+}
+
+@media (max-width: 639px) {
+  .rjb-blank {
+    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+  }
+}

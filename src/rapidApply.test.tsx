@@ -117,17 +117,23 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    // Empty fields wait behind one "Fill in N more" row.
-    await user.click(await screen.findByRole('button', { name: /^Fill in \d+ more/ }));
+    // Empty fields fold into one line: "11 more fields are empty. Add them" (#539).
+    expect(await screen.findByText(/^\d+ more fields are empty\./)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add them' }));
     // A labelled secondary "Add" (rev-3 mock), named for its field.
     expect(screen.getByRole('button', { name: 'Add Name' })).toHaveTextContent('Add');
     await user.click(screen.getByRole('button', { name: 'Add Name' }));
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Placeholder');
     await user.click(screen.getByRole('button', { name: 'Done' }));
     expect(getApplyKit().fields.name).toBe('Sam Placeholder');
-    await user.click(screen.getByRole('button', { name: 'Copy Name' }));
+    // A flat chip with a copy icon (#539): a press copies and says "Copied", also to screen readers.
+    const chip = screen.getByRole('button', { name: 'Copy Name' });
+    expect(chip.querySelector('svg')).not.toBeNull();
+    expect(chip).not.toHaveAttribute('data-variant'); // a Tag, not a keycap Button
+    await user.click(chip);
     expect(writeText).toHaveBeenCalledWith('Sam Placeholder');
-    expect(await screen.findByRole('button', { name: 'Copied Name' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Copied Name' })).toHaveTextContent('Copied');
+    expect(screen.getAllByRole('status').some((s) => s.textContent === 'Copied Name')).toBe(true);
   });
 
   it('Escape cancels a kit field edit: the value stays, focus returns to its button (#312)', async () => {
@@ -135,6 +141,8 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     setKitField('name', 'Sam');
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
+    // Edit opens the field rows (#539); the chips only copy.
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
     await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo{Escape}');
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
@@ -155,6 +163,8 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     setKitField('name', 'Sam');
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
+    // Edit opens the field rows (#539); the chips only copy.
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
     await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo');
     const cancel = screen.getByRole('button', { name: 'Cancel' });
@@ -533,7 +543,7 @@ describe("Apply sheet: templates in a job's Apply view (#239)", () => {
     setOutreachMessages([]);
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    const kit = await screen.findByRole('region', { name: 'Application kit' });
+    const kit = await screen.findByRole('region', { name: 'Copy into the form' });
     await user.click(within(kit).getByRole('button', { name: /^Cover note/ }));
     expect(within(kit).queryByRole('combobox', { name: /^Cover note template/ })).toBeNull();
     await user.click(within(kit).getAllByRole('button', { name: 'Add starter messages' })[0]);
@@ -557,7 +567,7 @@ describe('Application kit: a deleted template pick (#314)', () => {
     setOutreachMessages([{ id: 'other', label: 'Other note', body: 'Other body' }]);
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    const kit = await screen.findByRole('region', { name: 'Application kit' });
+    const kit = await screen.findByRole('region', { name: 'Copy into the form' });
     await user.click(within(kit).getByRole('button', { name: /^Why this company/ }));
     const picker = (await within(kit).findByRole('combobox', {
       name: /^Why this company template/,
@@ -593,7 +603,7 @@ describe('Application kit: a pick on a snippet not moved yet (#314 review)', () 
     replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-legacy' });
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    await screen.findByRole('region', { name: 'Application kit' });
+    await screen.findByRole('region', { name: 'Copy into the form' });
     await waitFor(() => expect(getSnippets().every((s) => s.migrated)).toBe(true));
     expect(getApplyKit().whyTemplate).toBe('why-legacy');
   });
@@ -711,7 +721,9 @@ describe('Apply sheet previews keep line breaks', () => {
 
 describe('Application kit: where it is kept (sign-in aware)', () => {
   const kitNote = () =>
-    within(screen.getByRole('region', { name: /^Application kit/ })).getByText(/^Enter these once/);
+    within(screen.getByRole('region', { name: /^Copy into the form/ })).getByText(
+      /^Enter these once/,
+    );
 
   it('signed out, it says the kit stays on this device', async () => {
     window.location.hash = `#/apply/${jobIdOf(A)}`;

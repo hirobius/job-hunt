@@ -362,9 +362,9 @@ for (const width of [390, 800] as const) {
       page,
     }) => {
       await openApply(page);
-      await page.getByRole('button', { name: /^Fill in \d+ more/ }).click();
+      await page.getByRole('button', { name: 'Add them' }).click();
       const add = page
-        .getByRole('region', { name: /^Application kit/ })
+        .getByRole('region', { name: /^Copy into the form/ })
         .getByRole('button', { name: /^Add / })
         .first();
       const label = (await add.getAttribute('aria-label'))!.replace(/^Add /, '');

@@ -36,8 +36,6 @@ export function ActionDock({
   const hidden = typing;
   return (
     <>
-      {/* Keeps the page's end clear of the dock. */}
-      <Box className="rjb-dock-spacer" aria-hidden="true" />
       {/* On body (which carries data-hds): a transformed ancestor would pin a fixed box to
           itself, not to the viewport. */}
       {createPortal(
