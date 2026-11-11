@@ -65,7 +65,7 @@ describe('TheirStack', () => {
     expect(init.method).toBe('POST');
     expect(init.headers.authorization).toBe('Bearer ts-key');
     expect(JSON.parse(init.body)).toMatchObject({
-      job_title_or: ['design system', 'design technologist'],
+      job_title_or: ['design system', 'design technologist', 'design engineer', 'ux engineer'],
       remote: true,
       limit: THEIRSTACK_LIMIT,
       posted_at_max_age_days: 4,

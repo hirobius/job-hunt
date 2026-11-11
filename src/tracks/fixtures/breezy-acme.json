@@ -1,0 +1,24 @@
+[
+  {
+    "id": "0a1b2c",
+    "friendly_id": "0a1b2c-senior-design-systems-engineer",
+    "name": "Senior Design Systems Engineer",
+    "url": "https://acme.breezy.hr/p/0a1b2c-senior-design-systems-engineer",
+    "published_date": "2026-10-21T00:00:00Z",
+    "type": { "id": "fullTime", "name": "Full-Time" },
+    "location": { "name": "Remote", "is_remote": true, "country": { "name": "United States" } },
+    "department": "Design",
+    "company": { "name": "Acme Inc" },
+    "description": "<p>Lead our design system: components, tokens and documentation.</p>"
+  },
+  {
+    "id": "3d4e5f",
+    "friendly_id": "3d4e5f-warehouse-associate",
+    "name": "Warehouse Associate",
+    "url": "https://acme.breezy.hr/p/3d4e5f-warehouse-associate",
+    "published_date": "2026-10-15T00:00:00Z",
+    "type": { "name": "Full-Time" },
+    "location": { "name": "Austin, TX", "is_remote": false },
+    "company": { "name": "Acme Inc" }
+  }
+]

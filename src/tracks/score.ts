@@ -15,6 +15,12 @@ export interface NormalizedPosting {
     | 'smartrecruiters'
     | 'teamtailor'
     | 'personio'
+    // The five read from their careers pages' public JSON (feed/sources/atsExtra.ts, #576).
+    | 'bamboohr'
+    | 'rippling'
+    | 'gem'
+    | 'pinpoint'
+    | 'breezy'
     | 'jsearch'
     | 'adzuna'
     // The sync's own whole-web searches (tracks/feeds).
@@ -142,6 +148,11 @@ export function dedupe(postings: NormalizedPosting[]): NormalizedPosting[] {
     smartrecruiters: 0,
     teamtailor: 0,
     personio: 0,
+    bamboohr: 0,
+    rippling: 0,
+    gem: 0,
+    pinpoint: 0,
+    breezy: 0,
     rss: 1,
     manual: 1,
     ids: 1,

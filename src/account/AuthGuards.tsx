@@ -5,6 +5,7 @@
 // each answer runs once, and Escape or Back is the safe one.
 import { AlertDialog, Button } from '@hirobius/design-system';
 import { useBackCloses } from '../useBackCloses';
+import { ExitButton } from '../hds-gaps/ExitButton';
 import { focusAsHeading, pageHeadingNow } from '../focusRescue';
 
 /** The dialog leaves with the answer (its host unmounts it), so no close-focus runs: once it has
@@ -40,9 +41,7 @@ export default function MergeConfirmDialog({
           </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer>
-          <Button variant="secondary" onClick={thenToHeading(onKeep)}>
-            Don't add
-          </Button>
+          <ExitButton onClick={thenToHeading(onKeep)}>Don't add</ExitButton>
           <Button variant="primary" onClick={thenToHeading(onAdd)}>
             Add to account
           </Button>

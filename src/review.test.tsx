@@ -159,7 +159,7 @@ describe('Review new: Browse', () => {
     // One read: every title (and the related one) and board in one sweep.
     expect(feed.fetchFeed).toHaveBeenCalledTimes(1);
     expect(feed.fetchFeed.mock.calls[0][0]).toMatchObject({
-      terms: ['Design Systems Designer', 'Design Technologist'],
+      terms: ['Design Systems Designer', 'Design Technologist', 'Design Engineer'],
     });
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
@@ -577,7 +577,7 @@ describe('Review new: every design-system posting, no tiers', () => {
       result([
         post('hn:1', 'Design Systems Engineer', 'Orbit', { postedAt: '2026-10-01T00:00:00Z' }),
         post('hn:2', 'Design Technologist', 'Glyph', { postedAt: '2026-10-20T00:00:00Z' }),
-        post('hn:3', 'UX Engineer', 'Kite', { text: 'our design system' }),
+        post('hn:3', 'Frontend Platform Engineer', 'Kite', { text: 'our design system' }),
         post('hn:4', 'Backend Engineer', 'Nimbus'),
       ]),
     );

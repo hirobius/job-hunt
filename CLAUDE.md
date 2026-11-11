@@ -103,8 +103,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
   transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
   (`hds.motion.spatial`; reduced motion = opacity); from lg an inline row under the title block. Keys: filled,
-  grey, exit. Star and More sit beside the title. Not a fit is the dock's exit: "Marked not a fit: <title>" with
-  Undo (`applyActions.ts`). Pinned in `ActionDock.test.tsx`, `e2e/action-dock.spec.ts`.
+  grey, exit, per state from one table, `src/dockKeys.ts` `dockKeys` (#540 adds its keys there): to apply with a
+  link Open application | Mark applied | Not a fit; **no link** (`applicationLink`: not http(s)) Mark applied | Add
+  link (opens Details on Link, `editLinkRequest.ts`) | Not a fit, never an Open application; follow-up due Follow
+  up; Interviewing Add interview; else no dock and no spacer. The dock hides at once on a field and comes back
+  only after focus has been out of every field for 150 ms (`SHOW_AFTER_MS`: no flash between fields). More
+  sits beside the title (no star, #534). Not a fit is the dock's exit: "Marked not a fit: <title>" with Undo
+  (`applyActions.ts`: `undoPatch` puts every field back, no navigation; the toast survives navigation). After
+  Mark applied / Not a fit the next job in the list opens (`applyNext.ts` `openNextAfter`, from any origin) and
+  its title takes focus; with no next job the tab goes back to its list and that page's h1 takes focus. Pinned in
+  `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `e2e/action-dock.spec.ts`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
@@ -519,11 +527,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   inclusion check uses (`termRegex`, `passesInclude`: whole words, "systems" ↔ "design system", never "ecosystem";
   **phrases break at separators**: a spaced hyphen, en/em dash, `, | / : ; & · •`; a hyphen inside a word joins).
   **A design system rule reads the title only** (`hasRelatedTitles`), so Design Engineers never come in through a
-  description; **related titles** = Design Technologist only (`related` absent = on, `relatedOff` ids). The per-track
+  description; **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
+  `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
+  process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
+  by the related-title pass, `feeds/dsRole.ts` `isDsRole` and the scorer's `DESIGN_ENGINEER_STRONG` (a lookahead
+  built from `NOT_UI_DESIGN_SOURCE`); pinned in `tracks/designEngineer.test.ts`. The check itself (`passesInclude`,
+  `keepIncluded`, `relatedCounts`, `mentionsAny`) is `feed/include.ts`, so the guard stays out of the entry. The per-track
   store (`rjb_must_include`, blob **v11**, incl. `atsOff` and a Contracts track's stored `naics`, `cleanNaics`) stays
   readable and feeds the v12 move; its editors (Calibrate, Manage track) are gone. `App`'s `SystemsOnlyMigration`
   still runs `migrateSystemsOnly` on old pack tracks. Pinned in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`,
-  `systemsOnlyNotice.test.tsx`.
+  `systemsOnlyNotice.test.tsx`, `tracks/designEngineer.test.ts`.
 - **Track scorer (Muse handoff, 2026-10-24):** `src/tracks/` is pure and shared by the app and the sync edge
   function: `score.ts` + `track-config.ts` are ported as given; tune only through the config. `scoreForTrack` = scorer
   then `fitRejectReason` (no interns); a profile with `scorer: 'design-systems'` (onboarding sets it) or a must include
@@ -531,7 +545,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   **Server (Simplify 6/9, #387):** `sync-postings` reads each user's Sources and Search profile from their `tracker`
   blob (`tracks/plan.ts` `planFromBlob`: v12 `sources[]` + `profiles[0]`, else v11 dreams, targets, saved jobs'
   boards and the Watched tiles via the `watched_tile_urls()` RPC, + `verified.ts` for a DS user); `compileProfile`
-  gives the DS config when the profile asks for design systems, else one from its titles. Boards of every kind and
+  gives the DS config when the profile asks for design systems, else one from its titles. Boards of all 13 kinds
+  (#576: plan.ts takes `boardSet` `BOARD_KINDS` + `BOARD_SLUG` on every path, so each read goes to its kind's fixed
+  host; BambooHR/Rippling/Gem/Pinpoint/Breezy rows keep their own `source`, not `manual`, migration
+  `20261111100000`, applied before the function is redeployed; `tracks/sourceCheck.test.ts`) and
   HN/Remotive/Jobicy are read with the app's own parsers (`src/feed/sources/*` and their imports use explicit `.ts`
   specifiers so Deno and Node load them; `inferMode` lives in `feed/mode.ts`). No `watched_companies` or `skips`
   table: the blob is the one source of truth, and the sync never writes it. Migrations `2026102410*`: postings,
@@ -950,7 +967,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
   name the board states (Dice ≥ 0.9). A lone board that says nothing either way is kept; the rest are
   **unconfirmed** (`DiscoverResult.unconfirmed`, with why), listed with "Watch anyway", never
   auto-watched. Pasted board URLs skip the check. Evidence rides in `rjb_probe` (`e`); an older live
-  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds
+  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds (the server sync and rotation read them too since #576; shape fixtures in `src/tracks/fixtures`)
   (`sources/atsExtra.ts`, **unverified live**, CORS too; why JazzHR, Comeet, Freshteam, Workday aren't is
   in its header). Pinned in `feed/boardIdentity.test.ts`, `probe.test.ts`, `sources/atsExtra.test.ts`.
 - **Hidden-job discovery helpers (2026-10-15, `docs/specs/discovery-methods.md`; their screens went in #389).**

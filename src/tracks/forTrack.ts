@@ -4,7 +4,8 @@
 // move set that): its config then replaces must include, related titles and the title filter in
 // Live postings, Companies' matching roles and dream companies. Every other track keeps the
 // phrase rules (feed/mustInclude.ts).
-import { hasRelatedTitles, keepIncluded, type IncludeRule } from '../feed/mustInclude';
+import { keepIncluded } from '../feed/include';
+import { hasRelatedTitles, type IncludeRule } from '../feed/mustInclude';
 import type { FeedSourceId, Posting } from '../feed/types';
 import type { NormalizedPosting, ScoreResult } from './score.ts';
 import { byScoreThenNewest, scoreForTrack } from './scoreForTrack.ts';

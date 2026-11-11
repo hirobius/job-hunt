@@ -1,6 +1,8 @@
 // Track config (Muse handoff, 2026-10-24): what the scorer (score.ts) reads for one track. Ported
 // as given; a track is tuned here, never in the scorer. Pure, so the client and the sync edge
 // function (supabase/functions/sync-postings) share it.
+import { NOT_UI_DESIGN_SOURCE } from './designRoleGuard.ts';
+
 export interface DescriptionSignal {
   pattern: string;
   label: string;
@@ -19,6 +21,14 @@ export interface TrackConfig {
   aggregatorQueries: string[];
 }
 
+/** Design engineering (Adrian 2026-11-11): Design Engineer, UX Engineer and Front-end Design
+ *  Engineer titles are strong, unless the title names hardware or physical-product work (the shared
+ *  guard, designRoleGuard.ts, which the Feed and the keyless feeds use too). The guard sits inside
+ *  the pattern because a strong title overrides titleNegative. */
+export const DESIGN_ENGINEER_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\b(design|ux) engineers?\\b`;
+/** Design Technologist titles, with the same guard. */
+export const DESIGN_TECHNOLOGIST_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\bdesign technologists?\\b`;
+
 export const designSystemsTrack: TrackConfig = {
   slug: 'design-systems',
   name: 'Design Systems',
@@ -31,14 +41,16 @@ export const designSystemsTrack: TrackConfig = {
     'component (library|platform|systems?) (engineer|designer|developer|lead)',
     'design systems? (engineer|designer|developer|lead|manager|architect|specialist|consultant)',
     '(engineer|designer|developer|lead|manager|architect) — design systems?',
+    // Adrian 2026-11-11: design engineering roles are searched as well (this replaces the
+    // 2026-10-23 tune that left "design engineer" out).
+    DESIGN_ENGINEER_STRONG,
+    DESIGN_TECHNOLOGIST_STRONG,
   ],
-  // One tune (Adrian 2026-10-23): "design engineer" is left out. Design Engineer roles come in only
-  // when the title is clearly a design-system one (titleStrong).
+  // Creative technologist stays adjacent: it is often an agency or marketing role, so the body
+  // has to show design-system work.
   titleAdjacent: [
-    'design technologist',
     'creative technologist',
     'ui engineer',
-    'ux engineer',
     'front[- ]end (engineer|developer).*(design|ui|component)',
     '(product|ux|ui) designer.*(platform|infrastructure|systems|foundations|core)',
     'design.*foundations',
@@ -112,6 +124,9 @@ export const designSystemsTrack: TrackConfig = {
     '"design system" "product designer" remote',
     '"design technologist" remote',
     '"design engineer" "design systems" remote',
+    '"design engineer" remote',
+    '"ux engineer" remote',
+    '"front-end design engineer" remote',
     '"component library" engineer remote',
   ],
 };

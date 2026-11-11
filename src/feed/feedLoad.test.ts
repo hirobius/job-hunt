@@ -12,7 +12,7 @@ import type { StoredPosting } from '../tracks/postings';
 import type { PostingReader } from './reader';
 import type { Posting } from './types';
 import { rankAll } from './match';
-import { passesInclude } from './mustInclude';
+import { passesInclude } from './include';
 import { designSystemRule } from './profile';
 
 const row = (n: number, company = 'Acme'): StoredPosting => ({
