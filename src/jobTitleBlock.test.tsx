@@ -49,6 +49,9 @@ describe('JobTitleBlock', () => {
     const due = screen.getByText(/^Follow-up due/).closest('[data-tone]')!;
     expect(due).toHaveAttribute('data-tone', 'warning');
     expect(due.querySelector('svg')).not.toBeNull();
-    expect(screen.getByText('Applied').closest('[data-tone]')).toHaveAttribute('data-tone', 'neutral');
+    expect(screen.getByText('Applied').closest('[data-tone]')).toHaveAttribute(
+      'data-tone',
+      'neutral',
+    );
   });
 });

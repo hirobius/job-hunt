@@ -82,7 +82,8 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(within(header).getByText('Pay not stated')).toBeInTheDocument();
     const star = within(header).getByRole('button', { name: 'Star' });
     expect(star).not.toHaveAttribute('aria-pressed'); // the text carries the state
-    expect(within(header).getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
+    // The keys sit in the dock (#535), outside the header on a phone.
+    expect(screen.getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
   });
 
@@ -94,7 +95,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(within(header).queryByRole('link', { name: /^Open posting for / })).toBeNull();
-    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute(
       'href',
       URL_A,
     );
@@ -111,8 +112,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     openJobPage();
     // Details opens as fields (no link fact), so the header is the one-tap way out.
     expect(screen.getByRole('textbox', { name: 'Link' })).toBeInTheDocument();
-    const header = screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement;
-    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute(
       'href',
       URL_A,
     );
@@ -132,20 +132,31 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(screen.queryByRole('button', { name: /^Mark applied/ })).toBeNull();
   });
 
-  it('with no next step the action row is just Star and More, no empty slot between', () => {
+  it('with no next step there is no dock: Star and More sit by the title, no empty slot (#535)', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { status: 'Offer', applied: todayYmd() });
     openJobPage();
-    const star = screen.getByRole('button', { name: 'Star' });
-    const row = star.closest('[data-rjb-actions]') as HTMLElement;
-    expect(row).not.toBeNull();
-    // (The menu's hidden portal anchor is not a slot.)
-    expect([...row.children].filter((c) => !(c as HTMLElement).hidden)).toHaveLength(2);
-    expect(
-      within(row)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label') ?? b.textContent),
-    ).toEqual(['Star', expect.stringMatching(/^More actions/)]);
+    expect(screen.getByRole('button', { name: 'Star' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-rjb-actions]')).toBeNull();
+    expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
+  });
+
+  it('a job to apply to: the dock holds the filled key, the grey key, then the exit (#535)', () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => k.getAttribute('data-variant'))).toEqual([
+      'primary',
+      'secondary',
+      'link',
+    ]);
+    expect(keys.map((k) => k.textContent)).toEqual([
+      'Open application',
+      'Mark applied',
+      'Not a fit',
+    ]);
   });
 
   it('starring fills the star, says Starred and where starred jobs show', async () => {

@@ -171,6 +171,8 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
     expect(pagerOf().getByText('2 of 2')).toBeInTheDocument();
     const region = await findNotice();
+    // #536: the toast names the job, and Undo restores it and its place.
+    expect(within(region).getByText('Marked not a fit: Cask Designer')).toBeInTheDocument();
     await user.click(within(region).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)?.archived).toBe(false);
     // Undo reopens the job set aside, at its place in the list (return paths).
@@ -558,7 +560,9 @@ describe('the job header keeps to two items per dotted line (#192)', () => {
     const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
     // Title, then the company, then one facts line (place, pay, date).
     const h1 = screen.getByRole('heading', { name: 'Acme Designer' });
-    expect(header.textContent!.indexOf('Acme Designer')).toBeLessThan(header.textContent!.indexOf('Remote'));
+    expect(header.textContent!.indexOf('Acme Designer')).toBeLessThan(
+      header.textContent!.indexOf('Remote'),
+    );
     expect(h1.compareDocumentPosition(within(header).getByText('Remote')) & 4).toBeTruthy();
     expect(texts).toContain('1 of 3');
     // No fit chip and no Saved chip (#538).

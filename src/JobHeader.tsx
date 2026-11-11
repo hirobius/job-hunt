@@ -6,7 +6,9 @@
 // An Interviewing job's primary is Add interview (opens its dialog, #416); a job with no next
 // step (Offer, Rejected, retired, applied and not yet due) has none, so Star and More sit together.
 import { Banknote, Bell, CalendarClock, Clock, ExternalLink, MapPin } from 'lucide-react';
-import { Badge, Box, Button, Card, Icon, Stack, Text } from '@hirobius/design-system';
+import { Fragment } from 'react';
+import { Badge, Box, Button, Card, Icon, Stack, Text, useAtLeast } from '@hirobius/design-system';
+import { ActionDock } from './hds-gaps/ActionDock';
 import { closingOf, dateLabel, dueBadgeOf } from './jobDates';
 import { primaryAction, titleOf } from './jobRow';
 import { goBack, openJob, type Route } from './route';
@@ -146,27 +148,38 @@ export default function JobHeader({
   // A job closed on the board was opened to clear it out: retiring it goes back to where it was
   // opened from (the Pipeline's closed list), like Remove does for any job.
   const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
+  const wide = useAtLeast('lg');
+  // One filled key, one grey key, one exit, in that order of rank (#535). On a phone they sit in
+  // the dock at the bottom; from lg in one row under the title block.
+  const keys = [
+    primary && <Fragment key="primary">{primary}</Fragment>,
+    applying && (
+      <Button
+        key="grey"
+        variant="secondary"
+        size="md"
+        aria-label={`Mark applied: ${title}`}
+        onClick={markApplied}
+      >
+        Mark applied
+      </Button>
+    ),
+    applying && (
+      <ExitButton key="exit" aria-label={`Not a fit: ${title}`} onClick={notAFit}>
+        Not a fit
+      </ExitButton>
+    ),
+  ].filter(Boolean);
   return (
     <Box as="header" sx={{ mb: 'lg' }}>
       <Stack gap="normal">
         {showBack && <BackToPipeline />}
-        <JobTitleBlock job={job} />
-        {/* On a phone the primary takes the room between the two 40px icon buttons (rev-3
-            mock); from sm up it is as wide as its label. No primary, no slot: no hole. */}
-        <Box data-rjb-actions="" sx={{ display: 'flex', alignItems: 'center', gap: 'xs' }}>
+        {/* The title block, with the star and More at its top end: they do not commit. */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 'xs' }}>
+          <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
+            <JobTitleBlock job={job} />
+          </Box>
           <StarButton job={job} />
-          {primary && (
-            <Box
-              sx={{
-                flex: { base: '1 1 0%', sm: '0 0 auto' },
-                minWidth: 0,
-                display: 'flex',
-                '& > *': { flex: '1 1 0%' },
-              }}
-            >
-              {primary}
-            </Box>
-          )}
           <RowMenu
             job={job}
             size="md"
@@ -175,21 +188,10 @@ export default function JobHeader({
             onRetired={closed ? () => goBack(PIPELINE) : undefined}
           />
         </Box>
-        {applying && (
-          // One row of two equal secondaries under the primary (rev-3 E).
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'xs' }}>
-            <Button
-              variant="secondary"
-              size="md"
-              aria-label={`Mark applied: ${title}`}
-              onClick={markApplied}
-            >
-              Mark applied
-            </Button>
-            <ExitButton aria-label={`Not a fit: ${title}`} onClick={notAFit}>
-              Not a fit
-            </ExitButton>
-          </Box>
+        {keys.length > 0 && (
+          <ActionDock docked={!wide} label={`Actions for ${title}`}>
+            {keys}
+          </ActionDock>
         )}
       </Stack>
     </Box>

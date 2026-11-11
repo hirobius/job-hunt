@@ -88,6 +88,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
+- **Action dock (redesign §5.5, #535/#536):** `src/hds-gaps/ActionDock.tsx` (+ `.css`, `fieldFocus.ts`; G1,
+  hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
+  transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
+  (`hds.motion.spatial`; reduced motion = opacity); from lg an inline row under the title block. Keys: filled,
+  grey, exit. Star and More sit beside the title. Not a fit is the dock's exit: "Marked not a fit: <title>" with
+  Undo (`applyActions.ts`). Pinned in `ActionDock.test.tsx`, `e2e/action-dock.spec.ts`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or

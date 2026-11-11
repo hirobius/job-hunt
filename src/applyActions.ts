@@ -20,9 +20,9 @@ export function markAppliedWithUndo(job: Job): void {
  *  runs `reopen` (the caller shows the job again). */
 export function setAsideWithUndo(job: Job, reopen: () => void): void {
   updateJob(job.url, { archived: true });
+  // #536: "Marked not a fit: <title> · Undo". The job keeps its record (Closed view).
   showNotice({
-    title: 'Set aside as not a fit',
-    description: titleOf(job),
+    title: `Marked not a fit: ${titleOf(job)}`,
     actions: [
       {
         label: 'Undo',
