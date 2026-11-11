@@ -1,0 +1,71 @@
+# Weekly board discovery (#576 item 4, PR #584). Path in the repo: .github/workflows/board-discovery.yml
+# Needs: repo secret HDS_PACKAGES_TOKEN (already used by ci.yml), and Settings > Actions > General >
+# "Allow GitHub Actions to create and approve pull requests" turned on.
+# A PR opened with github.token does not start ci.yml: close and reopen it (or push an empty
+# commit) before merging.
+name: Weekly board discovery
+on:
+  schedule:
+    - cron: '17 3 * * 1' # Mondays 03:17 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: board-discovery
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.repository == 'hirobius/job-hunt'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Discovery runs repo code against outside hosts: keep the write token out of .git/config.
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      # @hirobius/hds-toolkit is a private GitHub Packages tarball (.npmrc): npm ci 401s without it.
+      - run: npm ci
+        env:
+          HDS_PACKAGES_TOKEN: ${{ secrets.HDS_PACKAGES_TOKEN }}
+      # Exit 0: a safe change (PR body in node_modules/.cache/boards-refresh.md). Exit 2: no change,
+      # a green run with no PR. Exit 3: blocked as unsafe (a source failed, a kind lost over 25%,
+      # over 10% removed): a red run, so the failure is seen. Exit 1: discovery failed.
+      - name: Run discovery
+        id: discover
+        run: |
+          set +e
+          npm run discover:boards
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = 2 ]; then exit 0; fi
+          exit $code
+      # The data must still pass its own tests and the bundle budget (board-keys.json ships in a
+      # lazy chunk capped at 70 kB gzip by the size-budget plugin) before a PR is proposed.
+      - name: Check the new set
+        if: steps.discover.outputs.code == '0'
+        run: |
+          npx vitest run src/feed src/tracks
+          npm run build
+      - name: Open the PR
+        if: steps.discover.outputs.code == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # npm ci installed husky's hooks; the pre-push secret scan needs gitleaks, which the
+          # runner does not have. This commit is generated data only.
+          HUSKY: '0'
+        run: |
+          branch="boards/refresh-$(date -u +%Y-%m-%d)-${GITHUB_RUN_ID}"
+          gh auth setup-git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add src/feed/data/boards.json src/feed/data/board-keys.json
+          git commit -m "data: weekly board discovery refresh"
+          git push origin "$branch"
+          gh pr create --title "data: weekly board discovery refresh" \
+            --body-file node_modules/.cache/boards-refresh.md --base main --head "$branch"
