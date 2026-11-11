@@ -84,6 +84,20 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     ]);
   });
 
+  it('lists ignored companies (muted company or board Sources, not feeds) for board suggestions', () => {
+    const plan = planFromBlob(
+      v12({
+        sources: [
+          { kind: 'greenhouse', ref: 'figma', label: 'Figma', muted: true },
+          { kind: 'company', ref: 'close', label: 'Close ', muted: true },
+          { kind: 'ashby', ref: 'ramp', label: 'Ramp' },
+          { kind: 'feed', ref: 'remotive', label: 'Remotive', muted: true },
+        ],
+      }),
+    );
+    expect(plan?.ignored.sort()).toEqual(['close', 'figma']);
+  });
+
   it("skips a muted Source; #411's feed refs mute their feed (designsystems-rss is rss)", () => {
     const plan = planFromBlob(
       v12({

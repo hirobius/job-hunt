@@ -112,6 +112,81 @@ describe('user-writable tables: caps and same-user parents (#320, #391)', () => 
   });
 });
 
+describe('board suggestions tables (#576 item 5)', () => {
+  const f = files.find((x) => /_board_suggestions\.sql$/.test(x));
+  const body = f ? code(f) : '';
+
+  it('exists', () => expect(f).toBeDefined());
+
+  it('turns RLS on for both tables', () => {
+    expect(body).toContain('alter table public.board_suggestions enable row level security');
+    expect(body).toContain('alter table public.board_probe_names enable row level security');
+  });
+
+  it('lets a signed-in user read and delete only their own suggestions, and write none', () => {
+    expect(body).toMatch(
+      /create policy "read own rows" on public\.board_suggestions for select to authenticated using \(auth\.uid\(\) = user_id\)/,
+    );
+    expect(body).toMatch(
+      /create policy "delete own rows" on public\.board_suggestions for delete to authenticated using \(auth\.uid\(\) = user_id\)/,
+    );
+    const policies = [
+      ...body.matchAll(/create policy "[^"]+" on public\.(\w+) for (\w+) to (\w+)/g),
+    ];
+    expect(policies.map((m) => [m[1], m[2], m[3]])).toEqual([
+      ['board_suggestions', 'select', 'authenticated'],
+      ['board_suggestions', 'delete', 'authenticated'],
+    ]);
+  });
+
+  it('grants select and delete to authenticated only; the probe cache is service-only', () => {
+    expect(body).toContain(
+      'revoke all on public.board_suggestions from public, anon, authenticated',
+    );
+    expect(body).toContain(
+      'revoke all on public.board_probe_names from public, anon, authenticated',
+    );
+    const grants = [
+      ...body.matchAll(/grant ([a-z, ]+?) on (?:table )?public\.(board_\w+) to (\w+)/g),
+    ];
+    expect(grants.map((m) => [m[1], m[2], m[3]])).toEqual([
+      ['select, delete', 'board_suggestions', 'authenticated'],
+    ]);
+  });
+
+  it('checks every column a row carries', () => {
+    expect(body).toMatch(/kind text not null check \(kind in \('greenhouse', 'lever', 'ashby'\)\)/);
+    expect(body).toMatch(/slug text not null check \(slug ~ /);
+    expect(body).toMatch(
+      /company text not null check \(char_length\(company\) between 1 and 200\)/,
+    );
+    expect(body).toMatch(/jobs int not null default 0 check \(jobs between 0 and 100000\)/);
+    expect(body).toMatch(
+      /name_key text primary key check \(char_length\(name_key\) between 1 and 200\)/,
+    );
+  });
+
+  it("caps suggestions per user with #320's locked trigger", () => {
+    expect(body).toContain('drop trigger if exists board_suggestions_row_cap');
+    expect(body).toMatch(
+      /create trigger board_suggestions_row_cap before insert on public\.board_suggestions for each row execute function public\.cap_rows_per_user\('500'\)/,
+    );
+    // The trigger function is #320's, defined earlier.
+    const caps = files.find((x) => /user_table_caps/.test(x));
+    expect(caps && caps < f!).toBe(true);
+  });
+
+  it('ages suggestions and cached names out nightly', () => {
+    expect(body).toMatch(/cron\.schedule\( 'board-suggestions-retention'/);
+    expect(body).toMatch(
+      /delete from public\.board_suggestions where found_at < now\(\) - interval '60 days'/,
+    );
+    expect(body).toMatch(
+      /delete from public\.board_probe_names where checked_at < now\(\) - interval '90 days'/,
+    );
+  });
+});
+
 describe('sync-postings auth (#322)', () => {
   const src = fs.readFileSync('supabase/functions/sync-postings/index.ts', 'utf8');
 

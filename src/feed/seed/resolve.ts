@@ -13,6 +13,7 @@ import { createLimiter, hostKey, probeBoard, PROBE_KINDS, type Limiter } from '.
 import { boardJobs, canonicalBoardUrl, type Board, type BoardKind } from '../sources/ats';
 import { arr, obj, str, type FetchJson } from '../sources/http';
 import { domainLabel, normName, registrableDomain, type Candidate } from './parse';
+import { COMMON_WORDS, DISTINCT_NAME, distinctName } from '../distinctName';
 
 export type Confirmation = 'linked' | 'domain' | 'title' | 'name';
 
@@ -61,44 +62,8 @@ export function boardOwnName(b: Board, body: unknown): string {
   return '';
 }
 
-/** Shortest name a description alone ("At <Name>", "<Name> is a") can confirm. */
-export const DISTINCT_NAME = 7;
-
-/** Ordinary English words seen as company names: "At Promise" or "Instrument is a" in a stranger's
- *  description says nothing about whose board it is. Lower case, letters only. */
-export const COMMON_WORDS: ReadonlySet<string> = new Set(
-  (
-    'ability abstract academy account advance advisor airline alliance amplify analyst anchor ' +
-    'anthem archive arrival athlete balance barrier battery beacon benefit billion blossom ' +
-    'booking bracket brigade cabinet calendar capital caravan careful catalyst central century ' +
-    'champion channel chapter charter circuit citizen classic climate cluster collect college ' +
-    'compass complete concept conduct connect console contact content context control convert ' +
-    'cooking counsel country courage crystal culture current curious customer default delight ' +
-    'deliver density digital diploma discord display distant element embassy emerald empower ' +
-    'endless engine evident example excited expanse explore express factory faithful fashion ' +
-    'feature finance fitness forward freedom frontier gallery general genuine glimpse harbor ' +
-    'harvest heritage history holiday homebase horizon imprint instrument journey justice kindred kingdom ' +
-    'kitchen landing lantern largest lattice leading lecture liberty library license lighthouse ' +
-    'machine mailbox mammoth mansion measure meridian message million mission monarch morning ' +
-    'motion natural network neutral notable notion nucleus observe offline opinion orchard ' +
-    'outcome outlook outside overture package passage passport pathway pattern payment percent ' +
-    'persona picture pilgrim pioneer pivotal planner plateau popular portion premium present ' +
-    'primary printer private problem process product program progress project promise prospect ' +
-    'protect purpose quantum quarter railway rainbow reality receipt recover reflect relevant ' +
-    'remote request reserve resolve respect revenue routine scholar science seasons section ' +
-    'segment service shelter signal silicon society soldier speaker spectrum station steward ' +
-    'storage strategy studio subject success summary summit support surface sustain teacher ' +
-    'thought tonight traffic transit treasure triangle trinity triumph trouble trusted uniform ' +
-    'universe upgrade utility venture verdict village virtual visible volume voyage weather ' +
-    'welcome western whisper wildfire witness wonder workshop'
-  ).split(/\s+/),
-);
-
-/** A name a description pattern can safely confirm: long enough and not an everyday word. */
-export function distinctName(name: string): boolean {
-  const bare = normName(name);
-  return bare.length >= DISTINCT_NAME && !COMMON_WORDS.has(bare);
-}
+// The name rule lives in feed/distinctName.ts (shared with the server's board suggestions).
+export { COMMON_WORDS, DISTINCT_NAME, distinctName };
 
 export function confirmBoard(
   c: Candidate,
