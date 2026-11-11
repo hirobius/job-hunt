@@ -68,16 +68,10 @@ const PARALLEL = 8;
  *  halving the serial Ashby tail (#448). */
 const ASHBY_PARALLEL = 2;
 
-/** Sources the postings table's `source` check doesn't list (the sync never reads them; the
- *  browser's newer board kinds are scored as 'manual'). */
-const NOT_STORED = new Set<Posting['source']>([
-  'remoteok',
-  'bamboohr',
-  'rippling',
-  'gem',
-  'pinpoint',
-  'breezy',
-]);
+/** Browser sources the sync stores under 'manual' (Remote OK's browser read; the sync reads it
+ *  itself, tracks/feeds/remoteok.ts). Every board kind, all 13 since #576, keeps its own source
+ *  (migration 20261111100000 widens the postings check). */
+const NOT_STORED = new Set<Posting['source']>(['remoteok']);
 
 /** A live Posting (src/feed) as the scorer reads it. The source id is the Posting's own id
  *  (`greenhouse:stripe:123`), so the browser and the server name a posting the same way. */
@@ -315,8 +309,14 @@ export async function readAll<C extends WatchedCompany>(
     return part;
   };
   const [pooled, ashby] = await Promise.all([
-    inChunks(companies.filter((c) => c.ats !== 'ashby'), PARALLEL),
-    inChunks(companies.filter((c) => c.ats === 'ashby'), ASHBY_PARALLEL),
+    inChunks(
+      companies.filter((c) => c.ats !== 'ashby'),
+      PARALLEL,
+    ),
+    inChunks(
+      companies.filter((c) => c.ats === 'ashby'),
+      ASHBY_PARALLEL,
+    ),
   ]);
   out.push(...pooled, ...ashby);
   // Term feeds one request at a time: they are shared public APIs.
