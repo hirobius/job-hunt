@@ -9,8 +9,18 @@ import { ItemList, ItemRow } from './PipelinePanel';
 import { useFeedInputs } from './feed/useFeed';
 import { followCompany, muteCompany, unmuteCompany, useDecided } from './feed/decided';
 import { companiesLists, type CompanyEntry } from './companiesList';
+import { followBoard } from './sources';
+import { metaLines } from './metaLines';
+import { dismissSuggestion, loadSuggestions, type BoardSuggestion } from './boardSuggestions';
 
-type Show = 'followed' | 'ignored';
+type Show = 'followed' | 'ignored' | 'suggested';
+
+const boardKey = (b: { kind: string; slug: string }) => `${b.kind}:${b.slug.toLowerCase()}`;
+const KIND_NAME: Record<string, string> = {
+  greenhouse: 'Greenhouse',
+  lever: 'Lever',
+  ashby: 'Ashby',
+};
 
 /** Rows drawn on the press; the rest follow in a transition after the dialog paints. Followed
  *  runs to hundreds of boards, and drawing them all at once took the press past 300 ms (#212). */
@@ -23,6 +33,24 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
   const [show, setShow] = useState<Show>(() =>
     !followed.length && ignored.length ? 'ignored' : 'followed',
   );
+  // Boards the sync found for companies in the feeds (#576): suggestions only, never followed
+  // until the user taps Follow.
+  const [found, setFound] = useState<BoardSuggestion[]>([]);
+  useEffect(() => {
+    let live = true;
+    void loadSuggestions().then((s) => live && setFound(s));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const followedBoards = new Set(
+    sources.filter((s) => s.kind !== 'feed').map((s) => boardKey({ kind: s.kind, slug: s.ref })),
+  );
+  const suggested = found.filter((s) => !followedBoards.has(boardKey(s.board)));
+  const drop = (s: BoardSuggestion) => {
+    setFound((cur) => cur.filter((x) => boardKey(x.board) !== boardKey(s.board)));
+    void dismissSuggestion(s.board);
+  };
   return (
     <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
       <Dialog.Header>
@@ -31,7 +59,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
           Followed companies’ jobs show in Review new. Ignored ones never do.
         </Dialog.Description>
       </Dialog.Header>
-      {followed.length || ignored.length ? (
+      {followed.length || ignored.length || suggested.length ? (
         <Stack gap="normal">
           <SegmentedControl
             aria-label="Companies to show"
@@ -41,6 +69,9 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
             options={[
               { value: 'followed', label: `Followed (${followed.length})` },
               { value: 'ignored', label: `Ignored (${ignored.length})` },
+              ...(suggested.length
+                ? [{ value: 'suggested', label: `Suggested (${suggested.length})` }]
+                : []),
             ]}
           />
           {show === 'followed' ? (
@@ -60,6 +91,52 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
                 </Button>
               )}
             />
+          ) : show === 'suggested' ? (
+            <Stack gap="tight">
+              <Text variant="caption" as="p" tone="secondary">
+                Boards found for companies in your feeds. A common name can be another company’s
+                board: check it before you follow.
+              </Text>
+              <Group
+                key="suggested"
+                title="Suggested"
+                rows={suggested.map((s) => ({
+                  key: boardKey(s.board),
+                  label: metaLines([
+                    s.company,
+                    `${KIND_NAME[s.board.kind] ?? s.board.kind}${s.jobs ? ` (${s.jobs} open)` : ''}`,
+                  ])[0],
+                  known: false,
+                }))}
+                empty="No suggestions."
+                action={(c) => {
+                  const s = suggested.find((x) => boardKey(x.board) === c.key);
+                  return s ? (
+                    <Stack direction="row" gap="tight">
+                      <Button
+                        size="sm"
+                        variant="tertiary"
+                        aria-label={`Follow ${s.company} on ${KIND_NAME[s.board.kind]}`}
+                        onClick={() => {
+                          followBoard(s.board, s.company);
+                          drop(s);
+                        }}
+                      >
+                        Follow
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="tertiary"
+                        aria-label={`Dismiss ${s.company}`}
+                        onClick={() => drop(s)}
+                      >
+                        Dismiss
+                      </Button>
+                    </Stack>
+                  ) : null;
+                }}
+              />
+            </Stack>
           ) : (
             <Group
               key="ignored"
