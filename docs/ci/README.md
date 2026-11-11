@@ -3,7 +3,8 @@
 Agents may not edit workflow files. Adrian must do these steps. Issue: hirobius/job-hunt#566.
 
 The workflow runs on each pull request and on each push to main.
-It runs the checks, runs gitleaks over the full history, and auto-merges HDS minor and patch PRs from Dependabot.
+It runs the checks and a gitleaks scan of the full git history (all branches). The scan also runs weekly and on manual start.
+It auto-merges HDS patch PRs from Dependabot only, until Adrian removes the semver-minor ignore in `.github/dependabot.yml`.
 
 ## Steps
 
@@ -23,3 +24,14 @@ It runs the checks, runs gitleaks over the full history, and auto-merges HDS min
 14. Make sure that the PR merges by itself after the checks pass.
 
 If a check name does not show in step 11, run the workflow once first. Then try again.
+
+## Known gap (M3, hirobius/job-hunt#567)
+
+Dependabot follows the `.npmrc` mapping of `@hirobius` to GitHub Packages.
+GitHub Packages stops at design-system 0.26.2, so Dependabot sees no newer HDS version.
+HDS Dependabot PRs start only after one of these changes:
+
+1. `@hirobius/hds-toolkit` leaves the `@hirobius` GitHub Packages scope.
+2. GitHub Packages gets the current design-system versions.
+
+Until then, upgrade HDS by hand. This PR does not fix the gap.
