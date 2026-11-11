@@ -5,7 +5,7 @@
 // keys sit inline under the title block. Lives in the JobPage chunk (its CSS is not in base.css).
 // Delete this when HDS ships a bottom action bar.
 // hds-gap: hirobius/hds#1432 (G1: a bottom dock that hides while a field has focus)
-import type { ReactNode } from 'react';
+import { Children, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Box } from '@hirobius/design-system';
 import { useVisualViewportVars } from './useVisualViewportVars';
@@ -25,6 +25,8 @@ export function ActionDock({
 }) {
   const typing = useFieldFocused();
   const vvRef = useVisualViewportVars<HTMLDivElement>();
+  // With no keys there is no dock and no spacer.
+  if (Children.toArray(children).length === 0) return null;
   if (!docked)
     return (
       <Box role="group" aria-label={label} className="rjb-dock-row" data-rjb-actions="">

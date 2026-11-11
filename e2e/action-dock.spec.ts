@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { seed } from './routes';
+import { seed, topTab } from './routes';
 
 // The job's action dock (#535) and Not a fit as an exit with Undo (#536).
 const dockOf = (page: Page) => page.getByRole('group', { name: /^Actions for / });
@@ -42,6 +42,23 @@ test.describe('dock 390', () => {
       const b = (await page.locator('.rjb-dock').boundingBox())!;
       expect(b.y).toBeGreaterThanOrEqual(844 - 1);
     }).toPass();
+    // Moving from one field to the next does not bring the dock back between them.
+    await page.evaluate(() => {
+      const d = document.querySelector('.rjb-dock')!;
+      (window as unknown as { seen: string[] }).seen = [];
+      new MutationObserver(() =>
+        (window as unknown as { seen: string[] }).seen.push(d.getAttribute('data-hidden')!),
+      ).observe(d, { attributes: true, attributeFilter: ['data-hidden'] });
+    });
+    const fields = page.getByRole('textbox');
+    if ((await fields.count()) > 1) {
+      await fields.first().focus();
+      await notes.focus();
+      await page.waitForTimeout(300);
+      expect(
+        await page.evaluate(() => (window as unknown as { seen: string[] }).seen),
+      ).not.toContain('false');
+    }
     await notes.blur();
     await expect(dockOf(page)).toHaveAttribute('data-hidden', 'false');
   });
@@ -65,10 +82,24 @@ test.describe('dock 390', () => {
     const undoBox = (await page.getByRole('button', { name: 'Undo' }).boundingBox())!;
     const dockBox = (await page.locator('.rjb-dock').boundingBox())!;
     expect(undoBox.y + undoBox.height).toBeLessThanOrEqual(dockBox.y + 1);
+    const next = (await page.getByRole('heading', { level: 1 }).textContent())!.trim();
+    const count = async () =>
+      Number(
+        (await page.getByRole('navigation', { name: 'Jobs in the list' }).textContent())!.match(
+          /of (\d+)/,
+        )![1],
+      );
+    const shorter = await count();
+    // The toast survives navigation for its full timeout (interaction review 2026-11-11).
+    await topTab(page, 'Find').click();
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+    await page.goBack();
     const undo = page.getByRole('button', { name: 'Undo' });
     await undo.focus();
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
+    // Undo restores the job in its place and does not navigate.
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(next);
+    await expect.poll(count).toBe(shorter + 1);
   });
 });
 

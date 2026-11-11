@@ -174,10 +174,11 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     // #536: the toast names the job, and Undo restores it and its place.
     expect(within(region).getByText('Marked not a fit: Cask Designer')).toBeInTheDocument();
     await user.click(within(region).getByRole('button', { name: 'Undo' }));
-    expect(findJobByUrl(C)?.archived).toBe(false);
-    // Undo reopens the job set aside, at its place in the list (return paths).
-    expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
-    expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
+    // Undo puts every field back and does not navigate (#536): the job is back in its place in
+    // the list, and the page stays on the job it moved on to.
+    expect(findJobByUrl(C)?.archived).toBeFalsy();
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`);
+    await waitFor(() => expect(pagerOf().getByText('3 of 3')).toBeInTheDocument());
   });
 
   it('Mark applied raises a notice with Undo that puts the job back in To apply (#212)', async () => {

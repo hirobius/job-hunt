@@ -11,8 +11,7 @@ import { Badge, Box, Button, Card, Icon, Stack, Text, useAtLeast } from '@hirobi
 import { ActionDock } from './hds-gaps/ActionDock';
 import { closingOf, dateLabel, dueBadgeOf } from './jobDates';
 import { primaryAction, titleOf } from './jobRow';
-import { goBack, openJob, type Route } from './route';
-import { jobIdOf } from './store';
+import { goBack, type Route } from './route';
 import { markAppliedWithUndo, setAsideWithUndo } from './applyActions';
 import BackLink from './BackLink';
 import { focusNewHeading, pageHeadingNow } from './focusRescue';
@@ -138,11 +137,11 @@ export default function JobHeader({
   const notAFit = () => {
     if (tooSoon()) return;
     const from = pageHeadingNow();
-    const id = jobIdOf(job.url);
+    // The next title takes focus; with no next job the list (its heading or empty state) does.
     if (onAnswered) onAnswered();
     else goBack(PIPELINE);
-    // Undo puts it back in To apply and shows it again.
-    setAsideWithUndo(job, () => openJob(id, true));
+    // Undo puts every field back; it does not navigate (#536).
+    setAsideWithUndo(job);
     focusNewHeading(from);
   };
   // A job closed on the board was opened to clear it out: retiring it goes back to where it was

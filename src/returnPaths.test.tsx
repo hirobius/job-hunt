@@ -159,15 +159,21 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     expect(window.history.length).toBe(length);
   });
 
-  it('Undo on Not a fit reopens that job', async () => {
+  it('Undo on Not a fit restores every field and does not navigate (#536)', async () => {
     window.location.hash = `#/apply/${jobIdOf(C)}`;
     renderApp();
     await heading('Machinist');
+    const before = { ...getAllJobs().find((j) => j.url === C)! };
     await userEvent.click(screen.getByRole('button', { name: /^Not a fit/ }));
     await waitFor(() => expect(getRoute().jobId).not.toBe(jobIdOf(C)));
+    const after = getRoute().jobId;
     await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
-    await at(`#/apply/${jobIdOf(C)}`);
-    expect(await heading('Machinist')).toBeInTheDocument();
+    const back = getAllJobs().find((j) => j.url === C)!;
+    expect({ ...back, archived: back.archived || undefined }).toEqual({
+      ...before,
+      archived: before.archived || undefined,
+    });
+    expect(getRoute().jobId).toBe(after);
   });
 
   it('a half-typed kit field is still open with its text after Edit documents and Back', async () => {
