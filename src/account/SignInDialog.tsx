@@ -17,6 +17,7 @@ import { GoogleMark } from './GoogleMark';
 import { googleSignInEnabled } from './googleSignInFlag';
 import { SignInShell } from './SignInShell';
 import { holdPage } from './holdPage';
+import { ExitButton } from '../hds-gaps/ExitButton';
 
 export const RESEND_COOLDOWN_S = 30;
 
@@ -205,13 +206,9 @@ export default function SignInDialog() {
             </Form>
           </>
         )}
-        <Button
-          className="sign-in-dialog__primary"
-          variant="tertiary"
-          onClick={() => onOpenChange(false)}
-        >
+        <ExitButton className="sign-in-dialog__primary" onClick={() => onOpenChange(false)}>
           Continue without an account
-        </Button>
+        </ExitButton>
       </SignInShell>
     </Dialog>
   );

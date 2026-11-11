@@ -11,6 +11,7 @@ import { Alert, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { useBackCloses } from '../useBackCloses';
 import { SignInShell } from './SignInShell';
 import { focusAsHeading, pageHeading, pageHeadingNow } from '../focusRescue';
+import { ExitButton } from '../hds-gaps/ExitButton';
 
 /** How long "Signed in" shows before the brand moves to the app bar. */
 export const SIGNED_IN_HOLD_MS = 600;
@@ -167,14 +168,13 @@ export default function LinkConfirmScreen({
               >
                 {pending ? 'Signing in…' : 'Sign in'}
               </Button>
-              <Button
-                variant="tertiary"
+              <ExitButton
                 className="sign-in-dialog__primary"
                 disabled={pending}
                 onClick={onCancel}
               >
                 Cancel
-              </Button>
+              </ExitButton>
             </Stack>
           </>
         )}
