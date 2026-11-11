@@ -338,6 +338,7 @@ p {
  * the open one the accent fill with its 3px edge) by its tokens, as a nav of links with
  * aria-current="page": HDS SegmentedControl is a radio group (docs/hds-upstream-asks/segmented-nav.md). */
 .rjb-segs {
+  --rjb-seg-ledge: 3px;
   display: flex;
   gap: var(--semantic-space-subgrid-gap);
   padding: 4px;
@@ -352,10 +353,12 @@ p {
   align-items: center;
   justify-content: center;
   min-height: 30px;
-  padding-inline: var(--semantic-space-layout-gap);
+  /* Centred the way HDS SegmentedControl (sm) is, hds#1461: flex centring, line-height 1 and
+   * symmetric padding. The ui ramp's taller line box put the ink about 2px low (seg-centering.spec). */
+  padding: 0 var(--semantic-space-layout-gap);
   border-radius: var(--role-radius);
-  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-ui-font-size) /
-    var(--semantic-typography-ui-line-height) var(--semantic-typography-ui-font-family);
+  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-ui-font-size) / 1
+    var(--semantic-typography-ui-font-family);
   color: var(--semantic-color-content-secondary);
   text-decoration: none;
 }
@@ -366,7 +369,14 @@ p {
 .rjb-seg[aria-current='page'] {
   color: var(--semantic-color-content-onAccent);
   /* The 3px edge as a gradient, not a box shadow: the focus ring stays the one ring. */
-  background: linear-gradient(to top, var(--hds-edge-primary) 3px, var(--semantic-accent-rest) 0);
+  background: linear-gradient(
+    to top,
+    var(--hds-edge-primary) var(--rjb-seg-ledge),
+    var(--semantic-accent-rest) 0
+  );
+  /* Centre the label on the coloured fill, not the box (Adrian 2026-11-11): the ledge's height
+   * as bottom padding moves it up by half the ledge (seg-centering.spec). */
+  padding-bottom: var(--rjb-seg-ledge);
 }
 @media (max-width: 639px) {
   .rjb-seg {
