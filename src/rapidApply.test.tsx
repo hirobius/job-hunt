@@ -150,6 +150,26 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
   });
 
+  it("the kit field editor's Cancel is the exit (#537): a link button with the 44px target", async () => {
+    const user = userEvent.setup();
+    setKitField('name', 'Sam');
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo');
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    expect(cancel).toHaveAttribute('data-variant', 'link');
+    expect(cancel).toHaveAttribute('data-rjb-exit');
+    expect(cancel.className).toContain('hds-touch-target');
+    expect(screen.getByRole('button', { name: 'Done' })).toHaveAttribute(
+      'data-variant',
+      'secondary',
+    );
+    await user.click(cancel);
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(getApplyKit().fields.name).toBe('Sam');
+  });
+
   it('Mark applied and Not a fit move on to the next job in the list, each with Undo', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;

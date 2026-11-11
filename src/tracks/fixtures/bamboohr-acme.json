@@ -1,0 +1,31 @@
+{
+  "meta": { "totalCount": 2 },
+  "result": [
+    {
+      "id": "42",
+      "jobOpeningName": "Senior Design Systems Engineer",
+      "departmentId": "18",
+      "departmentLabel": "Design",
+      "employmentStatusLabel": "Full-Time",
+      "location": { "city": "Lindon", "state": "Utah" },
+      "atsLocation": {
+        "country": "United States",
+        "state": "Utah",
+        "province": null,
+        "city": "Lindon"
+      },
+      "isRemote": "1",
+      "locationType": "1",
+      "datePosted": "2026-10-20"
+    },
+    {
+      "id": "43",
+      "jobOpeningName": "Staff Accountant",
+      "departmentLabel": "Finance",
+      "employmentStatusLabel": "Full-Time",
+      "location": { "city": "Lindon", "state": "Utah" },
+      "isRemote": null,
+      "datePosted": "2026-10-18"
+    }
+  ]
+}
