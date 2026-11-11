@@ -16,7 +16,7 @@ import { openTab, type TopTab } from './tabMemory';
 import { Box, Stack, useAtLeast, useToast } from '@hirobius/design-system';
 import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
 import { CompanyPage, JobPage, Today, TrackerView } from './routeViews';
-import { DocumentsView, JobPageLiveness, LegalPage } from './lazyDialogs';
+import { DocumentsView, LegalPage } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
 import { useViewEnter } from './viewEnter';
 import { BrandLogo } from './brand/Flame';
@@ -313,12 +313,7 @@ export default function App() {
                         {company ? (
                           <CompanyPage slug={companySlug} />
                         ) : route.jobId ? (
-                          <>
-                            <Suspense fallback={null}>
-                              <JobPageLiveness jobId={route.jobId} />
-                            </Suspense>
-                            <JobPage jobId={route.jobId} />
-                          </>
+                          <JobPage jobId={route.jobId} />
                         ) : (
                           // No sync banner: the Account menu's sync line says where data lives.
                           <TrackerView />
