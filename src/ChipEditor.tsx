@@ -9,7 +9,7 @@ import { X } from 'lucide-react';
 export function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: string }) {
   return (
     // Text's props have no htmlFor (they are HTMLElement's); the spread passes it to the label.
-    <Text variant="ui" as="label" weight="medium" {...{ htmlFor }}>
+    <Text variant="ui" as="label" className="rjb-semibold" {...{ htmlFor }}>
       {children}
     </Text>
   );

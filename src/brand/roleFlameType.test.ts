@@ -1,5 +1,5 @@
-// The logo's name is Sora 800 (Adrian 2026-11-10; was HDS's display token, Sora 700). HDS ships only
-// Sora 700, so the logo carries exactly one face of its own, with its licence, for the logo only.
+// The logo's name is Sora 800 (Adrian 2026-11-10; was HDS's display token, Sora 700). HDS's
+// variable Sora covers 400–700, so the logo keeps exactly one face of its own, Sora 800, with its licence, for the logo only.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 

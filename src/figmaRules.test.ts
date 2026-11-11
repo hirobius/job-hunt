@@ -21,6 +21,7 @@ describe('FIGMA-RULES.md', () => {
     ['No cards within cards', /one card level max|No cards within cards/i],
     ['No outlines on surfaces', /No outlines on surfaces/i],
     ['No ALL CAPS', /No ALL CAPS/i],
+    ['Selected is a fill', /Selected is a fill, never an\s+edge/i],
     ['compact density', /Compact density is the app's only density/i],
     ['graphite accent', /graphite/i],
   ])('keeps "%s" in step with CLAUDE.md', (_name, claude) => {

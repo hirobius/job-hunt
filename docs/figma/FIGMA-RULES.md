@@ -9,7 +9,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   Input, Textarea, Menu, Dialog, Disclosure, Alert, EmptyState, Avatar, NavList. No custom controls.
 - **HDS tokens only.** Colours are token roles (content, surface, border, feedback, accent). No hex.
   The accent is HDS graphite. No local colour override.
-- **Type** is the HDS ramp: display, title, body, ui, caption, mono. Plus Jakarta Sans. No ALL CAPS.
+- **Type** is the HDS ramp: display, title, body, ui, caption, mono. Sora. No ALL CAPS.
   No italic. Secondary text is caption + secondary tone.
 - **Keys have three ranks.** One filled key (Button primary) per decision. A real second choice is a
   grey key (Button secondary). **An exit is underlined text** (Button link: content.primary, no
@@ -43,7 +43,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
-  rings, selected rows, overlays and row dividers keep theirs.
+  rings, overlays and row dividers keep theirs.
+- **Selected is a fill, never an edge (#603).** A selected or current item (the Apply list's open job,
+  Find's selected posting) takes the HDS surface-selected fill (distinct from hover and the card fill in
+  both themes); no left edge, ring or outline.
 - Every action answers within 300 ms: a toast, a state change, or the item flashing in place.
   Remove is soft: it collapses, then offers Undo. Undo never navigates: it puts the item back and
   leaves the person on the page they are on.

@@ -5,7 +5,7 @@
 //
 // In the app (App bar, sign-in) it loads lazily (LazyRoleFlameLogo.tsx) behind the still wordmark, so it
 // stays out of the entry chunk. Colours are HDS tokens (base.css `.rjb-rf`, light and dark), the font is
-// HDS's display type token (Sora 700, loaded by HDS's fonts.css), the name is brand.ts. Stops under prefers-reduced-motion,
+// the logo's own Sora 800 (HDS's variable Sora covers 400–700), the name is brand.ts. Stops under prefers-reduced-motion,
 // pauses while the tab is hidden; Pause animations and reduced motion stop it (WCAG 2.2.2).
 import { CSSProperties, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { BRAND } from '../brand';

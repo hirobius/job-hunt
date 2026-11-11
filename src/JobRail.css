@@ -8,12 +8,12 @@
   padding-right: var(--primitive-space-1);
 }
 
-/* The open job: a selected fill plus a 2px edge marker that hover lacks, so the current row reads
-   apart from a hovered one in both themes (dark hover and selected share a grey). The row, not its
-   link, carries both, so they run under the posting link too (hds-gaps/NavListActionItem). */
-.job-rail li:has(> [aria-current='page']) {
-  background: var(--semantic-color-surface-selected);
-  box-shadow: inset 2px 0 0 var(--semantic-color-content-primary);
+/* The open job (#603): the shared selected fill (base.css .rjb-selected tokens), no edge marker.
+   The row, not its link, carries it, so it runs under the posting link too
+   (hds-gaps/NavListActionItem); hovering the open row keeps it. */
+.job-rail li:has(> [aria-current='page']),
+.job-rail li:has(> [aria-current='page']):hover {
+  background: var(--rjb-selected-fill);
 }
 
 /* Neutral badges on the open row: in dark, surface-selected is the same grey as the neutral Badge

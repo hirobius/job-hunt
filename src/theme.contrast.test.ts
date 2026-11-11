@@ -256,6 +256,12 @@ const pairs: Pair[] = [
       min: 4.5,
     },
   ]),
+  {
+    name: 'secondary text on the selected list item fill (--rjb-selected-fill, #603)',
+    fg: 'semantic-color-content-secondary',
+    bg: 'semantic-color-surface-selected',
+    min: 4.5,
+  },
   ...(['hover', 'pressed'] as const).map((state): Pair => ({
     name: `on-accent label on the ${state} accent`,
     fg: 'semantic-color-content-onAccent',

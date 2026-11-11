@@ -27,6 +27,6 @@ Then copy the picked files from `gallery/cs/{light,dark}-{1440,390}/`. `gallery/
 
 ## Figma
 
-The main screens are live HDS layers in the Figma file https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr
-("HDS Apps", page Job Hunt), built 1:1 from the code. Map and frame links:
+The main screens are live HDS layers in the Figma file https://www.figma.com/design/9VCvYGN0pz9faveIhSn6Kn/roleflame_working
+("roleflame_working", pages Phone 390 and Desktop 1440), built 1:1 from the code. Map and frame links:
 `docs/figma/README.md`.
