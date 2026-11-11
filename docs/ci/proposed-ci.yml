@@ -1,0 +1,69 @@
+# PROPOSED CI. Not active. Move to .github/workflows/ci.yml to enable (see docs/ci/README.md).
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          HDS_PACKAGES_TOKEN: ${{ secrets.HDS_PACKAGES_TOKEN }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm run verify
+
+  visual:
+    runs-on: ubuntu-latest
+    # Pinned image from e2e/visual-env.json (#485). Keep both in sync.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+      options: --ipc=host
+    env:
+      HOME: /root
+      RJB_VISUAL_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+        env:
+          HDS_PACKAGES_TOKEN: ${{ secrets.HDS_PACKAGES_TOKEN }}
+      - run: npx playwright test e2e/visual.spec.ts --trace off
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  # only for an organization account
+
+  dependabot-automerge:
+    # HDS only, minor and patch only. --auto waits for the required checks.
+    needs: [verify, visual, gitleaks]
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v2
+      - if: >-
+          contains(steps.meta.outputs.dependency-names, '@hirobius/design-system') &&
+          !contains(steps.meta.outputs.dependency-names, ',') &&
+          (steps.meta.outputs.update-type == 'version-update:semver-minor' ||
+           steps.meta.outputs.update-type == 'version-update:semver-patch')
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
