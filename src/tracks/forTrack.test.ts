@@ -30,13 +30,13 @@ describe('the scorer on the client', () => {
         post('b', 'Design Systems Designer', '', '2026-10-20'),
         post('c', 'Design Systems Engineer', DS),
         post('d', 'Staff Product Designer, Platform', 'Help our design system.'),
-        post('e', 'Senior Design Engineer', DS),
+        post('e', 'Senior Software Engineer', DS),
         post('f', 'Design Systems Intern', DS),
       ],
       scorerFor({ terms: ['design systems'] })!,
     );
     expect(r.queue.map((p) => p.id)).toEqual(['c', 'b', 'a']);
-    // Body evidence with no title signal (a Design Engineer, Adrian 2026-10-23) is review at best.
+    // Body evidence with no title signal (a plain software engineer) is review at best.
     expect(r.review.map((p) => p.id)).toEqual(['d', 'e']);
     expect(r.rejected).toBe(1); // the intern (fit rule)
     expect(reasonsLine(r.queue[0].trackScore)).toMatch(/^Queued because: title match: /);

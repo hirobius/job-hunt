@@ -8,12 +8,18 @@
 // (profileModel.ts, sourcesModel.ts: pure, React-free), so the server sees exactly what the app
 // wrote. Pure, no React or storage: the edge function, the dry-run script and the tests load it.
 import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.ts';
+import { BOARD_KINDS, BOARD_SLUG } from '../feed/boardSet.ts';
 import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
 import { sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
 import { SERVER_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
-import { designSystemsTrack, type TrackConfig } from './track-config.ts';
+import {
+  DESIGN_ENGINEER_STRONG,
+  DESIGN_TECHNOLOGIST_STRONG,
+  designSystemsTrack,
+  type TrackConfig,
+} from './track-config.ts';
 import { VERIFIED_COMPANIES } from './verified.ts';
 import { matchKey, textTermsOf } from './matchText.ts';
 
@@ -25,17 +31,11 @@ export const MAX_BOARDS_PER_USER = 500;
 export const MAX_TERMS_PER_USER = 3;
 const MAX_TERM = 60;
 
-const BOARD_KINDS: readonly BoardKind[] = [
-  'greenhouse',
-  'lever',
-  'ashby',
-  'workable',
-  'recruitee',
-  'smartrecruiters',
-  'teamtailor',
-  'personio',
-];
-const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+/** Every board kind the app reads, all 13 (#576): the board set's list, so the sync, the rotation
+ *  and the browser never disagree. The host is fixed per kind (ats.ts `boardApiUrl`); only a slug
+ *  that passes `BOARD_SLUG` varies, and it is URI-escaped into the path or one subdomain label. */
+const KINDS: readonly string[] = BOARD_KINDS;
+const SLUG = BOARD_SLUG;
 type Feed = TermFeed | 'rss' | ServerFeed;
 const FEEDS: readonly Feed[] = [...TERM_FEEDS, 'rss', ...SERVER_FEEDS];
 const isFeed = (s: string): s is Feed => (FEEDS as readonly string[]).includes(s);
@@ -89,11 +89,14 @@ const phrase = (s: string) =>
 
 /** feed/mustInclude.ts RELATED_TITLES (not imported: that module is the app's store): the related
  *  titles a design systems rule lets in, by id, with the scorer pattern each one is. */
-const RELATED_ADJACENT: Record<string, string> = { 'design technologist': 'design technologist' };
+const RELATED_PATTERNS: Record<string, string> = {
+  'design technologist': DESIGN_TECHNOLOGIST_STRONG,
+  'design engineer': DESIGN_ENGINEER_STRONG,
+};
 
 /** What a profile reads as a scorer config. `scorer: 'design-systems'` gets the tuned design
- *  systems config, Review bucket included (related titles switched off are dropped from its
- *  adjacent titles); any other is scored on its own titles (strong), related titles (adjacent,
+ *  systems config, Review bucket included (related titles switched off are dropped from its title
+ *  patterns); any other is scored on its own titles (strong), related titles (adjacent,
  *  needing the body to say a title) and the title and must-include phrases in the body. Leave-out
  *  terms reject a title either way. Null: nothing to score against. */
 export function compileProfile(p: {
@@ -106,9 +109,10 @@ export function compileProfile(p: {
 }): TrackConfig | null {
   const leaveOut = (p.leaveOut ?? []).filter(Boolean).map(phrase);
   if (p.scorer === designSystemsTrack.slug) {
-    const off = new Set((p.relatedOff ?? []).map((id) => RELATED_ADJACENT[id.toLowerCase()]));
+    const off = new Set((p.relatedOff ?? []).map((id) => RELATED_PATTERNS[id.toLowerCase()]));
     return {
       ...designSystemsTrack,
+      titleStrong: designSystemsTrack.titleStrong.filter((t) => !off.has(t)),
       titleAdjacent: designSystemsTrack.titleAdjacent.filter((t) => !off.has(t)),
       titleNegative: [...designSystemsTrack.titleNegative, ...leaveOut],
     };
@@ -136,7 +140,7 @@ export function compileProfile(p: {
  *  app's rule: mustInclude.ts lets them in on a "design system(s)" rule only). */
 export function configForProfile(p: Profile): TrackConfig | null {
   const relatedOff =
-    p.include.related === false ? Object.keys(RELATED_ADJACENT) : (p.include.relatedOff ?? []);
+    p.include.related === false ? Object.keys(RELATED_PATTERNS) : (p.include.relatedOff ?? []);
   return compileProfile({
     titles: profileTitles(p),
     scorer: p.scorer,
@@ -161,7 +165,7 @@ function storedBoard(v: unknown): Board | undefined {
   const b = obj(v);
   const kind = str(b.kind) as BoardKind;
   const slug = str(b.slug);
-  return BOARD_KINDS.includes(kind) && SLUG.test(slug)
+  return KINDS.includes(kind) && SLUG.test(slug)
     ? { kind, slug, ...(b.eu === true && { eu: true as const }) }
     : undefined;
 }
@@ -170,7 +174,10 @@ class Boards {
   readonly list: WatchedCompany[] = [];
   private seen = new Set<string>();
   add(b: Board | undefined | null, label: string) {
-    if (!b || this.list.length >= MAX_BOARDS_PER_USER) return;
+    // Every path (v12 Sources, v11 tiles, saved jobs, the stored board) meets the one rule: a
+    // known kind and a SLUG, so the read goes to that kind's fixed host (no SSRF).
+    if (!b || !KINDS.includes(b.kind) || !SLUG.test(b.slug)) return;
+    if (this.list.length >= MAX_BOARDS_PER_USER) return;
     const key = `${b.kind}:${b.eu ? 'eu:' : ''}${b.slug.toLowerCase()}`;
     if (this.seen.has(key)) return;
     this.seen.add(key);

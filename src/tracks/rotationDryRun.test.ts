@@ -5,8 +5,9 @@ import { toWatched } from './rotation.ts';
 import { readAll } from './sync.ts';
 
 // Recorded live answers (2026-10-30, trimmed: two roles a board, long text cut, emails scrubbed)
-// from the three board kinds the rotation's set holds (src/feed/data/boards.json: Greenhouse,
-// Lever, Ashby). See fixtures/README.md.
+// from the three board kinds the rotation's set holds today (src/feed/data/boards.json: Greenhouse,
+// Lever, Ashby), plus shape fixtures for the five newer kinds the sync reads since #576 (BambooHR,
+// Rippling, Gem, Pinpoint, Breezy HR: unverified live). See fixtures/README.md.
 const read = (f: string) => readFileSync(`src/tracks/fixtures/${f}`, 'utf8');
 const fetch = fixtureFetch(read);
 const T0 = Date.parse('2026-10-30T07:00:00Z');
@@ -65,19 +66,76 @@ describe('the rotation readers on live answers', () => {
   });
 });
 
+describe('the rotation readers on the five newer kinds (#576, shape fixtures)', () => {
+  it.each([
+    [
+      'bamboohr',
+      'bamboohr:acme:42',
+      'https://acme.bamboohr.com/careers/42',
+      'Lindon, Utah, United States',
+    ],
+    [
+      'rippling',
+      'rippling:acme:abc-123',
+      'https://ats.rippling.com/acme/jobs/abc-123',
+      'Remote (US)',
+    ],
+    ['gem', 'gem:acme:am9icG9zdDox', 'https://jobs.gem.com/acme/am9icG9zdDox', 'Remote'],
+    ['pinpoint', 'pinpoint:acme:7f2c', 'https://acme.pinpointhq.com/postings/7f2c', 'London'],
+    [
+      'breezy',
+      'breezy:acme:0a1b2c',
+      'https://acme.breezy.hr/p/0a1b2c-senior-design-systems-engineer',
+      'Remote',
+    ],
+  ])(
+    '%s: stored under its own source, remote set, the other role not remote',
+    async (kind, id, url, location) => {
+      const b = FIXTURE_BOARDS.find((x) => x.kind === kind)!;
+      expect(b.recorded).toBe(false);
+      const [r] = await readAll([toWatched(b)], { fetch, rss: false });
+      expect(r).toMatchObject({ ok: true, board: `${kind}:acme` });
+      const [ds, other] = r.postings;
+      expect(ds).toMatchObject({
+        source: kind,
+        sourceId: id,
+        title: 'Senior Design Systems Engineer',
+        company: b.company,
+        url,
+        location,
+        remote: true,
+      });
+      expect(other.remote).not.toBe(true);
+    },
+  );
+});
+
 describe('npm run sync:dry-run -- --rotate --fixtures', () => {
   it('plans, reads, scores and keeps only remote design-system roles; the cursor passes the batch', async () => {
     const r = await rotationDryRun({ boards: FIXTURE_BOARDS, now: () => T0, fetch, math: false });
     expect(r.results?.map((x) => [x.key, x.result])).toEqual([
+      ['bamboohr:acme', 'ok'],
       ['lever:spotify', 'ok'],
+      ['breezy:acme', 'ok'],
+      ['pinpoint:acme', 'ok'],
       ['greenhouse:discord', 'ok'],
+      ['rippling:acme', 'ok'],
+      ['gem:acme', 'ok'],
       ['ashby:linear', 'ok'],
     ]);
-    expect(r.scored).toBe(6);
+    expect(r.scored).toBe(16);
     // Discord's design systems role scores queue but names a city with no remote flag: not kept.
-    expect(r.kept).toEqual(['Staff Product Designer - Platform Design']);
+    // Each newer kind's remote design-systems role is kept; its other role is not.
+    expect(r.kept).toEqual([
+      'Senior Design Systems Engineer',
+      'Staff Product Designer - Platform Design',
+      'Senior Design Systems Engineer',
+      'Senior Design Systems Engineer',
+      'Senior Design Systems Engineer',
+      'Senior Design Systems Engineer',
+    ]);
     expect(r.cursor).toBe('f0742274|ashby:linear');
-    expect(r.lines.join('\n')).toContain('6 postings scored, 1 kept');
+    expect(r.lines.join('\n')).toContain('16 postings scored, 6 kept');
   });
 
   it('a board that answers 404 reads as gone, the rest still read', async () => {
@@ -96,12 +154,12 @@ describe('npm run sync:dry-run -- --rotate --fixtures', () => {
     const byKey = Object.fromEntries((r.results ?? []).map((x) => [x.key, x]));
     expect(byKey['greenhouse:no-such-board']).toMatchObject({ result: 'gone', status: 404 });
     expect(byKey['ashby:linear'].result).toBe('ok');
-    expect(r.kept).toEqual(['Staff Product Designer - Platform Design']);
+    expect(r.kept).toContain('Staff Product Designer - Platform Design');
   });
 
   it('without a fetch it only plans (no reads)', async () => {
     const r = await rotationDryRun({ boards: FIXTURE_BOARDS, now: () => T0, math: false });
     expect(r.results).toBeUndefined();
-    expect(r.lines[3]).toBe("Next batch (cycle 0, after ''): 3 boards, 6 roles");
+    expect(r.lines[3]).toBe("Next batch (cycle 0, after ''): 8 boards, 16 roles");
   });
 });

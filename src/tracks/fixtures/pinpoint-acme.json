@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "id": "7f2c",
+      "title": "Senior Design Systems Engineer",
+      "url": "https://acme.pinpointhq.com/postings/7f2c",
+      "location": { "name": "London", "city": "London", "country": "United Kingdom" },
+      "workplace_type": "remote",
+      "employment_type_text": "Full-time",
+      "description": "<p>Build the component library and design tokens for our design system.</p>",
+      "published_at": "2026-10-21T00:00:00Z"
+    },
+    {
+      "id": "7f2d",
+      "title": "Payroll Specialist",
+      "url": "https://acme.pinpointhq.com/postings/7f2d",
+      "location": { "name": "Leeds" },
+      "workplace_type": "onsite",
+      "employment_type_text": "Full-time",
+      "description": "<p>Run payroll.</p>"
+    }
+  ]
+}

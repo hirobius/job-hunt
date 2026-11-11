@@ -112,9 +112,21 @@ export async function rotationDryRun(o: {
   };
 }
 
-/** The boards recorded in ./fixtures (live answers taken 2026-10-30), and a fetch that serves them:
- *  any other URL is a 404, so a board missing from the set reads as gone. */
-export const FIXTURE_BOARDS: readonly (SetBoard & { file: string })[] = [
+/** The boards in ./fixtures, and a fetch that serves them: any other URL is a 404, so a board
+ *  missing from the set reads as gone. Greenhouse, Lever and Ashby are live answers recorded
+ *  2026-10-30 (`recorded`); the five newer kinds (#576) are built from the shapes atsExtra.ts reads,
+ *  because their hosts could not be reached from the build container (unverified live). */
+const shaped = (kind: SetBoard['kind'], company: string) => ({
+  kind,
+  slug: 'acme',
+  company,
+  jobs: 2,
+  lastChecked: '2026-11-11',
+  evidence: 'shape fixture',
+  file: `${kind}-acme.json`,
+  recorded: false,
+});
+export const FIXTURE_BOARDS: readonly (SetBoard & { file: string; recorded: boolean })[] = [
   {
     kind: 'greenhouse',
     slug: 'discord',
@@ -123,6 +135,7 @@ export const FIXTURE_BOARDS: readonly (SetBoard & { file: string })[] = [
     lastChecked: '2026-10-30',
     evidence: 'recorded fixture',
     file: 'greenhouse-discord.json',
+    recorded: true,
   },
   {
     kind: 'lever',
@@ -132,6 +145,7 @@ export const FIXTURE_BOARDS: readonly (SetBoard & { file: string })[] = [
     lastChecked: '2026-10-30',
     evidence: 'recorded fixture',
     file: 'lever-spotify.json',
+    recorded: true,
   },
   {
     kind: 'ashby',
@@ -141,7 +155,13 @@ export const FIXTURE_BOARDS: readonly (SetBoard & { file: string })[] = [
     lastChecked: '2026-10-30',
     evidence: 'recorded fixture',
     file: 'ashby-linear.json',
+    recorded: true,
   },
+  shaped('bamboohr', 'Acme Bamboo'),
+  shaped('rippling', 'Acme Ripple'),
+  shaped('gem', 'Acme Gem'),
+  shaped('pinpoint', 'Acme Pin'),
+  shaped('breezy', 'Acme Breeze'),
 ];
 
 export function fixtureFetch(read: (file: string) => string): Fetch {

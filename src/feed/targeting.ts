@@ -5,7 +5,8 @@
 import type { Seniority } from '../curation/types';
 import { termRegex } from './match';
 import { scoreAll, scorerFor } from '../tracks/forTrack';
-import { passesInclude, type IncludeRule } from './mustInclude';
+import { passesInclude } from './include';
+import type { IncludeRule } from './mustInclude';
 import type { RankedPosting } from './types';
 
 export interface Targeting {

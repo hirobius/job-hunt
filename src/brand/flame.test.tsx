@@ -1,7 +1,7 @@
 // The flame logo has one source: src/brand/flame.svg. Everything else derives from it (the header,
 // the boot splash, the sign-in screen, and `npm run icons` for the favicon, PNGs and og-image).
 // This fails on a second copy of the mark anywhere in the repo, or a favicon left stale.
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,9 +10,11 @@ import { applyBrand } from '../brandHtml';
 import { BrandLogo, Flame } from './Flame';
 import { flameSvg, withUniqueIds } from './flameSvg';
 import { stillFrame } from './flameEngine';
-import { runBootFlame } from './bootFlame';
+import { cancelBootFlame, runBootFlame } from './bootFlame';
 
 afterEach(cleanup);
+// Importing bootFlame starts its wait for the splash; end it before jsdom goes.
+afterAll(cancelBootFlame);
 
 const SOURCE = 'src/brand/flame.svg';
 // The only file allowed to hold the mark besides its source: written by `npm run icons`.

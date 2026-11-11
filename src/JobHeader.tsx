@@ -5,16 +5,19 @@
 // every width. Back goes to the page the job was opened from (the Pipeline by default).
 // An Interviewing job's primary is Add interview (opens its dialog, #416); a job with no next
 // step (Offer, Rejected, retired, applied and not yet due) has none, so Star and More sit together.
-import { Banknote, Bell, CalendarClock, Clock, ExternalLink, MapPin } from 'lucide-react';
-import { Fragment } from 'react';
+import { Banknote, Bell, CalendarClock, Clock, ExternalLink, Link2, MapPin } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Badge, Box, Button, Card, Icon, Stack, Text, useAtLeast } from '@hirobius/design-system';
 import { ActionDock } from './hds-gaps/ActionDock';
 import { closingOf, dateLabel, dueBadgeOf } from './jobDates';
-import { primaryAction, rowView, titleOf } from './jobRow';
+import { rowView, titleOf } from './jobRow';
 import { goBack, type Route } from './route';
 import { markAppliedWithUndo, setAsideWithUndo } from './applyActions';
 import BackLink from './BackLink';
 import { focusNewHeading, pageHeadingNow } from './focusRescue';
+import { openNextAfter } from './applyNext';
+import { applicationLink, dockKeys, type DockKey } from './dockKeys';
+import { requestEditLink } from './editLinkRequest';
 import { tooSoon } from './answerGuard';
 import { checkFor, useLiveness } from './livenessStore';
 import { RowMenu, RowPrimaryAction } from './JobRowParts';
@@ -97,48 +100,23 @@ export default function JobHeader({
   /** After Mark applied or Not a fit (the Apply view, #471): the page moves on to the next job. */
   onAnswered?: () => void;
 }) {
-  const next = primaryAction(job);
-  // A job still to apply to is the Apply view (#471, Adrian 2026-11-05: the job page and Apply mode
-  // are one): Open application is the primary, Mark applied and Not a fit one row of two under it.
-  const applying = next === 'apply';
-  const addInterview =
-    !next && !job.archived && job.status === 'Interviewing' ? (
-      <Button
-        variant="primary"
-        size="md"
-        onClick={(e) => openAddInterview(job.url, e.currentTarget)}
-      >
-        Add interview
-      </Button>
-    ) : null;
-  const primary = applying ? (
-    <Button asChild variant="primary" size="md">
-      <a href={job.url} target="_blank" rel="noopener noreferrer">
-        <Icon icon={ExternalLink} />
-        Open application
-      </a>
-    </Button>
-  ) : next ? (
-    <RowPrimaryAction job={job} variant="primary" size="md" />
-  ) : (
-    addInterview
-  );
   const title = titleOf(job);
   // The view moves on first, while the job still has its place in the list, then the answer
-  // lands (its notice is raised on the page it stays on).
+  // lands (its notice is raised on the page it stays on). Opened from anywhere (the walk, Find, a
+  // Company page), the next job in the list opens and its title takes focus; after the last job
+  // the list (or the page it was opened from) opens and its heading takes focus (#536).
+  const moveOn = onAnswered ?? (() => openNextAfter(job));
   const markApplied = () => {
     if (tooSoon()) return;
     const from = pageHeadingNow();
-    onAnswered?.();
+    moveOn();
     markAppliedWithUndo(job);
     focusNewHeading(from);
   };
   const notAFit = () => {
     if (tooSoon()) return;
     const from = pageHeadingNow();
-    // The next title takes focus; with no next job the list (its heading or empty state) does.
-    if (onAnswered) onAnswered();
-    else goBack(PIPELINE);
+    moveOn();
     // Undo puts every field back; it does not navigate (#536).
     setAsideWithUndo(job);
     focusNewHeading(from);
@@ -147,27 +125,69 @@ export default function JobHeader({
   // opened from (the Pipeline's closed list), like Remove does for any job.
   const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
   const wide = useAtLeast('lg');
-  // One filled key, one grey key, one exit, in that order of rank (#535). On a phone they sit in
-  // the dock at the bottom; from lg in one row under the title block.
-  const keys = [
-    primary && <Fragment key="primary">{primary}</Fragment>,
-    applying && (
-      <Button
-        key="grey"
-        variant="secondary"
-        size="md"
-        aria-label={`Mark applied: ${title}`}
-        onClick={markApplied}
-      >
-        Mark applied
-      </Button>
-    ),
-    applying && (
-      <ExitButton key="exit" aria-label={`Not a fit: ${title}`} onClick={notAFit}>
-        Not a fit
-      </ExitButton>
-    ),
-  ].filter(Boolean);
+  // One filled key, one grey key, one exit, in that order of rank (#535), per the job's state
+  // (`dockKeys`, #540). On a phone they sit in the dock at the bottom; from lg in one row under
+  // the title block.
+  const link = applicationLink(job);
+  const render = ({ id, rank }: DockKey): ReactNode => {
+    const variant = rank === 'primary' ? 'primary' : 'secondary';
+    switch (id) {
+      case 'openApplication':
+        return (
+          <Button key={id} asChild variant={variant} size="md">
+            <a href={link} target="_blank" rel="noopener noreferrer">
+              <Icon icon={ExternalLink} />
+              Open application
+            </a>
+          </Button>
+        );
+      case 'markApplied':
+        return (
+          <Button
+            key={id}
+            variant={variant}
+            size="md"
+            aria-label={`Mark applied: ${title}`}
+            onClick={markApplied}
+          >
+            Mark applied
+          </Button>
+        );
+      case 'addLink':
+        return (
+          <Button
+            key={id}
+            variant={variant}
+            size="md"
+            iconLeft={<Icon icon={Link2} />}
+            aria-label={`Add link: ${title}`}
+            onClick={() => requestEditLink(job.url)}
+          >
+            Add link
+          </Button>
+        );
+      case 'notAFit':
+        return (
+          <ExitButton key={id} aria-label={`Not a fit: ${title}`} onClick={notAFit}>
+            Not a fit
+          </ExitButton>
+        );
+      case 'followUp':
+        return <RowPrimaryAction key={id} job={job} variant={variant} size="md" />;
+      case 'addInterview':
+        return (
+          <Button
+            key={id}
+            variant={variant}
+            size="md"
+            onClick={(e) => openAddInterview(job.url, e.currentTarget)}
+          >
+            Add interview
+          </Button>
+        );
+    }
+  };
+  const keys = dockKeys(job).map(render);
   return (
     <Box as="header" sx={{ mb: 'lg' }}>
       <Stack gap="normal">

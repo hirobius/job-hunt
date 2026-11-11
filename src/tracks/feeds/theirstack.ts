@@ -23,7 +23,12 @@ import { needKeys, SourceHttpError, type FeedContext } from './context.ts';
 export const THEIRSTACK_URL = 'https://api.theirstack.com/v1/jobs/search';
 export const THEIRSTACK_ENV = ['THEIRSTACK_API_KEY'] as const;
 /** Substring title filters (TheirStack matches them case-insensitively). */
-export const THEIRSTACK_TITLES = ['design system', 'design technologist'];
+export const THEIRSTACK_TITLES = [
+  'design system',
+  'design technologist',
+  'design engineer',
+  'ux engineer',
+];
 export const THEIRSTACK_LIMIT = 18;
 /** The window each call asks for: the longest gap between due days (the 28th to the 1st is up to
  *  4 days), so no posting falls between two calls. */
