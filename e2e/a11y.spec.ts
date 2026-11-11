@@ -37,6 +37,8 @@ async function seed(page: Page) {
 async function go(page: Page, hash: string) {
   await page.evaluate((h) => (location.hash = h), hash);
   await page.waitForTimeout(500);
+  // A lazy page (job, Company) may still show its Loading hold: check the page, not the hold.
+  await expect(page.locator('[aria-label="Loading"]')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function axeViolations(page: Page) {
@@ -208,6 +210,11 @@ async function tabWalk(page: Page): Promise<string[]> {
             cs.outlineStyle === 'none' ? 'none' : `${cs.outlineStyle} ${cs.outlineColor}`;
           o.push(`${ring} ${cs.boxShadow} ${cs.borderColor} ${cs.backgroundColor}`);
         }
+        // HDS's link button (the exit, #537) paints its ring on ::after (hds#1167).
+        if (e) {
+          const after = getComputedStyle(e, '::after');
+          o.push(`${after.outlineStyle} ${after.boxShadow}`);
+        }
         return o.join('|');
       };
       const prev = prevKey ? document.querySelector(`[data-walk="${prevKey}"]`) : null;
@@ -288,6 +295,8 @@ for (const width of WIDTHS) {
       await go(page, '#/apply');
       await page.locator('a[href^="#/apply/"]').first().click();
       await page.waitForTimeout(500);
+      // The job page is a lazy chunk: walk it once it has its heading.
+      await expect(page.locator('main h1')).toHaveCount(1, { timeout: 15_000 });
       await check('job page');
       expect([...new Set(bad)]).toEqual([]);
     });

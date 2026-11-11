@@ -39,6 +39,54 @@ describe('FIGMA-RULES.md', () => {
     expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
   });
 
+  it('pins the exit style (#537): underlined text, the one way out', () => {
+    const exit = fs.readFileSync('src/hds-gaps/ExitButton.tsx', 'utf8');
+    expect(exit).toContain('variant="link"');
+    expect(exit).toContain('hds-touch-target');
+    expect(RULES).toMatch(/An exit is underlined text/);
+    expect(CLAUDE).toMatch(/An exit is underlined text/);
+  });
+
+  it('pins the title block (#538): title first, facts, amber only for a date', () => {
+    expect(RULES).toMatch(/A job leads with its title/);
+    expect(RULES).toMatch(/No fit chips, no Saved chip, no blue/);
+    expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<Card.Facts');
+  });
+
+  it('pins the action dock (#535, #536)', () => {
+    expect(RULES).toMatch(/The action dock/);
+    expect(RULES).toMatch(/Marked not a fit: <title> · Undo/);
+    expect(fs.readFileSync('src/applyActions.ts', 'utf8')).toContain("verb = 'Marked not a fit'");
+    expect(fs.readFileSync('src/theme/base.css', 'utf8')).not.toContain('rjb-dock');
+    expect(RULES).toMatch(/A job with no link\s+never shows Open application/);
+    expect(fs.readFileSync('src/dockKeys.ts', 'utf8')).toContain(
+      "{ id: 'addLink', rank: 'secondary' }",
+    );
+  });
+
+  it('pins the keys by state (#540)', () => {
+    expect(RULES).toMatch(/The filled key follows the state/);
+    const keys = fs.readFileSync('src/dockKeys.ts', 'utf8');
+    expect(keys).toContain("{ id: 'copyFollowUp', rank: 'primary' }");
+    expect(keys).toContain("{ id: 'closeOut', rank: 'exit' }");
+    // One table of keys per state: no second module.
+    expect(fs.existsSync('src/editLinkRequest.ts')).toBe(false);
+    expect(fs.existsSync('src/templatesOpen.ts')).toBe(false);
+  });
+
+  it('pins Copy into the form (#539)', () => {
+    expect(RULES).toMatch(/Copy into the form/);
+    const base = fs.readFileSync('src/theme/base.css', 'utf8');
+    expect(base).not.toMatch(/^\.rjb-blank \{/m);
+    expect(base).not.toContain('.rjb-template-row');
+  });
+
+  it('pins the one saved list (#534)', () => {
+    expect(RULES).toMatch(/One saved list/);
+    expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).toContain('Remove from Apply');
+    expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).not.toContain('StarButton');
+  });
+
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
     const css = fs.readFileSync('src/hds-gaps/PageShell.css', 'utf8');
     expect(css).toContain('--rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);');

@@ -27,6 +27,7 @@ import type { FeedContext } from './feeds/context.ts';
 import { readDsJobsCatalog } from './feeds/dsjobsCatalog.ts';
 import { SERVER_FEED_READERS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { fetchDesignSystemsJobsFeed, webOnly, type WatchedCompany } from './sources.ts';
+import { guardedFetch, isGuarded } from './boardFetch.ts';
 import type { TrackConfig } from './track-config.ts';
 
 export type { WatchedCompany };
@@ -36,6 +37,14 @@ type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 /** The feeds searched by the profile's titles. */
 export type TermFeed = 'hn' | 'remotive' | 'jobicy';
 export const TERM_FEEDS: readonly TermFeed[] = ['hn', 'remotive', 'jobicy'];
+
+/** Distinct titles each feeds run searches per term feed, across every user (#576 item 3). The
+ *  feeds run twice a day: 06:23 and 14:23 (`keyed: false`). Remotive asks for at most ~4 requests a
+ *  day (remotive.ts), so it is read on the morning run only: 2 terms, and a retry of each (retry.ts)
+ *  still keeps the day at 4. The 14:23 run reads HN and Jobicy again, but not Remotive. */
+export function termsPerRun(keyed: boolean): Record<TermFeed, number> {
+  return { hn: 20, jobicy: 20, remotive: keyed ? 2 : 0 };
+}
 
 /** One read: a followed board (`company` set), a term feed (`term` set) or the RSS feed. A read
  *  that failed (`ok` false) never closes a posting. */
@@ -68,16 +77,10 @@ const PARALLEL = 8;
  *  halving the serial Ashby tail (#448). */
 const ASHBY_PARALLEL = 2;
 
-/** Sources the postings table's `source` check doesn't list (the sync never reads them; the
- *  browser's newer board kinds are scored as 'manual'). */
-const NOT_STORED = new Set<Posting['source']>([
-  'remoteok',
-  'bamboohr',
-  'rippling',
-  'gem',
-  'pinpoint',
-  'breezy',
-]);
+/** Browser sources the sync stores under 'manual' (Remote OK's browser read; the sync reads it
+ *  itself, tracks/feeds/remoteok.ts). Every board kind, all 13 since #576, keeps its own source
+ *  (migration 20261111100000 widens the postings check). */
+const NOT_STORED = new Set<Posting['source']>(['remoteok']);
 
 /** A live Posting (src/feed) as the scorer reads it. The source id is the Posting's own id
  *  (`greenhouse:stripe:123`), so the browser and the server name a posting the same way. */
@@ -176,9 +179,11 @@ async function readOne<C extends WatchedCompany>(
       }
     }
     if (!postings) {
+      // The five newer kinds go through the SSRF guard (fixed hosts, no redirects, a size cap).
+      const read = isGuarded(c.ats) ? guardedFetch(c.ats, f) : f;
       const found = await fetchBoard(
         { kind: c.ats, slug: c.slug, ...(c.eu && { eu: true }) },
-        fetchJsonWith(f),
+        fetchJsonWith(read),
       );
       postings = found.map(normalize);
     }
@@ -315,8 +320,14 @@ export async function readAll<C extends WatchedCompany>(
     return part;
   };
   const [pooled, ashby] = await Promise.all([
-    inChunks(companies.filter((c) => c.ats !== 'ashby'), PARALLEL),
-    inChunks(companies.filter((c) => c.ats === 'ashby'), ASHBY_PARALLEL),
+    inChunks(
+      companies.filter((c) => c.ats !== 'ashby'),
+      PARALLEL,
+    ),
+    inChunks(
+      companies.filter((c) => c.ats === 'ashby'),
+      ASHBY_PARALLEL,
+    ),
   ]);
   out.push(...pooled, ...ashby);
   // Term feeds one request at a time: they are shared public APIs.

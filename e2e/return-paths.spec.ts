@@ -1,14 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import {
-  go,
-  JOB_LINK,
-  openAllJobs,
-  openApply,
-  openFilters,
-  openTemplates,
-  seed,
-  topTab,
-} from './routes';
+import { go, JOB_LINK, openAllJobs, openApply, openFilters, seed, topTab } from './routes';
 
 // Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
 // be able to get back easily enough / automatically." With the sample pipeline, Today behind it,
@@ -117,7 +108,6 @@ for (const width of [390, 800] as const) {
 
       // Edit documents: Documents opens over the job (#471 slice 4), and the browser's Back closes it.
       const job = (await h1(page).textContent())!.trim();
-      await openTemplates(page);
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       await page.goBack();
@@ -166,7 +156,7 @@ for (const width of [390, 800] as const) {
       await page.getByRole('button', { name: /^Status:/ }).click();
       await closesOnBack(page.getByRole('menu'), queue);
       await more.click();
-      await page.getByRole('menuitem', { name: 'Remove' }).click();
+      await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
       // Recently removed is in the Account menu (#416).
       await page.getByRole('button', { name: /^Account/ }).click();
       await page.getByRole('menuitem', { name: /^Recently removed/ }).click();
@@ -189,7 +179,7 @@ for (const width of [390, 800] as const) {
           .getByRole('button', { name: `More actions: ${title}` })
           .first()
           .click();
-        await page.getByRole('menuitem', { name: 'Remove' }).click();
+        await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
       };
       // Opened from its Company page, with Apply behind it.
       await go(page, '#/apply');
@@ -240,7 +230,6 @@ for (const width of [390, 800] as const) {
       page,
     }) => {
       await openApply(page);
-      await openTemplates(page);
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const library = await page.evaluate(() => location.hash);
@@ -311,7 +300,6 @@ for (const width of [390, 800] as const) {
         .click();
       await expect(page).toHaveURL(/#\/apply\//);
       const apply = await hash();
-      await openTemplates(page);
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const count = () =>
@@ -362,16 +350,15 @@ for (const width of [390, 800] as const) {
       page,
     }) => {
       await openApply(page);
-      await page.getByRole('button', { name: /^Fill in \d+ more/ }).click();
+      await page.getByRole('button', { name: 'Add them' }).click();
       const add = page
-        .getByRole('region', { name: /^Application kit/ })
+        .getByRole('region', { name: /^Copy into the form/ })
         .getByRole('button', { name: /^Add / })
         .first();
       const label = (await add.getAttribute('aria-label'))!.replace(/^Add /, '');
       await add.click();
       const field = page.getByRole('textbox', { name: label, exact: true });
       await field.fill('Half typ');
-      await openTemplates(page);
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
       await page
         .getByRole('dialog', { name: 'Documents' })

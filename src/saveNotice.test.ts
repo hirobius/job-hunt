@@ -1,5 +1,5 @@
-// The save notice goes away once it is stale (QA): its job was opened, its job moved past Saved,
-// or the user navigated. Its Open would otherwise point at the page already showing.
+// The save notice goes away once it is stale (QA): its job moved past Saved. It survives
+// navigation for its full timeout (#534, interaction review 2026-11-11), so Undo stays in reach.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { dismissNotice, notifySaved, saveWithNotice, showNotice, useNotice } from './saveNotice';
@@ -28,14 +28,6 @@ afterEach(() => {
 });
 
 describe('a stale save notice is dismissed', () => {
-  it('when its job page is opened', async () => {
-    act(() => notifySaved([A], 'Acme Designer'));
-    expect(getNotice()).not.toBeNull();
-    act(() => openJob(jobIdOf(A)));
-    await hashSettled();
-    expect(getNotice()).toBeNull();
-  });
-
   it('when its job moves past Saved', () => {
     act(() => notifySaved([A]));
     act(() => setStatus(A, 'Applied'));
@@ -50,10 +42,19 @@ describe('a stale save notice is dismissed', () => {
     expect(getNotice()).toBeNull();
   });
 
-  it('when the user navigates (replace too)', async () => {
-    act(() => notifySaved([A]));
+  it('not when the user navigates: Undo toasts survive navigation (#534)', async () => {
+    act(() => notifySaved([A], 'Acme Designer'));
     act(() => navigate({ tab: 'discover', sub: null }, true));
-    expect(getNotice()).toBeNull();
+    act(() => openJob(jobIdOf(A)));
+    await hashSettled();
+    expect(getNotice()?.title).toBe('Added to Apply: Acme Designer');
+    expect(getNotice()?.actions.map((a) => a.label)).toEqual(['Open', 'Undo']);
+  });
+
+  it('a double Save is a no-op: the link is already in Apply (#534)', async () => {
+    const { alreadyInApply } = await import('./saveNotice');
+    expect(alreadyInApply(A)).toBe(true);
+    expect(alreadyInApply('https://new.example/jobs/x')).toBe(false);
   });
 
   it('stays while nothing it names changes', async () => {
@@ -89,10 +90,10 @@ describe('saving a job that is already saved', () => {
     expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
   });
 
-  it('a new link still says Saved to Pipeline', () => {
+  it('a new link says Added to Apply, with its title (#534)', () => {
     act(() => {
       saveWithNotice('https://cask.example/jobs/c', 'Cask Designer');
     });
-    expect(getNotice()?.title).toBe('Saved to Pipeline · To apply');
+    expect(getNotice()?.title).toBe('Added to Apply: Cask Designer');
   });
 });

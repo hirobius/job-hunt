@@ -4,13 +4,34 @@
 // again lifts the mute. Each change shows at once: the row moves to the other list and both counts
 // change. Its own chunk (lazyDialogs.ts): opened from the Account menu only.
 import { startTransition, useEffect, useState, type ReactNode } from 'react';
-import { Button, Dialog, SegmentedControl, Stack, Text } from '@hirobius/design-system';
+import { ExternalLink } from 'lucide-react';
+import {
+  Button,
+  Dialog,
+  Icon,
+  SegmentedControl,
+  Stack,
+  Text,
+  Tooltip as HdsTooltip,
+} from '@hirobius/design-system';
 import { ItemList, ItemRow } from './PipelinePanel';
 import { useFeedInputs } from './feed/useFeed';
-import { followCompany, muteCompany, unmuteCompany, useDecided } from './feed/decided';
+import { companyKey, followCompany, muteCompany, unmuteCompany, useDecided } from './feed/decided';
+import { canonicalBoardUrl } from './feed/sources/ats';
+import { httpUrl } from './httpUrl';
 import { companiesLists, type CompanyEntry } from './companiesList';
+import { followBoard } from './sources';
+import { metaLines } from './metaLines';
+import { dismissSuggestion, loadSuggestions, type BoardSuggestion } from './boardSuggestions';
 
-type Show = 'followed' | 'ignored';
+type Show = 'followed' | 'ignored' | 'suggested';
+
+const boardKey = (b: { kind: string; slug: string }) => `${b.kind}:${b.slug.toLowerCase()}`;
+const KIND_NAME: Record<string, string> = {
+  greenhouse: 'Greenhouse',
+  lever: 'Lever',
+  ashby: 'Ashby',
+};
 
 /** Rows drawn on the press; the rest follow in a transition after the dialog paints. Followed
  *  runs to hundreds of boards, and drawing them all at once took the press past 300 ms (#212). */
@@ -23,6 +44,30 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
   const [show, setShow] = useState<Show>(() =>
     !followed.length && ignored.length ? 'ignored' : 'followed',
   );
+  // Boards the sync found for companies in the feeds (#576): suggestions only, never followed
+  // until the user taps Follow.
+  const [found, setFound] = useState<BoardSuggestion[]>([]);
+  useEffect(() => {
+    let live = true;
+    void loadSuggestions().then((s) => live && setFound(s));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const followedBoards = new Set(
+    sources.filter((s) => s.kind !== 'feed').map((s) => boardKey({ kind: s.kind, slug: s.ref })),
+  );
+  // Never a board already followed, nor a company the user ignored ("Ignored ones never do").
+  const ignoredKeys = new Set(ignored.map((c) => c.key));
+  const suggested = found.filter(
+    (s) => !followedBoards.has(boardKey(s.board)) && !ignoredKeys.has(companyKey(s.company)),
+  );
+  // The last suggestion gone while its segment is open: show Followed, so one option stays checked.
+  const view: Show = show === 'suggested' && !suggested.length ? 'followed' : show;
+  const drop = (s: BoardSuggestion) => {
+    setFound((cur) => cur.filter((x) => boardKey(x.board) !== boardKey(s.board)));
+    void dismissSuggestion(s.board);
+  };
   return (
     <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
       <Dialog.Header>
@@ -31,19 +76,22 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
           Followed companies’ jobs show in Review new. Ignored ones never do.
         </Dialog.Description>
       </Dialog.Header>
-      {followed.length || ignored.length ? (
+      {followed.length || ignored.length || suggested.length ? (
         <Stack gap="normal">
           <SegmentedControl
             aria-label="Companies to show"
             size="sm"
-            value={show}
+            value={view}
             onChange={(v) => setShow(v as Show)}
             options={[
               { value: 'followed', label: `Followed (${followed.length})` },
               { value: 'ignored', label: `Ignored (${ignored.length})` },
+              ...(suggested.length
+                ? [{ value: 'suggested', label: `Suggested (${suggested.length})` }]
+                : []),
             ]}
           />
-          {show === 'followed' ? (
+          {view === 'followed' ? (
             <Group
               key="followed"
               title="Followed"
@@ -60,6 +108,54 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
                 </Button>
               )}
             />
+          ) : view === 'suggested' ? (
+            <Stack gap="tight">
+              <Text variant="caption" as="p" tone="secondary">
+                Boards found for companies in your feeds, each checked against the company’s name or
+                site. Open one to look before you follow. A dismissed board can come back after a
+                month.
+              </Text>
+              <Group
+                key="suggested"
+                title="Suggested"
+                rows={suggested.map((s) => ({
+                  key: boardKey(s.board),
+                  label: metaLines([
+                    s.company,
+                    `${KIND_NAME[s.board.kind] ?? s.board.kind}${s.jobs ? ` (${s.jobs} open)` : ''}`,
+                  ])[0],
+                  known: false,
+                }))}
+                empty="No suggestions."
+                action={(c) => {
+                  const s = suggested.find((x) => boardKey(x.board) === c.key);
+                  return s ? (
+                    <Stack direction="row" gap="tight" align="center">
+                      <BoardLink suggestion={s} />
+                      <Button
+                        size="sm"
+                        variant="tertiary"
+                        aria-label={`Follow ${s.company} on ${KIND_NAME[s.board.kind]}`}
+                        onClick={() => {
+                          followBoard(s.board, s.company);
+                          drop(s);
+                        }}
+                      >
+                        Follow
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="tertiary"
+                        aria-label={`Dismiss ${s.company}`}
+                        onClick={() => drop(s)}
+                      >
+                        Dismiss
+                      </Button>
+                    </Stack>
+                  ) : null;
+                }}
+              />
+            </Stack>
           ) : (
             <Group
               key="ignored"
@@ -94,6 +190,26 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
         </Dialog.Close>
       </Dialog.Footer>
     </Dialog.Content>
+  );
+}
+
+/** The quiet icon link to a suggested board (Posting links' pattern), so it can be checked before
+ *  a Follow. Only a web address becomes a link. */
+function BoardLink({ suggestion: s }: { suggestion: BoardSuggestion }) {
+  const url = canonicalBoardUrl(s.board);
+  if (!httpUrl(url)) return null;
+  const label = `Open board for ${s.company}`;
+  return (
+    <HdsTooltip>
+      <HdsTooltip.Trigger asChild>
+        <Button size="sm" variant="tertiary" iconOnly label={label} asChild>
+          <a href={url} target="_blank" rel="noopener noreferrer" aria-label={label}>
+            <Icon icon={ExternalLink} />
+          </a>
+        </Button>
+      </HdsTooltip.Trigger>
+      <HdsTooltip.Content>Open board</HdsTooltip.Content>
+    </HdsTooltip>
   );
 }
 

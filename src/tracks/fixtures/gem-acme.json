@@ -1,0 +1,21 @@
+[
+  {
+    "id": "am9icG9zdDox",
+    "title": "Senior Design Systems Engineer",
+    "absolute_url": "https://jobs.gem.com/acme/am9icG9zdDox",
+    "location": { "name": "Remote" },
+    "location_type": "remote",
+    "employment_type": "full_time",
+    "content": "<p>Own our <b>design system</b>: the component library, design tokens and Storybook.</p>",
+    "first_published_at": "2026-10-20T00:00:00Z"
+  },
+  {
+    "id": "am9icG9zdDoy",
+    "title": "Office Manager",
+    "absolute_url": "https://jobs.gem.com/acme/am9icG9zdDoy",
+    "location": { "name": "New York, NY" },
+    "location_type": "in_office",
+    "content": "<p>Run the office.</p>",
+    "first_published_at": "2026-10-12T00:00:00Z"
+  }
+]

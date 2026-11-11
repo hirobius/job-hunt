@@ -24,11 +24,20 @@ import { viewport } from './test/viewport';
 import { setPipelineView } from './pipelineView';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
+import {
+  addJob,
+  findJobById,
+  getAllJobs,
+  jobIdOf,
+  removeJob,
+  replaceAll,
+  updateJob,
+} from './store';
 import { replaceTrash } from './trash';
 import { dismissNotice } from './saveNotice';
 import { ymd } from './jobEvents';
 import { currentTab } from './test/topTabs';
+import { setOutreachMessages } from './test/outreach';
 
 const URL_A = 'https://acme.example/jobs/7';
 // Applied today: no follow-up is due, so the header's primary comes from the status alone.
@@ -76,10 +85,14 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(header).not.toBeNull();
-    expect(within(header).getByText('Saved')).toBeInTheDocument();
-    const star = within(header).getByRole('button', { name: 'Star' });
-    expect(star).not.toHaveAttribute('aria-pressed'); // the text carries the state
-    expect(within(header).getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
+    // #538: no Saved chip; the company and facts line say what is missing.
+    expect(within(header).queryByText('Saved')).toBeNull();
+    expect(within(header).getByText('Company not stated')).toBeInTheDocument();
+    expect(within(header).getByText('Pay not stated')).toBeInTheDocument();
+    // No star (#534): every job on Apply is already saved.
+    expect(within(header).queryByRole('button', { name: /^Star/ })).toBeNull();
+    // The keys sit in the dock (#535), outside the header on a phone.
+    expect(screen.getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
   });
 
@@ -91,10 +104,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(within(header).queryByRole('link', { name: /^Open posting for / })).toBeNull();
-    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
-      'href',
-      URL_A,
-    );
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', URL_A);
     await userEvent.click(
       within(header).getByRole('button', { name: 'More actions: Design Engineer' }),
     );
@@ -108,14 +118,10 @@ describe('job page header and Overview (#130 slice 1)', () => {
     openJobPage();
     // Details opens as fields (no link fact), so the header is the one-tap way out.
     expect(screen.getByRole('textbox', { name: 'Link' })).toBeInTheDocument();
-    const header = screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement;
-    expect(within(header).getByRole('link', { name: /Open application/ })).toHaveAttribute(
-      'href',
-      URL_A,
-    );
+    expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', URL_A);
   });
 
-  it('the primary action is Follow up when one is due, and Mark applied is gone', () => {
+  it('follow-up due: Copy follow-up is filled, Mark followed up grey, Close out the exit (#540)', () => {
     addJob(URL_A, 'Design Engineer');
     const d = new Date();
     d.setDate(d.getDate() - 10);
@@ -125,36 +131,74 @@ describe('job page header and Overview (#130 slice 1)', () => {
       applied: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
     });
     openJobPage();
-    expect(screen.getByRole('button', { name: /^Follow up/ })).toBeInTheDocument();
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => [k.textContent, k.getAttribute('data-variant')])).toEqual([
+      ['Copy follow-up', 'primary'],
+      ['Mark followed up', 'secondary'],
+      ['Close out', 'link'],
+    ]);
     expect(screen.queryByRole('button', { name: /^Mark applied/ })).toBeNull();
   });
 
-  it('with no next step the action row is just Star and More, no empty slot between', () => {
+  it('with no next step there is no dock: More sits by the title, no empty slot (#535)', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { status: 'Offer', applied: todayYmd() });
     openJobPage();
-    const star = screen.getByRole('button', { name: 'Star' });
-    const row = star.closest('[data-rjb-actions]') as HTMLElement;
-    expect(row).not.toBeNull();
-    // (The menu's hidden portal anchor is not a slot.)
-    expect([...row.children].filter((c) => !(c as HTMLElement).hidden)).toHaveLength(2);
-    expect(
-      within(row)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label') ?? b.textContent),
-    ).toEqual(['Star', expect.stringMatching(/^More actions/)]);
+    expect(screen.getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-rjb-actions]')).toBeNull();
+    expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
   });
 
-  it('starring fills the star, says Starred and where starred jobs show', async () => {
+  it('a job to apply to: the dock holds the filled key, the grey key, then the exit (#535)', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Star' }));
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => k.getAttribute('data-variant'))).toEqual([
+      'primary',
+      'secondary',
+      'link',
+    ]);
+    expect(keys.map((k) => k.textContent)).toEqual([
+      'Open application',
+      'Mark applied',
+      'Not a fit',
+    ]);
+  });
+
+  it('a job with no link shows Add link, never Open application; Add link focuses its Link field (#540)', async () => {
+    const NO_LINK = 'notes:designer';
+    replaceAll([{ url: NO_LINK, label: 'Design Engineer', company: 'Acme', status: 'Saved' }]);
+    openJobPage(NO_LINK);
+    const dock = screen.getByRole('group', { name: 'Actions for Design Engineer' });
+    const keys = [...dock.querySelectorAll('a, button')];
+    expect(keys.map((k) => k.textContent)).toEqual(['Mark applied', 'Add link', 'Not a fit']);
+    expect(keys.map((k) => k.getAttribute('data-variant'))).toEqual([
+      'primary',
+      'secondary',
+      'link',
+    ]);
+    expect(screen.queryByRole('link', { name: /Open application/ })).toBeNull();
+    expect(dock.querySelector('a[href]')).toBeNull();
+    // Add link opens its dialog with focus on the Link field.
+    await userEvent.click(within(dock).getByRole('button', { name: 'Add link: Design Engineer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add the application link' });
+    await waitFor(() =>
+      expect(within(dialog).getByRole('textbox', { name: 'Application link' })).toHaveFocus(),
+    );
+  });
+
+  it('no star anywhere on the job page; a stored star stays in the data (#534)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { priority: true });
+    openJobPage();
+    expect(screen.queryByRole('button', { name: /^Star/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).queryByRole('menuitem', { name: /Star/ })).toBeNull();
+    expect(within(menu).getByRole('menuitem', { name: 'Remove from Apply' })).toBeInTheDocument();
     expect(findJobById(jobIdOf(URL_A), getAllJobs())?.priority).toBe(true);
-    const on = screen.getByRole('button', { name: 'Starred' });
-    expect(on.querySelector('svg')).toHaveClass('rjb-icon-filled');
-    expect(await screen.findByText('Shows first in your Pipeline')).toBeInTheDocument();
-    await userEvent.click(on);
-    expect(findJobById(jobIdOf(URL_A), getAllJobs())?.priority).toBe(false);
   });
 
   it('Overview lists the facts the job has as a definition list', () => {
@@ -328,7 +372,7 @@ describe('job page remove (Recently removed)', () => {
     openJobPage();
     expect(screen.queryByRole('button', { name: /Remove this job/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
-    expect(screen.getByRole('menuitem', { name: 'Remove' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Remove from Apply' })).toBeInTheDocument();
   });
 
   it('removes without asking, returns to the list, and Undo brings it back whole', async () => {
@@ -336,13 +380,13 @@ describe('job page remove (Recently removed)', () => {
     updateJob(URL_A, { notes: 'Ask about the shop floor' });
     openJobPage();
     await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Remove from Apply' }));
     expect(getAllJobs()).toHaveLength(0);
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    expect(screen.getByText('Removed “Design Engineer”')).toBeInTheDocument();
+    expect(screen.getByText('Removed from Apply: Design Engineer')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(getAllJobs().map((j) => j.notes)).toEqual(['Ask about the shop floor']);
-    expect(screen.queryByText('Removed “Design Engineer”')).toBeNull();
+    expect(screen.queryByText('Removed from Apply: Design Engineer')).toBeNull();
   });
 
   it('Recently removed (in the Account menu) restores or deletes for good', async () => {
@@ -354,7 +398,7 @@ describe('job page remove (Recently removed)', () => {
     await openAllJobs();
     for (const name of ['Design Engineer', 'Welder']) {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     }
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
@@ -378,7 +422,7 @@ describe('job page remove (Recently removed)', () => {
     await openAllJobs();
     for (const name of ['Design Engineer', 'Welder']) {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     }
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
@@ -404,7 +448,7 @@ describe('job page remove (Recently removed)', () => {
     window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await openRecentlyRemoved(1);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(
@@ -829,7 +873,8 @@ describe('job dates on the job page (#419)', () => {
     expect(getAllJobs()[0].deadline).toBeUndefined(); // saved on leaving the field, not per key
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(getAllJobs()[0].deadline).toBe(ymd(soon));
-    const label = `Closes ${soon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    // #538: the amber badge under the facts names the weekday and the days left.
+    const label = `Closes ${soon.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · 3 days`;
     const badge = screen.getAllByText(label).find((el) => el.closest('[data-tone]'));
     expect(badge?.closest('[data-tone]')).toHaveAttribute('data-tone', 'warning');
 
@@ -837,5 +882,97 @@ describe('job dates on the job page (#419)', () => {
     await userEvent.clear(screen.getByLabelText('Applications close'));
     await userEvent.tab();
     await waitFor(() => expect('deadline' in getAllJobs()[0]).toBe(false));
+  });
+});
+
+// #540 and the interaction review (2026-11-11): the filled key follows the state.
+describe('the keys follow the state (#540)', () => {
+  const daysAgo = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return ymd(d);
+  };
+
+  it('no link: a fact says so, Mark applied is filled, Add link grey; Add link moves on to Open application', async () => {
+    const user = userEvent.setup();
+    // A job with no usable link: its stored URL does not parse as http(s) (a placeholder).
+    // (A synced or restored record can carry one; the add path refuses it.)
+    addJob(URL_A, 'Designer');
+    updateJob(URL_A, { url: 'notes:designer' });
+    openJobPage('notes:designer');
+    expect(screen.getByText('No application link')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Open application/ })).toBeNull();
+    const dock = screen.getByRole('group', { name: 'Actions for Designer' });
+    expect(
+      [...dock.querySelectorAll('a, button')].map((k) => [
+        k.textContent,
+        k.getAttribute('data-variant'),
+      ]),
+    ).toEqual([
+      ['Mark applied', 'primary'],
+      ['Add link', 'secondary'],
+      ['Not a fit', 'link'],
+    ]);
+    await user.click(within(dock).getByRole('button', { name: 'Add link: Designer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add the application link' });
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Application link' }),
+      'https://boards.example.com/jobs/9',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Add link' }));
+    const open = await screen.findByRole('link', { name: /Open application/ });
+    expect(open).toHaveAttribute('href', 'https://boards.example.com/jobs/9');
+    expect(screen.queryByText('No application link')).toBeNull();
+    await waitFor(() => expect(open).toHaveFocus());
+  });
+
+  it('Mark followed up restarts the clock with Undo; focus stays on the title', async () => {
+    const user = userEvent.setup();
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { status: 'Applied', applied: daysAgo(10) });
+    openJobPage();
+    await user.click(screen.getByRole('button', { name: 'Mark followed up: Design Engineer' }));
+    expect(findJobById(jobIdOf(URL_A), getAllJobs())?.followUp).toBeTruthy();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1 })),
+    );
+    const notice = await screen.findByText('Marked followed up: Design Engineer');
+    const toast = notice.closest('li') as HTMLElement;
+    await user.click(within(toast).getByRole('button', { name: 'Undo' }));
+    expect(findJobById(jobIdOf(URL_A), getAllJobs())?.followUp).toBeFalsy();
+  });
+
+  it('Close out sets the job aside with Undo that puts every field back', async () => {
+    const user = userEvent.setup();
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { status: 'Applied', applied: daysAgo(10), notes: 'keep me' });
+    const before = { ...getAllJobs().find((j) => j.url === URL_A)! };
+    openJobPage();
+    await user.click(screen.getByRole('button', { name: 'Close out: Design Engineer' }));
+    expect(getAllJobs().find((j) => j.url === URL_A)?.archived).toBe(true);
+    const notice = await screen.findByText('Closed out: Design Engineer');
+    await user.click(
+      within(notice.closest('li') as HTMLElement).getByRole('button', { name: 'Undo' }),
+    );
+    const after = getAllJobs().find((j) => j.url === URL_A)!;
+    expect({ ...after, archived: after.archived || undefined }).toEqual({
+      ...before,
+      archived: before.archived || undefined,
+    });
+  });
+
+  it('Copy follow-up with a failed clipboard shows the text to copy by hand', async () => {
+    const user = userEvent.setup();
+    setOutreachMessages([
+      { id: 'tpl-followup', label: 'Follow-up after applying', body: 'Checking in on [Role].' },
+    ]);
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { status: 'Applied', applied: daysAgo(10) });
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValueOnce(new Error('denied'));
+    openJobPage();
+    await user.click(screen.getByRole('button', { name: 'Copy follow-up' }));
+    expect(await screen.findByText(/^Couldn’t copy the follow-up\./)).toBeInTheDocument();
+    expect(screen.getAllByText(/Checking in on/).length).toBeGreaterThan(0);
+    setOutreachMessages([]);
   });
 });

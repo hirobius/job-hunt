@@ -39,8 +39,9 @@ export const FILTER_LABEL: Record<Filter, string> = {
 // Active first; All and Retired demoted to the end (#129). A group without a label is just a
 // separated section.
 export const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
-  // Starred is where favourites live: every starred job, whatever its stage.
-  { label: 'Views', items: ['active', 'starred'] },
+  // No Starred view (#534): Apply is the one saved list, and the star left the UI. A stored
+  // 'starred' filter still reads (the field stays in the data, backups and CSV).
+  { label: 'Views', items: ['active'] },
   { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
   // By closing date (#419): closes within 7 days, or gone from its board / past its day.
   { label: 'Closing date', items: ['closingSoon', 'closed'] },

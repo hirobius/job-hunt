@@ -94,7 +94,8 @@ export interface Posting {
   updatedAt?: string;
   /** Plain-text body (HTML stripped) — what the matcher searches. */
   text: string;
-  /** Yearly pay as the source states it; absent when it doesn't. Never parsed from free text. */
+  /** Yearly pay as the source states it; absent when it doesn't. Parsed from free text only for HN
+   *  posts (hnPay.ts: a currency must be named; yearly figures only). */
   salaryMin?: number;
   salaryMax?: number;
   /** ISO currency code ('USD'); absent when the source doesn't say. */

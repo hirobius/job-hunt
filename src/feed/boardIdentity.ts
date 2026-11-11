@@ -14,8 +14,9 @@
 // The probe keeps a board only when it matches, or when it is the one board the name found and
 // nothing speaks against it; every other board is "unconfirmed" and is listed, never watched.
 // Pure: no network, table-tested in boardIdentity.test.ts.
-import { BOARD_DOMAINS, logoDomain } from '../companyLogo';
-import { obj } from './sources/http';
+// `.ts` specifiers: the server's board suggestions (tracks/boardSuggest.ts) load this in Deno.
+import { BOARD_DOMAINS, logoDomain } from '../companyLogo.ts';
+import { obj } from './sources/http.ts';
 
 /** What a board payload says about who it belongs to. Small enough to cache with the probe answer. */
 export interface BoardEvidence {

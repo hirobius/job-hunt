@@ -14,3 +14,14 @@ export async function copyFilled(text: string): Promise<CopyResult> {
     };
   }
 }
+
+/** A copy that failed (no clipboard permission): the toast holds the text itself, to select and
+ *  copy by hand (interaction review 2026-11-11). */
+export function copyFailed(label: string, value: string) {
+  return {
+    title: `Couldn’t copy ${label}. Select the text and copy it by hand.`,
+    description: value,
+    tone: 'warning' as const,
+    duration: 20000,
+  };
+}

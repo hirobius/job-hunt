@@ -91,7 +91,7 @@ describe('the Jobs page keeps only what Adrian listed', () => {
     expect(within(menu).queryByRole('menuitem', { name: /Recently removed/ })).toBeNull();
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Welder' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await waitFor(() => expect(getTrash()).toHaveLength(1));
     expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
     menu = await openAccount();

@@ -35,6 +35,7 @@ import {
   readAll,
   scoreBatch,
   TERM_FEEDS,
+  termsPerRun,
   type ReadOutcome,
   type ScoredPosting,
   type TermFeed,
@@ -56,11 +57,18 @@ import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
 import {
   SERVER_FEEDS,
   serverFeedOn,
+  serverFeedsForRun,
   serverFeedsOff,
   type ServerFeed,
 } from '../../../src/tracks/feeds/serverFeeds.ts';
 import type { NormalizedPosting } from '../../../src/tracks/score.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
+import {
+  nameKey as suggestNameKey,
+  namesToProbe,
+  probeNames,
+  type SeenRow,
+} from '../../../src/tracks/boardSuggest.ts';
 
 declare const Deno: {
   env: { get(name: string): string | undefined };
@@ -77,6 +85,11 @@ const RANK: Record<string, number> = {
   smartrecruiters: 0,
   teamtailor: 0,
   personio: 0,
+  bamboohr: 0,
+  rippling: 0,
+  gem: 0,
+  pinpoint: 0,
+  breezy: 0,
   rss: 1,
   manual: 1,
   ids: 1,
@@ -109,13 +122,6 @@ const RUN_LEASE_MS = 14 * 60_000;
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
 const TILE_PAGE = 1000;
-/** Distinct titles searched per feed and run, across every user. */
-const TERMS_PER_RUN: Record<TermFeed, number> = {
-  hn: 20,
-  jobicy: 20,
-  // Remotive asks for at most ~4 requests a day; the feeds run once a day.
-  remotive: 2,
-};
 /** Each outbound read's cap: one hung board must not spend the slice's whole wall-clock budget. */
 const FETCH_TIMEOUT_MS = ROTATION.fetchTimeoutMs;
 const timedFetch = (u: string, init?: RequestInit) =>
@@ -402,6 +408,102 @@ async function writeScored(
   for (const s of scored) totals[s.verdict]++;
 }
 
+/** Wall time the board-suggestion probe may spend on one feeds run. */
+const SUGGEST_BUDGET_MS = 20_000;
+
+/** Board suggestions (#576 item 5): probe a few feed company names on Greenhouse, Lever and Ashby
+ *  (boardSuggest.ts: fixed hosts, slugs only, bounded) and store each live board for the users who
+ *  saw the company. Never follows anything. A missing table (migration not applied) only logs. */
+async function suggestBoards(
+  db: SupabaseClient,
+  plans: Map<string, SyncPlan>,
+  seen: SeenRow[],
+  logs: Log[],
+) {
+  if (!seen.length) return;
+  // Per user: the names they follow (a board's company) or ignored (a muted Source). Their own rows
+  // are not probed for them, and nothing for those names is suggested to them.
+  const skip = new Map<string, Set<string>>();
+  for (const [u, plan] of plans) {
+    const names = new Set(plan.ignored.map(suggestNameKey));
+    for (const b of plan.boards) names.add(suggestNameKey(b.company));
+    skip.set(u, names);
+  }
+  const keys = [...new Set(seen.map((r) => suggestNameKey(r.company)))].slice(0, 1000);
+  const checkedAt = new Map<string, string>();
+  for (let i = 0; i < keys.length; i += LOOKUP) {
+    const { data, error } = await db
+      .from('board_probe_names')
+      .select('name_key, checked_at')
+      .in('name_key', keys.slice(i, i + LOOKUP));
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as { name_key: string; checked_at: string }[])
+      checkedAt.set(r.name_key, r.checked_at);
+  }
+  const names = namesToProbe(seen, skip, checkedAt, new Date());
+  if (!names.length) return;
+  const run = await probeNames(names, {
+    fetch: timedFetch,
+    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+    deadline: Date.now() + SUGGEST_BUDGET_MS,
+  });
+  const byUser = new Map<string, Record<string, unknown>[]>();
+  for (const sg of run.suggestions)
+    for (const u of sg.users) {
+      const plan = plans.get(u);
+      // A board the user already follows, or a company they ignored, is no suggestion.
+      if (skip.get(u)?.has(sg.key)) continue;
+      if (
+        plan?.boards.some((b) => b.ats === sg.board.kind && b.slug.toLowerCase() === sg.board.slug)
+      )
+        continue;
+      const rows = byUser.get(u) ?? [];
+      rows.push({
+        user_id: u,
+        kind: sg.board.kind,
+        slug: sg.board.slug,
+        company: sg.company,
+        jobs: sg.jobs,
+        found_at: new Date().toISOString(),
+      });
+      byUser.set(u, rows);
+    }
+  // One write per user: a user at the row cap (500, the migration's trigger) fails alone.
+  let stored = 0;
+  for (const [u, rows] of byUser) {
+    const { error } = await db
+      .from('board_suggestions')
+      .upsert(rows, { onConflict: 'user_id,kind,slug', ignoreDuplicates: true });
+    if (error)
+      logs.push({
+        user_id: u,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message: `board suggestions: ${error.message}`.slice(0, 2000),
+      });
+    else stored += rows.length;
+  }
+  if (run.checked.length) {
+    const { error } = await db.from('board_probe_names').upsert(
+      run.checked.map((c) => ({
+        name_key: c.key,
+        found: c.found,
+        checked_at: new Date().toISOString(),
+      })),
+      { onConflict: 'name_key' },
+    );
+    if (error) throw new Error(error.message);
+  }
+  logs.push({
+    user_id: null,
+    kind: 'run',
+    board: null,
+    status: null,
+    message: `board suggestions: ${names.length} names, ${run.reads} reads, ${run.suggestions.length} confirmed boards, ${stored} rows`,
+  });
+}
+
 /** A posting closed now (a gone board, or one no longer followed). */
 const closing = () => ({
   verdict: 'reject',
@@ -467,7 +569,7 @@ async function loadPlans(
 async function chainNext(
   supabaseUrl: string,
   secret: string,
-  payload: { rss?: boolean; after: string; runStart: string },
+  payload: { rss?: boolean; keyed?: boolean; after: string; runStart: string },
 ): Promise<string | null> {
   let why = '';
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -834,6 +936,8 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as {
     rotate?: boolean;
     rss?: boolean;
+    /** False on the 14:23 feeds run: the keyed searches run on the morning run only (#576). */
+    keyed?: boolean;
     after?: string;
     runStart?: string;
   };
@@ -955,20 +1059,23 @@ Deno.serve(async (req) => {
         await writeGroup(db, userId, plans.get(userId)!, answered, logs, totalsOf(userId));
     }
 
-    // The feeds, once a day (the morning run), on the last slice: each title once across users.
+    // The feeds, twice a day (06:23 and 14:23, #576), on the last slice: each title once across users.
+    const seenForSuggest: SeenRow[] = [];
     if (body.rss === true && last) {
       const terms: Partial<Record<TermFeed, string[]>> = {};
+      // Remotive on the morning run only (its ~4 a day): termsPerRun, #576 item 3.
+      const perRun = termsPerRun(body.keyed !== false);
       for (const feed of TERM_FEEDS) {
         const seen = new Map<string, string>();
         for (const plan of plans.values())
           if (plan.feeds.has(feed))
             for (const t of plan.terms)
               if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
-        terms[feed] = [...seen.values()].slice(0, TERMS_PER_RUN[feed]);
+        terms[feed] = [...seen.values()].slice(0, perRun[feed]);
       }
       const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
-      const server = SERVER_FEEDS.filter(
-        (f) => serverFeedOn(f, envOf) && [...plans.values()].some((p) => p.feeds.has(f)),
+      const server = serverFeedsForRun(envOf, body.keyed !== false).filter((f) =>
+        [...plans.values()].some((p) => p.feeds.has(f)),
       );
       const reads = await readAll([], {
         fetch: timedFetch,
@@ -997,6 +1104,27 @@ Deno.serve(async (req) => {
           answeredBy.set(userId, [...(answeredBy.get(userId) ?? []), feed]);
         const ok = mine.filter((r) => r.ok);
         if (ok.length) await writeGroup(db, userId, plan, ok, logs, totalsOf(userId));
+        // Companies this user was shown (not rejected), for board suggestions (#576).
+        if (ok.length)
+          for (const sp of scoreBatch(ok, plan.config))
+            if (sp.verdict !== 'reject' && sp.posting.company)
+              seenForSuggest.push({
+                user_id: userId,
+                company: sp.posting.company,
+                source: sp.posting.source,
+                url: sp.posting.url,
+              });
+      }
+      try {
+        await suggestBoards(db, plans, seenForSuggest, logs);
+      } catch (e) {
+        logs.push({
+          user_id: null,
+          kind: 'failed',
+          board: null,
+          status: null,
+          message: `board suggestions: ${String(e)}`.slice(0, 2000),
+        });
       }
     }
 
@@ -1115,6 +1243,7 @@ Deno.serve(async (req) => {
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,
+      ...(body.keyed === false && { keyed: false }),
       after: next,
       runStart,
     });

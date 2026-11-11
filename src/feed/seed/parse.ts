@@ -22,6 +22,7 @@ import { decodeEntities, htmlToText } from '../html';
 import { slugCandidates } from '../probe';
 import { parseBoardUrl, type Board } from '../sources/ats';
 import { arr, obj, str } from '../sources/http';
+import { normName } from '../distinctName';
 
 export type SeedSourceId = 'adele' | 'awesome' | 'dsjobs' | 'hn' | 'github';
 
@@ -453,14 +454,7 @@ export function parseGithubSearch(body: unknown): Candidate[] {
 
 // ---- merging ----
 
-export const normName = (s: string) =>
-  s
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/&/g, 'and')
-    .replace(/\b(inc|llc|ltd|limited|gmbh|corp|corporation|co|plc|group|the|hq|labs?)\b/g, '')
-    .replace(/[^a-z0-9]/g, '');
+export { normName };
 
 /** One candidate per company: same website, or same name when either has no website. The first
  *  seen keeps its name; slugs, boards, titles and evidence are pooled. */

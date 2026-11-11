@@ -76,12 +76,6 @@ export async function openJob(page: Page) {
 /** A link to a job's Apply view (not a Company page). */
 export const JOB_LINK = 'a[href^="#/apply/"]:not([href^="#/apply/company/"])';
 
-/** Open a job's Templates (closed by default on a new device, Proposal A). */
-export async function openTemplates(page: Page) {
-  const t = page.getByRole('button', { name: /^Templates \(/ });
-  if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
-}
-
 /** The first job in the Apply list, in its Apply view (#471: there is no Apply mode or Start
  *  applying any more; the tab is the walk). */
 export async function openApply(page: Page) {

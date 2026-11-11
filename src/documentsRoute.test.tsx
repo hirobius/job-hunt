@@ -87,8 +87,9 @@ describe('the Documents page', () => {
   it('with no documents, no subtitle repeats the empty state; with some, it says what goes here', async () => {
     replaceSnippets([]);
     await renderApp();
-    const dialog = await screen.findByRole('dialog', { name: 'Documents' });
-    expect(await within(dialog).findByText('No documents yet')).toBeInTheDocument();
+    // Found by its content: the dialog it is in is the loaded one, not a hold before it.
+    expect(await screen.findByText('No documents yet')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Documents' });
     const subtitle = /^Résumés, cover letters, outreach messages and notes\.$/;
     expect(within(dialog).queryByText(subtitle)).toBeNull();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add starter messages' }));
@@ -190,6 +191,11 @@ describe('unsaved edits in the editor', () => {
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
     const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
     expect(within(ask).getByRole('button', { name: 'Keep editing' })).toHaveFocus();
+    // The ask's way out is the exit (#537); Discard is the danger key.
+    expect(within(ask).getByRole('button', { name: 'Keep editing' })).toHaveAttribute(
+      'data-variant',
+      'link',
+    );
     await userEvent.click(within(ask).getByRole('button', { name: 'Keep editing' }));
     expect(window.location.hash).toBe('#/find?documents=snippet-tpl-outreach');
     expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent(
@@ -296,15 +302,14 @@ describe('editing a message changes what the fill paths use', () => {
     expect(dialog).toHaveTextContent('P.S. Acme Metals rocks.');
   });
 
-  it('the Apply sheet, with a link to edit them in Documents', async () => {
+  it('the job page: Copy follow-up uses it, with a link to edit them in Documents (#540)', async () => {
     await editFollowUp();
+    updateJob(JOB, { status: 'Applied', applied: '2026-01-01' });
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;
     await renderApp();
-    const list = await screen.findByRole('list', { name: 'Your templates' });
-    // The row previews the edited text; Copy copies all of it.
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
-    await user.click(within(list).getByRole('button', { name: 'Copy Follow-up after applying' }));
+    await user.click(await screen.findByRole('button', { name: 'Copy follow-up' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('P.S. Acme Metals rocks.'));
     // Documents opens as a dialog over this job (#471 slice 4): closing it comes back here.
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(

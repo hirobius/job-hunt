@@ -1,6 +1,6 @@
 // Visible feedback for every action (#212): an action changes state with motion, raises a toast
 // (saveNotice / useToast), or highlights the item it made and scrolls it into view. The motion is
-// base.css's `[data-motion="flash"]` / `[data-motion="collapse"]` and `.rjb-pop` on HDS motion
+// base.css's `[data-motion="flash"]` / `[data-motion="collapse"]` on HDS motion
 // tokens; reduced motion keeps the state change and the toast and drops the movement (a flash holds
 // still, a collapse is skipped). Flash and collapse mark an attribute, not a class: React owns the
 // className of what it renders and rewrites it on any change (a starred table row floats to the top
@@ -92,13 +92,6 @@ export function useHighlight<T extends HTMLElement>(key: string) {
     },
     [key, asked],
   );
-}
-
-/** A star icon's classes: filled when on, and a pop on each toggle once the user has toggled it
- *  (a star already on when the page opens holds still). */
-export function starClass(on: boolean, animate = false): string | undefined {
-  const cls = [on && 'rjb-icon-filled', animate && (on ? 'rjb-pop' : 'rjb-pop-off')];
-  return cls.filter(Boolean).join(' ') || undefined;
 }
 
 /** True while a state this view shows has just turned on (v1.5 motion, #279): a posting just
