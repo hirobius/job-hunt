@@ -27,6 +27,7 @@ import type { FeedContext } from './feeds/context.ts';
 import { readDsJobsCatalog } from './feeds/dsjobsCatalog.ts';
 import { SERVER_FEED_READERS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { fetchDesignSystemsJobsFeed, webOnly, type WatchedCompany } from './sources.ts';
+import { guardedFetch, isGuarded } from './boardFetch.ts';
 import type { TrackConfig } from './track-config.ts';
 
 export type { WatchedCompany };
@@ -170,9 +171,11 @@ async function readOne<C extends WatchedCompany>(
       }
     }
     if (!postings) {
+      // The five newer kinds go through the SSRF guard (fixed hosts, no redirects, a size cap).
+      const read = isGuarded(c.ats) ? guardedFetch(c.ats, f) : f;
       const found = await fetchBoard(
         { kind: c.ats, slug: c.slug, ...(c.eu && { eu: true }) },
-        fetchJsonWith(f),
+        fetchJsonWith(read),
       );
       postings = found.map(normalize);
     }
