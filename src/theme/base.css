@@ -352,10 +352,12 @@ p {
   align-items: center;
   justify-content: center;
   min-height: 30px;
-  padding-inline: var(--semantic-space-layout-gap);
+  /* Centred the way HDS SegmentedControl (sm) is, hds#1461: flex centring, line-height 1 and
+   * symmetric padding. The ui ramp's taller line box put the ink about 2px low (seg-centering.spec). */
+  padding: 0 var(--semantic-space-layout-gap);
   border-radius: var(--role-radius);
-  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-ui-font-size) /
-    var(--semantic-typography-ui-line-height) var(--semantic-typography-ui-font-family);
+  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-ui-font-size) / 1
+    var(--semantic-typography-ui-font-family);
   color: var(--semantic-color-content-secondary);
   text-decoration: none;
 }
