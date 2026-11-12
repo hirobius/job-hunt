@@ -60,6 +60,26 @@ describe('FIGMA-RULES.md', () => {
     expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
   });
 
+  it('pins the Account menu (#549): 9 items in 4 groups, toggles that show their state', () => {
+    expect(RULES).toMatch(/\*\*The Account menu \(#549\): 9 items in 4 groups\.\*\*/);
+    expect(CLAUDE).toMatch(/9 items in 4 groups, redesign §5\.9, #549/);
+    const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
+    for (const name of [
+      'On this device only',
+      'Sign in to see your jobs on any device',
+      'Dark theme',
+    ])
+      expect(menu).toContain(name);
+    expect(menu).toContain('<MenuToggleItem');
+    expect(menu).not.toMatch(/>\s*Scan details\s*</);
+    expect(fs.readFileSync('src/hds-gaps/MenuToggleItem.tsx', 'utf8')).toContain(
+      'role="menuitemcheckbox"',
+    );
+    expect(fs.readFileSync('src/SearchProfileDialog.tsx', 'utf8')).toContain(
+      'label="Scan details"',
+    );
+  });
+
   it('pins the Data dialog (#550): one lazy dialog for the data actions', () => {
     expect(RULES).toMatch(/\*\*The Data dialog \(#550\)\.\*\*/);
     expect(CLAUDE).toMatch(/\*\*Data dialog \(redesign §5\.9, #550\):\*\*/);

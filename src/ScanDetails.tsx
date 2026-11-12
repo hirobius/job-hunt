@@ -1,8 +1,9 @@
-// The Account menu's Scan details (Adrian 2026-11-08): Find shows no status text above Browse /
-// Deck, so this is where the scan's freshness, the sources that didn't answer and what Review new
-// left out stay reachable. Signed in, "Updated N min ago" from the server's last sync; signed out,
-// the last scan's line. Its own chunk (lazyDialogs.ts): opened from the Account menu only.
-import { Dialog, Stack, Text } from '@hirobius/design-system';
+// Scan details (Adrian 2026-11-08; in the Search profile since #549): Find shows no status text
+// above Browse / Deck, so this is where the scan's freshness, the sources that didn't answer and what
+// Review new left out stay reachable. Signed in, "Updated N min ago" from the server's last sync;
+// signed out, the last scan's line. A closed row at the end of the Search profile dialog, in its
+// chunk (lazyDialogs.ts).
+import { Stack, Text } from '@hirobius/design-system';
 import { ItemList, ItemRow } from './PipelinePanel';
 import { useCloudSync } from './account/accountContext';
 import { lastScannedLine, scanBoardUrls, useScan, type ScanProgress } from './feed/autoScan';
@@ -43,7 +44,7 @@ function useScanLine(counts?: { newToday: number; sources: number }): string {
   );
 }
 
-export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFocus?: () => void }) {
+export default function ScanDetails() {
   const d = useScanDetails();
   const line = useScanLine(d ? { newToday: d.newToday, sources: d.sourcesRead } : undefined);
   // Signed in, the browser's discovery still runs (silently on Find): its progress shows here.
@@ -53,21 +54,16 @@ export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFoc
   const n = d?.failed.length ?? 0;
   const unsupported = state.unsupported ?? [];
   return (
-    <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
-      <Dialog.Header>
-        <Dialog.Title>Scan details</Dialog.Title>
-        <Dialog.Description>
-          <Text variant="caption" as="span" tone="secondary">
-            {line}
-          </Text>
-        </Dialog.Description>
-      </Dialog.Header>
+    <Stack gap="spacious">
+      <Text variant="caption" as="p" tone="secondary">
+        {line}
+      </Text>
       {discovering && (
         <Text variant="caption" as="p" tone="secondary" role="status">
           {discovering}
         </Text>
       )}
-      <Stack gap="spacious" className="rjb-dialog-body">
+      <Stack gap="spacious">
         {!d ? (
           <Text variant="body" as="p" tone="secondary">
             Open Find to read your sources; the details show here after that.
@@ -126,6 +122,6 @@ export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFoc
           </Stack>
         )}
       </Stack>
-    </Dialog.Content>
+    </Stack>
   );
 }

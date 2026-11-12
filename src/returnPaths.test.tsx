@@ -345,7 +345,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   it('Sign in, picked from the Account menu, with an email typed', async () => {
     await over('#/find', '#/apply');
     await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign in to sync…' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
     await userEvent.type(within(dialog).getByLabelText('Email'), 'typed@example.com');
     // The Account menu's own entry is popped as it closes; the dialog gets one after that.

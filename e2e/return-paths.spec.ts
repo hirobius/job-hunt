@@ -149,7 +149,7 @@ for (const width of [390, 800] as const) {
 
       // Sign in, picked from the Account menu (whose own entry is popped as it closes), typed in.
       await page.getByRole('button', { name: /^Account/ }).click();
-      await page.getByRole('menuitem', { name: 'Sign in to sync…' }).click();
+      await page.getByRole('menuitem', { name: 'Sign in', exact: true }).click();
       const signIn = page.getByRole('dialog', { name: 'Sign in' });
       await signIn.getByLabel('Email').fill('typed@example.com');
       await closesOnBack(signIn, queue);

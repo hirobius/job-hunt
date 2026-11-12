@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
@@ -139,10 +140,8 @@ for (const width of [390, 1440]) {
     await expect(list.getByRole('heading', { name: /Mechanical Design Engineer/ })).toHaveCount(0);
     // No fit tiers: every design-system posting is in the one list; the rest are counted. (The
     // HN source keeps a post only when it says a searched title, so Nimbus's is never read.)
-    // The count is in the Account menu's Scan details (Adrian 2026-11-08), not on the page.
-    await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('menuitem', { name: 'Scan details' }).click();
-    const details = page.getByRole('dialog', { name: 'Scan details' });
+    // The count is in Scan details (Adrian 2026-11-08; in the Search profile since #549), not on the page.
+    const details = await openScanDetails(page);
     await expect(details.getByText(/1 not design-system roles/)).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(details).toBeHidden();

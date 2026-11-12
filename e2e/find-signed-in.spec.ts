@@ -1,8 +1,9 @@
 // Find shows no status text above Browse / Deck (Adrian 2026-11-08). Signed in, the server syncs
-// every 15 minutes: no Scan now; "Updated N min ago" from the last sync_log run is in the Account
-// menu's Scan details. Signed out, one compact Scan now beside the Review new heading. Supabase is faked at the network:
+// every 15 minutes: no Scan now; "Updated N min ago" from the last sync_log run is in Scan details
+// (the Account menu's Search profile, #549). Signed out, one compact Scan now beside the Review new heading. Supabase is faked at the network:
 // a stored session, an empty cloud copy and a sync_log run 4 minutes ago.
 import { test, expect, type Page } from '@playwright/test';
+import { openScanDetails } from './routes';
 
 const PROJECT = 'nelrcmbkimjjmfmgnixj';
 const USER = { id: '00000000-0000-4000-8000-000000000001', email: 'find@example.test' }; // pii-allow: fake test address
@@ -60,9 +61,7 @@ for (const width of [390, 1440]) {
         /^Updated |^Not scanned|^Read \d+ of \d+ boards$|unavailable · details|^Not shown/,
       ),
     ).toHaveCount(0);
-    await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('menuitem', { name: 'Scan details' }).click();
-    const details = page.getByRole('dialog', { name: 'Scan details' });
+    const details = await openScanDetails(page);
     await expect(details.getByText('Updated 4 min ago')).toBeVisible();
   });
 }

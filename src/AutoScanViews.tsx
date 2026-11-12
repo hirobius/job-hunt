@@ -1,6 +1,6 @@
 // The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
 // (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
-// says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
+// says so with an Undo. The scan's line is Scan details in the Account menu's Search profile (ScanDetails.tsx).
 import { useState } from 'react';
 import {
   Box,
@@ -40,7 +40,7 @@ const VIA_LABEL: Record<LeadSource, string> = {
 /** Find's scan control (Adrian 2026-11-08): no status text on the page. Signed in, the server syncs
  *  every 15 minutes, so nothing shows. Signed out, nothing scans on its own: one compact Scan now
  *  (Stop scan while it runs) beside the Review new heading. When it last scanned, the sources that
- *  didn't answer and what was left out are the Account menu's Scan details (ScanDetailsDialog). */
+ *  didn't answer and what was left out are Scan details in the Account menu's Search profile (ScanDetails.tsx). */
 export function ScanStatus() {
   const { user } = useCloudSync();
   return user ? null : <ScanButton />;

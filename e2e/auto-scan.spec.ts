@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openScanDetails } from './routes';
 
 // Auto-scan (simplify 8/11, #415). Signed out, nothing scans on open (2026-11-07: on a phone the
 // browser scan drowned the sign-in screen; a signed-in account's boards are read by the server's
@@ -104,10 +105,8 @@ for (const width of [390, 1440]) {
     const since = await page.evaluate(() => Date.now());
     await page.getByRole('button', { name: 'Scan now' }).click();
     await scanFinished(page, since);
-    // The scan's line is the Account menu's Scan details.
-    await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('menuitem', { name: 'Scan details' }).click();
-    const details = page.getByRole('dialog', { name: 'Scan details' });
+    // The scan's line is Scan details, in the Account menu's Search profile (#549).
+    const details = await openScanDetails(page);
     await expect(
       details.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d, \d+ new$/),
     ).toBeVisible();

@@ -20,6 +20,9 @@ const ON_DEMAND = [
   'ExportLinksDialog.tsx',
   // The Account menu's Data dialog (#550): back up, restore, export, Recently removed, reset.
   'account/DataDialog.tsx',
+  // The Account menu's rows (#549): their icons and toggle rows.
+  'account/AccountMenuRows.tsx',
+  'hds-gaps/MenuToggleItem.tsx',
   // #368 pass: sheets loaded on first open (lazyHosts.tsx), the job page's liveness note, and the
   // feed code the stores only needed a sliver of (boardUrl.ts, term.ts, boardSet's kinds).
   'FollowUp.tsx',
