@@ -71,8 +71,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Two screens: Find and Apply** (the two top tabs). **Find** is home: the Review list of postings (chips New and Remote; "New" = first seen today).
   The companies a scan finds are the Account menu's Companies dialog, under **Found** (Follow / Ignore), never on Find
   (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
-  list on the left, the selected job on the right. Below that, one job at a time: a filter bar
-  (Filters, Add job), the sticky walk control, then the job.
+  list on the left, the selected job on the right. Below that, one job at a time: the sticky walk
+  control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
 - **Find's short header (#544).** "Find" and one caption, "4 new · scanned 2 h ago", with one More
   menu on its row holding Sort, Scan now and Search profile. No date line, no Sort or Scan now key.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
@@ -110,6 +110,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   instead" (grey). No Cancel key: Close (the X) and the scrim cancel. At 390 a bottom sheet with a
   grab handle, Add job at full width over the grey key. At 1440 a centred dialog, Add job at the
   right.
+- **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
+  search, the filter chips (Remote only), a Sort chip, and "Clear N" while N filters are on; then
+  the jobs. **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
+  each row is the badge row, the title (two lines at most), the company, the place and one date.
+  The open job takes the selected fill, never an outline ring. No key on a row and no posting icon:
+  the job's own page has its next step and Open posting.
 - **One detail template at 1440 (#546).** Find is two columns too: postings left, the selected
   posting right. A posting and a job use one detail template: the title block (title, company,
   one facts line, then the badges; a posting's source is a neutral badge there), More beside it,

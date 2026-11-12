@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openData } from './routes';
+import { openAllJobs, openData } from './routes';
 
 // A long row menu on a phone (44px items) must fit a 390px screen with the page scroll-locked, so
 // Remove, the last item, can be reached. HDS Menu caps its own height since 0.28 (hds#821; the
@@ -78,9 +78,12 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   await menu.getByRole('menuitemradio', { name: /^Recently closed/ }).click();
   await expect(page.getByRole('button', { name: 'View: Recently closed' })).toBeVisible();
   // Both filters on: search and Remote only.
-  await page.getByRole('switch', { name: 'Remote only' }).click();
-  await page.getByRole('button', { name: 'Filters' }).click();
-  await page.getByLabel('Search saved jobs').fill('zzz');
+  // They are the All jobs sheet's (#543): set them there, then close it.
+  const all = await openAllJobs(page);
+  await all.getByRole('button', { name: 'Remote only' }).click();
+  await all.getByLabel('Search saved jobs').fill('zzz');
+  await page.keyboard.press('Escape');
+  await expect(all).toHaveCount(0);
   const chip = page.getByRole('button', { name: '2 filters, open All jobs' });
   await expect(chip).toBeVisible();
   const pager = page.getByRole('navigation', { name: 'Jobs in the list' });

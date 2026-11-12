@@ -1,5 +1,5 @@
-// Apply's "Remote only" switch (Adrian 2026-11-09): in the filter bar while Filters is closed, kept
-// per device, and it narrows the Apply list, the pager's "n of N" and the All jobs sheet. A job
+// Apply's "Remote only" filter (Adrian 2026-11-09): a chip in the All jobs sheet on a phone (#543),
+// the switch in the lg list column; kept per device, and it narrows the Apply list, the pager's "n of N" and the All jobs sheet. A job
 // with no mode counts as not remote.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
@@ -70,21 +70,22 @@ describe('visibleJobs with remoteOnly', () => {
 });
 
 describe('the Remote only switch on Apply', () => {
-  it('shows with Filters closed, and is stored per device', async () => {
+  it('is a chip in the All jobs sheet (not on the job page), and is stored per device', async () => {
     const user = userEvent.setup();
     renderApp();
-    const filters = await screen.findByRole('button', { name: 'Filters' });
-    expect(filters).toHaveAttribute('aria-expanded', 'false');
-    const sw = screen.getByRole('switch', { name: 'Remote only' });
-    expect(sw).not.toBeChecked();
-    await user.click(sw);
-    expect(sw).toBeChecked();
+    await screen.findByRole('button', { name: /^View: / });
+    expect(screen.queryByRole('switch', { name: 'Remote only' })).toBeNull();
+    const sheet = await openAllJobs();
+    const chip = within(sheet).getByRole('button', { name: 'Remote only' });
+    expect(chip).toHaveAttribute('aria-pressed', 'false');
+    await user.click(chip);
+    expect(chip).toHaveAttribute('aria-pressed', 'true');
     expect(getPipelineView().remoteOnly).toBe(true);
     expect(storedRemoteOnly()).toBe(true);
     // A fresh view (as on a reload) reads the stored choice back.
     act(() => resetPipelineView());
     expect(getPipelineView().remoteOnly).toBe(true);
-    await user.click(screen.getByRole('switch', { name: 'Remote only' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Remote only' }));
     expect(storedRemoteOnly()).toBe(false);
   });
 
@@ -95,9 +96,10 @@ describe('the Remote only switch on Apply', () => {
     const pager = () => within(screen.getByRole('navigation', { name: 'Jobs in the list' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Acme Designer' })).toBeTruthy();
     expect(pager().getByText(/of 3/)).toBeInTheDocument();
-    await user.click(screen.getByRole('switch', { name: 'Remote only' }));
-    expect(pager().getByText('1 of 1')).toBeInTheDocument();
     const sheet = await openAllJobs();
+    await user.click(within(sheet).getByRole('button', { name: 'Remote only' }));
+    expect(pager().getByText('1 of 1')).toBeInTheDocument();
+    // Rows are links named by the title alone (#543).
     const titles = within(sheet)
       .getAllByRole('link', { name: /Designer$/ })
       .map((l) => l.textContent);

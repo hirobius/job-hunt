@@ -11,18 +11,3 @@
   padding: var(--primitive-space-1);
   margin: calc(-1 * var(--primitive-space-1));
 }
-
-/* The open job (#603): the shared selected fill (base.css .rjb-selected tokens), no edge marker.
-   The row, not its link, carries it, so it runs under the posting link too
-   (hds-gaps/NavListActionItem); hovering the open row keeps it. */
-.job-rail li:has(> [aria-current='page']),
-.job-rail li:has(> [aria-current='page']):hover {
-  background: var(--rjb-selected-fill);
-}
-
-/* Neutral badges on the open row: in dark, surface-selected is the same grey as the neutral Badge
-   fill, so Applied / Stretch lost their pill there (desktop QA). Lift them onto the page surface;
-   toned badges (Follow-up due) keep their own fill. */
-.job-rail [aria-current='page'] {
-  --component-badge-neutral-bg: var(--semantic-color-surface-page);
-}

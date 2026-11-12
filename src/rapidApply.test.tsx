@@ -98,6 +98,7 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(screen.queryByRole('region', { name: /^To apply/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Start applying|Resume applying/ })).toBeNull();
     const sheet = await openAllJobs();
+    // Rows are links named by the title alone (#543).
     const titles = within(sheet)
       .getAllByRole('link', { name: /Designer$/ })
       .map((l) => l.textContent);
@@ -398,11 +399,14 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(screen.getByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
   });
 
-  it('the row menu reaches every status', async () => {
+  it('the job menu reaches every status (list rows carry no menu, #543)', async () => {
     const user = userEvent.setup();
     renderApp();
-    await openAllJobs();
-    await user.click(screen.getAllByRole('button', { name: /^More actions: Bolt Designer/ })[0]);
+    const sheet = await openAllJobs();
+    expect(within(sheet).queryByRole('button', { name: /^More actions: / })).toBeNull();
+    await user.click(within(sheet).getByRole('link', { name: 'Bolt Designer' }));
+    await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' });
+    await user.click(screen.getByRole('button', { name: /^More actions: Bolt Designer/ }));
     await user.click(await screen.findByRole('menuitemradio', { name: 'Interviewing' }));
     expect(findJobByUrl(B)?.status).toBe('Interviewing');
   });

@@ -37,7 +37,7 @@ export function useListFocusKeeper(shown: string[], fallback: RefObject<HTMLElem
           (c) => c.getAttribute(JOB_ATTR) === url,
         )
       : undefined;
-    const link = card?.querySelector<HTMLElement>('h3 a');
+    const link = card?.querySelector<HTMLElement>('h3 a, .rjb-job-row-link');
     (link ?? fallback.current)?.focus();
   }, [shown, fallback]);
 }

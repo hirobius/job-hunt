@@ -257,9 +257,9 @@ describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Apply/ })).toBeNull();
     await userEvent.click(topTab('Apply'));
-    // On a phone, in the Apply list (the All jobs sheet, Proposal A).
-    await openAllJobs();
-    expect(await screen.findByRole('region', { name: /^Follow up/ })).toBeInTheDocument();
+    // On a phone, in the Apply list (the All jobs sheet, Proposal A): its Follow up view (#543).
+    const sheet = await openAllJobs();
+    expect(await within(sheet).findByRole('button', { name: 'Follow up 1' })).toBeInTheDocument();
   });
 });
 

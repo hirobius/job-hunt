@@ -236,15 +236,24 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
   screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
-  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search and Sort (liveness checks itself, #602); Add job; a "Active · N jobs" status line), then the sticky **walk control** (#542, `ApplyWalk.tsx`:
+  empty state; no filter bar on the job since #543: Add job, search, filters, Sort and the sample line are the
+  All jobs sheet's), the sticky **walk control** (#542, `ApplyWalk.tsx`:
   one row, no box: the **view picker** (the open view's name, bold, caret, named "View: <name>"; an HDS Menu drawn as
   a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the five views with counts and
   "All jobs and filters"), a **"N filters" chip** only while a filter is on (`filtersOn`: search, Remote only; it opens
   the sheet), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
   label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways swipe on the job steps it too);
   at 390 the view name truncates, never the pager; no pager at lg) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
-  `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (Follow up, Next 7
-  days, the Jobs panel, each job its own Card). A pick pops the sheet's entry, then replaces the page's, so Back leaves
+  `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (#543: Add job, the
+  view chips, search "Search saved jobs", a "Filters" group with the Remote only `Tag` chip (aria-pressed), the
+  Sort chip (`PipelineMenus chip`, a Tag) and "Clear N" while `filtersOn` > 0, the sample line, then the rows).
+  **One job list, sheet and lg column alike (#543):** `JobRowList.tsx` (+ `.css`), rows in an HDS NavList on one
+  surface, never a Card per job: badges, the title (`rjb-clamp-2`, two lines), the company, place and one date;
+  the title is the link, its hit area stretched over the row (`::after`, which carries the focus ring), so its name
+  is its visible text (the rest describes it; `hds-gaps/NavListActionItem` is deleted); the open job is
+  `aria-current` with the selected fill; no row key (Follow up, Mark applied), no row menu, no posting glyph (the
+  job page's header and More have them). Follow up and Next 7 days stay under the lg column only.
+  `ApplyFilterBar`, `ApplyQueueSummary` and `JobListCard` are deleted. A pick pops the sheet's entry, then replaces the page's, so Back leaves
   the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
   elsewhere keeps its "← Back". The **Templates** disclosure is gone (#540): the job's messages are rows in Copy into the
   form (only when there are messages), with Edit documents beside them. No posting
@@ -409,8 +418,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   one line. `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"` "Views", `aria-pressed`, a `Badge` count,
   amber on Follow up while one is due) with the open view's line under them: at the top of the lg list column
   (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the walk row's view picker picks them (#542, out
-  of Filters); `PipelineMenus` is Sort only. Default view To apply; Clear filters goes back to it. Next: #543 moves
-  search, filters, sort and Add job into the All jobs sheet. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
+  of Filters); `PipelineMenus` is Sort only (an icon at lg, a chip in the sheet). Default view To apply. Since #543 search,
+  filters, sort and Add job live in the All jobs sheet (see Two screens); "Clear N" clears the filters, not the view. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 - **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: badges, title step), one at a time (`ReviewView.tsx`
   `Deck`). No pager row: "1 of 4" is the caption under Find (`header`'s tools carry the Deck's place, `FindHeader`
   adds it to its caption); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
@@ -428,7 +437,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`); full width under the logo below md, inline in the
   app bar from md (`useAtLeast('md')`). Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
   `aria-pressed` in a `role="group"` "Review view", each with an HDS Tooltip. Apply's **Remote only** HDS `Toggle`
-  (`RemoteOnlySwitch`, phone filter bar outside Filters and the lg job rail) sets `PipelineView.remoteOnly`, kept per
+  (`RemoteOnlySwitch.tsx`, the lg job rail; the phone's All jobs sheet shows it as a chip, #543) sets `PipelineView.remoteOnly`, kept per
   device (`rjb_apply_remote_only`); `visibleJobs` keeps `isRemoteJob` (#614: the job's mode when set, else
   `inferMode` on title + location, where a list offering remote among places, "Portland, OR, or Remote within
   Canada", counts), and **every count follows it**: the view chips (`filterCounts(…, remoteOnly)`), the status
@@ -450,9 +459,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
   margins. **No cards within cards, ever (Adrian 2026-11-01, #449; replaced 2026-10-23's "lists are cards"):**
   one card level max. A list inside a panel (the Account menu's Companies
-  list, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, Documents, the interview log,
+  list, the Apply sheet's Templates, the Application kit, Documents, the interview log,
   the job page's links) is `PipelinePanel` `ItemList` (`.rjb-items`, a hairline between rows) of `ItemRow` (a plain
-  row, never an HDS `Card`); `JobListCard` is an `article` row with Card's Header/Facts/Footer parts, no Card root.
+  row, never an HDS `Card`); the Apply list's jobs are `JobRowList` NavList rows on one surface (#543).
   **Review new's panel has no surface of its own** (`Panel flat`): its heading, count and metadata declare the group,
   and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
   `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
@@ -803,8 +812,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   URL). It sits beside the title, never inside a link: the Pipeline table and cards, the Follow up
   and Next 7 days rows, the closed-on-the-board list, Recently removed, the Company page, the job
   page header (all through `PostingTitle` / `JobPostingTitle`: the title shrinks and wraps anywhere,
-  so a long unbroken title never runs under the link or pushes it off screen) and every job rail row
-  (beside the row's link, `hds-gaps/NavListActionItem`: NavList.Item has no trailing slot). Its
+  so a long unbroken title never runs under the link or pushes it off screen). The Apply list's rows (the
+  lg column and the All jobs sheet) have none since #543: the job page's header has it. Its
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
   and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Unsaved listings (Find's Browse cards) have no page:
   below lg their title is the link out, with HDS's external icon (#544; at lg it selects the posting). Apply mode keeps Open application.

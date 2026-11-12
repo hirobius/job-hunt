@@ -28,12 +28,15 @@ export async function seed(page: Page) {
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // One job on a company board (a liveness-eligible job; the check runs on open, signed in, #602).
   // External requests are refused, so it never says closed.
-  // The sample lands first (its notice, then focus moves to the page head); a click on Add job
-  // while that settles could be lost, so open the dialog until it shows.
-  await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
+  // The sample lands first (the tab becomes its first job, focus moves to the page head); a click
+  // on Add job while that settles could be lost, so open the dialog until it shows. Below lg Add
+  // job and the sample line are the All jobs sheet's (#543).
+  await expect(page.getByRole('button', { name: 'Try with sample data' })).toHaveCount(0);
+  const list = await listScope(page);
+  await expect(list.getByRole('status', { name: 'Sample data' })).toBeVisible();
   const add = page.getByRole('dialog', { name: 'Add a job' });
   await expect(async () => {
-    if (!(await add.isVisible())) await page.getByRole('button', { name: 'Add job' }).click();
+    if (!(await add.isVisible())) await list.getByRole('button', { name: 'Add job' }).click();
     await expect(add).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 15_000 });
   await add.getByLabel('Job link').fill(BOARD_JOB);
@@ -64,10 +67,8 @@ export async function go(page: Page, hash: string) {
 export async function openJob(page: Page) {
   await go(page, '#/apply');
   // Below lg the list is the All jobs sheet (Proposal A); from lg the list column beside the job.
-  const scope =
-    (page.viewportSize()?.width ?? 0) < 1024
-      ? (await openAllJobs(page)).getByRole('region', { name: /^Jobs/ })
-      : page.getByRole('navigation', { name: 'Jobs' });
+  // One job list in both (#543): the rows' nav "Jobs".
+  const scope = (await listScope(page)).getByRole('navigation', { name: 'Jobs' });
   await scope.locator(JOB_LINK).first().click();
   await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
   await page.waitForTimeout(500);
@@ -80,7 +81,7 @@ export const JOB_LINK = 'a[href^="#/apply/"]:not([href^="#/apply/company/"])';
  *  applying any more; the tab is the walk). */
 export async function openApply(page: Page) {
   await openJob(page);
-  await expect(page).toHaveURL(/#\/apply\//);
+  await expect(page.getByRole('button', { name: 'Try with sample data' })).toHaveCount(0);
 }
 
 /** Visit every route, then a job's Apply view, calling `check` on each. */
@@ -98,8 +99,19 @@ export async function visitAll(page: Page, check: (name: string) => Promise<void
 export async function openAllJobs(page: Page) {
   await pressAllJobs(page);
   const sheet = page.getByRole('dialog', { name: 'All jobs' });
-  await expect(sheet.getByRole('region', { name: /^Jobs/ })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Add job' })).toBeVisible();
   return sheet;
+}
+
+/** The Apply list with its controls (#543): the All jobs sheet below lg (opened), the list
+ *  column beside the job from lg. */
+export async function listScope(page: Page) {
+  if ((page.viewportSize()?.width ?? 0) < 1024) {
+    const sheet = page.getByRole('dialog', { name: 'All jobs' });
+    if (await sheet.isVisible()) return sheet;
+    return openAllJobs(page);
+  }
+  return page.locator('.job-rail');
 }
 
 /** Below lg (#542): the walk row's view picker, then its "All jobs and filters" row. */
@@ -108,10 +120,10 @@ export async function pressAllJobs(page: Page) {
   await page.getByRole('menuitem', { name: 'All jobs and filters' }).click();
 }
 
-/** Below lg: open the Apply filter bar (search, Sort). */
+/** Below lg: the Apply list's search, filters and Sort are the All jobs sheet's (#543; was the
+ *  filter bar's Filters). Opens it and returns it. */
 export async function openFilters(page: Page) {
-  const filters = page.getByRole('button', { name: 'Filters' });
-  if ((await filters.getAttribute('aria-expanded')) !== 'true') await filters.click();
+  return listScope(page);
 }
 
 /** Open the Account menu's Data dialog (#550) and return it. */

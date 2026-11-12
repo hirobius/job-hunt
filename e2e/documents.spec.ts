@@ -62,7 +62,11 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await expect(page).toHaveURL(/#\/apply\/company\/acme-metals\?from=%2Fapply%2F/);
   await expect(page.getByRole('heading', { level: 1, name: 'Acme Metals' })).toBeVisible();
   await expect(currentTab(page).filter({ hasText: 'Apply' })).toBeVisible();
-  await page.getByRole('link', { name: 'Fabricator', exact: true }).click();
+  // The Company page's own list (the list column beside it names the same job, #543).
+  await page
+    .getByRole('list', { name: /^Jobs at / })
+    .getByRole('link', { name: 'Fabricator', exact: true })
+    .click();
   await expect(page).toHaveURL(/#\/apply\//);
 });
 

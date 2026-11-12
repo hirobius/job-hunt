@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { seed } from './routes';
+import { listScope, seed } from './routes';
 
 // The exit (#537, redesign §3): every way out is HDS Button variant="link": underlined, the
 // primary text colour, no fill, no ledge, and a 44px hit area at every width. Never blue.
@@ -54,8 +54,9 @@ for (const width of [390, 1440]) {
       await seed(page);
       await page.goto('/#/apply');
       await expectExit(page.getByRole('button', { name: /^Not a fit: / }).first());
-      // Add job has no Cancel key (#551): Close and the scrim cancel it.
-      await page.getByRole('button', { name: 'Add job' }).first().click();
+      // Add job is the list's (#543): the All jobs sheet below lg. No Cancel key (#551): Close and
+      // the scrim cancel it.
+      await (await listScope(page)).getByRole('button', { name: 'Add job' }).click();
       const add = page.getByRole('dialog', { name: 'Add a job' });
       await expect(add).toBeVisible();
       await expect(add.getByRole('button', { name: 'Cancel' })).toHaveCount(0);

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { findMore, seed, topTab, pressAllJobs } from './routes';
+import { findMore, seed, topTab, openAllJobs } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
 // status with Scan now and Review new (the Browse list); the companies a scan finds are the
@@ -38,14 +38,26 @@ for (const width of [390, 1440]) {
 
     // Apply: the list (below lg) or the list beside the first job (lg), with Follow up in it.
     await topTab(page, 'Apply').click();
-    // Below lg the tab is one job and its list is the All jobs sheet (Proposal A).
-    if (width < 1024) await pressAllJobs(page);
-    else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
-    const follow = page.getByRole('region', { name: /^Follow up/ });
-    await follow
-      .getByRole('button', { name: /^Follow up/ })
-      .first()
-      .click();
+    // Below lg the tab is one job and its list is the All jobs sheet (Proposal A): Follow up is
+    // its view (#543), and the job's More opens the dialog. From lg the agenda under the column.
+    if (width < 1024) {
+      const sheet = await openAllJobs(page);
+      await sheet.getByRole('button', { name: /^Follow up \d/ }).click();
+      await sheet.getByRole('navigation', { name: 'Jobs' }).getByRole('link').first().click();
+      await expect(sheet).toHaveCount(0);
+      await page
+        .getByRole('button', { name: /^More actions: / })
+        .first()
+        .click();
+      await page.getByRole('menuitem', { name: /^Follow up/ }).click();
+    } else {
+      await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
+      await page
+        .getByRole('region', { name: /^Follow up/ })
+        .getByRole('button', { name: /^Follow up/ })
+        .first()
+        .click();
+    }
     // The Follow up dialog (the All jobs sheet closes under it below lg).
     await expect(page.getByRole('dialog', { name: /^Follow up/ })).toBeVisible();
     await page.keyboard.press('Escape');

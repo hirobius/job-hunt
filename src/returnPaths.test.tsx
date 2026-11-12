@@ -32,6 +32,7 @@ import { getAllDocuments } from './documents';
 import { trashJob } from './trash';
 import { rememberSignInReturn, returnAfterSignIn, takeSignInReturn } from './account/signInReturn';
 import { topTab } from './test/topTabs';
+import { viewport } from './test/viewport';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://acme.example/jobs/2';
@@ -144,25 +145,32 @@ describe('a job page goes back to where it was opened from', () => {
     expect(window.location.hash).toBe('#/find');
   });
 
-  it('a list Remove: Undo brings the row back in place with its flash, no route change (#593)', async () => {
-    addJob(B, 'Welder');
-    window.location.hash = '#/apply';
-    renderApp();
-    const sheet = await openAllJobs();
-    const before = window.location.hash;
-    await userEvent.click(within(sheet).getByRole('button', { name: 'More actions: Welder' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
-    await waitFor(() => expect(findJobByUrl(B)).toBeUndefined());
-    const undo = await screen.findByRole('button', { name: 'Undo' });
-    await userEvent.click(undo);
-    await waitFor(() => expect(findJobByUrl(B)).toBeDefined());
-    const row = await waitFor(() => {
-      const r = document.querySelector(`[data-pipeline-job="${B}"]`);
-      expect(r).not.toBeNull();
-      return r!;
-    });
-    await waitFor(() => expect(row).toHaveAttribute('data-motion', 'flash'));
-    expect(window.location.hash).toBe(before);
+  it('a Remove: Undo brings the row back in the list in place with its flash, no route change (#593)', async () => {
+    // List rows carry no menu (#543): the job's own More menu removes it; at lg the list is beside it.
+    viewport(1280);
+    try {
+      addJob(B, 'Welder');
+      window.location.hash = `#/apply/${jobIdOf(B)}`;
+      renderApp();
+      await heading('Welder');
+      await userEvent.click(screen.getByRole('button', { name: 'More actions: Welder' }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
+      await waitFor(() => expect(findJobByUrl(B)).toBeUndefined());
+      await waitFor(() => expect(document.querySelector(`[data-pipeline-job="${B}"]`)).toBeNull());
+      const before = window.location.hash;
+      const undo = await screen.findByRole('button', { name: 'Undo' });
+      await userEvent.click(undo);
+      await waitFor(() => expect(findJobByUrl(B)).toBeDefined());
+      const row = await waitFor(() => {
+        const r = document.querySelector(`[data-pipeline-job="${B}"]`);
+        expect(r).not.toBeNull();
+        return r!;
+      });
+      await waitFor(() => expect(row).toHaveAttribute('data-motion', 'flash'));
+      expect(window.location.hash).toBe(before);
+    } finally {
+      delete (window as { matchMedia?: unknown }).matchMedia;
+    }
   });
 
   it('retiring a job closed on the board goes back to the tab', async () => {
@@ -289,11 +297,15 @@ describe('pages opened from the Account menu', () => {
 });
 
 describe('the browser Back closes a sheet and stays on the page', () => {
-  it('Add job', async () => {
+  it('Add job (in the All jobs sheet, #543), then the sheet itself', async () => {
     window.location.hash = '#/apply';
     renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: 'Add job' }));
+    const sheet = await openAllJobs();
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Add job' }));
     await screen.findByRole('dialog', { name: 'Add a job' });
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a job' })).toBeNull());
+    expect(screen.getByRole('dialog', { name: 'All jobs' })).toBeInTheDocument();
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(window.location.hash).toBe('#/apply');
@@ -403,11 +415,13 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   it('closing it on screen leaves no extra step for Back', async () => {
     window.location.hash = '#/apply';
     renderApp();
+    // Add job is in the All jobs sheet (#543); count from the sheet's own entry.
+    const sheet = await openAllJobs();
     const length = window.history.length;
-    await userEvent.click(await screen.findByRole('button', { name: 'Add job' }));
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Add job' }));
     // Add job has no Cancel key (#551): its Close closes it on screen.
     await userEvent.click(await screen.findByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a job' })).toBeNull());
     // The sheet's entry was popped: what is ahead of this one is only its forward step.
     await new Promise((r) => setTimeout(r, 30));
     expect(window.history.length).toBe(length + 1);
