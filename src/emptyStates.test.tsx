@@ -84,7 +84,7 @@ describe('a clean first run', () => {
     renderApp();
     expect(await screen.findByText('No documents yet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Outreach messages' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Messages' })).toBeNull();
     expect(getAllDocuments()).toEqual([]);
     expect(getSnippets()).toEqual([]);
   });

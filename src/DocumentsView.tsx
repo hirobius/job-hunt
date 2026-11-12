@@ -29,6 +29,7 @@ import {
 import { useRouteLabel } from './routeLabel';
 import { CloudSyncContext } from './account/accountContext';
 import { usePageTitle } from './pageTitle';
+import './DocumentsView.css';
 
 const NEW = 'new/';
 

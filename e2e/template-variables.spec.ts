@@ -122,3 +122,14 @@ test('Fill for keeps a long job label on one 44px line (390)', async ({ page }) 
   await expect(span).toHaveCSS('text-align', 'start');
   await expect(span).toHaveCSS('white-space', 'nowrap');
 });
+
+// #552: in the library a message's blanks are a count; the chips are the editor's alone.
+test('the library row counts the blanks; the editor keeps them as chips', async ({ page }) => {
+  await open(page);
+  await page.goto('/#/find?documents=');
+  const row = page
+    .getByRole('region', { name: 'Messages' })
+    .getByRole('listitem', { name: 'Note' });
+  await expect(row).toContainText('2 blanks');
+  await expect(row.locator('.rjb-chip')).toHaveCount(0);
+});

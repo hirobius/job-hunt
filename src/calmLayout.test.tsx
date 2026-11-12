@@ -125,7 +125,7 @@ describe('Pipeline panels (rev-3)', () => {
     addStarterMessages(); // a clean first run has none (Adrian 2026-10-22)
     window.location.hash = '#/copy-deck';
     const { container } = renderApp();
-    const outreach = await screen.findByRole('region', { name: 'Outreach messages' });
+    const outreach = await screen.findByRole('region', { name: 'Messages' });
     await waitFor(() =>
       expect(within(outreach).getAllByRole('listitem').length).toBeGreaterThan(0),
     );
