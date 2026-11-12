@@ -87,7 +87,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   instead" (grey). No Cancel key: Close (the X) and the scrim cancel. At 390 a bottom sheet with a
   grab handle, Add job at full width over the grey key. At 1440 a centred dialog, Add job at the
   right.
-- **Planned (#471):** Find as two columns too (postings left, the selected posting right).
+- **One detail template at 1440 (#546).** Find is two columns too: postings left, the selected
+  posting right. A posting and a job use one detail template: the title block (title, company,
+  one facts line, then the badges; a posting's source is a neutral badge there), More beside it,
+  one action row (Save filled, Skip grey, Open posting as an icon), then the content (a posting's
+  Description panel). List cards carry no keys at 1440: the detail column has them. Below 1024
+  each Find card keeps its own keys.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
 - Touch targets are at least 44 px on a phone. Text contrast is AA (4.5) in light and dark.
