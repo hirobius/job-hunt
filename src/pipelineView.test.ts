@@ -180,6 +180,19 @@ describe('Remote only (#614)', () => {
     expect(isRemoteJob(j({}))).toBe(false);
   });
 
+  it('a line that rules remote out is not remote (#624)', async () => {
+    const { isRemoteJob } = await import('./pipelineView');
+    for (const location of [
+      'New York, NY (No remote)',
+      'Austin, TX - Not remote',
+      'Non-remote, Seattle, WA',
+      'London, UK; remote not available',
+    ])
+      expect(isRemoteJob(j({ location })), location).toBe(false);
+    expect(isRemoteJob(j({ location: 'Onsite or remote' }))).toBe(true);
+    expect(isRemoteJob(j({ location: 'Hybrid - Remote' }))).toBe(true);
+  });
+
   it('chip counts, the list and the closed pool all follow Remote only, on every view', async () => {
     const { filterCounts, remoteFiltered, VIEWS } = await import('./pipelineView');
     const jobs = [
