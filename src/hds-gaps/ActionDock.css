@@ -30,6 +30,16 @@
   grid-column: 1 / -1;
 }
 
+.rjb-dock[data-layout='row'] {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: 1fr;
+}
+
+.rjb-dock[data-layout='row'] > :first-child {
+  grid-column: auto;
+}
+
 .rjb-dock[data-hidden='true'] {
   transform: translateY(100%);
   opacity: 0;

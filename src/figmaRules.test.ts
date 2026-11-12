@@ -117,6 +117,19 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
+  it('pins the Find Deck (#545, #617): keys in the dock, "1 of N" in the caption, Sort shows', () => {
+    expect(RULES).toMatch(/Find Deck \(#545, #617\)/);
+    expect(RULES).toMatch(
+      /Skip \(grey, left\) and Save \(filled,\s+right\) sit in the action dock/,
+    );
+    expect(CLAUDE).toMatch(/\*\*Find Deck \(#545, #617/);
+    const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
+    expect(review).toContain('<ActionDock docked={docked} row');
+    expect(review).not.toContain('Pagination');
+    expect(review).not.toMatch(/mode === 'browse' && \(/);
+    expect(fs.readFileSync('src/FindDeck.css', 'utf8')).toContain('line-clamp: 7');
+  });
+
   it('pins the keys by state (#540)', () => {
     expect(RULES).toMatch(/The filled key follows the state/);
     const keys = fs.readFileSync('src/dockKeys.ts', 'utf8');
