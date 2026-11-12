@@ -21,10 +21,14 @@ export type BurnSettings = {
   /** Char band width, px (0 = none), and its strength (opacity of the darkening). */
   char: number;
   charStrength: number;
+  /** Char band on or off (off, or char 0, draws no band). */
+  charOn: boolean;
   easing: Easing;
   /** Field grid cell, px. */
   cell: number;
   seed: number;
+  /** Frames per second of the front's progress (4–60): each step is held 1/fps; the edge shape stays the seeded field. */
+  fps: number;
 };
 
 export const BURN: BurnSettings = {
@@ -36,9 +40,11 @@ export const BURN: BurnSettings = {
   gain: 0.52,
   char: 10,
   charStrength: 0.35,
+  charOn: true,
   easing: 'inOutCubic',
   cell: 4,
   seed: 7,
+  fps: 10,
 };
 
 export const EASE: Record<Easing, (t: number) => number> = {
@@ -86,12 +92,13 @@ export function createBurn(S: BurnSettings, w: number, h: number, ox: number, oy
     for (const loop of contours(g, W, H, c, x0, y0)) d += curve(simplify(loop as Pt[], 0.35), -2);
     return d;
   };
-  const charN = S.char / D;
+  const charOn = S.charOn && S.char > 0;
+  const charN = charOn ? S.char / D : 0;
   const ease = EASE[S.easing];
   return (p: number): BurnFrame => {
     const e = ease(Math.min(1, Math.max(0, p)));
     const t = lo - 0.002 + (hi - lo + charN + 0.004) * e;
     const hole = level(t);
-    return { hole, char: S.char > 0 && S.charStrength > 0 ? level(t + charN) : '' };
+    return { hole, char: charOn && S.charStrength > 0 ? level(t + charN) : '' };
   };
 }

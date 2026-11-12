@@ -42,12 +42,19 @@ function runBurn(w: number, h: number, at: Pt, ms: number, show: (f: BurnFrame) 
   stats.push(times);
   return new Promise<void>((done) => {
     const t0 = performance.now();
+    const step = 1000 / Math.min(60, Math.max(4, BURN.fps));
+    let last = -1;
     const paint = (now: number) => {
       times.push(now);
       const e = now - t0;
-      const f = frame(e / ms);
-      show(f);
-      clip(f.hole);
+      // Hold each frame for 1/fps: only the front's progress steps; the field is the same seeded one.
+      const p = Math.min(ms, Math.floor(e / step) * step) / ms;
+      if (p !== last || e >= ms) {
+        last = p;
+        const f = frame(e >= ms ? 1 : p);
+        show(f);
+        clip(f.hole);
+      }
       if (e < ms) requestAnimationFrame(paint);
       else done();
     };
