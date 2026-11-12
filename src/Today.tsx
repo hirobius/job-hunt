@@ -17,7 +17,8 @@ export default function Today() {
   const profile = useProfile();
   const { offline, user } = useCloudSync();
   const now = new Date();
-  const header = (
+  // The Deck's place ("1 of 4", #545) joins the caption under Find while the Deck is open.
+  const header = (deckPlace: string | null = null) => (
     <Stack gap="px4">
       <Text as="h1" variant="title">
         Find
@@ -25,6 +26,7 @@ export default function Today() {
       <MetaCaption
         items={[
           now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          deckPlace,
         ]}
       />
     </Stack>
@@ -48,7 +50,7 @@ export default function Today() {
   // `ensureProfile`); until then Review new holds its place, or says why it can't.
   return (
     <Stack gap="px24">
-      {header}
+      {header()}
       {picks}
       <Stack gap="normal">
         <Panel label="Review new" title="Review new" trailing={<ScanStatus />} flat>
