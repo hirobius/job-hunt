@@ -405,7 +405,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left, then at the right Browse | Deck
   (`.rjb-view-segs`, a compact two-icon group, `aria-pressed`) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
   ArrowUpDown named "Sort: Newest" / "Sort: Best match" / "Sort: Company", Tooltip "Sort", a Menu of radio items; only
-  while there is a list to sort), one line at 375 and 390 with two-digit counts, wrapping at 360 and below (Adrian 2026-11-12: its keys 32px to look at, a 44px hit area on `.rjb-hit-44`'s ::after, which the a11y phone sweep reads; `e2e/review.spec.ts` forces two-digit counts). Browse
+  while there is a list to sort), one line at 390 with two-digit counts, the tools wrapping under the chips at 375 and below (Adrian 2026-11-12: its keys 32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
   end, disconnected on unmount; off without IntersectionObserver or under prefers-reduced-data); "Load more (N)" stays as
   the fallback, one card gap below the cards, and the polite status says "Loaded N more". A Browse card shows

@@ -288,7 +288,7 @@ export default function ReviewView({
   // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
   // (a compact two-icon segmented group) and Sort on the right; it wraps at narrow widths.
   const tools = (
-    <Stack direction="row" gap="xs" align="center" className="rjb-review-tools">
+    <Stack direction="row" gap="px16" align="center" className="rjb-review-tools">
       {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
           takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
           with a tooltip; the pressed one is the secondary (filled) button. */}
@@ -299,7 +299,7 @@ export default function ReviewView({
         aria-label="Review view"
         className="rjb-view-segs"
       >
-        {VIEW_TOGGLE.map(({ value, label: name, icon }) => (
+        {VIEW_TOGGLE.map(({ value, label: name, icon }, i) => (
           <HdsTooltip key={value}>
             <HdsTooltip.Trigger asChild>
               <Button
@@ -309,7 +309,8 @@ export default function ReviewView({
                 label={name}
                 aria-label={name}
                 aria-pressed={mode === value}
-                className="rjb-hit-44"
+                // Each grows its hit area on its outer side only (base.css .rjb-hit-44).
+                className={`rjb-hit-44 ${i === 0 ? 'rjb-hit-start' : 'rjb-hit-end'}`}
                 onClick={() => setMode(value)}
                 iconLeft={<Icon icon={icon} />}
               />
@@ -347,13 +348,7 @@ export default function ReviewView({
             className="rjb-review-row"
           >
             {view && view.rows.length > 0 && (
-              <Stack
-                direction="row"
-                wrap="wrap"
-                gap="px4"
-                role="group"
-                aria-label="Filter postings"
-              >
+              <Stack direction="row" wrap="wrap" gap="xs" role="group" aria-label="Filter postings">
                 {FILTERS.map((f) => (
                   <Tag
                     key={f}

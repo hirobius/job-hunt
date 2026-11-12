@@ -22,7 +22,7 @@ export function FindSortMenu({ sort }: { sort: FindSort }) {
               iconOnly
               iconLeft={<Icon icon={ArrowUpDown} />}
               label={`Sort: ${SORT_LABEL[sort.value]}`}
-              className="rjb-hit-44"
+              className="rjb-hit-44 rjb-hit-end"
             />
           </Menu.Trigger>
         </HdsTooltip.Trigger>

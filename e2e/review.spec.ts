@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { findMenuItem, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
+import { hitArea } from './hitArea';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
@@ -297,10 +298,11 @@ for (const width of [390, 1440]) {
   });
 }
 
-// Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 375 and
-// 390; wrapping is allowed at 360 and below. Each key keeps a 44px hit area.
+// Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 390;
+// at 375 and below the tools wrap under the chips (exclusive 44px hit areas need 329px; 375's row
+// is 320). At both widths each key's 44px hit area is its own (elementFromPoint).
 for (const width of [375, 390]) {
-  test(`the Review row fits on one line with two-digit counts (${width})`, async ({ page }) => {
+  test(`the Review row: one line at 390, its own 44px hit areas (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => {
       const url = r.request().url();
@@ -342,15 +344,16 @@ for (const width of [375, 390]) {
     await expect(chips.getByRole('button', { name: /^Remote \d\d$/ })).toBeVisible();
     const sort = page.getByRole('button', { name: /^Sort: / });
     const [c, s] = [await chips.boundingBox(), await sort.boundingBox()];
-    // One row: the Sort key's middle is level with the chips'.
-    expect(Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(4);
+    const sameLine = Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2)) < 4;
+    expect(sameLine).toBe(width >= 390);
     expect(s!.x + s!.width).toBeLessThanOrEqual(width);
-    // The 44px hit area (.rjb-hit-44's ::after) holds on the smaller key.
-    const hit = await sort.evaluate((el) => {
-      const a = getComputedStyle(el, '::after');
-      return [parseFloat(a.width) || el.getBoundingClientRect().width, parseFloat(a.height) || 0];
-    });
-    expect(Math.max(hit[0], s!.width)).toBeGreaterThanOrEqual(44);
-    expect(Math.max(hit[1], s!.height)).toBeGreaterThanOrEqual(44);
+    // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
+    // lands on that key, never its neighbour.
+    for (const name of ['Browse', 'Deck', /^Sort: /]) {
+      const hit = await hitArea(page.getByRole('button', { name }));
+      expect(hit.width).toBeGreaterThanOrEqual(44);
+      expect(hit.height).toBeGreaterThanOrEqual(44);
+      expect(hit.misses, String(name)).toEqual([]);
+    }
   });
 }
