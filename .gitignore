@@ -17,3 +17,4 @@ dist/
 /verify-*.mjs
 /vrfy*.mjs
 gallery/
+/smoke-results.json
