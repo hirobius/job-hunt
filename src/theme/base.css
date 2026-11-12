@@ -892,6 +892,8 @@ p {
     max-height: 85dvh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+    /* The home indicator never sits on the footer (Companies' Done, #619). */
+    padding-bottom: max(var(--primitive-space-4), env(safe-area-inset-bottom));
   }
   .rjb-sheet-handle {
     display: block;

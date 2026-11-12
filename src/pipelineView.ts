@@ -6,7 +6,7 @@ import { createStore } from './createStore';
 import { deriveJobState, localDay } from './jobState';
 import { isClosed } from './jobDates';
 import { sortJobs, type SortKey } from './jobSort';
-import { inferMode } from './feed/mode';
+import { inferMode, mentionsRemote } from './feed/mode';
 import type { Job } from './types';
 
 /** The named views (#541, redesign phase 2): the Apply list is walked by view, not by a Status
@@ -73,7 +73,7 @@ export function isRemoteJob(j: Job): boolean {
   if (j.mode) return j.mode === 'remote';
   const text = `${j.location ?? ''} ${j.label ?? ''}`;
   const m = inferMode(text);
-  return m === 'remote' || (m === undefined && /\bremote\b/i.test(text));
+  return m === 'remote' || (m === undefined && mentionsRemote(text));
 }
 
 /** The jobs Remote only lets through: what every count on Apply reads (chips, status line, closed
