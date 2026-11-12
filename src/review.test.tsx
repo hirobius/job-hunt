@@ -35,6 +35,7 @@ import { SEEN_KEY, getAllDecided, postingFingerprint, unmuteCompany } from './fe
 import { resetScan, runScan } from './feed/autoScan';
 import { resetViewMemory } from './viewMemory';
 import { getScanDetails } from './feed/scanDetails';
+import { parseHnComment } from './feed/sources/hn';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -476,6 +477,45 @@ describe('Review new: Deck', () => {
     await user.click(within(screen.getByRole('article')).getByRole('heading', { level: 3 }));
     await user.keyboard('{ArrowLeft}');
     expect(deckTitle()).toBe('Design Systems Lead at Mono');
+  });
+});
+
+describe('Review new: pay read from a Hacker News post (#547)', () => {
+  // Real-shaped "Who is hiring?" comments (Algolia's HTML), synthetic companies.
+  const hn = (id: string, html: string) =>
+    parseHnComment({
+      objectID: id,
+      story_id: 1,
+      parent_id: 1,
+      created_at: now,
+      comment_text: html,
+    })!;
+  const PAID = hn(
+    '11',
+    'Acme | Design Systems Lead | Remote (US) | $150k–$185k<p>Own the design system end to end.',
+  );
+  const EURO = hn(
+    '12',
+    'Beta | Senior Design Systems Designer | REMOTE (EU) | €95k–€120k + equity<p>Own the design system.',
+  );
+  const UNPAID = hn(
+    '13',
+    'Gamma | Design Systems Engineer | Remote<p>We raised $20M. Own the design system. 401(k).',
+  );
+
+  it('shows the pay a post states as the card\'s pay line, and none when it states none', async () => {
+    feed.fetchFeed.mockResolvedValue(result([PAID, EURO, UNPAID]));
+    renderReview();
+    await list();
+    const card = (title: string) =>
+      screen.getByRole('heading', { level: 3, name: title }).closest('article')!;
+    expect(within(card('Design Systems Lead')).getByText('$150k to $185k')).toBeInTheDocument();
+    expect(
+      within(card('Senior Design Systems Designer')).getByText('€95k to €120k'),
+    ).toBeInTheDocument();
+    // No pay found: no pay fact on the card (never a funding or 401(k) figure).
+    const none = card('Design Systems Engineer');
+    expect(within(none).queryByText(/\$|€|£|Pay not stated/)).toBeNull();
   });
 });
 

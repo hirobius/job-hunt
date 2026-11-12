@@ -16,6 +16,9 @@ describe('parseHnPay (#576 item 2)', () => {
     ['Acme | Staff Engineer | Remote | $180k–220k', pay(180_000, 220_000)],
     ['Salary: 180-220K USD + equity', pay(180_000, 220_000)],
     ['€90k', pay(90_000, 90_000, 'EUR')],
+    // The issue's own formats (#547).
+    ['Acme | Design Systems Lead | Remote (US) | $150k–$185k', pay(150_000, 185_000)],
+    ['Beta | Senior Design Systems Designer | Berlin | €95k–€120k', pay(95_000, 120_000, 'EUR')],
     ['£70,000 - £85,000 + options', pay(70_000, 85_000, 'GBP')],
     ['$200k OTE', pay(200_000, 200_000)],
     ['US$150k to $175k', pay(150_000, 175_000)],
