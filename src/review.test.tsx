@@ -537,18 +537,21 @@ describe('Review new: pay read from a Hacker News post (#547)', () => {
     'Gamma | Design Systems Engineer | Remote<p>We raised $20M. Own the design system. 401(k).',
   );
 
-  it('shows the pay a post states as the card\'s pay line, and none when it states none', async () => {
+  it("shows the pay a post states as the card's pay line, and none when it states none", async () => {
     feed.fetchFeed.mockResolvedValue(result([PAID, EURO, UNPAID]));
     renderReview();
-    await list();
-    const card = (title: string) =>
-      screen.getByRole('heading', { level: 3, name: title }).closest('article')!;
-    expect(within(card('Design Systems Lead')).getByText('$150k to $185k')).toBeInTheDocument();
+    const ul = await list();
+    // Found the way the #631 compact-card tests do: the card is an article named "<title> at <company>".
+    const card = (title: string, company: string) =>
+      within(ul).getByRole('article', { name: `${title} at ${company}` });
     expect(
-      within(card('Senior Design Systems Designer')).getByText('€95k to €120k'),
+      within(card('Design Systems Lead', 'Acme')).getByText('$150k to $185k'),
+    ).toBeInTheDocument();
+    expect(
+      within(card('Senior Design Systems Designer', 'Beta')).getByText('€95k to €120k'),
     ).toBeInTheDocument();
     // No pay found: no pay fact on the card (never a funding or 401(k) figure).
-    const none = card('Design Systems Engineer');
+    const none = card('Design Systems Engineer', 'Gamma');
     expect(within(none).queryByText(/\$|€|£|Pay not stated/)).toBeNull();
   });
 });
