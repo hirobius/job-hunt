@@ -69,7 +69,7 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await topTab(page, 'Apply').click();
 
   // Below lg the tab is one job (Proposal A); its list is the All jobs sheet.
-  await page.getByRole('button', { name: 'All jobs' }).click();
+  await page.getByRole('button', { name: 'All jobs', exact: true }).click();
   const jobs = page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Jobs' });
   await expect(jobs.locator('a[href^="#/apply/"]')).toHaveCount(3);
   await jobs.locator('a[href^="#/apply/"]').first().click();
@@ -98,7 +98,7 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   }
 
   // Nothing left to apply to: the tab still shows a job, and All jobs has Follow up (3).
-  await page.getByRole('button', { name: 'All jobs' }).click();
+  await page.getByRole('button', { name: 'All jobs', exact: true }).click();
   await expect(
     page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Follow up (3)' }),
   ).toBeVisible();
