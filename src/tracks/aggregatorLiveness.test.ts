@@ -52,14 +52,16 @@ describe('checkAggregatorLiveness', () => {
     const r = await checkAggregatorLiveness(
       [
         { id: 'a', url: 'https://boards.greenhouse.io/acme/jobs/123' },
-        { id: 'b', url: 'https://boards.greenhouse.io/acme/jobs/999' },
+        { id: 'b', url: 'https://boards.greenhouse.io/acme/jobs/999', listedSeen: true },
         { id: 'c', url: `https://jobs.lever.co/lev/${U1}` },
-        { id: 'd', url: `https://jobs.lever.co/lev/${U2}` },
+        { id: 'd', url: `https://jobs.lever.co/lev/${U2}`, listedSeen: true },
         { id: 'e', url: 'https://www.adzuna.com/land/ad/1' },
       ],
       { fetch: f, wait: noWait },
     );
     expect(r.gone.sort()).toEqual(['b', 'd']);
+    // First sightings get their mark (#675).
+    expect(r.seen.sort()).toEqual(['a', 'c']);
     expect(r.failed).toEqual([]);
     // One read per board, on the fixed API hosts only.
     expect(asked.sort()).toEqual([GH, LEVER].sort());
@@ -81,18 +83,21 @@ describe('checkAggregatorLiveness', () => {
 
   it('retries a 5xx once (retry.ts) and trusts the second answer', async () => {
     let calls = 0;
-    const r = await checkAggregatorLiveness([{ id: 'b', url: `https://jobs.lever.co/lev/${U1}` }], {
-      fetch: async () =>
-        ++calls === 1
-          ? new Response(null, { status: 503 })
-          : new Response(
-              JSON.stringify([{ id: U2, hostedUrl: `https://jobs.lever.co/lev/${U2}` }]),
-              {
-                status: 200,
-              },
-            ),
-      wait: noWait,
-    });
+    const r = await checkAggregatorLiveness(
+      [{ id: 'b', url: `https://jobs.lever.co/lev/${U1}`, listedSeen: true }],
+      {
+        fetch: async () =>
+          ++calls === 1
+            ? new Response(null, { status: 503 })
+            : new Response(
+                JSON.stringify([{ id: U2, hostedUrl: `https://jobs.lever.co/lev/${U2}` }]),
+                {
+                  status: 200,
+                },
+              ),
+        wait: noWait,
+      },
+    );
     expect(calls).toBe(2);
     expect(r.gone).toEqual(['b']);
     expect(r.failed).toEqual([]);
@@ -126,6 +131,7 @@ describe('checkAggregatorLiveness', () => {
     const rows = Array.from({ length: MAX_LIVENESS_BOARDS + 5 }, (_, i) => ({
       id: String(i),
       url: `https://boards.greenhouse.io/co${i}/jobs/1`,
+      listedSeen: true,
     }));
     const r = await checkAggregatorLiveness(rows, {
       fetch: async (u) => {
@@ -169,7 +175,7 @@ describe('checkAggregatorLiveness', () => {
     const r = await checkAggregatorLiveness(
       [
         { id: 'a', url: `https://jobs.ashbyhq.com/AshCo/${U1}` },
-        { id: 'b', url: `https://jobs.ashbyhq.com/ashco/${U2}` },
+        { id: 'b', url: `https://jobs.ashbyhq.com/ashco/${U2}`, listedSeen: true },
       ],
       { fetch: f, wait: noWait },
     );
@@ -189,5 +195,52 @@ describe('checkAggregatorLiveness', () => {
     expect(r.gone).toEqual([]);
     expect(r.failed).toHaveLength(1);
     expect(jobOnBoard('https://jobs.lever.co/lev/abcdef12')).toBeNull();
+  });
+
+  describe('seen on the list (#675)', () => {
+    const list = { [LEVER]: [{ id: U1, hostedUrl: `https://jobs.lever.co/lev/${U1}` }] };
+    it('a job never seen listed that is absent stays open', async () => {
+      const { f } = fakeFetch(list);
+      const r = await checkAggregatorLiveness(
+        [{ id: 'u', url: `https://jobs.lever.co/lev/${U2}` }],
+        {
+          fetch: f,
+          wait: noWait,
+        },
+      );
+      expect(r.gone).toEqual([]);
+      expect(r.seen).toEqual([]);
+    });
+    it('a job seen listed before that is absent closes', async () => {
+      const { f } = fakeFetch(list);
+      const r = await checkAggregatorLiveness(
+        [{ id: 's', url: `https://jobs.lever.co/lev/${U2}`, listedSeen: true }],
+        { fetch: f, wait: noWait },
+      );
+      expect(r.gone).toEqual(['s']);
+    });
+    it('the first sighting sets the mark; an already marked one is not asked again', async () => {
+      const { f } = fakeFetch(list);
+      const r = await checkAggregatorLiveness(
+        [
+          { id: 'new', url: `https://jobs.lever.co/lev/${U1}` },
+          { id: 'old', url: `https://jobs.lever.co/lev/${U1}/apply`, listedSeen: true },
+        ],
+        { fetch: f, wait: noWait },
+      );
+      expect(r.seen).toEqual(['new']);
+      expect(r.gone).toEqual([]);
+    });
+    it('a 404 board still closes a job never seen listed', async () => {
+      const { f } = fakeFetch({ [LEVER]: 404 });
+      const r = await checkAggregatorLiveness(
+        [{ id: 'u', url: `https://jobs.lever.co/lev/${U2}` }],
+        {
+          fetch: f,
+          wait: noWait,
+        },
+      );
+      expect(r.gone).toEqual(['u']);
+    });
   });
 });

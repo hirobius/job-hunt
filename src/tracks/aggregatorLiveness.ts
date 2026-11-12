@@ -4,7 +4,11 @@
 // (Greenhouse, Lever, Ashby: fixed API hosts, boardFetch.ts `guardedFetch`), the board itself says
 // whether the job is still there. Pure apart from the fetch it is given: the edge function and the
 // tests share it (`.ts` specifiers: Deno loads it too).
-//   - A board that answers with a non-empty list and no longer holds the job: gone (#673: an
+//   - A board that answers with a non-empty list and no longer holds the job: gone, but only when
+//     the row's job was seen on that list at least once (`listedSeen`, postings.listed_seen_at,
+//     #675): Ashby's isListed:false and Lever's unlisted jobs never show in the public list, so a
+//     job never seen there is left to the 30-day age-out. A read that finds the job marks it
+//     (`seen`). (#673: an
 //     empty list is unknown, since no recorded fixture shows a kind answering 404, rather than [],
 //     for a slug it does not know; a list whose ids do not have the kind's id format is unknown).
 //   - A board that answers 404 (the board itself is gone): every job on it is gone.
@@ -42,6 +46,8 @@ const CHECKED: readonly ProbeHostKind[] = ['greenhouse', 'lever', 'ashby'];
 export interface LivenessRow {
   id: string;
   url: string;
+  /** postings.listed_seen_at is set: the job has been on its board's list at least once (#675). */
+  listedSeen?: boolean;
 }
 
 /** The board and job a link names, or null when it is not a checked board's job link. Lever's EU
@@ -121,6 +127,8 @@ async function readBoardIds(kind: ProbeHostKind, slug: string, f: Fetch): Promis
 export interface LivenessResult {
   /** Row ids whose job the board no longer lists (or whose board is gone). */
   gone: string[];
+  /** Row ids found on their board's list whose mark was not yet set: set listed_seen_at (#675). */
+  seen: string[];
   /** Boards read this run, and the ones that failed (logged, closing nothing). */
   boards: number;
   failed: { board: string; status?: number; error?: string }[];
@@ -139,14 +147,14 @@ export async function checkAggregatorLiveness(
 ): Promise<LivenessResult> {
   const byBoard = new Map<
     string,
-    { kind: ProbeHostKind; slug: string; rows: [string, string][] }
+    { kind: ProbeHostKind; slug: string; rows: [string, string, boolean][] }
   >();
   for (const r of rows) {
     const j = jobOnBoard(r.url);
     if (!j) continue;
     const key = `${j.kind}:${j.slug.toLowerCase()}`;
     const g = byBoard.get(key) ?? { kind: j.kind, slug: j.slug, rows: [] };
-    g.rows.push([r.id, j.jobId]);
+    g.rows.push([r.id, j.jobId, !!r.listedSeen]);
     byBoard.set(key, g);
   }
   const seed = o.seed ?? '';
@@ -160,18 +168,23 @@ export async function checkAggregatorLiveness(
     o.wait,
   );
   const gone: string[] = [];
+  const seen: string[] = [];
   const failed: LivenessResult['failed'] = [];
   keys.forEach((k, i) => {
     const r = reads[i];
     const g = byBoard.get(k)!;
     if (r.ok && r.ids) {
-      for (const [id, jobId] of g.rows)
-        if (idFits(g.kind, jobId) && !r.ids.has(jobId)) gone.push(id);
+      for (const [id, jobId, listedSeen] of g.rows) {
+        if (!idFits(g.kind, jobId)) continue;
+        if (r.ids.has(jobId)) {
+          if (!listedSeen) seen.push(id);
+        } else if (listedSeen) gone.push(id);
+      }
     } else if (r.status === 404) {
       for (const [id] of g.rows) gone.push(id);
     } else failed.push({ board: k, status: r.status, error: r.error });
   });
-  return { gone, boards: keys.length, failed };
+  return { gone, seen, boards: keys.length, failed };
 }
 
 function hash(s: string): number {

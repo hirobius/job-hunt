@@ -512,22 +512,30 @@ async function suggestBoards(
 /** Open feed rows whose link is a checked board's job (aggregatorLiveness.ts), checked on that
  *  board; the ones gone there are closed. Returns how many closed. */
 async function checkLiveness(db: SupabaseClient, runStart: string, logs: Log[]) {
-  const rows = await readPaged<LivenessRow>(
+  const read = await readPaged<{ id: string; url: string; listed_seen_at: string | null }>(
     (from, to) =>
       db
         .from('postings')
-        .select('id, url')
+        .select('id, url, listed_seen_at')
         .in('board', [...AGGREGATOR_BOARDS])
         .is('closed_at', null)
         .or('url.ilike.%greenhouse.io/%,url.ilike.%jobs.lever.co/%,url.ilike.%ashbyhq.com/%')
         .order('id')
         .range(from, to) as unknown as PromiseLike<{
-        data: LivenessRow[] | null;
+        data: { id: string; url: string; listed_seen_at: string | null }[] | null;
         error: { message: string } | null;
       }>,
     1000,
   );
-  if (rows.error) throw new Error(rows.error);
+  if (read.error) throw new Error(read.error);
+  // #675: an absent job closes only once it has been seen on its board's list.
+  const rows = {
+    rows: read.rows.map((r): LivenessRow => ({
+      id: r.id,
+      url: r.url,
+      listedSeen: r.listed_seen_at != null,
+    })),
+  };
   const res = await checkAggregatorLiveness(rows.rows, { fetch: timedFetch, seed: runStart });
   for (const f of res.failed)
     logs.push({
@@ -540,6 +548,15 @@ async function checkLiveness(db: SupabaseClient, runStart: string, logs: Log[]) 
         2000,
       ),
     });
+  const seenAt = new Date().toISOString();
+  for (let i = 0; i < res.seen.length; i += 200) {
+    const { error } = await db
+      .from('postings')
+      .update({ listed_seen_at: seenAt })
+      .in('id', res.seen.slice(i, i + 200))
+      .is('listed_seen_at', null);
+    if (error) throw new Error(`listed seen: ${error.message}`);
+  }
   let closed = 0;
   for (let i = 0; i < res.gone.length; i += 200) {
     const { data, error } = await db
@@ -557,7 +574,9 @@ async function checkLiveness(db: SupabaseClient, runStart: string, logs: Log[]) 
       kind: 'run',
       board: null,
       status: null,
-      message: JSON.stringify({ liveness: { rows: rows.rows.length, boards: res.boards, closed } }),
+      message: JSON.stringify({
+        liveness: { rows: rows.rows.length, boards: res.boards, seen: res.seen.length, closed },
+      }),
     });
   return closed;
 }
