@@ -1,7 +1,7 @@
 // A saved job's Apply view (#127, #130, #471): `#/apply/<jobId>`, inside the Apply tab. A header
 // (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks). At
 // lg the list sits beside it; below lg it stands alone, with Back and the "‹ 2 of N ›" pager.
-import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobius/design-system';
 import { findJobById, jobIdOf, useJobs } from './store';
 import { titleOf } from './jobRow';
@@ -13,6 +13,7 @@ import ApplyFilterBar from './ApplyFilterBar';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
 import ApplyWalk from './ApplyWalk';
+import { SwipeArea } from './SwipeArea';
 import { useFollowView } from './followView';
 import { ApplicationKit } from './ApplySheet';
 import { scrollToTop } from './scrollMemory';
@@ -154,58 +155,6 @@ export default function JobPage({ jobId }: { jobId: string }) {
         </SwipeArea>
       </Stack>
       <AllJobsSheet jobs={jobs} open={all} onOpenChange={setAll} />
-    </Box>
-  );
-}
-
-/** True when `el` is inside something that scrolls sideways (below `root`): its own swipe. */
-function inSideScroller(el: Element, root: Element): boolean {
-  for (let n: Element | null = el; n && n !== root; n = n.parentElement) {
-    const x = getComputedStyle(n).overflowX;
-    if ((x === 'auto' || x === 'scroll') && n.scrollWidth > n.clientWidth) return true;
-  }
-  return false;
-}
-
-/** A horizontal swipe on the job steps the pager (Proposal A: "swipe left and right on the card").
- *  Only a clear sideways swipe of 64px or more counts, never one that starts in a field. */
-function SwipeArea({
-  onPrev,
-  onNext,
-  children,
-}: {
-  onPrev: () => void;
-  onNext: () => void;
-  children: ReactNode;
-}) {
-  const start = useRef<{ x: number; y: number } | null>(null);
-  return (
-    <Box
-      className="rjb-swipe"
-      onTouchStart={(e: TouchEvent<HTMLDivElement>) => {
-        const t = e.touches[0];
-        const from = e.target as Element;
-        const field = from.closest('input, textarea, [contenteditable="true"]');
-        start.current =
-          t && !field && !inSideScroller(from, e.currentTarget)
-            ? { x: t.clientX, y: t.clientY }
-            : null;
-      }}
-      onTouchEnd={(e: TouchEvent<HTMLDivElement>) => {
-        const s = start.current;
-        const t = e.changedTouches[0];
-        start.current = null;
-        if (!s || !t) return;
-        // Selecting text drags sideways too: that is not a swipe.
-        if (window.getSelection()?.toString()) return;
-        const dx = t.clientX - s.x;
-        const dy = t.clientY - s.y;
-        if (Math.abs(dx) < 64 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-        if (dx < 0) onNext();
-        else onPrev();
-      }}
-    >
-      {children}
     </Box>
   );
 }
