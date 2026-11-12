@@ -40,6 +40,9 @@ interface Read {
   /** What this read asked for, so a source or title added later is read on its own. */
   terms: string[];
   boardUrls: string[];
+  /** The inclusion rule the read was slimmed for (slimRead): a read for another rule is not
+   *  folded into, since postings it dropped the text of may pass the new one. */
+  rule?: string;
   attempt: number;
   at: number;
   result?: FeedResult;
@@ -115,7 +118,8 @@ export function useFeed(given?: PostingReader): FeedState {
     .map((f) => `${f.key}=${f.status}`)
     .join(',')}`;
   // The inclusion rule is in the key: a read keeps no text for what the rule leaves out (slimRead).
-  const key = `${signedIn ? 'server' : 'browser'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}|${JSON.stringify(profile.include)}`;
+  const rule = JSON.stringify(profile.include);
+  const key = `${signedIn ? 'server' : 'browser'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}|${rule}`;
   const [read, setRead] = useRemembered<Read | null>('review:read', storedRead);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
 
@@ -130,7 +134,12 @@ export function useFeed(given?: PostingReader): FeedState {
     // A company or title added since the last full read (Adrian 2026-10-28: a new company's jobs
     // show straight away): read only what was added and fold it into the rows already up.
     const base =
-      read?.result && !read.stored && !read.progress && !read.error && read.attempt === attempt
+      read?.result &&
+      !read.stored &&
+      !read.progress &&
+      !read.error &&
+      read.attempt === attempt &&
+      read.rule === rule
         ? read
         : null;
     const added = base && {
@@ -151,6 +160,7 @@ export function useFeed(given?: PostingReader): FeedState {
         key,
         terms: req.terms,
         boardUrls: req.boardUrls,
+        rule,
         attempt,
         at,
         result,
