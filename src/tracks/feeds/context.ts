@@ -66,3 +66,12 @@ export async function fetchKeyed(
     throw new Error(`${source}: ${timedOut ? 'timed out' : 'network error'}`);
   }
 }
+
+/** A server feed's answer that is not its whole list (one of its pages or feeds failed): the
+ *  sync stores what came, and closes nothing as missed against it (#576 item 11). */
+const PARTIAL = new WeakSet<object>();
+export function markPartial<T extends object>(list: T): T {
+  PARTIAL.add(list);
+  return list;
+}
+export const isPartial = (list: object) => PARTIAL.has(list);

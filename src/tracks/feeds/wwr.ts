@@ -13,7 +13,7 @@
 import { htmlToText } from '../../feed/html.ts';
 import { httpUrl } from '../../httpUrl.ts';
 import type { NormalizedPosting } from '../score.ts';
-import { fetchKeyed, SourceHttpError, type FeedContext } from './context.ts';
+import { fetchKeyed, markPartial, SourceHttpError, type FeedContext } from './context.ts';
 import { USER_AGENT } from './dsjobsCatalog.ts';
 import { isDsRole } from './dsRole.ts';
 
@@ -75,5 +75,6 @@ export async function readWwr(ctx: FeedContext): Promise<NormalizedPosting[]> {
     for (const p of parseWwr(await r.text())) if (!seen.has(p.sourceId)) seen.set(p.sourceId, p);
   }
   if (!answered && failed) throw failed;
-  return [...seen.values()];
+  // One feed failing: not the whole list, so nothing closes as missed against it.
+  return failed ? markPartial([...seen.values()]) : [...seen.values()];
 }

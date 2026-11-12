@@ -62,6 +62,11 @@ import {
   type ServerFeed,
 } from '../../../src/tracks/feeds/serverFeeds.ts';
 import type { NormalizedPosting } from '../../../src/tracks/score.ts';
+import {
+  AGGREGATOR_BOARDS,
+  checkAggregatorLiveness,
+  type LivenessRow,
+} from '../../../src/tracks/aggregatorLiveness.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
 import {
   nameKey as suggestNameKey,
@@ -502,6 +507,59 @@ async function suggestBoards(
     status: null,
     message: `board suggestions: ${names.length} names, ${run.reads} reads, ${run.suggestions.length} confirmed boards, ${stored} rows`,
   });
+}
+
+/** Open feed rows whose link is a checked board's job (aggregatorLiveness.ts), checked on that
+ *  board; the ones gone there are closed. Returns how many closed. */
+async function checkLiveness(db: SupabaseClient, runStart: string, logs: Log[]) {
+  const rows = await readPaged<LivenessRow>(
+    (from, to) =>
+      db
+        .from('postings')
+        .select('id, url')
+        .in('board', [...AGGREGATOR_BOARDS])
+        .is('closed_at', null)
+        .or('url.ilike.%greenhouse.io/%,url.ilike.%jobs.lever.co/%,url.ilike.%ashbyhq.com/%')
+        .order('id')
+        .range(from, to) as unknown as PromiseLike<{
+        data: LivenessRow[] | null;
+        error: { message: string } | null;
+      }>,
+    1000,
+  );
+  if (rows.error) throw new Error(rows.error);
+  const res = await checkAggregatorLiveness(rows.rows, { fetch: timedFetch, seed: runStart });
+  for (const f of res.failed)
+    logs.push({
+      user_id: null,
+      kind: 'failed',
+      board: f.board,
+      status: f.status ?? null,
+      message: `liveness ${f.board}: ${f.error ?? `HTTP ${f.status}`} (nothing closed)`.slice(
+        0,
+        2000,
+      ),
+    });
+  let closed = 0;
+  for (let i = 0; i < res.gone.length; i += 200) {
+    const { data, error } = await db
+      .from('postings')
+      .update(closing())
+      .in('id', res.gone.slice(i, i + 200))
+      .is('closed_at', null)
+      .select('id');
+    if (error) throw new Error(`closing: ${error.message}`);
+    closed += data?.length ?? 0;
+  }
+  if (res.boards)
+    logs.push({
+      user_id: null,
+      kind: 'run',
+      board: null,
+      status: null,
+      message: JSON.stringify({ liveness: { rows: rows.rows.length, boards: res.boards, closed } }),
+    });
+  return closed;
 }
 
 /** A posting closed now (a gone board, or one no longer followed). */
@@ -1010,6 +1068,7 @@ Deno.serve(async (req) => {
   const last = rest.length <= SLICE;
   const next = last ? null : boardOf(boards[boards.length - 1]);
   let feedsRead = 0;
+  let closedLive = 0;
   let retriedReads = 0;
   const summary: Record<string, unknown>[] = [];
   // Stored Greenhouse rows for the delta reads (#448): loaded once per invocation, so a
@@ -1126,6 +1185,21 @@ Deno.serve(async (req) => {
           message: `board suggestions: ${String(e)}`.slice(0, 2000),
         });
       }
+      // Aggregator liveness (#576 item 11): a feed's open row whose link is a Greenhouse, Lever or
+      // Ashby job is checked on that board (≤ MAX_LIVENESS_BOARDS boards a run); gone there closes
+      // it now. A failed board read closes nothing. Not after a failed write this run.
+      if (![...totals.values()].some((t) => t.failed))
+        try {
+          closedLive = await checkLiveness(db, runStart, logs);
+        } catch (e) {
+          logs.push({
+            user_id: null,
+            kind: 'failed',
+            board: null,
+            status: null,
+            message: `aggregator liveness: ${String(e)}`.slice(0, 2000),
+          });
+        }
     }
 
     // Closing, per user.
@@ -1269,6 +1343,7 @@ Deno.serve(async (req) => {
     left: rest.length,
     last,
     feeds: feedsRead,
+    closedLive,
     // The server searches not running and what turns each on (secret names, never values).
     serverFeedsOff: serverFeedsOff(envOf),
     failedBoards: failedBoards.size,

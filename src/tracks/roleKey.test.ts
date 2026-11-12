@@ -8,6 +8,19 @@ describe('roleKey (#576 item 9)', () => {
       expect(normCompany(c)).toBe('acme');
     expect(normCompany('Procter & Gamble Co.')).toBe('procter and gamble');
   });
+
+  it('strips a legal suffix only at the end of the name (#670)', () => {
+    for (const [name, want] of [
+      ['Co Design', 'co design'],
+      ['AB Tasty', 'ab tasty'],
+      ['Acme AS', 'acme'],
+      ['Foo GmbH', 'foo'],
+      ['The Co', 'co'],
+      ['SA Power Networks', 'sa power networks'],
+      ['Acme Holdings Ltd.', 'acme'],
+    ])
+      expect(normCompany(name), name).toBe(want);
+  });
   it('spells out abbreviations and keeps seniority', () => {
     expect(normTitle('Sr. Design Systems Eng')).toBe('senior design systems engineer');
     expect(normTitle('Senior  Design-Systems Engineer')).toBe('senior design systems engineer');

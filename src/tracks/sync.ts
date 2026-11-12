@@ -23,7 +23,7 @@ import type { Posting } from '../feed/types.ts';
 import { dedupe, fingerprint, type NormalizedPosting, type Verdict } from './score.ts';
 import { scoreForTrack } from './scoreForTrack.ts';
 import { SOURCE_ENABLED } from '../feed/sourceEnabled.ts';
-import type { FeedContext } from './feeds/context.ts';
+import { isPartial, type FeedContext } from './feeds/context.ts';
 import { readDsJobsCatalog } from './feeds/dsjobsCatalog.ts';
 import { SERVER_FEED_READERS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { fetchDesignSystemsJobsFeed, webOnly, type WatchedCompany } from './sources.ts';
@@ -267,8 +267,15 @@ async function readServerFeed<C extends WatchedCompany>(
   ctx: FeedContext,
 ): Promise<ReadOutcome<C>> {
   try {
-    const postings = webOnly(await SERVER_FEED_READERS[feed](ctx));
-    return { company: null, board: feed, ok: true, postings };
+    const got = await SERVER_FEED_READERS[feed](ctx);
+    const postings = webOnly(got);
+    return {
+      company: null,
+      board: feed,
+      ok: true,
+      ...(isPartial(got) && { partial: true as const }),
+      postings,
+    };
   } catch (e) {
     const status =
       typeof (e as { status?: unknown }).status === 'number'

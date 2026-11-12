@@ -4,8 +4,10 @@
 // (score.ts `dedupe`). Not the Skip fingerprint (score.ts `fingerprint`), which `decided` stores
 // and which stays as it was so no saved Skip is lost.
 
+// Legal suffixes at the END of the name only (#670): "Co Design" and "AB Tasty" keep their first
+// word. A run of them goes ("Acme Holdings Ltd"); a name that is nothing but one keeps it ("The Co").
 const COMPANY_SUFFIX =
-  /\b(?:inc|incorporated|llc|l\.l\.c|ltd|limited|gmbh|ag|sa|sas|srl|bv|b\.v|plc|corp|corporation|co|company|pty|oy|ab|as|aps|kk|pvt|holdings?)\b\.?/g;
+  /(?:\s+(?:inc|incorporated|llc|l\.l\.c|ltd|limited|gmbh|ag|sa|sas|srl|bv|b\.v|plc|corp|corporation|co|company|pty|oy|ab|as|aps|kk|pvt|holdings?)\.?)+\s*$/;
 
 /** A company name for comparing: case, punctuation, a leading "The" and legal suffixes (Inc,
  *  LLC, Ltd, GmbH…) go; "Acme, Inc." and "The Acme Company" are both "acme". */
@@ -14,9 +16,9 @@ export function normCompany(s: string): string {
     .toLowerCase()
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9.]+/g, ' ')
+    .replace(/^\s*the\s+/, '')
     .replace(COMPANY_SUFFIX, ' ')
     .replace(/[.]/g, ' ')
-    .replace(/^\s*the\s+/, '')
     .replace(/\s+/g, ' ')
     .trim();
   return out || s.toLowerCase().trim();

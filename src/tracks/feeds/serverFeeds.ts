@@ -40,6 +40,12 @@ export const SERVER_FEED_READERS: Record<
   ids: readIntoDesignSystems,
 };
 
+/** The server feeds read whole every run (#576 item 11): Remote OK's one list and We Work
+ *  Remotely's two category feeds. A posting missing from 2 whole reads in a row closes as missed
+ *  (mark_missed_postings), like a company board's. Arbeitnow is not one: it reads the newest
+ *  ARBEITNOW_PAGES pages, a window, so it ages out with the keyed searches. */
+export const WHOLE_LIST_FEEDS: readonly ServerFeed[] = ['remoteok', 'wwr'];
+
 type Gate = { keyless: true } | { env: readonly string[] } | { waitsOn: string };
 
 /** When each feed runs. Into Design Systems waits on its operator (no key to set). */

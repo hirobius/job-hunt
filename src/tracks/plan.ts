@@ -12,7 +12,7 @@ import { BOARD_KINDS, BOARD_SLUG } from '../feed/boardSet.ts';
 import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
 import { nameKey, sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
-import { SERVER_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
+import { SERVER_FEEDS, WHOLE_LIST_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import {
   DESIGN_ENGINEER_STRONG,
@@ -316,15 +316,18 @@ export const feedReadsFor = (plan: SyncPlan, reads: ReadOutcome[]): ReadOutcome[
  *  per-run cap can leave some out) and every read answered with its whole list. Else a posting
  *  found under a title left out, behind a failed read, or past a partial one would count as missed
  *  and close. The sync's own searches never count: each reads a window (new this week, a credit
- *  budget), so a posting missing from one is not gone. */
+ *  budget), so a posting missing from one is not gone; except the ones read whole
+ *  (`WHOLE_LIST_FEEDS`: Remote OK, We Work Remotely, #576 item 11), which count like rss. */
 export function answeredFeeds(plan: SyncPlan, mine: ReadOutcome[]): Feed[] {
   const out: Feed[] = [];
   for (const feed of FEEDS) {
-    if ((SERVER_FEEDS as readonly string[]).includes(feed)) continue;
+    const whole = (WHOLE_LIST_FEEDS as readonly string[]).includes(feed);
+    if (!whole && (SERVER_FEEDS as readonly string[]).includes(feed)) continue;
     const reads = mine.filter((r) => r.board === feed);
     if (!reads.length) continue;
     const all =
       feed === 'rss' ||
+      whole ||
       plan.terms.every((t) => reads.some((r) => r.term?.toLowerCase() === t.toLowerCase()));
     if (all && reads.every((r) => r.ok && !r.partial)) out.push(feed);
   }
