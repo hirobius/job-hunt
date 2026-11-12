@@ -582,11 +582,7 @@ const placeOf = (r: FeedRow) => {
 };
 // Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
 const modeOf = (r: FeedRow) =>
-  r.remoteUnstated
-    ? 'Remote not stated'
-    : r.mode
-      ? modeLabel(r.mode)
-      : 'Work mode not stated';
+  r.remoteUnstated ? 'Remote not stated' : r.mode ? modeLabel(r.mode) : 'Work mode not stated';
 
 const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
 
