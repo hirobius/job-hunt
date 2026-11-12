@@ -58,6 +58,19 @@ function moveBrand(brand: HTMLElement | null, screen: HTMLElement | null): Promi
     );
 }
 
+/** Focus the page's h1 once it is there, re-landing it while focus falls to <body> (the h1
+ *  replaced under it as the page finishes loading), for up to 5 s: time, not frames, so a slow
+ *  device gets the same window. */
+function focusHeadingWhenReady(until = Date.now() + 5000): void {
+  const a = document.activeElement;
+  // Still in the closing screen, on <body>, or on a node that has gone: not landed yet.
+  const lost = !a || a === document.body || !a.isConnected || !!a.closest('.rjb-signin-screen');
+  const h = pageHeadingNow();
+  if (lost && h) focusAsHeading(h);
+  else if (!lost && a !== h) return; // the person moved focus elsewhere
+  if (Date.now() < until) requestAnimationFrame(() => focusHeadingWhenReady(until));
+}
+
 export default function LinkConfirmScreen({
   email,
   onSignIn,
@@ -109,11 +122,10 @@ export default function LinkConfirmScreen({
         if (!mounted.current) return;
         onDone();
         // The host unmounts the screen with onDone, so no close-focus runs: once it has gone,
-        // focus goes to the page's own h1 (#516 review).
-        setTimeout(() => {
-          const h = pageHeadingNow();
-          if (h) focusAsHeading(h);
-        });
+        // focus goes to the page's own h1 (#516 review). The page may still be loading, or swap
+        // its h1 (Loading your jobs…, then the list), so keep landing it for a short while until
+        // focus holds there; stop once the person has moved focus themselves.
+        focusHeadingWhenReady();
       });
     }, SIGNED_IN_HOLD_MS);
   };
