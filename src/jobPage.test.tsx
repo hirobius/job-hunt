@@ -2,7 +2,6 @@
 // header + Overview, tabs, delete, two-pane desktop.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
-import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -399,13 +398,12 @@ describe('job page remove (Recently removed)', () => {
     window.location.hash = '#/apply';
     renderApp();
     expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
-    await openAllJobs();
-    for (const name of ['Design Engineer', 'Welder']) {
-      await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
+    // List rows carry no menu (#543): each job is removed from its own page's More menu.
+    for (const left of [1, 0]) {
+      await userEvent.click(await screen.findByRole('button', { name: /^More actions: / }));
       await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
+      await waitFor(() => expect(getAllJobs()).toHaveLength(left));
     }
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
     await openRecentlyRemoved(2);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Restore: Welder' }));
@@ -423,13 +421,12 @@ describe('job page remove (Recently removed)', () => {
     updateJob(URL_A, { notes: 'Ask about the shop floor' });
     window.location.hash = '#/apply';
     renderApp();
-    await openAllJobs();
-    for (const name of ['Design Engineer', 'Welder']) {
-      await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
+    // List rows carry no menu (#543): each job is removed from its own page's More menu.
+    for (const left of [1, 0]) {
+      await userEvent.click(await screen.findByRole('button', { name: /^More actions: / }));
       await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
+      await waitFor(() => expect(getAllJobs()).toHaveLength(left));
     }
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
     await openRecentlyRemoved(2);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(
@@ -514,35 +511,35 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(screen.queryByRole('button', { name: /Back to Apply/ })).toBeNull();
   });
 
-  it('every rail row opens its own posting in one tap, beside its row link (Adrian 2026-10-22)', () => {
+  it('rail rows are one link each; the posting is one tap away on the job itself (#543)', async () => {
     updateJob(URL_A, { company: 'Acme' });
     viewport(1280);
     openJobPage(URL_A);
     const rows = within(rail()).getAllByRole('listitem');
     expect(rows).toHaveLength(2);
-    for (const [url, title, name] of [
-      [URL_A, 'Design Engineer', 'Open posting for Design Engineer at Acme'],
-      [URL_B, 'Welder', 'Open posting for Welder'],
+    for (const [title, id] of [
+      ['Design Engineer', jobIdOf(URL_A)],
+      ['Welder', jobIdOf(URL_B)],
     ]) {
-      const row = railRow(title);
-      const item = row.closest('li') as HTMLElement;
-      const posting = within(item).getByRole('link', { name });
-      expect(posting).toHaveAttribute('href', url);
-      expect(posting).toHaveAttribute('target', '_blank');
-      // A sibling of the row's link, never inside it (no link in a link).
-      expect(row.contains(posting)).toBe(false);
-      expect(posting.contains(row)).toBe(false);
+      const item = railRow(title).closest('li') as HTMLElement;
+      // No posting glyph beside the row (#543): its one link is the job's page, named by the title.
+      expect(within(item).getAllByRole('link')).toEqual([railRow(title)]);
+      expect(railRow(title)).toHaveAttribute('href', `#/apply/${id}`);
+      expect(railRow(title)).toHaveAccessibleName(title);
     }
-    // The open job's row is still the current page; the posting links are not rows.
     expect(within(rail()).getByRole('link', { current: 'page' })).toBe(railRow('Design Engineer'));
     expect(railRows()).toHaveLength(2);
+    // The open job's posting: its header's More menu, Open posting.
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
+    const open = await screen.findByRole('menuitem', { name: /^Open posting/ });
+    expect(open.closest('a') ?? open).toHaveAttribute('href', URL_A);
   });
 
-  it('below lg there is only the job, under the filter bar and the pager (Proposal A)', () => {
+  it('below lg there is only the job, under the pager; no filter bar (Proposal A, #543)', () => {
     viewport(390);
     openJobPage(URL_A);
     expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
-    expect(screen.getByRole('region', { name: 'Filter jobs' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Filter jobs' })).toBeNull();
     expect(screen.getByRole('button', { name: 'View: To apply' })).toBeInTheDocument();
   });
 
@@ -591,7 +588,10 @@ describe('job page two-pane (#130 slice 5)', () => {
     viewport(1280);
     setPipelineView({ filter: 'closed' });
     openJobPage(URL_A);
-    expect(within(rail()).queryByText('Not in this filter')).toBeNull();
+    // Nothing in the view: the column says so, with no row list and no card for the open job.
+    const column = document.querySelector<HTMLElement>('.job-rail')!;
+    expect(within(column).getByText('No jobs match.')).toBeInTheDocument();
+    expect(within(column).queryByText('Not in this filter')).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
   });
 

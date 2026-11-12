@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
-import JobListCard from './JobListCard';
+import JobRowList from './JobRowList';
 import JobRail from './JobRail';
 import CompanyPage from './CompanyPage';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
@@ -37,13 +37,11 @@ afterEach(() => {
 });
 
 describe('neutral badges on desktop (rev-3 B)', () => {
-  it('the Pipeline cards show status and fit neutral', () => {
+  it('the Apply list rows (All jobs sheet, #543) show status and fit neutral', () => {
     seed();
     const { container } = render(
       <ToastProvider>
-        {getAllJobs().map((j) => (
-          <JobListCard key={j.url} job={j} />
-        ))}
+        <JobRowList jobs={getAllJobs()} onPick={() => {}} />
       </ToastProvider>,
     );
     expect(container.querySelectorAll('[data-tone]').length).toBeGreaterThan(0);

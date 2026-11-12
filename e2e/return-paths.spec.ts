@@ -134,9 +134,12 @@ for (const width of [390, 800] as const) {
       await go(page, '#/find');
       await go(page, '#/apply');
       const queue = /#\/apply$/;
-      await page.getByRole('button', { name: 'Add job' }).click();
+      // Add job is the All jobs sheet's (#543): Back closes the dialog, then the sheet.
+      const all = await openAllJobs(page);
+      await all.getByRole('button', { name: 'Add job' }).click();
       await page.getByLabel('Job link').fill('https://example.com/jobs/typed');
-      await closesOnBack(page.getByRole('dialog'), queue);
+      await closesOnBack(page.getByRole('dialog', { name: 'Add a job' }), queue);
+      await closesOnBack(all, queue);
 
       // Sign in, picked from the Account menu (whose own entry is popped as it closes), typed in.
       await page.getByRole('button', { name: /^Account/ }).click();
@@ -154,9 +157,11 @@ for (const width of [390, 800] as const) {
       const more = page.getByRole('button', { name: `More actions: ${title}` }).first();
       await more.click();
       await closesOnBack(page.getByRole('menu'), queue);
-      await openFilters(page);
-      await page.getByRole('button', { name: /^Sort:/ }).click();
+      // Sort is the sheet's too (#543): Back closes its menu, then the sheet.
+      const filters = await openFilters(page);
+      await filters.getByRole('button', { name: /^Sort:/ }).click();
       await closesOnBack(page.getByRole('menu'), queue);
+      await closesOnBack(filters, queue);
       await more.click();
       await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
       // Recently removed is in the Account menu (#416).

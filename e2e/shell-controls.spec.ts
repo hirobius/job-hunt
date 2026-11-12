@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, pressAllJobs } from './routes';
+import { seed, listScope } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
 // segmented control but still a nav of links (routing, Back, deep links); Browse / Deck as two
@@ -66,44 +66,47 @@ for (const width of [390, 1440]) {
       await expect(browse).toHaveAttribute('aria-pressed', 'false');
     });
 
-    test('Remote only: shows with Filters closed, narrows the list, kept on reload', async ({
+    test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({
       page,
     }) => {
       await seed(page);
       await page.goto('/#/apply');
-      const sw = page.getByRole('switch', { name: 'Remote only' });
-      // On a phone it sits outside the closed Filters; at lg in the job rail.
-      if (width < 1024)
-        await expect(page.getByRole('button', { name: 'Filters' })).toHaveAttribute(
-          'aria-expanded',
-          'false',
-        );
+      const phone = width < 1024;
+      // On a phone the filter is a chip in the All jobs sheet (#543), never on the job page; at
+      // lg the list column's one visible control (#614).
+      if (phone) await expect(page.getByRole('switch', { name: 'Remote only' })).toHaveCount(0);
+      const list = await listScope(page);
+      const sw = phone
+        ? list.getByRole('button', { name: 'Remote only' })
+        : list.getByRole('switch', { name: 'Remote only' });
+      const isOn = async () =>
+        phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
       await expect(sw).toBeVisible();
-      const count = async () => {
-        const status = page
-          .getByRole('status')
-          .filter({ hasText: /· \d+ jobs?$/ })
-          .first();
-        return Number((await status.textContent())!.match(/(\d+) jobs?$/)![1]);
-      };
+      const count = () =>
+        list.getByRole('navigation', { name: 'Jobs' }).getByRole('listitem').count();
       const all = await count();
       await sw.click();
-      await expect(sw).toBeChecked();
+      await expect.poll(isOn).toBe(true);
       await expect.poll(count).toBeLessThan(all);
       const remote = await count();
       expect(remote).toBeGreaterThan(0);
-      if (width < 1024) {
+      if (phone) {
+        await page.keyboard.press('Escape');
+        await expect(list).toHaveCount(0);
         await expect(
           page.getByRole('navigation', { name: 'Jobs in the list' }).getByText(`of ${remote}`),
         ).toBeVisible();
-        await pressAllJobs(page);
-        const sheet = page.getByRole('dialog', { name: 'All jobs' });
-        await expect(sheet.getByRole('article')).toHaveCount(remote);
-        await page.keyboard.press('Escape');
       }
       await page.reload();
-      await expect(page.getByRole('switch', { name: 'Remote only' })).toBeChecked();
-      await expect.poll(count).toBe(remote);
+      const again = await listScope(page);
+      const sw2 = phone
+        ? again.getByRole('button', { name: 'Remote only' })
+        : again.getByRole('switch', { name: 'Remote only' });
+      if (phone) await expect(sw2).toHaveAttribute('aria-pressed', 'true');
+      else await expect(sw2).toBeChecked();
+      await expect
+        .poll(() => again.getByRole('navigation', { name: 'Jobs' }).getByRole('listitem').count())
+        .toBe(remote);
     });
 
     test('Remote only on each view: chip count, status line and list agree (#614)', async ({
@@ -111,30 +114,34 @@ for (const width of [390, 1440]) {
     }) => {
       await seed(page);
       await page.goto('/#/apply');
-      if (width < 1024) await page.getByRole('button', { name: 'Filters' }).click();
-      const sw = page.getByRole('switch', { name: 'Remote only' });
-      const chips = page.getByRole('group', { name: 'Views' }).first().getByRole('button');
+      const phone = width < 1024;
+      const list = await listScope(page);
+      const sw = phone
+        ? list.getByRole('button', { name: 'Remote only' })
+        : list.getByRole('switch', { name: 'Remote only' });
+      const isOn = async () =>
+        phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
+      const chips = list.getByRole('group', { name: 'Views' }).first().getByRole('button');
       const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
-      const status = page
+      // The lg column's status line ("To apply · N jobs"); the sheet says "N jobs shown" (#543).
+      const status = list
         .getByRole('status')
-        .filter({ hasText: /· \d+ jobs?/ })
+        .filter({ hasText: phone ? /^\d+ jobs? shown$/ : /· \d+ jobs?/ })
         .first();
       const shownCount = async () => Number((await status.textContent())!.match(/(\d+) jobs?/)![1]);
       for (const on of [false, true]) {
-        if ((await sw.isChecked()) !== on) await sw.click();
+        if ((await isOn()) !== on) await sw.click();
         for (const name of names) {
           const chip = chips.filter({ hasText: name }).first();
           await chip.click();
           await expect(chip).toHaveAttribute('aria-pressed', 'true');
           const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
           await expect.poll(shownCount, `${name}, Remote only ${on}`).toBe(badge);
-          if (width >= 1024) {
-            const n = await page
-              .getByRole('navigation', { name: 'Jobs' })
-              .locator('a[href^="#/apply/"]')
-              .count();
-            expect(n, `${name} rows`).toBe(badge);
-          }
+          const n = await list
+            .getByRole('navigation', { name: 'Jobs' })
+            .locator('a[href^="#/apply/"]')
+            .count();
+          expect(n, `${name} rows`).toBe(badge);
         }
       }
     });

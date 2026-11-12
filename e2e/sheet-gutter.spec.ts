@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openAllJobs } from './routes';
 
 // Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter,
 // and the lg Apply list column keeps its contents and focus rings inside its scroll box (#614).
@@ -11,8 +12,8 @@ async function sample(page: Page) {
   await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('Apply');
 }
 
-async function expectGutter(page: Page) {
-  const box = (await page.getByRole('dialog').boundingBox())!;
+async function expectGutter(page: Page, name: string) {
+  const box = (await page.getByRole('dialog', { name }).boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual(16 - 0.5);
   expect(box.x + box.width).toBeLessThanOrEqual(390 - 16 + 0.5);
 }
@@ -20,14 +21,22 @@ async function expectGutter(page: Page) {
 test('Add job and Search profile sheets keep a side gutter at 390', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await sample(page);
-  await page.getByRole('button', { name: 'Add job' }).click();
+  // Add job is in the All jobs sheet (#543), a full-width bottom sheet; its dialog keeps the gutter.
+  await openAllJobs(page);
+  await page
+    .getByRole('dialog', { name: 'All jobs' })
+    .getByRole('button', { name: 'Add job' })
+    .click();
   await expect(page.getByRole('dialog', { name: 'Add a job' })).toBeVisible();
-  await expectGutter(page);
+  await expectGutter(page, 'Add a job');
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Add a job' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Account' }).click();
   await page.getByRole('menuitem', { name: 'Search profile' }).click();
   await expect(page.getByRole('dialog', { name: 'Search profile' })).toBeVisible();
-  await expectGutter(page);
+  await expectGutter(page, 'Search profile');
 });
 
 // #614: the lg list column scrolls on its own, and its scroll box clipped the left edge of its

@@ -9,7 +9,8 @@ import { setOutreachMessages } from './test/outreach';
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import { TitlesField, WhereFields } from './ProfileFields';
 import { NEW_PROFILE } from './searchDefaults';
-import { addJob, getAllJobs, removeJob } from './store';
+import { addJob, getAllJobs, jobIdOf, removeJob } from './store';
+import JobRail from './JobRail';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 
@@ -58,10 +59,18 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
 describe('a11y — the Pipeline agenda with the sample pipeline (#236, was Today)', () => {
   it('To apply, Follow up (due first) and the next 7 days', async () => {
     loadSample();
-    // The Apply list (on a phone the All jobs sheet's body, Proposal A).
-    const { container, getByRole } = withTheme(<JobsList />);
+    // The agenda sits under the lg list column (JobRail, #543).
+    const { container, getByRole } = withTheme(<JobRail openId={jobIdOf(getAllJobs()[0].url)} />);
     expect(getByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
     expect(getByRole('region', { name: /^Next 7 days/ })).toBeInTheDocument();
+    await auditA11y(container);
+  });
+
+  it('the All jobs sheet body: views, search, filter chips, Sort and the rows (#543)', async () => {
+    loadSample();
+    const { container, getByRole } = withTheme(<JobsList />);
+    expect(getByRole('group', { name: 'Filters' })).toBeInTheDocument();
+    expect(getByRole('navigation', { name: 'Jobs' })).toBeInTheDocument();
     await auditA11y(container);
   });
 });
@@ -128,7 +137,7 @@ describe('a11y — the Pipeline after the first job (#132)', () => {
   it('the Pipeline after the first job', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     const { container, getByRole } = withTheme(<JobsList />);
-    expect(getByRole('region', { name: /^Jobs$/ })).toBeInTheDocument();
+    expect(getByRole('navigation', { name: 'Jobs' })).toBeInTheDocument();
     await auditA11y(container);
   });
 });

@@ -125,6 +125,23 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/Page gutter 20 on a phone/);
   });
 
+  it('pins the All jobs sheet and the one job list (#543)', () => {
+    expect(RULES).toContain('**The All jobs sheet (#543).**');
+    expect(RULES).toMatch(/One job list, sheet and 1440 column alike/);
+    expect(CLAUDE).toMatch(/One job list, sheet and lg column alike/);
+    const list = fs.readFileSync('src/TrackerView.tsx', 'utf8');
+    expect(list).toContain('<PipelineMenus chip />');
+    expect(list).toContain('<JobRowList');
+    expect(list).not.toContain('<Card');
+    const rail = fs.readFileSync('src/JobRail.tsx', 'utf8');
+    expect(rail).toContain('<JobRowList');
+    expect(rail).not.toContain('JobPostingLink');
+    const page = fs.readFileSync('src/JobPage.tsx', 'utf8');
+    expect(page).not.toMatch(/ApplyFilterBar|RemoteOnlySwitch|AddJobButton|SampleBanner/);
+    for (const gone of ['ApplyFilterBar', 'ApplyQueueSummary', 'JobListCard'])
+      expect(fs.existsSync(`src/${gone}.tsx`)).toBe(false);
+  });
+
   it('pins the lg Apply list header (#614) and the automatic liveness check (#602)', () => {
     expect(RULES).toContain('Apply list column header at 1440 (#614)');
     expect(CLAUDE).toMatch(/lg list\s+column header \(#614/);

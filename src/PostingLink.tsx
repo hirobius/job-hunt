@@ -3,7 +3,7 @@
 // the posting gets its own quiet icon link right after the title: the Pipeline table and cards,
 // the agenda rows, the Company page, Recently removed and the job page's header all use this one.
 // It is a sibling of the title link, never inside it (no link in a link); PostingTitle lays the two
-// out, and the job rail puts it beside each row's link (hds-gaps/NavListActionItem). Unsaved
+// out. The Apply list's rows have none since #543 (the job page has Open posting). Unsaved
 // openings (Live postings, team roles, tiles) have no page of their own: their title is the link.
 import type { ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';

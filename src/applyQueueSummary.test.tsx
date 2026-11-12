@@ -1,8 +1,21 @@
-// The Apply list's agenda: Follow up and Next 7 days keep up with the clock (#309, #311).
+// The Apply list's agenda: Follow up and Next 7 days keep up with the clock (#309, #311). Since
+// #543 they sit only under the lg list column (JobRail), read the same way as here.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
-import ApplyQueueSummary from './ApplyQueueSummary';
+import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
+import { useAgendaNow } from './useAgendaNow';
 import type { Job } from './types';
+
+/** The agenda as JobRail draws it. */
+function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
+  const now = useAgendaNow(jobs);
+  return (
+    <>
+      <FollowUpSection jobs={jobs} now={now} />
+      <NextDaysSection jobs={jobs} now={now} />
+    </>
+  );
+}
 
 describe('the agenda keeps up with the clock (#309)', () => {
   afterEach(() => {

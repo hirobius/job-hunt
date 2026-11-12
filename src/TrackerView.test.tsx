@@ -166,14 +166,58 @@ describe('Pipeline toolbar', () => {
 // action, a first-use empty state with one primary + one secondary action, and no toolbar while
 // there is nothing to search or filter.
 describe('Pipeline hierarchy', () => {
-  it('with jobs the tab is the first job, under Filters and Add job (Proposal A)', () => {
+  it('with jobs the tab is the first job; Filters, Add job and the status line left it (#543)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
     expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
-    const bar = screen.getByRole('region', { name: 'Filter jobs' });
-    expect(within(bar).getByRole('button', { name: 'Filters' })).toBeInTheDocument();
-    expect(within(bar).getByRole('button', { name: 'Add job' })).toBeInTheDocument();
-    expect(within(bar).getByText('To apply · 1 job')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Filter jobs' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add job' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Remote only' })).toBeNull();
+    expect(screen.queryByText('To apply · 1 job')).toBeNull();
+  });
+
+  it('the All jobs list owns Add job, the views, search, the filter chips and Sort (#543)', async () => {
+    const user = userEvent.setup();
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderList();
+    expect(screen.getByRole('button', { name: 'Add job' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Views' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
+    const filters = screen.getByRole('group', { name: 'Filters' });
+    const remote = within(filters).getByRole('button', { name: 'Remote only' });
+    expect(remote).toHaveAttribute('aria-pressed', 'false');
+    expect(within(filters).getByRole('button', { name: /^Sort: / })).toBeInTheDocument();
+    // "Clear N" only while a filter is on; it clears them all.
+    expect(within(filters).queryByRole('button', { name: /^Clear / })).toBeNull();
+    await user.click(remote);
+    await user.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Design');
+    const clear = within(filters).getByRole('button', { name: 'Clear 2 filters' });
+    expect(clear).toHaveTextContent('Clear 2');
+    await user.click(clear);
+    expect(screen.getByRole('button', { name: 'Remote only' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveFocus();
+  });
+
+  it('the rows sit on one surface: links named by the title, no card, key or posting glyph (#543)', async () => {
+    const user = userEvent.setup();
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    markAppliedByUrl('https://acme.example/jobs/1', 'Design Engineer');
+    const d = new Date();
+    d.setDate(d.getDate() - 10);
+    updateJob('https://acme.example/jobs/1', { applied: d.toISOString().slice(0, 10) });
+    renderList();
+    // A due follow-up: no per-row Follow up key any more.
+    await user.click(screen.getByRole('button', { name: 'Follow up 1' }));
+    const nav = screen.getByRole('navigation', { name: 'Jobs' });
+    expect(within(nav).getByRole('link', { name: 'Design Engineer' })).toBeInTheDocument();
+    expect(within(nav).getAllByRole('link')).toHaveLength(1);
+    expect(within(nav).queryAllByRole('button')).toEqual([]);
+    expect(nav.querySelector('[data-hds-component="Card"], [class*="Card"]')).toBeNull();
   });
 
   it('first use: no toolbar, a teaching empty state with Add job + sample data', () => {

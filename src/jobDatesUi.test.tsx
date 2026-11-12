@@ -1,9 +1,9 @@
-// Job dates on the Pipeline's cards (#419; Adrian 2026-10-28): one date per job ("Posted …", else
+// Job dates on the Apply list's rows (JobRowList, #543; were the Pipeline's cards) (#419; Adrian 2026-10-28): one date per job ("Posted …", else
 // "Found …") plus the closing date as a badge, in the warning tone only within 7 days.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
-import JobListCard from './JobListCard';
+import JobRowList from './JobRowList';
 import { ymd } from './jobEvents';
 import type { Job } from './types';
 
@@ -23,7 +23,7 @@ const job = (patch: Partial<Job>): Job => ({
 const card = (j: Job) =>
   render(
     <ToastProvider>
-      <JobListCard job={j} />
+      <JobRowList jobs={[j]} onPick={() => {}} />
     </ToastProvider>,
   );
 const toneOf = (text: string) =>

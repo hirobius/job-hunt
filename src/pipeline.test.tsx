@@ -1,11 +1,11 @@
 // Phase 3 of the redesign (#129): the Pipeline list. Tested at the route seam through App and
-// driven by role + name. Every width gets the job cards (Adrian 2026-10-24: the 920 shell wrapped
-// table titles to three lines): each job links to its page and has one primary action, with the
-// rest in its menu.
+// driven by role + name. Below lg the list is the All jobs sheet (#543): rows on one surface, each
+// a link to its job (named by its title), with no key, menu or posting glyph of its own; a job's
+// next step and its menu live on the job page.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { rowView } from './jobRow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { openAllJobs, openListOnPhone } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
@@ -24,6 +24,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { JobsList } from './TrackerView';
 import { setPipelineView } from './pipelineView';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 
@@ -63,6 +64,30 @@ const faded = (el: HTMLElement) =>
     (e) => e.style.opacity !== '' && Number(e.style.opacity) > 0 && Number(e.style.opacity) < 1,
   );
 
+/** The All jobs sheet's list (below lg). */
+const jobsNav = () =>
+  within(screen.getByRole('dialog', { name: 'All jobs' })).getByRole('navigation', {
+    name: 'Jobs',
+  });
+/** A job's row in the list: the `li` around its link. */
+const queryRow = (name: string) =>
+  (within(jobsNav()).queryByRole('link', { name })?.closest('li') as HTMLElement | null) ?? null;
+const row = (name: string) => {
+  const r = queryRow(name);
+  if (!r) throw new Error(`no row for ${name}`);
+  return r;
+};
+/** The rows' titles, top to bottom. */
+const titles = () =>
+  within(jobsNav())
+    .getAllByRole('listitem')
+    .map((li) => li.querySelector('.rjb-clamp-2')?.textContent);
+/** A job's own page (the row menu's actions live in its header since #543). */
+const openJobPage = (url: string) => {
+  window.location.hash = `#/apply/${jobIdOf(url)}`;
+  return renderApp();
+};
+
 const pastDays = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -95,15 +120,16 @@ afterEach(() => {
 describe('Pipeline on a phone (#129)', () => {
   beforeEach(() => viewport(390));
 
-  it('shows compact cards: the title is a link to the job page on a row of its own', async () => {
+  it('shows compact rows: each is a link to the job page, named by its title', async () => {
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('table')).toBeNull();
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
-    const title = within(card).getByRole('link', { name: 'Design Engineer' });
+    const title = within(jobsNav()).getByRole('link', { name: 'Design Engineer' });
     expect(title).toHaveAttribute('href', `#/apply/${jobIdOf(SAVED)}`);
-    // Its heading holds the link alone.
-    expect(title.closest('h3')!.textContent).toBe('Design Engineer');
+    // The title is its own line, two lines at most (#543).
+    expect(row('Design Engineer').querySelector('.rjb-clamp-2')!.textContent).toBe(
+      'Design Engineer',
+    );
   });
 
   it('reads the badges status, then Follow-up due; no fit chip (#360, #538)', async () => {
@@ -111,50 +137,58 @@ describe('Pipeline on a phone (#129)', () => {
     setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
-    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    const card = row('Zenith Product Designer');
     const badges = [...card.querySelectorAll('[class*="--component-badge-height"]')].map((b) =>
       b.textContent?.trim(),
     );
     expect(badges).toEqual(['Applied', 'Follow-up due']);
   });
 
-  it('opens the posting from its menu, no glyph by the title (Adrian 2026-10-22)', async () => {
+  it('a row has no posting glyph; the job page menu opens the posting (#543)', async () => {
     renderApp();
     await openListOnPhone();
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
-    // No glyph beside the title (Adrian 2026-11-08): the posting is the card menu's Open posting.
+    const card = row('Design Engineer');
     expect(
       within(card).queryByRole('link', { name: 'Open posting for Design Engineer at Acme' }),
     ).toBeNull();
+    expect(within(card).getAllByRole('link')).toHaveLength(1);
+    cleanup();
+    openJobPage(SAVED);
     await userEvent.click(
-      within(card).getByRole('button', { name: 'More actions: Design Engineer' }),
+      await screen.findByRole('button', { name: 'More actions: Design Engineer' }),
     );
     expect(
       within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Open posting' }),
     ).toHaveAttribute('href', SAVED);
   });
 
-  it('each card has one primary action, the rest in its menu', async () => {
+  it('a row has no key or menu of its own; the job page holds its one next step and menu (#543)', async () => {
     setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
-    const saved = screen.getByRole('article', { name: 'Design Engineer' });
+    for (const name of ['Design Engineer', 'Zenith Product Designer'])
+      expect(within(row(name)).queryAllByRole('button')).toEqual([]);
+    cleanup();
+    openJobPage(SAVED);
     expect(
-      within(saved).getByRole('button', { name: 'Mark applied: Design Engineer' }),
+      await screen.findByRole('button', { name: 'More actions: Design Engineer' }),
     ).toBeInTheDocument();
-    const applied = screen.getByRole('article', { name: 'Zenith Product Designer' });
-    expect(
-      within(applied).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
-    ).toBeInTheDocument();
-
-    await userEvent.click(
-      within(saved).getByRole('button', { name: 'More actions: Design Engineer' }),
-    );
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
     const items = within(await screen.findByRole('menu'))
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
-    // No Star (#534); Remove says what it takes the job off.
-    expect(items).toEqual(['Open posting', 'Add interview…', 'Retire', 'Remove from Apply']);
+    // No Star (#534); Remove says what it takes the job off. The header's menu adds the company's
+    // research links.
+    expect(items).toEqual([
+      'Open posting',
+      'Add interview…',
+      'Retire',
+      'Glassdoor',
+      'LinkedIn',
+      'levels.fyi',
+      'Google',
+      'Remove from Apply',
+    ]);
     // One inset for every item: the stages are plain items marked by a trailing check, still
     // radio items for assistive tech (rev-3 mock).
     const stages = within(screen.getByRole('menu')).getAllByRole('menuitemradio');
@@ -163,25 +197,38 @@ describe('Pipeline on a phone (#129)', () => {
     ).toEqual(['Saved']);
   });
 
-  it('Mark applied moves the job out of the Active view', async () => {
+  it('Mark applied moves the job out of the To apply view', async () => {
     renderApp();
-    await openListOnPhone();
-    await userEvent.click(screen.getByRole('button', { name: 'Mark applied: Design Engineer' }));
-    expect(getAllJobs().find((j) => j.url === SAVED)?.status).toBe('Applied');
-    expect(screen.queryByRole('article', { name: 'Design Engineer' })).toBeNull();
+    // The tab opens on the first job to apply to; its dock marks it applied.
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Mark applied: Design Engineer' }),
+    );
+    await waitFor(() => expect(getAllJobs().find((j) => j.url === SAVED)?.status).toBe('Applied'));
+    // The list (the All jobs sheet's body) no longer shows it under To apply. Rendered on its own:
+    // after the last Mark applied the walk's picker does not open in jsdom (also on main).
+    cleanup();
+    render(
+      <ToastProvider>
+        <JobsList />
+      </ToastProvider>,
+    );
+    expect(screen.getByRole('button', { name: /^To apply \d/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.queryByRole('link', { name: 'Design Engineer' })).toBeNull();
+    expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
   });
 
   it('Follow up opens the follow-up message; closing it leaves the job alone', async () => {
     const user = userEvent.setup();
-    setPipelineView({ filter: 'all' });
-    renderApp();
-    await openListOnPhone();
+    openJobPage(APPLIED);
     const before = getAllJobs().find((j) => j.url === APPLIED);
-    // The card's own Follow up (the Follow up section above the list has one too, #236).
-    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    // The job page's menu keeps "Follow up…" for the dialog (the dock copies it, #540).
     await user.click(
-      within(card).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
+      await screen.findByRole('button', { name: 'More actions: Zenith Product Designer' }),
     );
+    await user.click(await screen.findByRole('menuitem', { name: 'Follow up…' }));
     const dialog = await screen.findByRole('dialog', { name: 'Follow up' });
     expect(within(dialog).getByRole('button', { name: 'Copy message' })).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
@@ -196,55 +243,54 @@ describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () =
   beforeEach(() => {
     addJob(THIRD, 'Orbit Researcher');
   });
+  const links = () => within(jobsNav()).getAllByRole('link');
 
-  it('Mark applied by keyboard moves focus to the next card, not the page top', async () => {
-    const user = userEvent.setup();
+  it('a focused row that leaves the view (applied elsewhere) hands focus to the next row', async () => {
     renderApp();
     await openListOnPhone();
-    const all = screen.getAllByRole('article');
-    // The first Saved card (the starred Applied job sorts first).
-    const i = all.findIndex((a) => within(a).queryByRole('button', { name: /^Mark applied:/ }));
-    const firstName = within(all[i]).getByRole('heading').textContent!;
-    const nextName = within(all[i + 1]).getByRole('heading').textContent!;
-    within(all[i])
-      .getByRole('button', { name: /^Mark applied:/ })
-      .focus();
-    await user.keyboard('{Enter}');
-    expect(screen.queryByRole('article', { name: firstName })).toBeNull();
-    expect(document.activeElement).toBe(screen.getByRole('link', { name: nextName }));
+    const all = links();
+    expect(all.length).toBeGreaterThan(1);
+    const leaving = all[0];
+    const nextName = all[1].textContent;
+    const leavingUrl = getAllJobs().find(
+      (j) => `#/apply/${jobIdOf(j.url)}` === leaving.getAttribute('href'),
+    )!.url;
+    leaving.focus();
+    act(() => markAppliedByUrl(leavingUrl));
+    await waitFor(() => expect(links()).toHaveLength(all.length - 1));
+    await waitFor(() => expect(document.activeElement?.textContent).toBe(nextName));
+    expect(jobsNav().contains(document.activeElement)).toBe(true);
   });
 
-  it('Mark applied in All jobs (the job stays shown) keeps focus on its own card', async () => {
-    const user = userEvent.setup();
+  it('in All jobs (the job stays shown) focus stays on its own row', async () => {
     setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
-    within(card).getByRole('button', { name: 'Mark applied: Design Engineer' }).focus();
-    await user.keyboard('{Enter}');
-    const after = screen.getByRole('article', { name: 'Design Engineer' });
-    expect(document.activeElement).toBe(
-      within(after).getByRole('link', { name: 'Design Engineer' }),
+    within(jobsNav()).getByRole('link', { name: 'Design Engineer' }).focus();
+    act(() => markAppliedByUrl(SAVED));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        within(jobsNav()).getByRole('link', { name: 'Design Engineer' }),
+      ),
     );
   });
 
-  it('Remove from the last card moves focus to the card before it', async () => {
-    const user = userEvent.setup();
+  it('the last row removed moves focus to the row before it', async () => {
     renderApp();
     await openListOnPhone();
-    const all = screen.getAllByRole('article');
+    const all = links();
     const last = all[all.length - 1];
-    const lastName = within(last).getByRole('heading').textContent!;
-    const prevName = within(all[all.length - 2]).getByRole('heading').textContent!;
-    await user.click(within(last).getByRole('button', { name: /^More actions:/ }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
-    await waitFor(() => expect(screen.queryByRole('article', { name: lastName })).toBeNull());
-    await waitFor(() =>
-      expect(document.activeElement).toBe(screen.getByRole('link', { name: prevName })),
-    );
+    const prevName = all[all.length - 2].textContent;
+    const lastUrl = getAllJobs().find(
+      (j) => `#/apply/${jobIdOf(j.url)}` === last.getAttribute('href'),
+    )!.url;
+    last.focus();
+    act(() => removeJob(lastUrl));
+    await waitFor(() => expect(links()).toHaveLength(all.length - 1));
+    await waitFor(() => expect(document.activeElement?.textContent).toBe(prevName));
   });
 
-  it('Clear filters gives focus to the search, and the shown count is announced', async () => {
+  it('Clear N gives focus to the search, and the shown count is announced', async () => {
     const user = userEvent.setup();
     renderApp();
     await openListOnPhone();
@@ -255,7 +301,7 @@ describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () =
         true,
       ),
     );
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await user.click(screen.getByRole('button', { name: 'Clear 1 filter' }));
     expect(document.activeElement).toBe(search);
     await waitFor(() =>
       expect(screen.getAllByRole('status').some((s) => s.textContent === '2 jobs shown')).toBe(
@@ -282,60 +328,76 @@ describe('Retired jobs stay readable', () => {
     await userEvent.click(screen.getByRole('button', { name: /^All jobs \d/ }));
   };
 
-  it('a retired card says so in words, without fading its text', async () => {
+  it('a retired row says so in words, without fading its text', async () => {
     viewport(390);
     renderApp();
     await openListOnPhone();
     await showRetired();
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
-    expect(within(card).getByText('Retired')).toBeInTheDocument();
-    expect(within(card).getByText('Acme')).toBeInTheDocument();
+    const card = row('Design Engineer');
+    expect(within(card).getAllByText(/Retired/).length).toBeGreaterThan(0);
+    expect(within(card).getByText(/Acme/)).toBeInTheDocument();
     expect(faded(card)).toBe(false);
   });
 
-  // From lg the list is the column beside a job (#471); cards show up to there.
-  it('a retired card on a tablet says so in words too, without fading its text', async () => {
+  // From lg the list is the column beside a job (#471); the sheet's rows show up to there.
+  it('a retired row on a tablet says so in words too, without fading its text', async () => {
     viewport(800);
     renderApp();
     await openListOnPhone();
     await showRetired();
     expect(screen.queryByRole('table')).toBeNull();
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
-    expect(within(card).getByText('Retired')).toBeInTheDocument();
-    expect(within(card).getByText('Acme')).toBeInTheDocument();
+    const card = row('Design Engineer');
+    expect(within(card).getAllByText(/Retired/).length).toBeGreaterThan(0);
+    expect(within(card).getByText(/Acme/)).toBeInTheDocument();
     expect(faded(card)).toBe(false);
   });
 });
 
-describe('Pipeline filter (#129)', () => {
+describe('Pipeline filter (#129, #543)', () => {
   beforeEach(() => viewport(390));
 
-  it('a view other than To apply shows a quiet Clear that goes back to To apply (rev-3 item 1)', async () => {
+  it('a view is not a filter: no Clear; Remote only is, and "Clear 1" takes it off (#543)', async () => {
     renderApp();
     await openListOnPhone();
-    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Clear \d/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /^Applied \d/ }));
     expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
-    await userEvent.click(await screen.findByRole('button', { name: 'Clear filters' }));
-    expect(screen.getByRole('button', { name: /^To apply \d/ })).toHaveAttribute(
+    expect(screen.queryByRole('button', { name: /^Clear \d/ })).toBeNull();
+    const remote = within(screen.getByRole('group', { name: 'Filters' })).getByRole('button', {
+      name: 'Remote only',
+    });
+    await userEvent.click(remote);
+    expect(remote).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(await screen.findByRole('button', { name: 'Clear 1 filter' }));
+    expect(remote).toHaveAttribute('aria-pressed', 'false');
+    // The view stays what was picked.
+    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
-    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Clear \d/ })).toBeNull();
   });
 
-  it('Clear sits in the Jobs panel header, so Status and Sort keep the whole row (rev-3 polish)', async () => {
+  it('Clear N sits with the filter chips after Sort, and counts what is on (#543)', async () => {
     renderApp();
     await openListOnPhone();
     await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz');
-    const clear = await screen.findByRole('button', { name: 'Clear filters' });
+    const filters = screen.getByRole('group', { name: 'Filters' });
+    const clear = await within(filters).findByRole('button', { name: 'Clear 1 filter' });
     const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
-    // Above the search: in the header row beside "Jobs N", not in the select row.
-    expect(clear.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(clear).toHaveTextContent(/^Clear$/);
+    // Under the search, after the Remote only and Sort chips.
+    expect(search.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const sort = within(filters).getByRole('button', { name: /^Sort:/ });
+    expect(sort.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(clear).toHaveTextContent(/^Clear 1$/);
+    await userEvent.click(within(filters).getByRole('button', { name: 'Remote only' }));
+    const clear2 = within(filters).getByRole('button', { name: 'Clear 2 filters' });
+    expect(clear2).toHaveTextContent(/^Clear 2$/);
+    await userEvent.click(clear2);
+    expect(within(filters).queryByRole('button', { name: /^Clear \d/ })).toBeNull();
   });
 
   it('the five named views, then All jobs, replace the Status select (#541)', async () => {
@@ -356,16 +418,16 @@ describe('Pipeline filter (#129)', () => {
   });
 });
 
-// From lg the list is the column beside a job (#471, jobPage.test.tsx); the card list holds below it.
-describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
+// From lg the list is the column beside a job (#471, jobPage.test.tsx); the sheet holds below it.
+describe('Pipeline on a tablet: the sheet rows too (Adrian 2026-10-24)', () => {
   beforeEach(() => viewport(800));
 
-  it('is the card list, not a table: status, follow-up and one action per card', async () => {
+  it('is the row list, not a table: status and follow-up badges, no per-row key (#543)', async () => {
     setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('table')).toBeNull();
-    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    const card = row('Zenith Product Designer');
     expect(within(card).getByRole('link', { name: 'Zenith Product Designer' })).toHaveAttribute(
       'href',
       `#/apply/${jobIdOf(APPLIED)}`,
@@ -373,49 +435,40 @@ describe('Pipeline on a tablet: cards too (Adrian 2026-10-24)', () => {
     expect(within(card).getByText('Applied')).toBeInTheDocument();
     expect(within(card).getByText('Follow-up due')).toBeInTheDocument();
     expect(
-      within(card).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
-    ).toBeInTheDocument();
+      within(card).queryByRole('button', { name: 'Follow up: Zenith Product Designer' }),
+    ).toBeNull();
   });
 
-  it('each card opens its posting from its menu, no glyph by the title (Adrian 2026-10-22)', async () => {
+  it('a row has no posting glyph by its title (Adrian 2026-11-08, #543)', async () => {
     renderApp();
     await openListOnPhone();
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
-    // No glyph beside the title (Adrian 2026-11-08): the posting is the card menu's Open posting.
+    const card = row('Design Engineer');
     expect(
       within(card).queryByRole('link', { name: 'Open posting for Design Engineer at Acme' }),
     ).toBeNull();
-    await userEvent.click(
-      within(card).getByRole('button', { name: 'More actions: Design Engineer' }),
-    );
-    expect(
-      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Open posting' }),
-    ).toHaveAttribute('href', SAVED);
+    expect(within(card).getAllByRole('link')).toHaveLength(1);
   });
 
-  it('shows no star on a starred card (#534), and marks retired ones', async () => {
+  it('shows no star on a starred row (#534), and marks retired ones', async () => {
     updateJob(SAVED, { archived: true });
     setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
-    const starredCard = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    const starredCard = row('Zenith Product Designer');
     expect(within(starredCard).queryByText('Starred')).toBeNull();
-    // Retired jobs show under the Retired view, with their real status and a Retired note.
     // Set-aside jobs show under All jobs (#541: no Retired view since the Status select went).
     await userEvent.click(screen.getByRole('button', { name: /^All jobs \d/ }));
-    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    const card = row('Design Engineer');
     expect(within(card).queryByText('Saved')).toBeNull(); // #538: no Saved chip
-    expect(within(card).getByText('Retired')).toBeInTheDocument();
+    expect(within(card).getAllByText(/Retired/).length).toBeGreaterThan(0);
     expect(within(card).queryByText('Starred')).toBeNull();
   });
 
-  it('sorts through the toolbar Sort menu, and back', async () => {
+  it('sorts through the Sort chip, and back', async () => {
     addJob('https://acme.example/jobs/3', 'Writer'); // the newest, but last A–Z
     setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
-    const titles = () =>
-      screen.getAllByRole('article').map((a) => within(a).getByRole('heading').textContent);
     const pickSort = async (name: string) => {
       await userEvent.click(screen.getByRole('button', { name: /^Sort:/ }));
       await userEvent.click(
@@ -444,26 +497,19 @@ describe('shared list state (#130 slice 4)', () => {
     renderApp();
     await openListOnPhone();
     await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Zenith');
-    // The title also links from the Follow up list; either opens the same job.
     // A jump from the sheet opens the job in place and closes it (Proposal A).
-    const sheet = screen.getByRole('dialog', { name: 'All jobs' });
-    await userEvent.click(
-      within(within(sheet).getByRole('article', { name: 'Zenith Product Designer' })).getByRole(
-        'link',
-        { name: 'Zenith Product Designer' },
-      ),
-    );
+    await userEvent.click(within(jobsNav()).getByRole('link', { name: 'Zenith Product Designer' }));
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(APPLIED)}`));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
     await openAllJobs();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('Zenith');
-    expect(screen.queryByRole('link', { name: 'Design Engineer' })).toBeNull();
+    expect(queryRow('Design Engineer')).toBeNull();
   });
 });
 
 describe('Pipeline rows keep to two items per dotted line (#192)', () => {
   it('a job with company and location and a retired mark wraps its facts to two per line', async () => {
-    viewport(0); // cards
+    viewport(0); // the sheet
     updateJob(SAVED, { company: 'Acme Cloud', location: 'Remote', archived: true });
     expect(rowView(getAllJobs().find((j) => j.url === SAVED)!).factLines).toEqual([
       'Retired · Acme Cloud',
@@ -482,7 +528,7 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
 describe('Active empty action and Star Undo (#361)', () => {
   beforeEach(() => viewport(390));
 
-  it('the Active empty offers Show applied: it sets the filter to Applied and keeps focus in the panel', async () => {
+  it('the Active empty offers Show applied: it sets the filter to Applied and keeps focus in the sheet', async () => {
     const user = userEvent.setup();
     // Nothing is Active: both jobs are Applied and neither is starred.
     markAppliedByUrl(SAVED, 'Design Engineer');
@@ -495,20 +541,17 @@ describe('Active empty action and Star Undo (#361)', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
-    expect(screen.getByRole('article', { name: 'Zenith Product Designer' })).toBeInTheDocument();
-    // The empty state unmounted, but focus stayed in the panel — on the search.
+    expect(row('Design Engineer')).toBeInTheDocument();
+    expect(row('Zenith Product Designer')).toBeInTheDocument();
+    // The empty state unmounted, but focus stayed in the sheet — on the search.
     expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search saved jobs' }));
   });
 
-  it('a card menu has no Star or Unstar (#534): the stored star stays in the data', async () => {
+  it('the job menu has no Star or Unstar (#534): the stored star stays in the data', async () => {
     const user = userEvent.setup();
-    setPipelineView({ filter: 'all' });
-    renderApp();
-    await openListOnPhone();
-    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    openJobPage(APPLIED);
     await user.click(
-      within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }),
+      await screen.findByRole('button', { name: 'More actions: Zenith Product Designer' }),
     );
     const menu = await screen.findByRole('menu');
     expect(within(menu).queryByRole('menuitem', { name: /Star/ })).toBeNull();

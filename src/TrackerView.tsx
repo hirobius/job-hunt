@@ -7,8 +7,8 @@ import {
   Button as UiButton,
   Input as HdsInput,
   Box,
-  Card,
   Stack,
+  Tag,
   Text,
   VisuallyHidden,
 } from '@hirobius/design-system';
@@ -16,18 +16,18 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import { useJobs } from './store';
 import {
   FILTER_LABEL,
+  filtersOn,
   setPipelineView,
   usePipelineView,
   visibleJobs,
   type Filter,
 } from './pipelineView';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
-import ApplyQueueSummary from './ApplyQueueSummary';
-import JobListCard from './JobListCard';
-import { Panel, PanelBody } from './PipelinePanel';
+import JobRowList from './JobRowList';
+import { openJob } from './route';
 import type { Job } from './types';
 import { useListFocusKeeper } from './listFocus';
-import { focusAsHeading } from './focusRescue';
+import { focusAsHeading, focusNewHeading, pageHeadingNow } from './focusRescue';
 import AddJobButton from './AddJob';
 import JobViews from './JobViews';
 import PipelineMenus from './PipelineMenus';
@@ -99,148 +99,128 @@ export default function TrackerView() {
   return <PipelinePage />;
 }
 
-/** The Apply list (the phone's All jobs sheet since Proposal A, Adrian 2026-11-08): Follow up and
- *  Next 7 days, then the Jobs panel (search, Status, Sort, Clear) with each job its own card (the
- *  Find cards' gap). `onOpen` opens a job in place (the sheet closes). */
-export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
+/** The Apply list: the phone's All jobs sheet (#543, redesign plan 5.7). Add job, the named views,
+ *  the search, the filter chips (Remote only), the Sort chip and "Clear N" while a filter is on,
+ *  then the jobs as the shared rows (JobRowList: one surface, the open job filled). The job page
+ *  itself keeps none of these. `onOpen` opens a job in place (the sheet closes). */
+export function JobsList({ onOpen, openId }: { onOpen?: (job: Job) => void; openId?: string }) {
   const jobs = useJobs();
   const view = usePipelineView();
-  const { filter, q } = view;
+  const { filter, q, remoteOnly } = view;
   const setFilter = (filter: Filter) => setPipelineView({ filter });
   const setQ = (q: string) => setPipelineView({ q });
   // A control that clears the view unmounts as it does, so focus goes to the search (audit).
   const searchField = useRef<HTMLInputElement>(null);
   const focusSearch = () => searchField.current?.focus();
-  // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
-  const cleared = filter !== 'toApply' || q.trim() !== '';
-  // The Status select: the Active empty's "Show applied" hands focus back to it, so focus
-  // stays in the panel when the empty state unmounts (#361).
+  const on = filtersOn(view);
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const shownUrls = useMemo(() => shown.map((j) => j.url), [shown]);
-  // Mark applied, Remove or a status change that takes a card out keeps focus in the list.
+  // Mark applied, Remove or a status change that takes a row out keeps focus in the list.
   useListFocusKeeper(shownUrls, searchField);
+  const open = onOpen ?? ((j: Job) => openJob(jobIdOf(j.url)));
+  const shownLabel = `${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`;
   return (
-    <Stack gap="px24">
-      <ApplyQueueSummary jobs={jobs} />
-      <Panel
-        label="Jobs"
-        title="Jobs"
-        flat
-        count={shown.length}
-        countLabel={`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}
-        // The filter and search back to their defaults, shown only when one isn't. It lives in
-        // the header (like the Documents panels' New), so Status and Sort always split the
-        // whole row and never truncate.
-        trailing={
-          cleared ? (
-            <UiButton
-              variant="tertiary"
-              size="sm"
-              label="Clear filters"
-              onClick={() => {
-                setPipelineView({ filter: 'toApply', q: '' });
-                focusSearch();
-              }}
-            >
-              Clear
-            </UiButton>
-          ) : undefined
-        }
-      >
-        <PanelBody>
-          <Box className="rjb-form-full">
-            <Stack gap="tight">
-              <HdsInput
-                ref={searchField}
-                aria-label="Search saved jobs"
-                placeholder="Search jobs"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                leadingVisual={<Search size={16} />}
-              />
-              <JobViews />
-              <PipelineMenus />
-            </Stack>
-          </Box>
-        </PanelBody>
-        {/* The count badge is not re-read as the search or filter changes: say it (audit). */}
-        <VisuallyHidden role="status">{`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}</VisuallyHidden>
-        {shown.length === 0 ? (
-          // Its own section under the toolbar, a hairline above (rev-3 filtered-empty).
-          <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}>
-            <PanelBody>
-              {q.trim() ? (
-                <EmptyState
-                  centered
-                  icon={Search}
-                  title={`No jobs match "${q.trim()}"`}
-                  description="Try a shorter word, or clear the search."
-                  action={
-                    <UiButton
-                      variant="secondary"
-                      onClick={() => {
-                        setQ('');
-                        focusSearch();
-                      }}
-                    >
-                      Clear search
-                    </UiButton>
-                  }
-                />
-              ) : filter === 'toApply' ? (
-                <EmptyState
-                  centered
-                  icon={Search}
-                  title="Nothing left to apply to"
-                  description="Check Applied, or add more jobs."
-                  action={
-                    <UiButton
-                      variant="secondary"
-                      onClick={() => {
-                        setFilter('applied');
-                        focusSearch();
-                      }}
-                    >
-                      Show applied
-                    </UiButton>
-                  }
-                />
-              ) : (
-                <EmptyState
-                  centered
-                  icon={Search}
-                  title={`Nothing under “${FILTER_LABEL[filter]}”`}
-                  description="Try another view."
-                  action={
-                    <UiButton
-                      variant="secondary"
-                      onClick={() => {
-                        setFilter('toApply');
-                        focusSearch();
-                      }}
-                    >
-                      Show to apply
-                    </UiButton>
-                  }
-                />
-              )}
-            </PanelBody>
-          </Box>
-        ) : (
-          // Each job its own card (Adrian 2026-11-08), the Find cards' gap; the panel is flat.
-          <Box as="div" role="list" sx={{ display: 'flex', flexDirection: 'column', gap: 'sm' }}>
-            {shown.map((j) => (
-              <Box role="listitem" key={j.url}>
-                <Card padding="none">
-                  <Box sx={{ px: 'md' }}>
-                    <JobListCard job={j} onOpen={onOpen} />
-                  </Box>
-                </Card>
-              </Box>
-            ))}
-          </Box>
+    <Stack gap="normal">
+      <Box>
+        <AddJobButton size="md" />
+      </Box>
+      <JobViews />
+      <Box className="rjb-form-full">
+        <HdsInput
+          ref={searchField}
+          aria-label="Search saved jobs"
+          placeholder="Search jobs"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          leadingVisual={<Search size={16} />}
+        />
+      </Box>
+      <Stack direction="row" wrap="wrap" gap="px8" align="center" role="group" aria-label="Filters">
+        <Tag
+          active={!!remoteOnly}
+          aria-pressed={!!remoteOnly}
+          onClick={() => setPipelineView({ remoteOnly: !remoteOnly })}
+        >
+          Remote only
+        </Tag>
+        <PipelineMenus chip />
+        {on > 0 && (
+          <UiButton
+            variant="tertiary"
+            size="md"
+            label={`Clear ${on} ${on === 1 ? 'filter' : 'filters'}`}
+            onClick={() => {
+              setPipelineView({ q: '', remoteOnly: false });
+              focusSearch();
+            }}
+          >
+            {`Clear ${on}`}
+          </UiButton>
         )}
-      </Panel>
+      </Stack>
+      {/* Clear takes the jobs, and this sheet with them: focus the page that replaces it (#345). */}
+      <SampleBanner jobs={jobs} onCleared={() => focusNewHeading(pageHeadingNow())} />
+      {/* The list's count is not re-read as the search or filter changes: say it (audit). */}
+      <VisuallyHidden role="status">{shownLabel}</VisuallyHidden>
+      {shown.length === 0 ? (
+        q.trim() ? (
+          <EmptyState
+            centered
+            icon={Search}
+            title={`No jobs match "${q.trim()}"`}
+            description="Try a shorter word, or clear the search."
+            action={
+              <UiButton
+                variant="secondary"
+                onClick={() => {
+                  setQ('');
+                  focusSearch();
+                }}
+              >
+                Clear search
+              </UiButton>
+            }
+          />
+        ) : filter === 'toApply' ? (
+          <EmptyState
+            centered
+            icon={Search}
+            title="Nothing left to apply to"
+            description="Check Applied, or add more jobs."
+            action={
+              <UiButton
+                variant="secondary"
+                onClick={() => {
+                  setFilter('applied');
+                  focusSearch();
+                }}
+              >
+                Show applied
+              </UiButton>
+            }
+          />
+        ) : (
+          <EmptyState
+            centered
+            icon={Search}
+            title={`Nothing under “${FILTER_LABEL[filter]}”`}
+            description="Try another view."
+            action={
+              <UiButton
+                variant="secondary"
+                onClick={() => {
+                  setFilter('toApply');
+                  focusSearch();
+                }}
+              >
+                Show to apply
+              </UiButton>
+            }
+          />
+        )
+      ) : (
+        <JobRowList jobs={shown} openId={openId} onPick={open} />
+      )}
     </Stack>
   );
 }

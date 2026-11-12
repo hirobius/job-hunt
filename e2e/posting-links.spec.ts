@@ -217,7 +217,7 @@ async function openJobTitled(page: Page, text: string) {
   const phone = (page.viewportSize()?.width ?? 0) < 1024;
   const scope = phone ? await openAllJobs(page) : page;
   const hash = await scope
-    .getByRole('region', { name: /^Jobs/ })
+    .getByRole('navigation', { name: 'Jobs' })
     .locator('a[href^="#/apply/"]', { hasText: text })
     .first()
     .getAttribute('href');
@@ -253,33 +253,22 @@ async function expectPostingLinks(page: Page, rows: Locator, phone: boolean) {
 for (const width of [390, 800] as const) {
   test.describe(`posting links at ${width}`, () => {
     test.use({ viewport: { width, height: 900 } });
-    const phone = width < 640;
 
-    test('the Apply list: agenda rows open their posting in one tap; job cards use their menu', async ({
+    test('the Apply list: job rows carry no posting glyph, the job page opens it (#543)', async ({
       page,
     }) => {
       await loadSample(page);
       const sheet = await openAllJobs(page);
-      // Job cards carry no glyph by the title (Adrian 2026-11-08): their menu has Open posting.
-      await expect(
-        sheet
-          .getByRole('region', { name: /^Jobs/ })
-          .getByRole('link', { name: /^Open posting for / }),
-      ).toHaveCount(0);
-      // The agenda panels above it.
-      await expectPostingLinks(
-        page,
-        page.getByRole('region', { name: /^Follow up \(/ }).getByRole('listitem'),
-        phone,
-      );
-      // An event row's title is plain text ("Interview · <job>"); its posting link sits beside it.
-      const jobs = await savedJobs(page);
-      const events = page.getByRole('region', { name: /^Next 7 days/ }).getByRole('listitem');
-      expect(await events.count()).toBeGreaterThan(0);
-      for (const event of await events.all()) {
-        const posting = event.getByRole('link', { name: /^Open posting for / });
-        expect(jobs.map((j) => j.url)).toContain(await posting.getAttribute('href'));
-      }
+      // The rows carry no glyph by the title (Adrian 2026-11-08, #543): the job page has Open posting.
+      const rows = sheet.getByRole('navigation', { name: 'Jobs' });
+      await expect(rows.getByRole('listitem').first()).toBeVisible();
+      await expect(rows.getByRole('link', { name: /^Open posting for / })).toHaveCount(0);
+      // One link per row: its job's page.
+      for (const row of await rows.getByRole('listitem').all())
+        await expect(row.getByRole('link')).toHaveCount(1);
+      // The agenda (Follow up, Next 7 days) left the sheet with ApplyQueueSummary (#543): it sits
+      // under the lg list column, checked in "the job rail at 1440" below.
+      await expect(sheet.getByRole('region', { name: /^Follow up \(/ })).toHaveCount(0);
     });
 
     test('every job page header: no glyph by the title, the menu opens the posting', async ({
@@ -289,7 +278,7 @@ for (const width of [390, 800] as const) {
       const jobs = await savedJobs(page);
       const sheet = await openAllJobs(page);
       const pages = await sheet
-        .getByRole('region', { name: /^Jobs/ })
+        .getByRole('navigation', { name: 'Jobs' })
         .locator('a[href^="#/apply/"]')
         .evaluateAll((as) => as.map((a) => [a.getAttribute('href')!, a.textContent!.trim()]));
       expect(pages.length).toBeGreaterThan(0);
@@ -365,10 +354,30 @@ test.beforeEach(async ({ context }) => {
   await context.route('https://icons.duckduckgo.com/**', (r) => r.abort());
 });
 
+test.describe('the agenda under the list column at 1440', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+  test('agenda rows open their posting in one tap', async ({ page }) => {
+    await loadSample(page);
+    await expectPostingLinks(
+      page,
+      page.getByRole('region', { name: /^Follow up \(/ }).getByRole('listitem'),
+      false,
+    );
+    // An event row's title is plain text ("Interview · <job>"); its posting link sits beside it.
+    const jobs = await savedJobs(page);
+    const events = page.getByRole('region', { name: /^Next 7 days/ }).getByRole('listitem');
+    expect(await events.count()).toBeGreaterThan(0);
+    for (const event of await events.all()) {
+      const posting = event.getByRole('link', { name: /^Open posting for / });
+      expect(jobs.map((j) => j.url)).toContain(await posting.getAttribute('href'));
+    }
+  });
+});
+
 test.describe('the job rail at 1440', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('every job the rail lists opens its own posting in one tap, beside its row', async ({
+  test('the rail lists the same rows as the sheet: each opens its job, whose header opens the posting (#543)', async ({
     page,
   }) => {
     await loadSample(page);
@@ -378,19 +387,28 @@ test.describe('the job rail at 1440', () => {
     const rows = rail.getByRole('listitem');
     await expect(rows.nth(1)).toBeVisible();
     for (const row of await rows.all()) {
-      const link = row.locator('a[href^="#/apply/"]');
+      // One link per row, named by its saved job's title; no posting glyph beside it.
+      const link = row.getByRole('link');
       await expect(link).toHaveCount(1);
-      const posting = row.getByRole('link', { name: /^Open posting for / });
-      await expect(posting).toBeVisible();
-      // Its own job's posting: the saved job at that URL is the one this row names.
-      const href = await posting.getAttribute('href');
-      const own = jobs.find((j) => j.url === href);
-      expect(own, `a saved job at ${href}`).toBeTruthy();
-      await expect(link).toContainText(own!.label);
-      await expect(posting).toHaveAttribute('target', '_blank');
-      // A sibling of the row's link, never inside it.
-      expect(await link.locator('a[aria-label^="Open posting"]').count()).toBe(0);
+      const title = (await link.textContent())!.trim();
+      expect(
+        jobs.find((j) => j.label === title),
+        `a saved job titled "${title}"`,
+      ).toBeTruthy();
+      await expect(row.getByRole('link', { name: /^Open posting for / })).toHaveCount(0);
     }
+    // The open job's header menu opens its own posting in one more tap.
+    const title = (await rows.first().getByRole('link').textContent())!.trim();
+    await rows.first().getByRole('link').click();
+    const header = page.locator('header').filter({
+      has: page.getByRole('heading', { level: 1, name: title, exact: true }),
+    });
+    await header.getByRole('button', { name: `More actions: ${title}` }).click();
+    await expect(page.getByRole('menuitem', { name: 'Open posting' })).toHaveAttribute(
+      'href',
+      jobs.find((j) => j.label === title)!.url,
+    );
+    await page.keyboard.press('Escape');
     // The whole page: the column, the job's header beside it and its panels (#471).
     expect(await targetOffences(page.locator('#root'))).toEqual([]);
   });

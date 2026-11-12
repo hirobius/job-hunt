@@ -1,11 +1,13 @@
 // Calm list 2/7 (#236): Today is gone. Due follow-ups and the next 7 days of interviews and calls
-// live at the top of the Apply list, as one Follow up section (due first, then the
-// rest with their dates) and one Next 7 days list. `#/find` is home again (#383). Tested at the
+// live with the Apply list, as one Follow up section (due first, then the rest with their dates)
+// and one Next 7 days list: since #543 under the lg list column (JobRail) only, so these tests
+// run at lg. `#/find` is home again (#383). Tested at the
 // route seam through App and driven by role + name.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { openListOnPhone } from './test/allJobs';
+import { viewport } from './test/viewport';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -70,6 +72,8 @@ afterEach(() => {
     .slice()
     .forEach((j) => removeJob(j.url));
   replaceCurationState({ categories: [], groups: [], tiles: [] });
+  // viewport() installs a matchMedia stub; drop it so the next test is narrow again.
+  delete (window as { matchMedia?: unknown }).matchMedia;
 });
 
 describe('#/find is home again (#383; was retired in #236)', () => {
@@ -102,6 +106,7 @@ describe('#/find is home again (#383; was retired in #236)', () => {
 
 describe('Follow-ups in the Pipeline (#236)', () => {
   beforeEach(() => {
+    viewport(1440);
     loadSample();
     // The starter messages are the user's to add (a clean first run): these tests have them.
     setOutreachMessages([...STARTER_SNIPPETS]);
@@ -272,13 +277,14 @@ describe('Follow-ups in the Pipeline (#236)', () => {
 });
 
 describe('empty sections render nothing (#236)', () => {
+  beforeEach(() => viewport(1440));
   it('with jobs but nothing applied or scheduled, neither section shows', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
-    expect(screen.getByRole('region', { name: /^Jobs$/ })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Jobs' })).toBeInTheDocument();
   });
 
   it('an applied job not yet due shows under Follow up with its date and no action', async () => {
@@ -295,6 +301,7 @@ describe('empty sections render nothing (#236)', () => {
 });
 
 describe('a solicitation’s response deadline (#308)', () => {
+  beforeEach(() => viewport(1440));
   const inDays = (n: number) => {
     const d = new Date();
     return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
@@ -338,11 +345,11 @@ describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
   });
 
   it('the sample, tried from the Jobs empty state, shows its follow-ups', async () => {
+    viewport(1440);
     window.location.hash = '#/apply';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
-    // The tab is now the first job; its list (All jobs) holds the follow-ups (Proposal A).
-    await openListOnPhone();
+    // The tab is now the first job; the list column beside it holds the follow-ups (#543).
     expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { openAllJobs } from './test/allJobs';
+import { viewport } from './test/viewport';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
@@ -58,6 +59,8 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
   replaceTrash([]);
   dismissNotice();
+  // viewport() installs a matchMedia stub; drop it so the next test is narrow again.
+  delete (window as { matchMedia?: unknown }).matchMedia;
 });
 
 describe('the Jobs page keeps only what Adrian listed', () => {
@@ -67,12 +70,13 @@ describe('the Jobs page keeps only what Adrian listed', () => {
     updateJob(URL_B, { status: 'Applied', applied: '2026-01-01' });
     window.location.hash = '#/apply';
     renderApp();
-    // On a phone the list is the All jobs sheet (Proposal A, Adrian 2026-11-08).
-    await openAllJobs();
-    expect(await screen.findByRole('region', { name: /Follow up/ })).toBeInTheDocument();
+    // On a phone the list is the All jobs sheet (Proposal A, Adrian 2026-11-08); a due follow-up
+    // is its Follow up view (#543).
+    const sheet = await openAllJobs();
+    expect(await within(sheet).findByRole('button', { name: 'Follow up 1' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /To apply/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Start applying/ })).toBeNull();
-    expect(screen.getByRole('region', { name: 'Jobs' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('navigation', { name: 'Jobs' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Views' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Sort:/ })).toBeInTheDocument();
@@ -80,6 +84,12 @@ describe('the Jobs page keeps only what Adrian listed', () => {
     expect(screen.queryByRole('button', { name: 'Export links' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'More job actions' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Find the next company' })).toBeNull();
+    // At lg the Follow up section sits under the list column (JobRail, #543).
+    cleanup();
+    viewport(1440);
+    window.location.hash = '#/apply';
+    renderApp();
+    expect(await screen.findByRole('region', { name: /Follow up/ })).toBeInTheDocument();
   });
 
   it('Recently removed is not on the page: the Account menu opens it', async () => {
@@ -239,6 +249,8 @@ describe('Add interview is one item in the job menu', () => {
   it('the menu adds an interview, which feeds Next 7 days', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme', status: 'Applied', applied: ymd(new Date()) });
+    // Next 7 days lives under the lg list column (JobRail, #543).
+    viewport(1440);
     openJobPage();
     const header = screen
       .getByRole('heading', { level: 1, name: 'Design Engineer' })
@@ -254,8 +266,7 @@ describe('Add interview is one item in the job menu', () => {
     expect(findJobByUrl(URL_A)?.events).toEqual([
       expect.objectContaining({ kind: 'interview', date: ymd(day) }),
     ]);
-    // Next 7 days on the Apply list (the All jobs sheet) shows it.
-    await openAllJobs();
+    // Next 7 days under the list column shows it.
     expect(await screen.findByRole('region', { name: /Next 7 days/ })).toBeInTheDocument();
   });
 

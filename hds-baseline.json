@@ -27,22 +27,6 @@
     },
     {
       "rule": "gap",
-      "file": "src/hds-gaps/NavListActionItem.css",
-      "match": "stand-in has no hds-gap tag",
-      "count": 1,
-      "issue": "job-hunt#543",
-      "why": "the All jobs sheet replaces the job rail and its posting link"
-    },
-    {
-      "rule": "gap",
-      "file": "src/hds-gaps/NavListActionItem.tsx",
-      "match": "stand-in has no hds-gap tag",
-      "count": 1,
-      "issue": "job-hunt#543",
-      "why": "the All jobs sheet replaces the job rail and its posting link"
-    },
-    {
-      "rule": "gap",
       "file": "src/hds-gaps/PageShell.css",
       "match": "stand-in has no hds-gap tag",
       "count": 1,

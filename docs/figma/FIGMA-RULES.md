@@ -55,8 +55,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 - **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings, Apply, Follow up
   and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
-  list on the left, the selected job on the right. Below that, one job at a time: a filter bar
-  (Filters, Add job), the sticky walk control, then the job.
+  list on the left, the selected job on the right. Below that, one job at a time: the sticky walk
+  control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the five views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
@@ -76,6 +76,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
+- **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
+  search, the filter chips (Remote only), a Sort chip, and "Clear N" while N filters are on; then
+  the jobs. **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
+  each row is the badge row, the title (two lines at most), the company, the place and one date.
+  The open job takes the selected fill, never an outline ring. No key on a row and no posting icon:
+  the job's own page has its next step and Open posting.
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.

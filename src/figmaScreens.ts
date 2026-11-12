@@ -29,7 +29,7 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
     tab: 'apply',
     sources: [
       { file: 'src/TrackerView.tsx', component: 'TrackerView' },
-      { file: 'src/JobListCard.tsx', component: 'JobListCard' },
+      { file: 'src/JobRowList.tsx', component: 'JobRowList' },
     ],
     nodeId: '13:7940',
     phoneNodeId: '13:7611',

@@ -97,10 +97,11 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
     await page.waitForTimeout(800);
   }
 
-  // Nothing left to apply to: the tab still shows a job, and All jobs has Follow up (3).
+  // Nothing left to apply to: the tab still shows a job, and All jobs counts Follow up 3 (the
+  // view chip; the agenda section sits under the lg column only, #543).
   await pressAllJobs(page);
   await expect(
-    page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Follow up (3)' }),
+    page.getByRole('dialog', { name: 'All jobs' }).getByRole('button', { name: 'Follow up 3' }),
   ).toBeVisible();
 });
 

@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openAllJobs, openFilters, openJob, PROD_URL, seed, topTab } from './routes';
+import { go, openAllJobs, openJob, PROD_URL, seed, topTab } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -201,56 +201,48 @@ test('Today: Scan now and the Account menu’s Companies answer within 300 ms', 
   await closeOverlay(page);
 });
 
-test('Apply list: every row and page action answers within 300 ms', async ({ page }) => {
-  // Below lg the list is the All jobs sheet (Proposal A); from lg the list beside a job (#471).
+test('Apply list: every control in the All jobs sheet answers within 300 ms (#543)', async ({
+  page,
+}) => {
+  // Below lg the list is the All jobs sheet (Proposal A); it holds the list's controls (#543).
   await page.setViewportSize({ width: 800, height: 900 });
   await go(page, '#/apply');
-  const sheet = await openAllJobs(page);
-  // Every job, not only To apply (#541): the rows below are applied ones too.
-  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
-  await press(page, button(sheet, 'Mark applied: Design Technologist'), 'Mark applied');
-  await expect(
-    page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
-  ).toBeVisible();
-
-  // The job's card flashes and collapses (cards at every width, Adrian 2026-10-24); the toast
-  // alone is not the item's feedback.
-  const row = (t: string, c: string) => menu(page, `More actions: ${t}`, c, sheet);
-  await row('Design Systems Engineer', 'Retire');
-  await row('Product Designer, Design Systems', 'Interviewing');
-  await ranIn(page, 'rjb-flash', 'Product Designer, Design Systems');
-  await row('Principal Design Systems Engineer', 'Remove from Apply');
-  await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
-  await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
-
-  await press(page, button(sheet, 'Sort: Newest'), 'Sort: Newest');
-  await closeOverlay(page);
-  // The named views (#541): a press swaps the list at once; back to All jobs.
+  let sheet = await openAllJobs(page);
+  // The named views (#541): a press swaps the list at once.
+  await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
   await press(page, button(sheet, /^Applied \d/), 'Applied view');
   await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
-  await press(page, button(sheet, 'Follow up: Design Systems Designer'), 'Follow up');
+  // The filter chips: Remote only brings "Clear 1", which clears it.
+  await press(page, button(sheet, 'Remote only'), 'Remote only');
+  await press(page, button(sheet, 'Clear 1 filter'), 'Clear 1');
+  await press(page, button(sheet, 'Sort: Newest'), 'Sort: Newest');
   await closeOverlay(page);
-  // The sheet closes; the filter bar holds the page's own actions.
+  await press(page, button(sheet, 'Add job'), 'Add job');
   await closeOverlay(page);
+  // A row opens its job in place and the sheet closes.
+  await press(
+    page,
+    sheet.getByRole('navigation', { name: 'Jobs' }).getByRole('link').nth(1),
+    'a row',
+  );
   await expect(sheet).toHaveCount(0);
-  await openFilters(page);
-  for (const name of ['Add job', 'Clear sample data']) {
-    await press(page, button(page, name), name);
-    await closeOverlay(page);
-  }
+  sheet = await openAllJobs(page);
+  await press(page, button(sheet, 'Clear sample data'), 'Clear sample data');
 });
 
-test('Apply cards (390): Remove collapses the card before it goes', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await go(page, '#/apply');
-  const sheet = await openAllJobs(page);
-  // Every job, not only To apply (#541): the rows below are applied ones too.
-  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
-  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove from Apply', sheet);
-  await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
-  await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
-  await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
+test('Apply list (1440): Remove from the job answers with Undo, and Undo flashes its row back', async ({
+  page,
+}) => {
+  // Rows carry no menu (#543): Remove is the job's own More. Undo puts the row back in the list
+  // column, in place, with its flash (#593).
+  await openJob(page);
+  const title = (await page.getByRole('main').locator('header h1').textContent())!.trim();
+  await menu(page, `More actions: ${title}`, 'Remove from Apply');
+  const rail = page.getByRole('navigation', { name: 'Jobs' });
+  await expect(rail.getByRole('link', { name: title, exact: true })).toHaveCount(0);
+  await press(page, button(page.getByRole('region', { name: /^Notifications/ }), 'Undo'), 'Undo');
+  await ranIn(page, 'rjb-flash', title);
+  await expect(rail.getByRole('link', { name: title, exact: true })).toHaveCount(1);
 });
 
 test('Job page: every header and panel action answers within 300 ms', async ({ page }) => {
@@ -377,16 +369,18 @@ test.describe('reduced motion', () => {
     await expect(page.getByText('Moved to Offer').first()).toBeVisible();
     expect(await moving()).toEqual([]);
 
-    // At 390, where the same Remove collapses the card with motion on (the test above).
-    await page.setViewportSize({ width: 390, height: 844 });
-    await go(page, '#/apply');
-    const sheet = await openAllJobs(page);
-    await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
-    // Every job, not only To apply (#541): the rows below are applied ones too.
-    await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
-    await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove from Apply', sheet);
-    await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
-    await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();
+    // Remove from the job and its Undo, which flashes the row with motion on (the test above).
+    const title = (await page.getByRole('main').locator('header h1').textContent())!.trim();
+    await menu(page, `More actions: ${title}`, 'Remove from Apply');
+    await page
+      .getByRole('region', { name: /^Notifications/ })
+      .getByRole('button', { name: 'Undo' })
+      .click();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Jobs' })
+        .getByRole('link', { name: title, exact: true }),
+    ).toHaveCount(1);
     await page.waitForTimeout(400);
     expect(await anims(page)).toEqual([]);
     expect(await moving()).toEqual([]);

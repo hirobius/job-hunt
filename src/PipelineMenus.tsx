@@ -1,35 +1,21 @@
-// The Apply list's Sort menu (#129, rev-3 item 1), select-style. The Status menu beside it went in
-// #541: the named views (JobViews) replaced it. Shared by the Jobs panel, the phone filter bar and
-// the job list column beside a job (#471).
+// The Apply list's Sort menu (#129). The Status menu beside it went in
+// #541: the named views (JobViews) replaced it. Shared by the All jobs sheet (a chip, #543) and
+// the job list column beside a job (#471, an icon, #614).
 import { ArrowUpDown, ChevronDown } from 'lucide-react';
-import { Button as UiButton, Icon, Menu as HdsMenu, Stack } from '@hirobius/design-system';
+import { Button as UiButton, Icon, Menu as HdsMenu, Stack, Tag } from '@hirobius/design-system';
 import { SORTS, type SortKey } from './jobSort';
 import { setPipelineView, usePipelineView } from './pipelineView';
 import { useBackSheet } from './useBackCloses';
 
-// The Sort menu reads as a select (rev-3 item 1): label left, chevron right. HDS Button has no
-// stretch or alignment prop. It shows only the value ("Newest ⌄"): the "Sort" prefix lives in
-// the name. A long value truncates.
-const SELECT_LIKE = {
-  flex: '1 1 0',
-  minWidth: 0,
-  overflow: 'hidden',
-  justifyContent: 'space-between',
-} as const;
-const SELECT_VALUE = {
-  minWidth: 0,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-} as const;
-
-/** `compact`: the lg list column's quiet icon-only Sort (#614): not a filled select there. */
+/** `compact`: the lg list column's quiet icon-only Sort (#614), never a filled select.
+ *  `chip`: the All jobs sheet's Sort chip beside its filter chips (#543), an HDS Tag. */
 export default function PipelineMenus({
   size,
-  compact,
+  chip,
 }: {
   size?: 'sm' | 'md';
   compact?: boolean;
+  chip?: boolean;
 }) {
   const { sort } = usePipelineView();
   const setSort = (sort: SortKey) => setPipelineView({ sort });
@@ -41,7 +27,15 @@ export default function PipelineMenus({
     <Stack direction="row" gap="tight" align="center">
       <HdsMenu {...sortSheet}>
         <HdsMenu.Trigger asChild>
-          {compact ? (
+          {chip ? (
+            <Tag aria-label={`Sort: ${sortLabel}`}>
+              <Stack as="span" direction="row" gap="px4" align="center">
+                <Icon icon={ArrowUpDown} size="small" />
+                {sortLabel}
+                <ChevronDown size={16} aria-hidden="true" />
+              </Stack>
+            </Tag>
+          ) : (
             <UiButton
               iconOnly
               variant="tertiary"
@@ -49,16 +43,6 @@ export default function PipelineMenus({
               label={`Sort: ${sortLabel}`}
               iconLeft={<Icon icon={ArrowUpDown} size="small" />}
             />
-          ) : (
-            <UiButton
-              variant="secondary"
-              iconRight={<ChevronDown size={16} />}
-              label={`Sort: ${sortLabel}`}
-              size={size}
-              style={SELECT_LIKE}
-            >
-              <span style={SELECT_VALUE}>{sortLabel}</span>
-            </UiButton>
           )}
         </HdsMenu.Trigger>
         <HdsMenu.Content align="end">
