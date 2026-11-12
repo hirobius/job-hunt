@@ -17,18 +17,8 @@ import {
   MapPin,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import {
-  Badge,
-  Box,
-  Button,
-  Card,
-  Icon,
-  Stack,
-  Text,
-  useAtLeast,
-  useToast,
-} from '@hirobius/design-system';
-import { ActionDock } from './hds-gaps/ActionDock';
+import { Badge, Button, Icon, useAtLeast, useToast } from '@hirobius/design-system';
+import { DetailHeader, DetailTitleBlock } from './DetailHeader';
 import { closingOf, dateLabel, dueBadgeOf } from './jobDates';
 import { rowView, titleOf } from './jobRow';
 import { goBack, type Route } from './route';
@@ -78,39 +68,29 @@ export function JobTitleBlock({ job }: { job: Job }) {
     // #540: a job with no application link says so as a fact (no dashed box).
     ...(applicationLink(job) ? [] : [{ icon: Link2Off, label: 'No application link' }]),
   ];
-  return (
-    <Stack gap="tight" data-rjb-title-block="">
-      {/* No glyph beside the title (Adrian 2026-11-08): the posting is Open application, or
-          the menu's Open posting. */}
-      <Text variant="title" as="h1" className="rjb-break">
-        {titleOf(job)}
-      </Text>
-      <Stack direction="row" gap="px8" align="center">
-        {company && <CompanyLogo company={company} postings={[job.url]} />}
-        {company ? (
-          <Text variant="ui" as="p">
-            {company}
-          </Text>
-        ) : (
-          <Text variant="ui" as="p" tone="secondary">
-            Company not stated
-          </Text>
-        )}
-      </Stack>
-      <Card.Facts items={facts} />
-      {(due || status !== 'Saved' || row.retired || closed) && (
-        <Stack direction="row" wrap="wrap" gap="px8" align="center">
-          {due && (
-            <IconBadge tone="warning" icon={due.kind === 'closing' ? CalendarClock : Bell}>
-              {due.label}
-            </IconBadge>
-          )}
-          {status !== 'Saved' && <Badge tone="neutral">{status}</Badge>}
-          {closed && <Badge tone="neutral">Closed</Badge>}
-          {row.retired && <Badge tone="neutral">Retired</Badge>}
-        </Stack>
+  // No glyph beside the title (Adrian 2026-11-08): the posting is Open application, or the
+  // menu's Open posting.
+  const badges = (due || status !== 'Saved' || row.retired || closed) && (
+    <>
+      {due && (
+        <IconBadge tone="warning" icon={due.kind === 'closing' ? CalendarClock : Bell}>
+          {due.label}
+        </IconBadge>
       )}
-    </Stack>
+      {status !== 'Saved' && <Badge tone="neutral">{status}</Badge>}
+      {closed && <Badge tone="neutral">Closed</Badge>}
+      {row.retired && <Badge tone="neutral">Retired</Badge>}
+    </>
+  );
+  return (
+    <DetailTitleBlock
+      title={titleOf(job)}
+      company={company}
+      noCompany="Company not stated"
+      logo={company && <CompanyLogo company={company} postings={[job.url]} />}
+      facts={facts}
+      badges={badges || undefined}
+    />
   );
 }
 
@@ -282,38 +262,33 @@ export default function JobHeader({
   const ranked = dockKeys(job);
   const keys = ranked.map(render);
   return (
-    <Box as="header" sx={{ mb: 'lg' }}>
-      <Stack gap="normal">
-        {showBack && <BackToPipeline />}
-        {/* The title block, with More at its top end: it does not commit. No star (#534). */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 'xs' }}>
-          <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
-            <JobTitleBlock job={job} />
-          </Box>
-          <RowMenu
-            job={job}
-            size="md"
-            research
-            onRemoved={() => {
-              // Back to where the job was opened from (return paths); the Apply tab opens its
-              // next job there. #534: focus then goes to the new page's title (the next job's,
-              // or the list heading or empty state).
-              const from = pageHeadingNow();
-              goBack(PIPELINE);
-              focusNewHeading(from);
-            }}
-            onRetired={closed ? () => goBack(PIPELINE) : undefined}
-          />
-        </Box>
-        {/* With no keys it draws nothing; it stays mounted so a focused key that leaves with the
-            state (a sync from another device) hands focus to the new filled key, or the title. */}
-        <ActionDock docked={!wide} label={`Actions for ${title}`} onKeysGone={focusTitle}>
-          {keys}
-        </ActionDock>
-        {ranked.some((k) => k.id === 'addLink') && (
-          <AddLinkDialog job={job} open={addingLink} onOpenChange={setAddingLink} />
-        )}
-      </Stack>
-    </Box>
+    <DetailHeader
+      back={showBack && <BackToPipeline />}
+      titleBlock={<JobTitleBlock job={job} />}
+      more={
+        <RowMenu
+          job={job}
+          size="md"
+          research
+          onRemoved={() => {
+            // Back to where the job was opened from (return paths); the Apply tab opens its
+            // next job there. #534: focus then goes to the new page's title (the next job's,
+            // or the list heading or empty state).
+            const from = pageHeadingNow();
+            goBack(PIPELINE);
+            focusNewHeading(from);
+          }}
+          onRetired={closed ? () => goBack(PIPELINE) : undefined}
+        />
+      }
+      docked={!wide}
+      label={`Actions for ${title}`}
+      onKeysGone={focusTitle}
+      keys={keys}
+    >
+      {ranked.some((k) => k.id === 'addLink') && (
+        <AddLinkDialog job={job} open={addingLink} onOpenChange={setAddingLink} />
+      )}
+    </DetailHeader>
   );
 }
