@@ -1,5 +1,6 @@
 // The Account menu's Companies list (simplify amendment 2, Q6): Followed and Ignored, the Sources
-// the auto-scan and Review new read. One list at a time (Followed runs to hundreds of boards), so
+// the auto-scan and Review new read; Suggested boards (#576); and Found, the companies the scan
+// found with Follow / Ignore (#618, Adrian 2026-11-12: moved here from Find). One list at a time (Followed runs to hundreds of boards), so
 // Ignored is one tap away. Ignore mutes a followed company (its postings leave Review new); Follow
 // again lifts the mute. Each change shows at once: the row moves to the other list and both counts
 // change. Its own chunk (lazyDialogs.ts): opened from the Account menu only.
@@ -25,8 +26,12 @@ import { followBoard } from './sources';
 import { metaLines } from './metaLines';
 import { dismissSuggestion, loadSuggestions, type BoardSuggestion } from './boardSuggestions';
 import './hds-gaps/BottomSheet.css';
+import { NewCompanies } from './AutoScanViews';
+import { newCompanies, useScan } from './feed/autoScan';
+import { DialogNotice } from './NoticeHost';
+import { noticeHost } from './saveNotice';
 
-type Show = 'followed' | 'ignored' | 'suggested';
+type Show = 'followed' | 'ignored' | 'suggested' | 'found';
 
 const boardKey = (b: { kind: string; slug: string }) => `${b.kind}:${b.slug.toLowerCase()}`;
 const KIND_NAME: Record<string, string> = {
@@ -43,9 +48,17 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
   const { sources } = useFeedInputs();
   const { muted } = useDecided();
   const { followed, ignored } = companiesLists(sources, muted);
+  const foundCount = newCompanies(useScan().state).length;
+  // Opens on the first list with rows: Followed, else Ignored, else Found.
   const [show, setShow] = useState<Show>(() =>
-    !followed.length && ignored.length ? 'ignored' : 'followed',
+    followed.length ? 'followed' : ignored.length ? 'ignored' : foundCount ? 'found' : 'followed',
   );
+  // Follow / Ignore on a found company say so with Undo in the footer: the toast behind a modal
+  // can't be reached.
+  useEffect(() => {
+    noticeHost(1);
+    return () => noticeHost(-1);
+  }, []);
   // Boards the sync found for companies in the feeds (#576): suggestions only, never followed
   // until the user taps Follow.
   const [found, setFound] = useState<BoardSuggestion[]>([]);
@@ -64,9 +77,14 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
   const suggested = found.filter(
     (s) => !followedBoards.has(boardKey(s.board)) && !ignoredKeys.has(companyKey(s.company)),
   );
-  // The last suggestion gone while its segment is open: show Followed, so one option stays checked.
-  const view: Show = show === 'suggested' && !suggested.length ? 'followed' : show;
-  const hasAny = followed.length > 0 || ignored.length > 0 || suggested.length > 0;
+  // The last suggestion or found company gone while its list is open: show Followed, so one
+  // option stays checked.
+  const view: Show =
+    (show === 'suggested' && !suggested.length) || (show === 'found' && !foundCount)
+      ? 'followed'
+      : show;
+  const hasAny =
+    followed.length > 0 || ignored.length > 0 || suggested.length > 0 || foundCount > 0;
   const drop = (s: BoardSuggestion) => {
     setFound((cur) => cur.filter((x) => boardKey(x.board) !== boardKey(s.board)));
     void dismissSuggestion(s.board);
@@ -74,7 +92,6 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
   return (
     // Three rows (#619): the header (title, the list switch) and the footer (Done) stay put, and
     // only the body scrolls, so Done never covers the last row. Below sm it is a bottom sheet.
-    // A further list (#618) is one more option and one more branch in the body.
     <Dialog.Content className="rjb-dialog rjb-bottom-sheet" onCloseAutoFocus={onCloseAutoFocus}>
       <Dialog.Header>
         <span className="rjb-sheet-handle" aria-hidden="true" />
@@ -94,6 +111,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
               ...(suggested.length
                 ? [{ value: 'suggested', label: `Suggested (${suggested.length})` }]
                 : []),
+              ...(foundCount ? [{ value: 'found', label: `Found (${foundCount})` }] : []),
             ]}
           />
         )}
@@ -103,12 +121,14 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
           <Text variant="body" as="p" tone="secondary">
             No companies yet. The scan finds them, and saving a job follows its company.
           </Text>
+        ) : view === 'found' ? (
+          <NewCompanies />
         ) : view === 'followed' ? (
           <Group
             key="followed"
             title="Followed"
             rows={followed}
-            empty="None followed. Follow a new company on Find."
+            empty="None followed. Follow one from Found, or save a job."
             action={(c) => (
               <Button
                 size="sm"
@@ -196,6 +216,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
         )}
       </Box>
       <Dialog.Footer>
+        <DialogNotice />
         <Dialog.Close asChild>
           <Button variant="secondary">Done</Button>
         </Dialog.Close>

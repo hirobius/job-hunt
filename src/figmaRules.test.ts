@@ -174,6 +174,13 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).not.toContain('StarButton');
   });
 
+  it('pins found companies in the Companies dialog, not on Find (#618)', () => {
+    expect(RULES).toContain('under **Found** (Follow / Ignore), never on Find');
+    expect(CLAUDE).toContain('New companies\n  left Find (#618');
+    expect(fs.readFileSync('src/Today.tsx', 'utf8')).not.toContain('NewCompanies');
+    expect(fs.readFileSync('src/CompaniesDialog.tsx', 'utf8')).toContain('<NewCompanies />');
+  });
+
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
     const css = fs.readFileSync('src/hds-gaps/PageShell.css', 'utf8');
     expect(css).toContain('--rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);');

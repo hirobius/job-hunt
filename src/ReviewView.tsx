@@ -99,7 +99,6 @@ export default function ReviewView({
   scanStatus = false,
   header,
   before,
-  after,
 }: {
   /** The panel's name: "Review new" on Find. */
   label?: string;
@@ -110,9 +109,8 @@ export default function ReviewView({
    *  the page's h1 then (#363, as a job's is on Apply). Given the Deck's place ("1 of 4", #545) to
    *  put in its caption, or null outside the Deck. */
   header?: ReactNode | ((deckPlace: string | null) => ReactNode);
-  /** Find's list column, above and under the list: Daily picks, New companies. */
+  /** Find's list column, above the list: Daily picks. */
   before?: ReactNode;
-  after?: ReactNode;
 }) {
   const feed = useFeed();
   const { view } = feed;
@@ -394,7 +392,6 @@ export default function ReviewView({
       {!selectedFp && (typeof header === 'function' ? header(deckPlace) : header)}
       {before}
       {panel}
-      {after}
     </Stack>
   );
   if (!header) return list;
