@@ -70,8 +70,13 @@ for (const width of [390, 1440]) {
       const deck = group.getByRole('button', { name: 'Deck' });
       await expect(browse).toHaveAttribute('aria-pressed', 'true');
       await expect(browse).toHaveText('');
-      await deck.hover();
-      await expect(page.getByRole('tooltip')).toHaveText('Deck');
+      // The seed's "Added to Apply" toast can land under the pointer and close the tooltip at
+      // 1440: hover again until it shows.
+      await expect(async () => {
+        await page.mouse.move(0, 0);
+        await deck.hover();
+        await expect(page.getByRole('tooltip')).toHaveText('Deck', { timeout: 1500 });
+      }).toPass({ timeout: 10_000 });
       await deck.click();
       await expect(deck).toHaveAttribute('aria-pressed', 'true');
       await expect(browse).toHaveAttribute('aria-pressed', 'false');
