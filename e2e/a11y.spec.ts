@@ -31,7 +31,7 @@ async function seed(page: Page) {
   await expect(page.getByRole('region', { name: 'Messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/find');
-  await expect(page.getByRole('region', { name: /^Review\b/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {
@@ -132,6 +132,11 @@ test.describe('phone sweep', () => {
             const iconOnly = !(el.textContent || '').trim();
             // HDS's own clear-input button is 30px wide (hds#750).
             if (el.getAttribute('aria-label') === 'Clear input') return;
+            // A small key whose ::after carries the 44px hit area (.rjb-hit-44, Find's Review row).
+            if (el.classList.contains('rjb-hit-44')) {
+              const after = getComputedStyle(el, '::after');
+              if (parseFloat(after.width) >= 43.5 && parseFloat(after.height) >= 43.5) return;
+            }
             // 44px on a phone (retro quick wins, 2026-11-08; WCAG 2.5.5 / HDS touch size).
             if (r.height < 43.5 || (iconOnly && r.width < 43.5))
               out.small.push(`${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);

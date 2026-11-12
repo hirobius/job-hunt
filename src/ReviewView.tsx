@@ -56,6 +56,11 @@ import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
 import type { FindSort } from './FindHeader';
+import { FindSortMenu } from './FindSortMenu';
+import { useAutoLoad } from './autoLoad';
+import { placeSaysRemote } from './feed/placeRemote';
+import { capsToSentence } from './feed/capsCase';
+import CompanyLogo from './CompanyLogo';
 import { NoResultsKeys } from './AutoScanViews';
 import {
   FILTER_LABEL,
@@ -145,6 +150,8 @@ export default function ReviewView({
   // Below lg there is no posting page (Adrian 2026-11-08): an old #/find/<fingerprint> link opens
   // Find with that card scrolled into view, and the route drops it.
   const [linked, setLinked] = useState<string | null>(null);
+  // "Loaded N more" after the Browse list pages (2026-11-12), said by the polite status below.
+  const [loadedMore, setLoadedMore] = useState('');
   if (!wide && selectedFp && linked !== selectedFp) setLinked(selectedFp);
   useEffect(() => {
     if (!wide && selectedFp) selectPosting(null, true);
@@ -190,13 +197,16 @@ export default function ReviewView({
 
   // The Deck's card (#545), and where it sits in the list as it shows ("1 of 4" in Find's caption).
   const deckAt = Math.min(card, Math.max(0, listed.length - 1));
-  const deckPlace =
-    view && mode === 'deck' && listed.length ? `${deckAt + 1} of ${listed.length}` : null;
+  const deckPlace: DeckPlace | null =
+    view && mode === 'deck' && listed.length
+      ? { at: deckAt, count: listed.length, onAt: setCard }
+      : null;
   // A new sort reorders the Deck too (#617), and keeps the card on screen where it moved to.
   const changeSort = (to: FeedSort) => {
     const current = listed[deckAt]?.fingerprint;
     setSort(to);
     setShown(REVIEW_PAGE);
+    setLoadedMore('');
     if (!view || !current) return;
     const at = filterRows(sortRows(view.rows, to), on).findIndex((x) => x.fingerprint === current);
     setCard(Math.max(0, at));
@@ -205,6 +215,7 @@ export default function ReviewView({
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
     setShown(REVIEW_PAGE);
+    setLoadedMore('');
     setCard(0);
   };
 
@@ -263,7 +274,7 @@ export default function ReviewView({
 
   const caughtUp =
     'Every posting from your sources is saved or skipped. The next scan brings new ones.';
-  // Sort, Scan now and Search profile are the header's one More menu (#544).
+  // Sort is its own key in the Review row (2026-11-12); shown only while there is a list to sort.
   const sortTool: FindSort | null =
     view && view.rows.length > 0 ? { value: sort, onChange: changeSort } : null;
   // No results (#553): the empty state's own keys (Scan now filled signed out, Edit search profile).
@@ -274,8 +285,45 @@ export default function ReviewView({
     !listed.length &&
     !on.length &&
     !decidedAny(view.hidden);
+  // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
+  // (a compact two-icon segmented group) and Sort on the right; it wraps at narrow widths.
+  const tools = (
+    <Stack direction="row" gap="px12" align="center" className="rjb-review-tools">
+      {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
+          takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
+          with a tooltip; the pressed one is the secondary (filled) button. */}
+      <Stack
+        direction="row"
+        gap="hairline"
+        role="group"
+        aria-label="Review view"
+        className="rjb-view-segs"
+      >
+        {VIEW_TOGGLE.map(({ value, label: name, icon }, i) => (
+          <HdsTooltip key={value}>
+            <HdsTooltip.Trigger asChild>
+              <Button
+                size="sm"
+                variant={mode === value ? 'secondary' : 'tertiary'}
+                iconOnly
+                label={name}
+                aria-label={name}
+                aria-pressed={mode === value}
+                // Each grows its hit area on its outer side only (base.css .rjb-hit-44).
+                className={`rjb-hit-44 ${i === 0 ? 'rjb-hit-start' : 'rjb-hit-end'}`}
+                onClick={() => setMode(value)}
+                iconLeft={<Icon icon={icon} />}
+              />
+            </HdsTooltip.Trigger>
+            <HdsTooltip.Content>{name}</HdsTooltip.Content>
+          </HdsTooltip>
+        ))}
+      </Stack>
+      {sortTool && <FindSortMenu sort={sortTool} />}
+    </Stack>
+  );
   const panel = (
-    <Panel label={label} title={label} flat>
+    <Panel label={label} title={label} titleHidden flat>
       <PanelBody>
         <Stack gap="normal">
           {/* No status text above Browse / Deck (Adrian 2026-11-08): the source health and the "not
@@ -283,56 +331,42 @@ export default function ReviewView({
           {/* The counts left the heading and Find's caption (the New and Remote chips show them);
               a screen reader still hears them here, politely. */}
           <VisuallyHidden as="p" role="status" aria-live="polite">
-            {(scanStatus ? null : line) ??
-              (feed.loading
-                ? 'Reading your sources…'
-                : view
-                  ? `${listed.length} postings, ${counts.new} new`
-                  : '')}
+            {loadedMore ||
+              ((scanStatus ? null : line) ??
+                (feed.loading
+                  ? 'Reading your sources…'
+                  : view
+                    ? `${listed.length} postings, ${counts.new} new`
+                    : ''))}
           </VisuallyHidden>
-          {/* The view toggle. Sort is the header's More menu (#544); it orders the Deck too (#617). */}
-          <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-            {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
-                takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
-                with a tooltip; the pressed one is the secondary (filled) button. */}
-            <Stack direction="row" gap="hairline" role="group" aria-label="Review view">
-              {VIEW_TOGGLE.map(({ value, label: name, icon }) => (
-                <HdsTooltip key={value}>
-                  <HdsTooltip.Trigger asChild>
-                    <Button
-                      size="sm"
-                      variant={mode === value ? 'secondary' : 'tertiary'}
-                      iconOnly
-                      label={name}
-                      aria-label={name}
-                      aria-pressed={mode === value}
-                      onClick={() => setMode(value)}
-                      iconLeft={<Icon icon={icon} />}
-                    />
-                  </HdsTooltip.Trigger>
-                  <HdsTooltip.Content>{name}</HdsTooltip.Content>
-                </HdsTooltip>
-              ))}
-            </Stack>
+          <Stack
+            direction="row"
+            wrap="wrap"
+            gap="px8"
+            align="center"
+            justify="space-between"
+            className="rjb-review-row"
+          >
+            {view && view.rows.length > 0 && (
+              <Stack direction="row" wrap="wrap" gap="xs" role="group" aria-label="Filter postings">
+                {FILTERS.map((f) => (
+                  <Tag
+                    key={f}
+                    active={on.includes(f)}
+                    aria-pressed={on.includes(f)}
+                    // The name says what is shown, label then count (axe label-content-name-mismatch).
+                    aria-label={`${FILTER_LABEL[f]} ${counts[f]}`}
+                    onClick={() => toggle(f)}
+                  >
+                    <Stack as="span" direction="row" gap="px4" align="center">
+                      {FILTER_LABEL[f]} <Badge count={counts[f]} />
+                    </Stack>
+                  </Tag>
+                ))}
+              </Stack>
+            )}
+            {tools}
           </Stack>
-          {view && view.rows.length > 0 && (
-            <Stack direction="row" wrap="wrap" gap="px8" role="group" aria-label="Filter postings">
-              {FILTERS.map((f) => (
-                <Tag
-                  key={f}
-                  active={on.includes(f)}
-                  aria-pressed={on.includes(f)}
-                  // The name says what is shown, label then count (axe label-content-name-mismatch).
-                  aria-label={`${FILTER_LABEL[f]} ${counts[f]}`}
-                  onClick={() => toggle(f)}
-                >
-                  <Stack as="span" direction="row" gap="px8" align="center">
-                    {FILTER_LABEL[f]} <Badge count={counts[f]} />
-                  </Stack>
-                </Tag>
-              ))}
-            </Stack>
-          )}
         </Stack>
       </PanelBody>
       {feed.error ? (
@@ -379,7 +413,10 @@ export default function ReviewView({
           label="New postings"
           rows={listed}
           shown={shown}
-          onMore={() => setShown((n) => n + REVIEW_PAGE)}
+          onMore={(added) => {
+            setLoadedMore(`Loaded ${added} more`);
+            setShown((n) => n + REVIEW_PAGE);
+          }}
           now={feed.at}
           actions={actions}
           onOpen={wide ? open : undefined}
@@ -470,13 +507,20 @@ const goneWith = (r: FeedRow, mute: boolean) => (x: FeedRow) =>
 const EMPTY_TITLE_ID = 'rjb-review-empty-title';
 
 /** What Find's short header shows (#544). */
+export interface DeckPlace {
+  /** The card shown, from 0. */
+  at: number;
+  count: number;
+  onAt: (n: number) => void;
+}
+
 export interface FindTools {
   newCount: number | null;
   sort: FindSort | null;
   /** A posting is selected (at lg its title is the page's h1). */
   selected: boolean;
-  /** The Deck's place, "1 of 4" (#545); null outside the Deck. */
-  deckPlace: string | null;
+  /** The Deck's place (#545): "‹ 1 of 4 ›" in the page bar; null outside the Deck. */
+  deckPlace: DeckPlace | null;
 }
 
 /** After a decision on a Browse card, focus goes to the title of the card that takes its place
@@ -552,7 +596,7 @@ const rowActions: RowActions = {
   mute: (r, from) =>
     collapseRow(from, () => {
       const undo = muteCompany(r.company);
-      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Review on Find.');
+      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Find.');
     }),
 };
 
@@ -573,7 +617,8 @@ function RowList({
   label: string;
   rows: FeedRow[];
   shown: number;
-  onMore: () => void;
+  /** Shows the next page; given how many it adds. */
+  onMore: (added: number) => void;
   now: number;
   actions: RowActions;
   /** At lg: a title selects the posting for the detail column. Below lg: none (no posting page). */
@@ -588,8 +633,12 @@ function RowList({
     linkedRef.current?.scrollIntoView({ block: 'start' });
   }, [linked]);
   const left = rows.length - shown;
+  // Auto-load (2026-11-12): the sentinel pages the list; Review's polite status says "Loaded N more".
+  const more = () => onMore(Math.min(left, REVIEW_PAGE));
+  const sentinel = useAutoLoad(left > 0, more);
   return (
-    <>
+    // The gap before Load more is the cards' own gap (one parent gap, no margins).
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'sm' }}>
       <Box
         as="ul"
         aria-label={label}
@@ -626,18 +675,22 @@ function RowList({
         ))}
       </Box>
       {left > 0 && (
-        <PanelBody>
-          <Button variant="secondary" onClick={onMore}>
-            {`Load more (${left})`}
-          </Button>
-        </PanelBody>
+        <>
+          <div ref={sentinel} aria-hidden="true" />
+          <Box>
+            <Button variant="secondary" onClick={more}>
+              {`Load more (${left})`}
+            </Button>
+          </Box>
+        </>
       )}
-    </>
+    </Box>
   );
 }
 
 // One fact per line, in one order on every card (#616, Adrian 2026-11-12): the place, the work mode,
-// the posted day. The place never carries the mode, so the mode shows once, on its own line.
+// the posted day. The mode line is left out when the place already says remote ("Remote (US)",
+// "New York or Remote"; placeSaysRemote, Adrian 2026-11-12, reversing #616's "once, also then").
 // A place that is only a work mode ("Remote") is no place: the mode line says it.
 const ONLY_MODE = /^(remote|hybrid|on[\s-]?site|in[\s-]?office)$/i;
 const placeOf = (r: FeedRow) => {
@@ -645,8 +698,14 @@ const placeOf = (r: FeedRow) => {
   return where && !ONLY_MODE.test(where) ? where : 'Location not stated';
 };
 // Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
-const modeOf = (r: FeedRow) =>
-  r.remoteUnstated ? 'Remote not stated' : r.mode ? modeLabel(r.mode) : 'Work mode not stated';
+const modeOf = (r: FeedRow): string | null =>
+  placeSaysRemote(placeOf(r))
+    ? null
+    : r.remoteUnstated
+      ? 'Remote not stated'
+      : r.mode
+        ? modeLabel(r.mode)
+        : 'Work mode not stated';
 
 const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
 
@@ -832,6 +891,7 @@ function PostingCard({
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
+  const mode = modeOf(r);
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px8">
@@ -842,21 +902,40 @@ function PostingCard({
           <Text variant="body" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>
             <CardTitleLink r={r} onOpen={onOpen} />
           </Text>
+        ) : !decide ? (
+          // The Deck (2026-11-12): More beside the title, as a job's More sits (#534, #546), not
+          // alone under "Read the full posting"; Save and Skip are the dock's.
+          <Stack direction="row" gap="tight" align="start" justify="space-between">
+            <Text variant="title" as="h3" weight="bold" tabIndex={-1} className="min-w-0">
+              {r.title}
+            </Text>
+            <PostingMenu r={r} actions={actions} />
+          </Stack>
         ) : (
           <Text variant="title" as="h3" weight="bold" tabIndex={-1}>
             {r.title}
           </Text>
         )}
-        {r.company && (
-          <Text variant="ui" as="p">
-            {r.company}
+        {/* No company (an HN post naming none): said, as the detail's title block does. Its More
+            would hold only Not this company, so it has none (PostingMenu). */}
+        {r.company.trim() ? (
+          // The company's logo first (letter until it loads; companyLogo.ts's rule), then its name.
+          <Stack direction="row" gap="px8" align="center">
+            <CompanyLogo company={r.company} postings={[r.url]} />
+            <Text variant="ui" as="p" className="min-w-0">
+              {r.company}
+            </Text>
+          </Stack>
+        ) : (
+          <Text variant="ui" as="p" tone="secondary">
+            Company not stated
           </Text>
         )}
         <FactLines
           truncateFirst
           items={[
             { icon: MapPin, label: placeOf(r) },
-            { icon: Briefcase, label: modeOf(r) },
+            mode ? { icon: Briefcase, label: mode } : null,
             postedLabel ? { icon: Calendar, label: postedLabel } : null,
           ]}
         />
@@ -865,8 +944,9 @@ function PostingCard({
             {pay}
           </Text>
         )}
+        {compact && <BrowseExcerpt r={r} />}
         {children}
-        {keys && (
+        {keys && (decide || compact) && (
           <Box sx={{ pt: compact ? undefined : 'xs' }}>
             <PostingActions r={r} actions={actions} decide={decide} openKey={!compact} />
           </Box>
@@ -1002,6 +1082,45 @@ function Deck({
   );
 }
 
+/** A Browse card's excerpt (2026-11-12): two lines of the text already held (never fetched for the
+ *  list), all-caps runs title-cased for display; "Show more" opens it in place, with "Read the full
+ *  posting" then. No text, nothing. */
+function BrowseExcerpt({ r }: { r: FeedRow }) {
+  const [open, setOpen] = useState(false);
+  const id = `rjb-ex-${r.fingerprint.replace(/[^\w-]/g, '')}`;
+  const raw = (r.text ?? '').trim() || r.snippet?.trim() || '';
+  if (!raw) return null;
+  const body = capsToSentence(excerpt(raw, open ? 1200 : 300));
+  const link = httpUrl(r.url);
+  return (
+    <Stack gap="px4" align="start">
+      <Text
+        id={id}
+        variant="caption"
+        as="p"
+        tone="secondary"
+        className={open ? undefined : 'rjb-clamp-2'}
+      >
+        {body}
+      </Text>
+      <Button
+        variant="link"
+        size="sm"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? 'Show less' : 'Show more'}
+      </Button>
+      {open && link && (
+        <InlineLink href={r.url} standalone size="sm">
+          Read the full posting
+        </InlineLink>
+      )}
+    </Stack>
+  );
+}
+
 /** The Deck's excerpt (#545): the posting's text at once, cut at 7 lines, then "Read the full
  *  posting" (the posting itself, in a new tab). No disclosure. */
 function DeckExcerpt({ r }: { r: FeedRow }) {
@@ -1106,10 +1225,12 @@ function PostingDetail({
     );
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
-  // One fact per line, in the card's order (#616): place, work mode (always, once), then pay.
+  // One fact per line, in the card's order (#616): place, work mode (not when the place says
+  // remote, 2026-11-12), then pay.
+  const mode = modeOf(r);
   const facts = [
     { icon: MapPin, label: placeOf(r) },
-    { icon: Briefcase, label: modeOf(r) },
+    ...(mode ? [{ icon: Briefcase, label: mode }] : []),
     // As on a job's page: a missing pay says so, you need it to decide.
     { icon: Banknote, label: pay || 'Pay not stated' },
     ...(posted

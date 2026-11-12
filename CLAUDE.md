@@ -397,11 +397,22 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the h1 "Find" and one
   caption, "Scanned 2 h ago" (`findCaption.ts`; no count since #660: the New and Remote chips hold the numbers, and Review's polite `role="status"` says "N postings, M new"; the server's last sync signed in
   (`useServerUpdatedAt`) or this browser's last scan signed out (`agoPhrase`), "scanning…" while one runs; no date
-  line), with **one More menu** on its row ("More: sort, scan and search profile": Sort while Browse has a list,
-  Scan now / Stop scan signed out only, Search profile); `ReviewView`'s `header` is a function given the new count,
+  line), with **one More menu** on its row ("More: scan and search profile": Scan now / Stop scan signed out only,
+  Search profile; Sort left it 2026-11-12, see the Review row below); `ReviewView`'s `header` is a function given the new count,
   the sort and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
   (was "Review new", #615: no count on the heading since #660; labels only)
-  = `ReviewView` itself (`label="Review" scanStatus`: one panel holding Browse | Deck, two filter chips
+  = `ReviewView` itself (`label="New postings" scanStatus`; **no visible heading since 2026-11-12**: an sr-only h2
+  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left, then at the right Browse | Deck
+  (`.rjb-view-segs`, a compact two-icon group, `aria-pressed`) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
+  ArrowUpDown named "Sort: Newest" / "Sort: Best match" / "Sort: Company", Tooltip "Sort", a Menu of radio items; only
+  while there is a list to sort), one line at 390 with two-digit counts, the tools wrapping under the chips at 375 and below (Adrian 2026-11-12: its keys 32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
+  **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
+  end, disconnected on unmount; off without IntersectionObserver or under prefers-reduced-data); "Load more (N)" stays as
+  the fallback, one card gap below the cards, and the polite status says "Loaded N more". A Browse card shows
+  `CompanyLogo` before the company, or "Company not stated" (its More, which would hold only Not this company, is then
+  absent), and two lines of the text already held (`BrowseExcerpt`, never fetched, all-caps runs title-cased for display by
+  `feed/capsCase.ts`), "Show more" / "Show less" in place (`aria-expanded`) and "Read the full posting" only when open.
+  Was: one panel holding Browse | Deck, two filter chips
   (**New**, was "New today" (#615): first seen today, the same rule as the card's count; Remote) and the Browse list; at lg a card's title selects the posting) **New companies
   left Find (#618, Adrian 2026-11-12):** the scan's found companies (`NewCompanies`, Follow / Ignore with Undo) are
   the Companies dialog's **Found** list. **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
@@ -440,15 +451,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   of Filters); `PipelineMenus` is Sort only (an icon at lg, a chip in the sheet). Default view To apply. Since #543 search,
   filters, sort and Add job live in the All jobs sheet (see Two screens); "Clear N" clears the filters, not the view. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 - **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: the title step; no source or New badge since #557), one at a time (`ReviewView.tsx`
-  `Deck`). No pager row: "1 of 4" is the caption under Find (`header`'s tools carry the Deck's place, `FindHeader`
-  adds it to its caption); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
+  `Deck`). Its place is "‹ 1 of 4 ›" in the page bar (2026-11-12: `header`'s tools carry `DeckPlace`, `FindHeader`
+  `DeckPager` draws HDS `Pagination variant="compact"` labelled "Postings in the deck", as Apply's pager; arrows off at the
+  ends); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
   card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock row` (one row, `data-layout="row"`):
   fixed at the bottom below lg, inline under the card at lg; the card collapses as it goes and both toast with Undo.
   After a decision focus goes to the next card's title (h3), or Find's h1 once the deck is empty (`Deck`'s `decided`
   mark; the card's elements stay, so `focusNextTitle`'s list-item walk does not apply).
   The card shows the posting's text at once (`usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
-  Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More keeps Not this company; no
-  disclosure. Sort (Find's More menu since #544) works in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
+  Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More (Not this company) sits beside
+  the card's title (2026-11-12, as a job's More, #546); no disclosure. Sort (its own key since 2026-11-12) works in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
   keeps the card on screen (`changeSort` finds it by fingerprint). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
   `figmaRules.test.ts`.
 - **The page bar (2026-11-12, a phone recording, #679):** Find / Apply (the `.rjb-segs` nav of links,
@@ -473,8 +485,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   row's minimum gap is 4, so it fits at 375 and 390 with counts up to two digits; where it cannot fit, a 320 screen
   or two "99+" counts, it wraps the tabs under the logo). Concentric corners (hds#1470): `.rjb-segs` sets
   `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. Each tab
-  shows its **count** as plain text after its label, the way the view chips read (`TopTabCount.tsx`, a lazy chunk;
-  over 99 reads "99+"; a Badge's chrome made the row too wide at 390): Find the new postings Review new last
+  shows its **count** as an HDS count `Badge` after its label (2026-11-12; `TopTabCount.tsx`, a lazy chunk; `max={99}`
+  reads "99+"; the pill's own fill in both states, `theme.contrast.test.ts`; it fits at 375/390 now the tabs are in the
+  page bar, #680, and wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
+  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): Find the new postings Review new last
   read (`scanDetails.newToday`), Apply its To apply count (`filterCounts(…, remoteOnly).toApply`: Remote only counts, the open
   view never does, so the number keeps one meaning; prod audit 2026-11-12); none while 0 or not known; the link's name is "Apply 12" (`test/topTabs.ts` matches label then
   count). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
@@ -511,8 +525,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
   no source or New badge on a card (#557 cuts; the detail's title block keeps the source, neutral), the title on the `title` step (Deck and the detail; a Browse card is compact, below), company, then **one fact per line** (#616, Adrian
   2026-11-12; Browse, Deck and the detail): MapPin place ("Location not stated" when none, or when it is only a mode
-  word), Briefcase work mode (Remote / Hybrid / On-site, "Remote not stated", else "Work mode not stated"; once, on
-  its own line, also when the place says Remote), Calendar posted day; the pay line, then **one left-aligned action row (Adrian 2026-11-08,
+  word), Briefcase work mode (Remote / Hybrid / On-site, "Remote not stated", else "Work mode not stated"; on its own
+  line, **left out when the place already says remote** (Adrian 2026-11-12, reversing #616's "also when the place says
+  Remote": `feed/placeRemote.ts` `placeSaysRemote`, `classifyRemote` on the place text, so "Remote (US)" is never
+  followed by "Remote")), Calendar posted day; the pay line, then **one left-aligned action row (Adrian 2026-11-08,
   `PostingActions`): Save primary, Skip secondary, Open posting as an icon link, More (…) holding Not this company**,
   all `md`; no match-reason line). **A Browse card is compact (#544, redesign §5.1):** the title (bold body, HDS
   `lineClamp={3}`; it opens the posting: at lg it selects it, below lg it is the HDS `InlineLink` out, with the

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findMenuItem, findMore, openScanDetails } from './routes';
+import { findMenuItem, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
+import { hitArea } from './hitArea';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
@@ -86,7 +87,7 @@ async function setUp(page: Page) {
   await page.goto('/#/find');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
   await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
@@ -128,7 +129,7 @@ for (const width of [390, 1440]) {
       });
     };
     await setUp(page);
-    await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
     // No status text above Browse / Deck (Adrian 2026-11-08): no scan line, counts or progress.
     await expect(
       page.getByText(
@@ -238,13 +239,18 @@ for (const width of [390, 1440]) {
     await expect(card.getByText('New', { exact: true })).toHaveCount(0);
     await expect(card.locator('[data-tone="info"]')).toHaveCount(0);
     await expect(card.getByRole('heading', { level: 3 })).toBeVisible();
-    // #545: no pager row; "1 of 2" is the caption under Find. #617: Sort is there in the Deck
-    // too, in Find's More menu (#544).
-    await expect(page.getByRole('navigation', { name: 'Postings' })).toHaveCount(0);
-    await expect(page.getByText('1 of 2', { exact: true })).toBeVisible();
-    await findMore(page).click();
+    // 2026-11-12: "‹ 1 of 2 ›" in the page bar (HDS compact pager, Previous off at the start).
+    // #617: Sort is there in the Deck too, its own key beside Browse | Deck.
+    const pager = page.getByRole('navigation', { name: 'Postings in the deck' });
+    await expect(pager.getByText('1 of 2')).toBeVisible();
+    await expect(pager.getByRole('button', { name: /previous/i })).toBeDisabled();
+    await page.getByRole('button', { name: 'Sort: Newest' }).click();
     await expect(page.getByRole('menuitemradio', { name: 'Newest' })).toBeVisible();
     await page.keyboard.press('Escape');
+    // More (Not this company) sits beside the card's title.
+    const moreBox = await card.getByRole('button', { name: /^More actions/ }).boundingBox();
+    const titleBox = await card.getByRole('heading', { level: 3 }).boundingBox();
+    expect(Math.abs(moreBox!.y - titleBox!.y)).toBeLessThan(24);
     // Skip (grey) and Save (filled, right) sit in the dock: fixed at the bottom on a phone, one
     // row, each key 44px tall at least; inline under the card at lg.
     const dock = page.getByRole('group', { name: /^Actions for / });
@@ -288,6 +294,73 @@ for (const width of [390, 1440]) {
         page.getByRole('heading', { level: 1, name: 'Design Systems Lead' }),
       ).toBeVisible();
       expect(await templateOf(page)).toEqual(postingTemplate);
+    }
+  });
+}
+
+// Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 390;
+// at 375 and below the tools wrap under the chips (exclusive 44px hit areas need 329px; 375's row
+// is 320). At both widths each key's 44px hit area is its own (elementFromPoint).
+for (const width of [375, 390]) {
+  test(`the Review row: one line at 390, its own 44px hit areas (${width})`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+      const url = r.request().url();
+      const json = (body: unknown) =>
+        r.fulfill({
+          status: 200,
+          headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      if (!url.startsWith('https://hn.algolia.com/'))
+        return url.startsWith('https://api.lever.co/') ? json([]) : json({ jobs: [] });
+      if (url.includes('search_by_date'))
+        return json({
+          hits: [
+            {
+              objectID: '9',
+              title: 'Ask HN: Who is hiring? (October 2026)',
+              created_at: '2026-10-01',
+            },
+          ],
+        });
+      return json({
+        hits: Array.from({ length: 12 }, (_, i) => ({
+          objectID: `m-${i}`,
+          story_id: 9,
+          parent_id: 9,
+          created_at: new Date().toISOString(),
+          comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+        })),
+      });
+    });
+    await page.goto('/#/find');
+    await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
+    const since = await page.evaluate(() => Date.now());
+    await findMenuItem(page, 'Scan now');
+    await scanFinished(page, since);
+    const chips = page.getByRole('group', { name: 'Filter postings' });
+    await expect(chips.getByRole('button', { name: /^New \d\d$/ })).toBeVisible();
+    await expect(chips.getByRole('button', { name: /^Remote \d\d$/ })).toBeVisible();
+    const sort = page.getByRole('button', { name: /^Sort: / });
+    const [c, s] = [await chips.boundingBox(), await sort.boundingBox()];
+    const sameLine = Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2)) < 4;
+    expect(sameLine).toBe(width >= 390);
+    expect(s!.x + s!.width).toBeLessThanOrEqual(width);
+    // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
+    // lands on that key, never its neighbour.
+    // A tap just inside the last chip's right edge is the chip's, not Browse's.
+    const remote = chips.getByRole('button', { name: /^Remote / });
+    const onChip = await remote.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
+    });
+    expect(onChip).toBe(true);
+    for (const name of ['Browse', 'Deck', /^Sort: /]) {
+      const hit = await hitArea(page.getByRole('button', { name }));
+      expect(hit.width).toBeGreaterThanOrEqual(44);
+      expect(hit.height).toBeGreaterThanOrEqual(44);
+      expect(hit.misses, String(name)).toEqual([]);
     }
   });
 }

@@ -185,7 +185,7 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
-  it('pins the Find Deck (#545, #617): keys in the dock, "1 of N" in the caption, Sort shows', () => {
+  it('pins the Find Deck (#545, #617): keys in the dock, "‹ 1 of N ›" in the page bar, Sort shows', () => {
     expect(RULES).toMatch(/Find Deck \(#545, #617\)/);
     expect(RULES).toMatch(
       /Skip \(grey, left\) and Save \(filled,\s+right\) sit in the action dock/,
@@ -199,6 +199,25 @@ describe('FIGMA-RULES.md', () => {
     expect(review).not.toContain('<Badge tone="info">');
     expect(review).not.toMatch(/mode === 'browse' && \(/);
     expect(fs.readFileSync('src/FindDeck.css', 'utf8')).toContain('line-clamp: 7');
+    // 2026-11-12: the Deck's pager is HDS compact Pagination in the page bar; More by the title.
+    expect(RULES).toContain('"‹ 1 of 4 ›"');
+    expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).toContain('label="Postings in the deck"');
+    expect(RULES).toMatch(/More \(Not this\s+company\) sits beside the card's title/);
+  });
+
+  it("pins Find's one Review row (2026-11-12): no visible heading, chips left, view + Sort right", () => {
+    expect(RULES).toMatch(/No visible "Review" heading \(2026-11-12\)/);
+    expect(fs.readFileSync('src/FindSortMenu.tsx', 'utf8')).toContain('Sort: ${SORT_LABEL');
+    expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Menu.RadioGroup');
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('titleHidden');
+  });
+
+  it("pins the top tabs' count Badges and equal segments (2026-11-12)", () => {
+    expect(RULES).toMatch(/count\s+Badge after its label/);
+    expect(fs.readFileSync('src/TopTabCount.tsx', 'utf8')).toContain('<Badge count={n}');
+    expect(fs.readFileSync('src/theme/base.css', 'utf8')).toContain(
+      'grid-template-columns: 1fr 1fr;',
+    );
   });
 
   it('pins the keys by state (#540)', () => {
@@ -291,7 +310,9 @@ describe('FIGMA-RULES.md', () => {
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
     expect(review).toContain('<FactLines');
     expect(review).toContain('{ icon: MapPin, label: placeOf(r) }');
-    expect(review).toContain('{ icon: Briefcase, label: modeOf(r) }');
+    // Left out when the place already says remote (2026-11-12, reversing "once, also then").
+    expect(review).toContain('placeSaysRemote(placeOf(r))');
+    expect(RULES).toMatch(/work-mode\s+line is left out when the place already says remote/);
     // Icon on the first text line, never centred on a wrapped fact (2026-11-12).
     expect(fs.readFileSync('src/hds-gaps/FactLines.css', 'utf8')).toMatch(
       /align-items: flex-start/,
@@ -307,7 +328,7 @@ describe('FIGMA-RULES.md', () => {
     expect(review).toContain('lineClamp={3}');
     expect(review).toContain('openKey={!compact}');
     const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
-    expect(head).toContain('More: sort, scan and search profile');
+    expect(head).toContain('More: scan and search profile');
     // No visible "Find" title: the h1 is .sr-only and the tools sit in the page bar (2026-11-12).
     expect(head).toContain('className="sr-only"');
     expect(head).toContain('<InPageBar>');

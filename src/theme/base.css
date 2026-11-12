@@ -344,7 +344,9 @@ p {
   --seg-rail-radius: calc(var(--role-radius) + min(var(--role-radius), var(--primitive-space-1)));
   --seg-rail-pad: var(--primitive-space-1); /* 4px */
   --seg-inner-radius: max(0px, calc(var(--seg-rail-radius) - var(--seg-rail-pad) - 1px));
-  display: flex;
+  /* Two equal segments (2026-11-12): the wider label sets both, each label centred. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--semantic-space-subgrid-gap);
   padding: var(--seg-rail-pad);
   border-radius: var(--seg-rail-radius);
@@ -354,6 +356,9 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* The label, then its count pill (TopTabCount, an HDS Badge). */
+  gap: var(--primitive-space-px6);
+  white-space: nowrap;
   min-height: 30px;
   /* Centred the way HDS SegmentedControl (sm) is, hds#1461: flex centring, line-height 1 and
    * symmetric padding. The ui ramp's taller line box put the ink about 2px low (seg-centering.spec). */
@@ -844,4 +849,45 @@ p {
  * from sm. */
 .rjb-sheet-handle {
   display: none;
+}
+
+/* Find's Review row (2026-11-12): the chips on the left, Browse | Deck and Sort on the right. The
+ * view switch is a compact two-icon segmented group on the muted rail, as the top tabs are. */
+.rjb-review-tools {
+  margin-inline-start: auto;
+}
+.rjb-view-segs {
+  padding: 0;
+  border-radius: var(--role-radius);
+  background: var(--semantic-color-surface-muted);
+}
+/* Its keys stay HDS sm to look at (32px), over the phone's 44px control rule; an ::after gives each
+ * a 44px hit area that belongs to it alone (.rjb-hit-44; HDS's hds-touch-target grows the box
+ * itself): 6px above and below, and 12px on one side only. Browse | Deck touch, so each grows on
+ * its outer side (Browse into the row gap and the tools' 4px start); Sort grows to its right, 12px
+ * from Deck, exactly Deck's 12. One line at 390 with two-digit counts; at 375 and below the tools wrap under
+ * the chips (Adrian 2026-11-12). */
+[data-hds] .rjb-review-tools {
+  --rjb-hit-grow: calc(var(--rjb-touch) - var(--primitive-space-8)); /* 12px */
+  padding-inline-start: var(--primitive-space-1);
+}
+[data-hds] .rjb-hit-44 {
+  position: relative;
+}
+[data-hds] .rjb-hit-44::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--primitive-space-8) - var(--rjb-touch)) / 2);
+}
+[data-hds] .rjb-hit-44.rjb-hit-start::after {
+  inset-inline: calc(var(--rjb-hit-grow) * -1) 0;
+}
+[data-hds] .rjb-hit-44.rjb-hit-end::after {
+  inset-inline: 0 calc(var(--rjb-hit-grow) * -1);
+}
+[data-hds] .rjb-review-tools button {
+  inline-size: var(--primitive-space-8);
+  block-size: var(--primitive-space-8);
+  min-inline-size: var(--primitive-space-8);
+  min-height: var(--primitive-space-8);
 }

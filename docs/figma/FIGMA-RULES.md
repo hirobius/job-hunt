@@ -41,11 +41,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   over hairline rows. One New key with a menu: Message, Cover letter, Résumé, Note. An empty group is
   one row, "No résumés yet.", with its own Add. A row's blanks are a count ("5 blanks"), never chips.
 - **Find Deck (#545, #617).** The same posting card as Browse, one at a time, with no source or New
-  badge (#557). No pager row: "1 of 4"
-  sits in the caption under Find, and a sideways swipe steps it. Skip (grey, left) and Save (filled,
+  badge (#557). Its place is a compact pager in the page bar, "‹ 1 of 4 ›" (the same HDS pager as
+  Apply's, arrows off at the ends); a sideways swipe or the arrow keys step it too. Skip (grey, left) and Save (filled,
   right) sit in the action dock, in one row; both show a toast with Undo. The card shows the
-  posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More on the
-  card keeps Not this company. Sort (Find's More menu) works in the Deck too: the deck's order and its
+  posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More (Not this
+  company) sits beside the card's title, as a job's More does. Sort (its own key) works in the Deck too: the deck's order and its
   "1 of N" follow the sort, and the card on screen stays when the sort changes.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
@@ -56,7 +56,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   the facts, the pay when stated, then Save (filled, plus), Skip (grey) and More (icon). No source
   badge, no New badge, no Show description row, no Open posting key. Radius 12 until HDS G5.
 - **A posting's facts, one per line (#616).** Icon + one fact per line, in one order on every card:
-  place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day. Never inline after
+  place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day. The work-mode
+  line is left out when the place already says remote ("Remote (US)", "New York or Remote"). Never inline after
   each other: the same in a title block (place, pay, date) and Daily picks (pay, posted day). The 16 px
   icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top.
 - **Disclosure rows are flat and steady.** A Disclosure row in a panel (Why this company, Cover note,
@@ -73,15 +74,22 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Layout
 
-- **Two screens: Find and Apply** (the two top tabs). **Find** is home: the Review list of postings (chips New and Remote; "New" = first seen today).
+- **Two screens: Find and Apply** (the two top tabs). **Find** is home: the list of new postings (chips New and Remote; "New" = first seen today).
   The companies a scan finds are the Account menu's Companies dialog, under **Found** (Follow / Ignore), never on Find
   (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: the sticky walk
   control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
 - **Find's short header (#544).** No visible "Find" title (the page bar's Find / Apply says where
-  you are); one caption, "Scanned 2 h ago" (no count: the New and Remote chips hold the numbers; the
-  Review heading has no count either), with one More menu holding Sort, Scan now and Search profile,
-  both at the right of the page bar. No date line, no Sort or Scan now key.
+  you are); one caption, "Scanned 2 h ago" (no count: the New and Remote chips hold the numbers),
+  with one More menu holding Scan now (signed out) and Search profile, both at the right of the page
+  bar. No date line, no Scan now key. **No visible "Review" heading (2026-11-12):** one row, the New
+  / Remote chips on the left, then at the right the Browse | Deck switch (a compact two-icon
+  segmented group) and **Sort**, its own icon key ("Sort: Newest", tooltip "Sort", a menu of Newest,
+  Best match, Company); one line at 390 (keys 32 px to look at, each with its own 44 px tap area), the keys wrapping under the chips at 375 and below. The list loads its next
+  page on its own as you near the end; "Load more (N)" stays as the fallback, one card gap below the
+  last card. A Browse card: the company's logo (letter first) before its name, or "Company not
+  stated"; two lines of the posting's text, "Show more" opens it in place (then "Read the full
+  posting").
 - **The page bar (2026-11-12).** The first row of every Find and Apply page: Find / Apply as a
   segmented control at top left, where the page title was (no visible "Find" or "Apply" title; a
   job's title stays). A page's own tools sit at the bar's right (Find: the caption and More).
@@ -137,9 +145,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   keeps its own keys and nothing is selected.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - **One app-bar row (#548).** At every width: the logo, then the Account avatar (Find / Apply moved to
-  the page bar, 2026-11-12). No second row on a phone. Each tab shows its count as plain text after its
-  label ("Find 12", "Apply 4"; over 99 is "99+"): Find the new postings, Apply the jobs its list
-  shows. No count when it is 0. Segment corners are concentric: the
+  the page bar, 2026-11-12). No second row on a phone. Each tab shows its count as an HDS count
+  Badge after its label ("Find 12", "Apply 4"; over 99 is "99+"), the pill's own fill on both
+  states: Find the new postings, Apply the jobs its list shows. No count when it is 0. Find and Apply
+  are two equal segments, the label centred, the whole segment the target (44 px tall on a phone). Segment corners are concentric: the
   inner radius is the rail's radius less its 4 px padding and 1 px.
 - **The logo is the home link (#620).** A tap on the logo opens Find at its root. Its target is 44 px.
 - Each page has one `h1`, its own name. The wordmark is never a heading.

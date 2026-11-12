@@ -2,16 +2,14 @@
 // ("N new today"), Apply its To apply count (Remote only counts, the view does not: the same number as
 // the To apply chip, so the tab's count keeps one meaning whatever view is open). A lazy chunk: pipelineView is not in the entry, and the entry is
 // at its size budget. Nothing while the count is 0 or not known yet (Find before Review new has read).
-// Plain text after the label, the way the view chips read ("To apply 21"): a Badge's chrome made the
-// row too wide for one line at 390 once both tabs had a count.
+// An HDS count Badge after the label (2026-11-12), the way the view chips read ("To apply 21"): the
+// tabs live in the page bar since #680, so the pill fits at 375 and 390 (e2e/shell-controls.spec).
+import { Badge } from '@hirobius/design-system';
 import { useScanDetails } from './feed/scanDetails';
 import { filterCounts, usePipelineView } from './pipelineView';
 import { FIND_TAB } from './route';
 import { useJobs } from './store';
 import type { TopTab } from './tabMemory';
-
-/** Over 99 reads "99+", so the row keeps its width. */
-const countText = (n: number) => (n > 99 ? '99+' : String(n));
 
 export default function TopTabCount({ tab }: { tab: TopTab }) {
   const details = useScanDetails();
@@ -21,6 +19,12 @@ export default function TopTabCount({ tab }: { tab: TopTab }) {
     tab === FIND_TAB
       ? (details?.newToday ?? 0)
       : filterCounts(jobs, undefined, !!remoteOnly).toApply;
-  // Text beside the label's own text: one run "Apply 12", and so the link's name.
-  return n > 0 ? ` ${countText(n)}` : null;
+  // A space, then the count as plain text in its pill (over 99 reads "99+"): the link's name stays
+  // one run, "Apply 12".
+  return n > 0 ? (
+    <>
+      {' '}
+      <Badge count={n} max={99} className="rjb-seg-count" />
+    </>
+  ) : null;
 }

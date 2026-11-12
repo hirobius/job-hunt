@@ -62,7 +62,9 @@ test('Find at 390: no sideways scroll and no card wider than the screen, long ti
   await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
   await findMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
-  await expect(list.getByText(/Prime Design Systems/)).toBeVisible({ timeout: 60_000 });
+  await expect(list.getByRole('link', { name: /Prime Design Systems/ })).toBeVisible({
+    timeout: 60_000,
+  });
   const m = await page.evaluate(() => {
     const se = document.scrollingElement!;
     const vw = document.documentElement.clientWidth;

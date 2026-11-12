@@ -262,6 +262,14 @@ const pairs: Pair[] = [
     bg: 'semantic-color-surface-selected',
     min: 4.5,
   },
+  {
+    // The top tabs' and filter chips' count pill (2026-11-12): HDS Badge's own fill, so its text
+    // reads the same on the selected (accent) segment and the unselected rail.
+    name: 'count badge text on its own fill',
+    fg: 'component-badge-neutral-text',
+    bg: 'component-badge-neutral-bg',
+    min: 4.5,
+  },
   ...(['hover', 'pressed'] as const).map((state): Pair => ({
     name: `on-accent label on the ${state} accent`,
     fg: 'semantic-color-content-onAccent',

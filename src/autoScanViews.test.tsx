@@ -112,7 +112,7 @@ const renderViews = ({ signedIn = false } = {}) =>
 // #544: Scan now left the page for Find's one More menu; the header says how fresh the list is in
 // one caption, "Scanned 2 h ago" (no count: the New chip has it). No other status text on Find (Adrian 2026-11-08).
 describe('Find header: one caption and one More menu (#544)', () => {
-  const more = () => screen.getByRole('button', { name: 'More: sort, scan and search profile' });
+  const more = () => screen.getByRole('button', { name: 'More: scan and search profile' });
 
   it('signed out: Scan now is in More, and the caption says when it last scanned', async () => {
     const user = userEvent.setup();

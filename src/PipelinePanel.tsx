@@ -19,8 +19,11 @@ export function Panel({
   trailing,
   description,
   flat = false,
+  titleHidden = false,
   children,
 }: {
+  /** The heading for screen readers only (Find's Review, 2026-11-12: its row is the toolbar). */
+  titleHidden?: boolean;
   /** The region's accessible name. */
   label: string;
   title: string;
@@ -37,7 +40,14 @@ export function Panel({
   flat?: boolean;
   children?: ReactNode;
 }) {
-  const body = (
+  const body = titleHidden ? (
+    <>
+      <Text variant="body" as="h2" className="sr-only">
+        {title}
+      </Text>
+      {children}
+    </>
+  ) : (
     <>
       <Box sx={{ px: flat ? 0 : 'md', pt: flat ? 0 : 'md', pb: children ? 'xs' : 'md' }}>
         <Stack direction="row" gap="px8" align="center" justify="space-between">
