@@ -8,9 +8,12 @@ import { readFileSync } from 'node:fs';
 import { FLAME, createFire, endlessFrames, flameViewBox, stillFrame } from './flameEngine';
 import {
   FLAME_MASS,
+  INLINE_FLAME_EM,
+  INLINE_FLAME_NUDGE_EM,
   NAME_INK_OFFSET_EM,
   STACKED_FLAME_EM,
   STACKED_FLAME_NUDGE_EM,
+  X_HEIGHT_CENTRE_EM,
 } from './RoleFlame';
 
 const numbers = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
@@ -232,8 +235,18 @@ describe('the flame’s mass centre (#556)', () => {
     ).toBeLessThan(0.25);
   });
 
-  it('the row layout (app bar) takes no nudge', () => {
+  it('the row nudge (app bar, #639) puts the mass within 1.5px of the x-height centre at 19px', () => {
+    // Below the line box centre is positive. The flame's box is centred on that line box.
+    const massEm = ((mean.y - 73) * INLINE_FLAME_EM) / 146 + INLINE_FLAME_NUDGE_EM;
+    expect(Math.abs(massEm - X_HEIGHT_CENTRE_EM) * 19).toBeLessThan(1.5);
+    // Without it the mass was well off (2.9px at today's tuning): the check is not loose.
+    expect(Math.abs(massEm - INLINE_FLAME_NUDGE_EM - X_HEIGHT_CENTRE_EM) * 19).toBeGreaterThan(1.5);
+  });
+
+  it('each layout takes its own nudge', () => {
     const src = readFileSync('src/brand/RoleFlame.tsx', 'utf8');
-    expect(src).toMatch(/layout === 'stacked' \? nudgeStyle\(STACKED_FLAME_NUDGE_EM\) : undefined/);
+    expect(src).toMatch(
+      /layout === 'stacked'\s*\?\s*nudgeStyle\(STACKED_FLAME_NUDGE_EM\)\s*:\s*dropStyle\(INLINE_FLAME_NUDGE_EM\)/,
+    );
   });
 });

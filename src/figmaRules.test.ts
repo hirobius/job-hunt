@@ -180,9 +180,12 @@ describe('FIGMA-RULES.md', () => {
       /Skip \(grey, left\) and Save \(filled,\s+right\) sit in the action dock/,
     );
     expect(CLAUDE).toMatch(/\*\*Find Deck \(#545, #617/);
+    // #557 cuts: no source or New badge on the Deck card, and no blue (info) badge on any card.
+    expect(RULES).toMatch(/with no source or New\s+badge \(#557\)/);
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
     expect(review).toContain('<ActionDock docked={docked} row');
     expect(review).not.toContain('Pagination');
+    expect(review).not.toContain('<Badge tone="info">');
     expect(review).not.toMatch(/mode === 'browse' && \(/);
     expect(fs.readFileSync('src/FindDeck.css', 'utf8')).toContain('line-clamp: 7');
   });

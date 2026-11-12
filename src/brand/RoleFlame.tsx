@@ -36,8 +36,21 @@ export const FLAME_MASS = { x: 57.9, y: 66.1 };
  *  on ink. This moves the flame right by the name's ink offset less the flame's own mass offset, so
  *  its mass sits over the name's ink centre: (0.011 - (57.9 - 57.5) x 2.4 / 146) em, 0.2px at 40px
  *  with today's tuning (the plan's 0.066em was measured on the flame before the 2026-11-10 engine).
- *  The row layout (app bar) has no nudge. */
+ *  The row layout has its own nudge, below. */
 export const STACKED_FLAME_NUDGE_EM = 0.0044;
+/** The row (app bar) flame's box height, in em of the logo's font size (1.3 x flameScale 1.5). */
+export const INLINE_FLAME_EM = 1.95;
+/** Sora 800's x-height centre sits this far below the name's line box centre (line-height 1), in
+ *  em: canvas measureText on sora-800.woff2 at 100px, x 56 tall, font box 97 up and 29 down, so
+ *  the x centre is 28 above the baseline and the box centre 37 above it. `e2e/brand.spec.ts`
+ *  measures it again in the browser. */
+export const X_HEIGHT_CENTRE_EM = 0.06;
+/** Row (app bar, #639): the flame's box is centred on the name's line box, so its mass (FLAME_MASS.y,
+ *  above the box centre: the rising licks) sat 2.9px above the x-height centre at 19px. This moves
+ *  the flame down by the mass's lift plus the x-height's drop: (73 - 66.1) x 1.95 / 146 + 0.06 em,
+ *  2.9px at 19px, so the mass sits on the x-height centre (within 1.5px: flameEngine.test.ts). A
+ *  transform: the bar's height and the name never move. */
+export const INLINE_FLAME_NUDGE_EM = 0.152;
 
 /* eslint-enable react-refresh/only-export-components */
 
@@ -135,6 +148,7 @@ const svgStyle = (size: number | string, extra?: CSSProperties): CSSProperties =
   ...extra,
 });
 const nudgeStyle = (em: number): CSSProperties => ({ transform: `translateX(${em}em)` });
+const dropStyle = (em: number): CSSProperties => ({ transform: `translateY(${em}em)` });
 const rootStyle = (px: number, extra?: CSSProperties): CSSProperties => ({
   ['--rjb-rf-size' as string]: `${px}px`,
   ...extra,
@@ -266,7 +280,11 @@ export function RoleFlameLogo({
         frame={frame}
         size={`${(layout === 'stacked' ? 1.6 : 1.3) * T.flameScale}em`}
         colors={colors}
-        style={layout === 'stacked' ? nudgeStyle(STACKED_FLAME_NUDGE_EM) : undefined}
+        style={
+          layout === 'stacked'
+            ? nudgeStyle(STACKED_FLAME_NUDGE_EM)
+            : dropStyle(INLINE_FLAME_NUDGE_EM)
+        }
       />
       <span aria-hidden="true">
         {T.text.split('').map((c, i) => {
