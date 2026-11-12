@@ -10,6 +10,9 @@ bde010914285107d32123a56242ff7e8f525b961:supabase/functions/sync-postings/index.
 # False positive: company slug list ("headoutlinkedin") in the board-keys data.
 9339f822c939b4b9720207521ddb7331f559c592:src/feed/data/board-keys.json:linkedin-client-secret:1
 
+# False positive: company slug list ("headoutlinkedin") in the board-keys data (#648, dead boards removed).
+e8c673c7dcbae43946813a40513b3bd0a3fe64e9:src/feed/data/board-keys.json:linkedin-client-secret:1
+
 # Fake test JWT for the scrubText test.
 aad35499917461a2d2640ed2b57316c9ff7cf97c:src/errorReport.test.ts:jwt:36
 

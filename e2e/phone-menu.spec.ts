@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { openAllJobs, openData } from './routes';
 
 // A long row menu on a phone (44px items) must fit a 390px screen with the page scroll-locked, so
@@ -113,6 +113,54 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   expect(st).toEqual(['0px', 'none', 'none']);
   await chip.click();
   await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeVisible();
+});
+
+// The non-empty worst case (prod audit review): the longest view name that has jobs, both filters
+// on. At 390 the name, the chip and the pager share one row, all whole, none overlapping. Narrower,
+// the pager wraps under the name instead of cutting it.
+test('the walk row with jobs: name, chip and pager whole at 390; the pager wraps when narrow', async ({
+  page,
+}) => {
+  await page.goto('/#/apply');
+  await page
+    .getByRole('button', { name: /Try with sample data/ })
+    .first()
+    .click();
+  const picker = page.getByRole('button', { name: /^View: / });
+  await picker.click();
+  await page.getByRole('menuitemradio', { name: /^Interviewing/ }).click();
+  await expect(page.getByRole('button', { name: 'View: Interviewing' })).toBeVisible();
+  const all = await openAllJobs(page);
+  await all.getByRole('button', { name: 'Remote only' }).click();
+  await all.getByLabel('Search saved jobs').fill('e');
+  await page.keyboard.press('Escape');
+  await expect(all).toHaveCount(0);
+  const chip = page.getByRole('button', { name: '2 filters, open All jobs' });
+  const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
+  await expect(chip).toBeVisible();
+  await expect(pager).toBeVisible();
+  await expect(page.getByText(/^Nothing under/)).toHaveCount(0);
+  const whole = async (l: Locator) =>
+    expect(await l.evaluate((n) => n.scrollWidth <= n.clientWidth + 1)).toBe(true);
+  const name = picker.locator('span').first();
+  const box = async (l: Locator) => (await l.boundingBox())!;
+  type Box = { x: number; y: number; width: number; height: number };
+  const apart = (a: Box, b: Box) =>
+    a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+  for (const w of [390, 320]) {
+    await page.setViewportSize({ width: w, height: 844 });
+    await expect(async () => {
+      const [p, c, k] = [await box(pager), await box(chip), await box(picker)];
+      // Inside the gutter, nothing overlaps, the name and the chip share a row.
+      for (const b of [p, c, k]) expect(b.x + b.width).toBeLessThanOrEqual(w - 16 + 1);
+      expect(apart(p, c) && apart(p, k) && apart(c, k)).toBe(true);
+      expect(k.x + k.width).toBeLessThanOrEqual(c.x);
+      // The three do not fit one row here: the pager wraps under the name, never cutting it.
+      expect(p.y).toBeGreaterThanOrEqual(k.y + k.height - 1);
+    }).toPass();
+    await whole(pager);
+    await whole(name);
+  }
 });
 
 test('no pager or view picker at 1440', async ({ page }) => {
