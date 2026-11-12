@@ -28,6 +28,19 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(claude);
   });
 
+  it('keeps the states on the page background, and the done state, as the code does (#553, #554)', () => {
+    const EMPTY = fs.readFileSync('src/hds-gaps/EmptyState.tsx', 'utf8');
+    const DONE =
+      fs.readFileSync('src/ApplyDone.tsx', 'utf8') + fs.readFileSync('src/applyDone.ts', 'utf8');
+    expect(RULES).toMatch(/states sit on the page background/);
+    expect(CLAUDE).toMatch(/states sit on the page background/);
+    expect(EMPTY).toContain('onPage');
+    for (const words of ['That is the list', 'Find more jobs', 'All jobs']) {
+      expect(RULES).toContain(words);
+      expect(DONE).toContain(words);
+    }
+  });
+
   it('names the views as CLAUDE.md and pipelineView.ts do (#541)', () => {
     const VIEW = fs.readFileSync('src/pipelineView.ts', 'utf8');
     for (const name of ['To apply', 'Follow up', 'Interviewing', 'Applied', 'Recently closed']) {

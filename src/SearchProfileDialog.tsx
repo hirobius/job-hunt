@@ -17,7 +17,7 @@ export default function SearchProfileDialog({
   onCloseAutoFocus,
 }: {
   onDone: () => void;
-  onCloseAutoFocus?: () => void;
+  onCloseAutoFocus?: (e: Event) => void;
 }) {
   const profile = useProfile();
   const { settled } = useCloudSync();

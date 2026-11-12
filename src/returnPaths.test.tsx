@@ -302,7 +302,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
 
   it('Follow up, over the page it was opened on', async () => {
     updateJob(A, { status: 'Applied', applied: '2026-01-01' });
-    window.location.hash = '#/apply';
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     await heading('Fabricator');
     // From the job's More menu (#540: the dock copies the follow-up).
@@ -311,7 +311,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     await screen.findByRole('dialog');
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(window.location.hash).toBe('#/apply');
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
   });
 
   it('the Account menu', async () => {

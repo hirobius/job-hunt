@@ -51,7 +51,7 @@ import { usePageTitle } from './pageTitle';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
-import { ScanStatus } from './AutoScanViews';
+import { NoResultsKeys, ScanStatus } from './AutoScanViews';
 import {
   FILTER_LABEL,
   SORT_LABEL,
@@ -202,8 +202,16 @@ export default function ReviewView({
 
   const caughtUp =
     'Every posting from your sources is saved or skipped. The next scan brings new ones.';
+  // No results (#553): the empty state's own Scan now is the filled key, so the heading's steps aside.
+  const noResults =
+    !feed.error &&
+    mode !== 'deck' &&
+    !!view &&
+    !listed.length &&
+    !on.length &&
+    !decidedAny(view.hidden);
   // Signed out, a compact Scan now beside the heading; signed in, nothing (the server syncs).
-  const status = scanStatus && <ScanStatus />;
+  const status = scanStatus && !noResults && <ScanStatus />;
   const panel = (
     <Panel
       label={view ? `${label} (${listed.length})` : label}
@@ -342,7 +350,7 @@ export default function ReviewView({
       ) : (
         <EmptySection>
           <EmptyState
-            framed
+            centered
             icon={SearchX}
             titleId={EMPTY_TITLE_ID}
             title={
@@ -364,7 +372,10 @@ export default function ReviewView({
                 <Button variant="secondary" onClick={() => setOn([])}>
                   Clear filters
                 </Button>
-              ) : undefined
+              ) : !noResults ? undefined : (
+                // No results (#553): Scan now filled, Edit search profile the grey key.
+                <NoResultsKeys />
+              )
             }
           />
         </EmptySection>
@@ -428,8 +439,8 @@ function focusNextTitle(from: Element | null) {
 }
 
 /** Review new's empty states (Adrian 2026-11-08): their own section under the toolbar, a hairline
- *  above and room around it, like the Apply list's (TrackerView), with the framed teaching empty
- *  (icon tile, centred text) of Apply's "Track your first job". */
+ *  above and room around it, like the Apply list's (TrackerView), with the centred teaching empty
+ *  (icon tile, centred text) of Apply's "Track your first job", on the page background (#553). */
 function EmptySection({ children }: { children: ReactNode }) {
   return (
     <Box
@@ -814,7 +825,7 @@ function Deck({
     return (
       <EmptySection>
         <EmptyState
-          framed
+          centered
           icon={SearchX}
           titleId={EMPTY_TITLE_ID}
           title="You’re all caught up"

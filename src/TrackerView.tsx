@@ -8,9 +8,11 @@ import {
   Input as HdsInput,
   Box,
   Card,
+  Sidebar,
   Stack,
   Text,
   VisuallyHidden,
+  useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { useJobs } from './store';
@@ -35,6 +37,8 @@ import { CloudSyncContext } from './account/accountContext';
 import { needsClientAtBoot } from './supabase';
 import { tabFrozen } from './tabAccount';
 import { PipelineSkeleton } from './Skeletons';
+import ApplyDone from './ApplyDone';
+import JobRail from './JobRail';
 
 /** The Jobs tab (#/apply). A signed-in device with no jobs on it yet (a first visit, a new address,
  *  cleared storage) waits for its cloud copy here instead of saying "0 jobs" (#478), at every
@@ -61,7 +65,7 @@ export default function TrackerView() {
           Apply
         </Text>
         <EmptyState
-          framed
+          onPage
           icon={Briefcase}
           title="Your jobs couldn't load"
           description={
@@ -94,6 +98,14 @@ export default function TrackerView() {
   // filter bar, the pager and All jobs over it (JobPage).
   const shown = visibleJobs(jobs, view);
   const next = toApplyQueue(jobs).find((j) => shown.includes(j));
+  // The To apply view walked to its end (#554): the done state, not some other job. Only when
+  // nothing is left to apply to at all (Remote only hiding some keeps a job, as before).
+  const done =
+    jobs.length > 0 &&
+    view.filter === 'toApply' &&
+    !view.q.trim() &&
+    visibleJobs(jobs, { ...view, remoteOnly: false }).length === 0;
+  if (done) return <DonePage jobs={jobs} />;
   const first = next ?? shown[0] ?? toApplyQueue(jobs)[0] ?? jobs[0];
   if (first) return <JobPage jobId={jobIdOf(first.url)} />;
   return <PipelinePage />;
@@ -188,6 +200,8 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
                   }
                 />
               ) : filter === 'toApply' ? (
+                // Only while Remote only hides the rest: with nothing left at all, the Apply tab is
+                // the done state (#554, DonePage) and this sheet is not open.
                 <EmptyState
                   centered
                   icon={Search}
@@ -245,6 +259,31 @@ export function JobsList({ onOpen }: { onOpen?: (job: Job) => void }) {
   );
 }
 
+/** Every job applied to or set aside (#554): the page header, then the done state on the page
+ *  background; at lg the Apply list beside it, no row marked (like a Company page). */
+function DonePage({ jobs }: { jobs: Job[] }) {
+  const wide = useAtLeast('lg');
+  const page = (
+    <Stack gap="px24">
+      <Box as="header">
+        <Text as="h1" variant="title">
+          Apply
+        </Text>
+      </Box>
+      <Box sx={{ py: 'lg' }}>
+        <ApplyDone jobs={jobs} />
+      </Box>
+    </Stack>
+  );
+  if (!wide) return page;
+  return (
+    <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">
+      <JobRail openId="" />
+      {page}
+    </Sidebar>
+  );
+}
+
 /** No jobs yet: the page header and the first-run empty state. */
 function PipelinePage() {
   const jobs = useJobs();
@@ -274,7 +313,7 @@ function PipelinePage() {
       {/* First use: the shared teaching empty (#132): what this will hold, one primary action,
           one way to see it working (rev-3 "Pipeline, empty"). */}
       <EmptyState
-        framed
+        onPage
         icon={Briefcase}
         title="Track your first job"
         description="Paste a job link to save it here, then apply and follow up. You can also save postings from Review new on Find."

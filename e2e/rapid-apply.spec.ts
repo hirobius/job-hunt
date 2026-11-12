@@ -97,7 +97,15 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
     await page.waitForTimeout(800);
   }
 
-  // Nothing left to apply to: the tab still shows a job, and All jobs has Follow up (3).
+  // Nothing left to apply to: the done state (#554), the flame, the week, then two keys. All jobs
+  // opens the view's first job, and the All jobs sheet has Follow up (3).
+  const done = page.getByRole('region', { name: 'That is the list' });
+  await expect(done).toBeVisible();
+  await expect(done.locator('.rjb-flame svg')).toBeVisible();
+  await expect(done.getByText('You applied to 3 jobs this week.')).toBeVisible();
+  await expect(done.getByRole('button', { name: 'Find more jobs' })).toBeVisible();
+  await done.getByRole('button', { name: 'All jobs' }).click();
+  await expect(done).toBeHidden();
   await pressAllJobs(page);
   await expect(
     page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Follow up (3)' }),

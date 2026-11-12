@@ -131,6 +131,20 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
   Follow-up due. `JobBadges` drops the fit chips and the Saved chip everywhere (the verdict stays in the data).
   Pinned in `jobTitleBlock.test.tsx`, `e2e/title-block.spec.ts`.
+- **Empty, error and done states sit on the page background (redesign §5.11, #553/#554):** `src/hds-gaps/EmptyState`
+  `onPage` (centred, room above and below, no card); `framed` (a raised panel) is left for not-found and
+  "pick one" columns only. One filled key and one grey key, never a text button for a second choice: Apply empty
+  "Track your first job" (Add job | Try with sample data), the load error (Try again), Documents' "No documents
+  yet" (Add starter messages | Start from scratch, grey), Find's "No postings match yet" (`AutoScanViews.tsx` `NoResultsKeys`: signed out Scan now | Edit
+  search profile, and the heading's compact Scan now steps aside; signed in Edit search profile alone, filled, as
+  there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Done:**
+  with nothing left to apply to at all (To apply view, no search; Remote only aside) the Apply tab is
+  `TrackerView` `DonePage`: the h1, then `ApplyDone.tsx` (BootHold's `<Flame animate />`, the lazy startFlame
+  chunk, still under reduced motion and Pause animations; "That is the list"; `applyDone.ts` `weekLine`: applied
+  in the last 7 days and follow-ups due; the filled key Follow up (N) while some are due, else Find more jobs; the
+  grey All jobs key sets the All jobs view and focus goes to its first job's title), the lg rail beside it. After
+  the last Mark applied / Not a fit the tab lands there and its h1 takes focus. Pinned in `applyDone.test.ts(x)`,
+  `emptyStates.test.tsx`, `rapidApply.test.tsx`, `e2e/rapid-apply.spec.ts`, `e2e/states.spec.ts`.
 - **Keys (redesign §3, Adrian 2026-11-10, #537):** one filled key per decision, a grey key for a real
   second choice, and **An exit is underlined text** for every way out (Cancel, Not a fit, Continue
   without an account): `src/hds-gaps/ExitButton.tsx` = HDS `Button variant="link"` + HDS's

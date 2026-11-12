@@ -1,7 +1,7 @@
 // The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
 // (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
 // says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import {
   Box,
   Button,
@@ -28,7 +28,8 @@ import {
   type LeadSource,
 } from './feed/autoScan';
 import { useScanInput } from './feed/useAutoScan';
-import { useCloudSync } from './account/accountContext';
+import { CloudSyncContext, useCloudSync } from './account/accountContext';
+import { openSearchProfile } from './jobDialogs';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -44,6 +45,41 @@ const VIA_LABEL: Record<LeadSource, string> = {
 export function ScanStatus() {
   const { user } = useCloudSync();
   return user ? null : <ScanButton />;
+}
+
+/** Find's "No postings match yet" (#553): Scan now filled and Edit search profile grey; the
+ *  heading's compact Scan now steps aside while they show. Signed in there is no Scan now (the
+ *  server syncs, Adrian 2026-11-08), so Edit search profile is the one, filled key. Stop scan
+ *  (quiet, as the heading's) while a scan runs. */
+export function NoResultsKeys() {
+  // Read the context directly: Review new also renders on its own (tests), outside the provider.
+  const user = useContext(CloudSyncContext)?.user;
+  const { running } = useScan();
+  const input = useScanInput();
+  return (
+    <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+      {!user &&
+        (running ? (
+          <Button variant="tertiary" onClick={cancelScan}>
+            Stop scan
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            iconLeft={<Icon icon={RefreshCw} />}
+            onClick={() => void scanNow(input, undefined, { force: true })}
+          >
+            Scan now
+          </Button>
+        ))}
+      <Button
+        variant={user ? 'primary' : 'secondary'}
+        onClick={(e) => openSearchProfile(e.currentTarget)}
+      >
+        Edit search profile
+      </Button>
+    </Stack>
+  );
 }
 
 function ScanButton() {

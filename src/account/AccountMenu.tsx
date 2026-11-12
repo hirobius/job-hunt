@@ -29,7 +29,12 @@ import {
   SearchProfileDialog,
   useLoadedWhen,
 } from '../lazyDialogs';
-import { openRecentlyRemoved } from '../jobDialogs';
+import {
+  openRecentlyRemoved,
+  setSearchProfileOpen as setProfile,
+  takeSearchProfileOpener,
+  useSearchProfileOpen,
+} from '../jobDialogs';
 import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
@@ -55,7 +60,8 @@ export default function AccountMenu() {
     [accountTrigger],
   );
   // The Search profile (#388: Calibrate's and Manage track's place).
-  const [profile, setProfile] = useState(false);
+  // Shared (jobDialogs.ts): Find's empty state opens it too (#553).
+  const profile = useSearchProfileOpen();
   useBackCloses(profile, () => setProfile(false), 'search-profile');
   const profileReady = useLoadedWhen(SearchProfileDialog, profile, () => setProfile(false));
   // Scan details (Adrian 2026-11-08): Find's freshness, source health and "not shown" counts.
@@ -196,7 +202,12 @@ export default function AccountMenu() {
         {profile && profileReady && (
           <SearchProfileDialog
             onDone={() => setProfile(false)}
-            onCloseAutoFocus={refocusAccount(accountTrigger)}
+            onCloseAutoFocus={(e: Event) => {
+              const opener = takeSearchProfileOpener();
+              if (!opener) return refocusAccount(accountTrigger)();
+              e.preventDefault();
+              opener.focus();
+            }}
           />
         )}
       </Dialog>

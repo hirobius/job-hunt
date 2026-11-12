@@ -4,7 +4,9 @@
 //   - HDS's empty state is a left-aligned typographic line with a bare icon. The rev-3 mock's
 //     teaching empty (Pipeline, empty; filtered to nothing) is centred: an icon tile, a bold title,
 //     one sentence and the actions in one centred column. `centered` draws that; `framed` also
-//     puts it in one panel (a raised fill, no outline) when it sits loose on the page (not inside a Panel already).
+//     puts it in one panel (a raised fill, no outline): only for a not-found or "pick one" column.
+//     Empty, error and done states sit on the page background (`onPage`, redesign §5.11, #553):
+//     centred, with room above and below, no card.
 //   - HDS's children sit gap-1 (4px) apart, so the actions crowd the sentence; centred empties put
 //     16px more above the actions (rev-3: about 16-20px).
 // Every app empty state imports this one, not HDS's, so the italic can't come back on a new screen.
@@ -26,6 +28,7 @@ const CENTERED = 'not-italic items-center text-center';
 export function EmptyState({
   centered = false,
   framed = false,
+  onPage = false,
   icon,
   title,
   titleId,
@@ -36,10 +39,13 @@ export function EmptyState({
   titleId?: string;
   /** Centre it with an icon tile and a bold title (rev-3 teaching empty). */
   centered?: boolean;
-  /** Also frame it in one panel (implies `centered`). */
+  /** Also frame it in one panel (implies `centered`): not-found and "pick one" columns only. */
   framed?: boolean;
+  /** Centred on the page background with room around it (implies `centered`): empty, error and
+   *  done states (#553). Never a card. */
+  onPage?: boolean;
 }) {
-  if (!centered && !framed)
+  if (!centered && !framed && !onPage)
     return (
       <HdsEmptyState
         {...rest}
@@ -80,6 +86,7 @@ export function EmptyState({
       />
     </Stack>
   );
+  if (onPage) return <Box sx={{ py: 'lg' }}>{body}</Box>;
   if (!framed) return body;
   return (
     <Card padding="none">
