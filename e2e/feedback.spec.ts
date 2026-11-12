@@ -325,10 +325,14 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   ).toBeVisible();
   // It comes back as it was: still the open row.
   await press(page, button(page, 'Open Follow-up after applying'), 'Open');
-  for (const name of ['New résumé', 'New cover letter', 'New outreach message', 'New note']) {
+  // One New key with a menu (#552): each kind it offers answers.
+  for (const kind of ['Message', 'Cover letter', 'Résumé', 'Note']) {
     await go(page, '#/find?documents=');
-    await press(page, button(page, name), name);
+    await menu(page, 'New document', kind);
   }
+  // An empty group's own Add (#552): no résumé yet.
+  await go(page, '#/find?documents=');
+  await press(page, button(page, 'Add résumé'), 'Add résumé');
 
   // The editor: its menus, the variables panel and Save.
   await go(page, '#/find?documents=tpl-outreach');
