@@ -364,7 +364,7 @@ export type Lick = {
 };
 
 /** The air: which way it pushes at (x, y) at time t. A large swirl, a fine one, a gust. */
-export function air(S: FlameSettings, x: number, y: number, t: number): Pt {
+function air(S: FlameSettings, x: number, y: number, t: number): Pt {
   const k = 1 / Math.max(2, S.swirlSize);
   const a = noise(x * k, y * k - t * S.swirlSpeed, t * S.swirlSpeed * 0.9, S.seed + 1) - 0.5;
   const b =
@@ -399,7 +399,7 @@ export function lickAxis(S: FlameSettings, l: Lick): [number, number, number, nu
     l.y + uy * len * S.head,
   ];
 }
-export function lickHeat(
+function lickHeat(
   S: FlameSettings,
   r: number,
   ax: [number, number, number, number],

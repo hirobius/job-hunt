@@ -1,68 +1,53 @@
-// Prototype (proto/theme-burn, for Adrian's look only): one burn front, used two ways. The theme
-// switch burns the old page away (a View Transition whose old snapshot is masked by the front's
-// hole, with the flame's two cobalt bands drawn over the edge as flat fills); a card burns away the
-// same way before collapseRow closes the gap. Save lifts the card toward the Apply tab instead. The
-// front is burnField.ts (the flame engine's primitives). A lazy chunk; colours are HDS primitives.
+// Prototype (proto/theme-burn, for Adrian's look only): one reveal front, used two ways. The theme
+// switch reveals the new theme over the old (a View Transition whose new snapshot is clipped to the
+// front's hole); a card burns away the same way before collapseRow closes the gap. Save lifts the
+// card toward the Apply tab instead. No colour of its own: only a thin char band ahead of the edge,
+// the old surface's own colour darkened. The front is burnField.ts. A lazy chunk.
 import './burn.css';
-import { BURN, createBurn, type BurnFrame, type BurnShape } from './burnField';
+import { BURN, createBurn, type BurnFrame } from './burnField';
 
 const CARD_MS = BURN.cardMs;
 type Pt = { x: number; y: number };
 
-/** Theme variant: A (default) a radial burn from the tap point; B (`?burn=b`) a front rising from
- *  the bottom. A runtime switch so both record from one build. */
-export const variant = (): 'a' | 'b' => (new URLSearchParams(location.search).get('burn') === 'b' ? 'b' : 'a');
-
 const NS = 'http://www.w3.org/2000/svg';
 
-/** The flame bands over the burning box: flat fills, outer (layer 1) then middle (layer 2). */
-function overlay(w: number, h: number) {
+/** The char band over the burning box, in `tone` (the old surface's colour), darkened. */
+function overlay(w: number, h: number, tone: string) {
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'rjb-burn-rim');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
   svg.setAttribute('preserveAspectRatio', 'none');
-  const paths = ['rjb-burn-outer', 'rjb-burn-middle'].map((cls) => {
-    const p = document.createElementNS(NS, 'path');
-    p.setAttribute('class', cls);
-    p.setAttribute('fill-rule', 'evenodd');
-    svg.append(p);
-    return p;
-  });
-  const show = (f: BurnFrame) => {
-    paths[0].setAttribute('d', f.outer + f.middle);
-    paths[1].setAttribute('d', f.middle + f.hole);
-  };
-  return { svg, show };
+  svg.style.setProperty('--rjb-burn-tone', tone);
+  svg.style.setProperty('--rjb-burn-char', String(BURN.charStrength));
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('class', 'rjb-burn-char');
+  p.setAttribute('fill-rule', 'evenodd');
+  svg.append(p);
+  return { svg, show: (f: BurnFrame) => p.setAttribute('d', f.char ? f.char + f.hole : '') };
 }
 
-/** The old surface's mask: everything but the hole (vector, so crisp at any pixel ratio). */
-const maskOf = (w: number, h: number, hole: string) =>
-  `url("data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="${NS}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path fill-rule="evenodd" d="M-9,-9H${w + 9}V${h + 9}H-9Z${hole}"/></svg>`,
-  )}")`;
+/** Clip paths, applied synchronously every frame (an image mask decodes late and blanks): the
+ *  hole alone (the new theme over the old), or everything but the hole (a card burning away). */
+const holeClip = (hole: string) => (hole ? `path(evenodd, '${hole}')` : 'inset(50%)');
+const keepClip = (w: number, h: number, hole: string) => `path(evenodd, 'M-9,-9H${w + 9}V${h + 9}H-9Z${hole}')`;
 
 /** Frame timing, read by the recording script. */
 const stats = ((globalThis as { __burnStats?: number[][] }).__burnStats ??= []);
 
-/** Run a burn over a w×h box: the contour steps at BURN.fps, the page paints at its own rate. */
-function runBurn(w: number, h: number, shape: BurnShape, ms: number, show: (f: BurnFrame) => void, mask: (url: string) => void) {
-  const frame = createBurn(BURN, w, h, shape);
-  const dt = 1000 / BURN.fps;
+/** Run a burn over a w×h box from (x, y): every animation frame, the field's contour at time p. */
+function runBurn(w: number, h: number, at: Pt, ms: number, show: (f: BurnFrame) => void, clip: (hole: string) => void) {
+  const frame = createBurn(BURN, w, h, at.x, at.y);
   const times: number[] = [];
   stats.push(times);
   return new Promise<void>((done) => {
     const t0 = performance.now();
-    let next = 0;
     const paint = (now: number) => {
       times.push(now);
       const e = now - t0;
-      if (e >= next) {
-        next += dt;
-        const f = frame(e / ms);
-        show(f);
-        mask(maskOf(w, h, f.hole));
-      }
+      const f = frame(e / ms);
+      show(f);
+      clip(f.hole);
       if (e < ms) requestAnimationFrame(paint);
       else done();
     };
@@ -75,15 +60,15 @@ function setThemeColor() {
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', bg);
 }
 
-/** Burn the old theme away from `at`; `swap` flips the theme (synchronously). */
+/** Reveal the new theme over the old from `at`; `swap` flips the theme (synchronously). */
 export async function burnTheme(at: Pt, swap: () => void): Promise<void> {
   const root = document.documentElement;
   const w = innerWidth,
     h = innerHeight;
-  const { svg, show } = overlay(w, h);
+  const { svg, show } = overlay(w, h, getComputedStyle(document.body).backgroundColor);
   svg.dataset.root = '';
   root.setAttribute('data-rjb-burning', '');
-  root.style.setProperty('--rjb-burn-mask', 'linear-gradient(black, black)');
+  root.style.setProperty('--rjb-burn-clip', 'inset(50%)');
   const vt = document.startViewTransition(() => {
     swap();
     setThemeColor();
@@ -91,37 +76,38 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<void> {
   });
   try {
     await vt.ready;
-    const shape: BurnShape = variant() === 'b' ? { kind: 'rise' } : { kind: 'radial', x: at.x, y: at.y };
-    await runBurn(w, h, shape, BURN.themeMs, show, (url) => root.style.setProperty('--rjb-burn-mask', url));
+    // Hold the transition open for the whole burn (its own animations are off, so it would end at once).
+    root.animate([{ opacity: 1 }, { opacity: 1 }], { duration: BURN.themeMs + 50, pseudoElement: '::view-transition-new(root)' });
+    await runBurn(w, h, at, BURN.themeMs, show, (hole) => root.style.setProperty('--rjb-burn-clip', holeClip(hole)));
     await vt.finished;
   } finally {
     svg.remove();
     root.removeAttribute('data-rjb-burning');
-    root.style.removeProperty('--rjb-burn-mask');
+    root.style.removeProperty('--rjb-burn-clip');
   }
 }
 
 /** Card option (runtime switch `?card=1|2|3`, default 1): 1 removals burn + Save lifts to Apply;
- *  2 every decision is flame (Save flares up, removals smoulder to ash); 3 progress only (Save and
+ *  2 Save flares up, removals smoulder grey; 3 progress only (Save and
  *  Mark applied flare, removals plain collapse). */
 export const cardOption = (): 1 | 2 | 3 => {
   const n = Number(new URLSearchParams(location.search).get('card'));
   return n === 2 || n === 3 ? n : 1;
 };
 
-/** Smoulder: a slower, dimmer rising burn in ash grey (HDS neutrals), the card greying as it goes. */
+/** Smoulder: the card greys as the same burn takes it. */
 export async function smoulder(card: HTMLElement): Promise<void> {
   card.animate([{ filter: 'none', opacity: 1 }, { filter: 'grayscale(1) brightness(.85)', opacity: 0.6 }], {
     duration: 500,
     fill: 'forwards',
   });
-  return burnCard(card, undefined, 'ash', 500);
+  return burnCard(card, undefined, 500);
 }
 
-/** Flare: the card ignites upward (a bright rising burn) as it lifts, then the Apply count pulses. */
+/** Flare: the card lifts as it burns away, then the Apply count pulses. */
 export async function flare(card: HTMLElement): Promise<void> {
   card.animate([{ transform: 'none' }, { transform: 'translateY(-24px)' }], { duration: 420, easing: 'ease-in', fill: 'forwards' });
-  await burnCard(card, undefined, 'flame', 420, true);
+  await burnCard(card, undefined, 420);
   pulseApply();
 }
 
@@ -131,20 +117,17 @@ function pulseApply() {
     ?.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'ease-out' });
 }
 
-/** Burn one card away (from near its Skip key, or rising from the bottom), then resolve. */
-export async function burnCard(card: HTMLElement, at?: Pt, set: 'flame' | 'ash' = 'flame', ms = CARD_MS, rise = set === 'ash'): Promise<void> {
+/** Burn one card away from `at` (default near its Skip key), then resolve. */
+export async function burnCard(card: HTMLElement, at?: Pt, ms = CARD_MS): Promise<void> {
   const box = card.getBoundingClientRect();
-  const { svg, show } = overlay(box.width, box.height);
-  if (set === 'ash') svg.dataset.ash = '';
+  const { svg, show } = overlay(box.width, box.height, getComputedStyle(card).backgroundColor);
   for (const [k, v] of [['left', box.left], ['top', box.top], ['width', box.width], ['height', box.height]] as const)
     svg.style.setProperty(k, `${v}px`);
   svg.style.setProperty('border-radius', getComputedStyle(card).borderRadius);
   document.body.append(svg);
-  card.style.setProperty('mask-size', '100% 100%');
   const c = at ? { x: at.x - box.left, y: at.y - box.top } : { x: box.width * 0.3, y: box.height * 0.85 };
-  const shape: BurnShape = rise ? { kind: 'rise' } : { kind: 'radial', ...c };
   try {
-    await runBurn(box.width, box.height, shape, ms, show, (url) => card.style.setProperty('mask-image', url));
+    await runBurn(box.width, box.height, c, ms, show, (hole) => card.style.setProperty('clip-path', keepClip(box.width, box.height, hole)));
   } finally {
     svg.remove();
     card.style.setProperty('visibility', 'hidden');

@@ -1,32 +1,23 @@
-/* Prototype (proto/theme-burn): the burn-away theme switch and card burn. Lazy, with burn.ts.
-   Flat fills only: the flame's outer (layer 1) and middle (layer 2) colours, no glow, no blur. */
+/* Prototype (proto/theme-burn): the theme reveal and card burn. Lazy, with burn.ts. No colour of its
+   own: the char band is the old surface's colour (--rjb-burn-tone, read before the swap) darkened. */
 .rjb-burn-rim {
-  --rjb-burn-1: var(--primitive-color-blue-500);
-  --rjb-burn-2: var(--primitive-color-cobalt-400);
   position: fixed;
   pointer-events: none;
   z-index: 10;
   overflow: hidden;
 }
-.rjb-burn-rim[data-ash] {
-  --rjb-burn-1: var(--primitive-color-neutral-500);
-  --rjb-burn-2: var(--primitive-color-neutral-300);
-}
-.rjb-burn-outer {
-  fill: var(--rjb-burn-1);
-}
-.rjb-burn-middle {
-  fill: var(--rjb-burn-2);
+.rjb-burn-char {
+  fill: color-mix(in srgb, var(--rjb-burn-tone) 55%, black);
+  fill-opacity: var(--rjb-burn-char);
 }
 :root[data-rjb-burning]::view-transition-old(root),
 :root[data-rjb-burning]::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
 }
-:root[data-rjb-burning]::view-transition-old(root) {
+:root[data-rjb-burning]::view-transition-new(root) {
   z-index: 2;
-  mask-image: var(--rjb-burn-mask);
-  mask-size: 100% 100%;
+  clip-path: var(--rjb-burn-clip);
 }
 :root[data-rjb-burning]::view-transition-group(rjb-burn-rim) {
   z-index: 3;
