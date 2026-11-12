@@ -123,6 +123,15 @@ export async function openData(page: Page) {
   return dialog;
 }
 
+/** Open Scan details (#549: a closed row in the Account menu's Search profile); returns the dialog. */
+export async function openScanDetails(page: Page) {
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: 'Search profile', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Search profile' });
+  await dialog.getByRole('button', { name: 'Scan details' }).click();
+  return dialog;
+}
+
 /** The shell's top tabs are links in a nav (top tabs PR): one by name, or the open one. */
 export const topTab = (page: Page, name: string) =>
   page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name, exact: true });

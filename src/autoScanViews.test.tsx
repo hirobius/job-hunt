@@ -3,9 +3,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Dialog, ToastProvider } from '@hirobius/design-system';
+import { ToastProvider } from '@hirobius/design-system';
 import { NewCompanies, ScanStatus } from './AutoScanViews';
-import ScanDetailsDialog from './ScanDetailsDialog';
+import ScanDetails from './ScanDetails';
 import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import NoticeHost from './NoticeHost';
 import { dismissNotice } from './saveNotice';
@@ -125,15 +125,13 @@ describe('ScanStatus (Adrian 2026-11-08: no status text on Find)', () => {
   });
 });
 
-describe('Scan details (the Account menu)', () => {
+describe('Scan details (the Search profile, #549)', () => {
   const renderDetails = ({ signedIn = false } = {}) =>
     render(
       <CloudSyncContext.Provider
         value={{ user: signedIn ? { id: 'u1', email: 'a@b.c' } : null } as CloudSyncApi}
       >
-        <Dialog open>
-          <ScanDetailsDialog />
-        </Dialog>
+        <ScanDetails />
       </CloudSyncContext.Provider>,
     );
   afterEach(() => setScanDetails(null));

@@ -206,7 +206,12 @@ test('Pause animations stops the app bar flame and is kept after a reload', asyn
   const path = page.locator('header .rjb-rf > svg path').first();
   await expect(path).toBeAttached();
   await page.getByRole('button', { name: 'Account' }).click();
-  await page.getByRole('menuitem', { name: 'Pause animations' }).click();
+  const toggle = page.getByRole('menuitemcheckbox', { name: 'Pause animations' });
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await toggle.click();
+  // A toggle (#549): the menu stays open and the switch shows the new state.
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Escape');
   const still = await path.getAttribute('d');
   await page.waitForTimeout(800);
   expect(await path.getAttribute('d')).toBe(still);
@@ -216,5 +221,8 @@ test('Pause animations stops the app bar flame and is kept after a reload', asyn
   await page.waitForTimeout(800);
   expect(await path.getAttribute('d')).toBe(after);
   await page.getByRole('button', { name: 'Account' }).click();
-  await expect(page.getByRole('menuitem', { name: 'Play animations' })).toBeVisible();
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Pause animations' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
 });

@@ -1,20 +1,33 @@
-// The header's account menu (#115 Phase 1): sync status + sign-in/out, Documents (#240, #227: no
-// tab), Data (#550: one lazy dialog for back up, restore, export, Recently removed, Reload app and
-// Reset local data behind a confirm; never a loose button on a page), the theme, feedback and the
-// Privacy and terms pages (#43) — one home for everything about "my account and my data".
-import { useMemo, useRef, useState } from 'react';
-import { Avatar, Button, Dialog, Menu } from '@hirobius/design-system';
+// The header's account menu (#115 Phase 1; redesign §5.9, #549: 9 items in 4 groups). One home for
+// everything about "my account and my data", top to bottom:
+//   1. who you are: signed out "On this device only" + why to sign in, and Sign in as a grey key;
+//      signed in the email, the sync line (Retry when it failed) and Sign out
+//   2. Documents (#227), Search profile (Scan details sits in it, #549), Companies, Data (#550: one
+//      lazy dialog for back up, restore, export, Recently removed and the repairs)
+//   3. Dark theme and Pause animations, toggles that show their state (MenuToggleItem, G9)
+//   4. Send feedback, Privacy and terms (#43)
+// Every row has a 16px icon; rows are 44px on a phone, 38px from sm (theme/late.css).
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Building2,
+  Database,
+  FileText,
+  LogOut,
+  MessageSquare,
+  Moon,
+  Pause,
+  RefreshCw,
+  ShieldCheck,
+  SlidersHorizontal,
+  type LucideIcon,
+} from 'lucide-react';
+import { Avatar, Button, Dialog, Icon, Menu, Text } from '@hirobius/design-system';
+import { MenuToggleItem } from '../hds-gaps/MenuToggleItem';
 import { useColorMode } from '../ColorMode';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { openDocuments, openLegal } from '../route';
 import { useBackCloses } from '../useBackCloses';
-import {
-  CompaniesDialog,
-  DataDialog,
-  ScanDetailsDialog,
-  SearchProfileDialog,
-  useLoadedWhen,
-} from '../lazyDialogs';
+import { CompaniesDialog, DataDialog, SearchProfileDialog, useLoadedWhen } from '../lazyDialogs';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 import { motionPaused, setMotionPaused } from '../motionPref';
@@ -39,10 +52,6 @@ export default function AccountMenu() {
   const [profile, setProfile] = useState(false);
   useBackCloses(profile, () => setProfile(false), 'search-profile');
   const profileReady = useLoadedWhen(SearchProfileDialog, profile, () => setProfile(false));
-  // Scan details (Adrian 2026-11-08): Find's freshness, source health and "not shown" counts.
-  const [details, setDetails] = useState(false);
-  useBackCloses(details, () => setDetails(false), 'scan-details');
-  const detailsReady = useLoadedWhen(ScanDetailsDialog, details, () => setDetails(false));
   // Data (#550): its own lazy dialog.
   const [dataOpen, setDataOpen] = useState(false);
   useBackCloses(dataOpen, () => setDataOpen(false), 'data');
@@ -51,7 +60,7 @@ export default function AccountMenu() {
   const [open, setOpen] = useState(false);
 
   useBackCloses(open, () => setOpen(false), 'account-menu');
-  // Fetch the two lazy dialogs' chunks as the menu opens, so Companies and Search profile answer
+  // Fetch the lazy dialogs' chunks as the menu opens, so Companies and Search profile answer
   // within 300 ms of the press (#212) instead of waiting on the fetch. A failure is retried on
   // the item's press (useLoadedWhen), which closes the sheet and raises the reload notice.
   const openMenu = (next: boolean) => {
@@ -100,57 +109,80 @@ export default function AccountMenu() {
         <Menu.Content align="end" className="rjb-account-menu rjb-menu-sheet">
           {/* The phone sheet's grab handle (theme/late.css); nothing on a wider screen. */}
           <span className="rjb-sheet-handle" aria-hidden="true" />
+          {/* 1. Who you are. */}
           {sync.user ? (
             <>
               <Menu.Label data-account-line>Signed in as {sync.user.email}</Menu.Label>
-              <Menu.Label data-account-line>{syncLine(sync.status)}</Menu.Label>
-              {sync.offline && <Menu.Item onSelect={sync.retry}>Retry sync</Menu.Item>}
+              <Menu.Label data-account-line>
+                <Text variant="caption" as="span" tone="secondary">
+                  {syncLine(sync.status)}
+                </Text>
+              </Menu.Label>
+              {sync.offline && (
+                <Row icon={RefreshCw} onSelect={sync.retry}>
+                  Retry sync
+                </Row>
+              )}
+              <Row icon={LogOut} onSelect={sync.signOut}>
+                Sign out
+              </Row>
             </>
           ) : (
             <>
-              <Menu.Label data-account-line>Saved on this device only</Menu.Label>
-              <Menu.Item onSelect={opensDialog(() => sync.setSignInOpen(true))}>
-                Sign in to sync…
+              <Menu.Label data-account-line>On this device only</Menu.Label>
+              <Menu.Label data-account-line>
+                <Text variant="caption" as="span" tone="secondary">
+                  Sign in to see your jobs on any device
+                </Text>
+              </Menu.Label>
+              {/* The grey key (redesign §3): an HDS secondary Button as the menu item. */}
+              <Menu.Item asChild onSelect={opensDialog(() => sync.setSignInOpen(true))}>
+                <Button variant="secondary" size="sm" className="rjb-menu-key">
+                  Sign in
+                </Button>
               </Menu.Item>
             </>
           )}
           <Menu.Separator />
-          {/* Documents (was Templates, #227) is a dialog over the page (#471 slice 4); it opens from
-              here and the Apply sheet, and Back or Close returns to the page under it. */}
-          <Menu.Item onSelect={() => openDocuments('')}>Documents</Menu.Item>
-          <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
-          <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
-          <Menu.Item onSelect={opensDialog(() => setDetails(true))}>Scan details</Menu.Item>
-          {/* Data (#550): back up, restore, export, Recently removed and the repairs, in one lazy
-              dialog. */}
-          <Menu.Item onSelect={opensDialog(() => setDataOpen(true))}>Data</Menu.Item>
+          {/* 2. Your things. Documents (was Templates, #227) is a dialog over the page (#471 slice
+              4); Back or Close returns to the page under it. */}
+          <Row icon={FileText} onSelect={() => openDocuments('')}>
+            Documents
+          </Row>
+          <Row icon={SlidersHorizontal} onSelect={opensDialog(() => setProfile(true))}>
+            Search profile
+          </Row>
+          <Row icon={Building2} onSelect={opensDialog(() => setCompanies(true))}>
+            Companies
+          </Row>
+          <Row icon={Database} onSelect={opensDialog(() => setDataOpen(true))}>
+            Data
+          </Row>
           <Menu.Separator />
-          <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
-          {/* WCAG 2.2.2: the app bar's flame loops on; this stops it (motionPref.ts). */}
-          {/* Read fresh each time the menu opens (its content renders only then), so another
-              tab's choice or a system change shows here too (#516 review). */}
-          <Menu.Item onSelect={() => setMotionPaused(!motionPaused())}>
-            {motionPaused() ? 'Play animations' : 'Pause animations'}
-          </Menu.Item>
-          <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
+          {/* 3. Display: toggles that show their state and keep the menu open. */}
+          <MenuToggleItem
+            checked={mode === 'dark'}
+            onCheckedChange={toggle}
+            icon={<Icon icon={Moon} size="small" />}
+          >
+            Dark theme
+          </MenuToggleItem>
+          <MotionToggle />
+          <Menu.Separator />
+          {/* 4. About. */}
+          <Row
+            icon={MessageSquare}
+            onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}
+          >
             Send feedback
-          </Menu.Item>
-          <Menu.Item onSelect={() => openLegal('privacy')}>Privacy and terms</Menu.Item>
-          {sync.user && (
-            <>
-              <Menu.Separator />
-              <Menu.Item onSelect={sync.signOut}>Sign out</Menu.Item>
-            </>
-          )}
+          </Row>
+          <Row icon={ShieldCheck} onSelect={() => openLegal('privacy')}>
+            Privacy and terms
+          </Row>
         </Menu.Content>
       </Menu>
       <Dialog open={companies && companiesReady} onOpenChange={setCompanies}>
         {companies && companiesReady && companiesDialog}
-      </Dialog>
-      <Dialog open={details && detailsReady} onOpenChange={setDetails}>
-        {details && detailsReady && (
-          <ScanDetailsDialog onCloseAutoFocus={refocusAccount(accountTrigger)} />
-        )}
       </Dialog>
       <Dialog open={profile && profileReady} onOpenChange={setProfile}>
         {profile && profileReady && (
@@ -169,6 +201,43 @@ export default function AccountMenu() {
         )}
       </Dialog>
     </>
+  );
+}
+
+/** One menu row: a 16px icon, then the label. */
+function Row({
+  icon,
+  onSelect,
+  children,
+}: {
+  icon: LucideIcon;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Menu.Item onSelect={onSelect}>
+      <Icon icon={icon} size="small" />
+      {children}
+    </Menu.Item>
+  );
+}
+
+/** Pause animations (WCAG 2.2.2: the app bar's flame loops on; motionPref.ts). Read as the menu
+ *  opens (its content mounts only then), so another tab's choice or a system change shows here
+ *  too (#516 review). */
+function MotionToggle() {
+  const [paused, setPaused] = useState(motionPaused);
+  return (
+    <MenuToggleItem
+      checked={paused}
+      onCheckedChange={(next) => {
+        setMotionPaused(next);
+        setPaused(next);
+      }}
+      icon={<Icon icon={Pause} size="small" />}
+    >
+      Pause animations
+    </MenuToggleItem>
   );
 }
 

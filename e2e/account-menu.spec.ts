@@ -98,3 +98,45 @@ test('the Data dialog is a centred dialog on a desktop', async ({ page }) => {
   expect(b.y + b.height).toBeLessThan(900);
   await expect(dialog.locator('.rjb-sheet-handle')).toBeHidden();
 });
+
+// #549: 9 items in 4 groups. Each row has a 16px icon; rows are 44px on a phone and 38px on a
+// desktop; Dark theme and Pause animations are toggles that show their state; Sign in is a grey key.
+for (const [width, height, row] of [
+  [390, 844, 44],
+  [1440, 900, 38],
+] as const)
+  test(`rows, icons, toggles and the grey key (${width})`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await seed(page);
+    const menu = await openAccount(page);
+    await expect(menu.getByText('On this device only', { exact: true })).toBeVisible();
+    await expect(menu.getByText('Sign in to see your jobs on any device')).toBeVisible();
+    const rows = menu.locator('[role="menuitem"]:not(.rjb-menu-key), [role="menuitemcheckbox"]');
+    await expect(rows).toHaveCount(8);
+    for (const r of await rows.all()) {
+      const b = (await r.boundingBox())!;
+      expect(Math.round(b.height), await r.innerText()).toBe(row);
+      const icon = (await r.locator(':scope > svg').first().boundingBox())!;
+      expect([Math.round(icon.width), Math.round(icon.height)]).toEqual([16, 16]);
+    }
+    // The grey key: HDS secondary, a real fill, 44px tall on a phone.
+    const key = menu.getByRole('menuitem', { name: 'Sign in', exact: true });
+    const bg = await key.evaluate((n) => getComputedStyle(n).backgroundColor);
+    expect(bg).not.toBe('rgba(0, 0, 0, 0)');
+    if (width === 390) expect((await key.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // Dark theme flips in place: the menu stays open and the switch moves.
+    const dark = menu.getByRole('menuitemcheckbox', { name: 'Dark theme' });
+    const was = await dark.getAttribute('aria-checked');
+    const sw = dark.locator('.rjb-menu-switch');
+    const before = (await sw.evaluate((n) => getComputedStyle(n).backgroundColor)) as string;
+    await dark.click();
+    await expect(menu).toBeVisible();
+    await expect(dark).toHaveAttribute('aria-checked', was === 'true' ? 'false' : 'true');
+    await expect
+      .poll(() => sw.evaluate((n) => getComputedStyle(n).backgroundColor))
+      .not.toBe(before);
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(
+      was === 'true' ? 'light' : 'dark',
+    );
+  });

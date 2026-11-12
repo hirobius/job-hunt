@@ -56,7 +56,7 @@ code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo
 (`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: the HDS variable Sora covers 400–700 and the logo keeps its own Sora 800; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
 inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
-limit is gone), still under reduced motion and under the Account menu's **Pause animations** / Play animations (WCAG 2.2.2;
+limit is gone), still under reduced motion and under the Account menu's **Pause animations** toggle (WCAG 2.2.2;
 `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
 flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
 
@@ -260,9 +260,15 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
-  (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
-  line as non-item labels | data | display | Sign out;
-  data = Documents, Search profile, Companies, Scan details, Data). Pillars and tracks are gone from the UI (ADR 0009).
+  (**9 items in 4 groups, redesign §5.9, #549**: who | things | display | about. Signed out: "On this device only" + "Sign
+  in to see your jobs on any device" as non-item labels and **Sign in as a grey key** (HDS secondary `Button` as the
+  `Menu.Item`, `.rjb-menu-key`); signed in: "Signed in as <email>" + sync line as labels, Retry sync when it failed, and
+  Sign out. Things = Documents, Search profile, Companies, Data. Display = **Dark theme** and **Pause animations**,
+  toggles that show their state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role
+  `menuitemcheckbox` + `aria-checked` and a drawn switch, `.rjb-menu-switch` in late.css; G9 hds#1440). About = Send
+  feedback, Privacy and terms. Every row has a 16px icon; rows are 44px on a phone (HDS `hds-touch-row`) and 38px from
+  sm (late.css). **Scan details moved into the Search profile** (a closed HDS Disclosure row at its end, `ScanDetails.tsx`).
+  Pinned in `shell.test.tsx`, `e2e/account-menu.spec.ts`, `e2e/brand.spec.ts`). Pillars and tracks are gone from the UI (ADR 0009).
 - **Data dialog (redesign §5.9, #550):** `src/account/DataDialog.tsx`, a lazy chunk (`lazyDialogs.ts` `DataDialog`,
   `entryChunk.test.ts`), opened by the Account menu's one **Data** item. An HDS Dialog drawn as a bottom sheet below sm
   (`.rjb-bottom-sheet` + grab handle, G2 hds#1433), a centred dialog from sm. Two lists (`ItemList` rows, no cards),
@@ -656,8 +662,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `AutoScanViews.tsx`: `ScanStatus` (**Adrian 2026-11-08: no status text above Browse / Deck.** Signed in nothing (the
   server syncs every 15 minutes); signed out one compact Scan now / Stop scan in Review new's heading row (`Panel
 trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
-  signed out), the sources that didn't answer and the "not shown" counts are the Account menu's **Scan details**
-  (`ScanDetailsDialog.tsx`, lazy; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears
+  signed out), the sources that didn't answer and the "not shown" counts are **Scan details**, a closed row at the end of
+  the Account menu's Search profile (#549; `ScanDetails.tsx`, in the Search profile's lazy chunk; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears
   Review new's status. Pinned in `autoScanViews.test.tsx`, `review.test.tsx`, `todayHome.test.tsx`,
   `e2e/find-signed-in.spec.ts`) and
   `NewCompanies` (Follow → the board joins the Sources, Ignore → `muteCompany`, each with Undo), both on Today. With
