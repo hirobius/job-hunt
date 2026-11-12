@@ -396,12 +396,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
   and a sign-in error land on Today; there is no setup screen (see First run).
   `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the h1 "Find" and one
-  caption, "4 new · scanned 2 h ago" (`findCaption.ts`: the New chip's count, then the server's last sync signed in
+  caption, "Scanned 2 h ago" (`findCaption.ts`; no count since #660: the New and Remote chips hold the numbers, and Review's polite `role="status"` says "N postings, M new"; the server's last sync signed in
   (`useServerUpdatedAt`) or this browser's last scan signed out (`agoPhrase`), "scanning…" while one runs; no date
   line), with **one More menu** on its row ("More: sort, scan and search profile": Sort while Browse has a list,
   Scan now / Stop scan signed out only, Search profile); `ReviewView`'s `header` is a function given the new count,
   the sort and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
-  (was "Review new", #615: the heading counts every posting not saved or skipped; labels only)
+  (was "Review new", #615: no count on the heading since #660; labels only)
   = `ReviewView` itself (`label="Review" scanStatus`: one panel holding Browse | Deck, two filter chips
   (**New**, was "New today" (#615): first seen today, the same rule as the card's count; Remote) and the Browse list; at lg a card's title selects the posting) **New companies
   left Find (#618, Adrian 2026-11-12):** the scan's found companies (`NewCompanies`, Follow / Ignore with Undo) are
@@ -746,7 +746,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
   `AutoScanViews.tsx` and `FindHeader.tsx` (**Adrian 2026-11-08: no status text above Browse / Deck.** Find's short
-  header has one caption, "4 new · scanned 2 h ago", and its More menu holds Scan now / Stop scan, signed out only (the
+  header has one caption, "Scanned 2 h ago", and its More menu holds Scan now / Stop scan, signed out only (the
   server syncs every 15 minutes signed in), #544; `ScanStatus` is gone). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
   signed out), the sources that didn't answer and the "not shown" counts are **Scan details**, a closed row at the end of
   the Account menu's Search profile (#549; `ScanDetails.tsx`, in the Search profile's lazy chunk; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears

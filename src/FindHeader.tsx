@@ -1,5 +1,5 @@
-// Find's short header (#544, redesign §5.1): the page's name and one caption, "4 new · scanned 2 h
-// ago", with one More menu beside it that holds Sort, Scan now (signed out; Stop scan while it runs)
+// Find's short header (#544, redesign §5.1): the page's name and one caption, "Scanned 2 h ago", with
+// one More menu beside it that holds Sort, Scan now (signed out; Stop scan while it runs)
 // and Search profile. The date line, the Sort key on the toolbar and the Scan now key by the list's
 // heading are gone. Signed in, "scanned" is the server's last sync (#448); signed out, the last
 // scan in this browser. Nothing is said about a time that is not known.
@@ -25,14 +25,11 @@ export interface FindSort {
 
 export function FindHeader({
   heading = true,
-  newCount = null,
   sort = null,
   deckPlace = null,
 }: {
   /** The page's h1; false while a selected posting's title is the h1 (at lg). */
   heading?: boolean;
-  /** Postings first seen today, as the New chip counts them; null before the Feed has read. */
-  newCount?: number | null;
   /** Browse's sort, when there is a list to sort. */
   sort?: FindSort | null;
   /** The Deck's place, "1 of 4" (#545), at the end of the caption while the Deck is open. */
@@ -48,7 +45,7 @@ export function FindHeader({
         <Text as={heading ? 'h1' : 'p'} variant="title">
           Find
         </Text>
-        <MetaCaption items={[...findCaption(newCount, scanned, !user && running), deckPlace]} />
+        <MetaCaption items={[...findCaption(scanned, !user && running), deckPlace]} />
       </Stack>
       <FindMore sort={sort} signedIn={!!user} running={running} />
     </Stack>
