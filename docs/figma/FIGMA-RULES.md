@@ -41,6 +41,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Surfaces
 
+- **A posting's facts, one per line (#616).** Icon + one fact per line, in one order on every card:
+  place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.

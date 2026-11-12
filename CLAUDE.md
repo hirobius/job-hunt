@@ -406,8 +406,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   **Review new's panel has no surface of its own** (`Panel flat`): its heading, count and metadata declare the group,
   and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
   `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
-  source + New badges, the title on the `title` step, company, MapPin / Briefcase / Calendar facts, the mode only
-  when the place line doesn't say it, the pay line, then **one left-aligned action row (Adrian 2026-11-08,
+  source + New badges, the title on the `title` step, company, then **one fact per line** (#616, Adrian
+  2026-11-12; Browse, Deck and the detail): MapPin place ("Location not stated" when none, or when it is only a mode
+  word), Briefcase work mode (Remote / Hybrid / On-site, "Remote not stated", else "Work mode not stated"; once, on
+  its own line, also when the place says Remote), Calendar posted day; the pay line, then **one left-aligned action row (Adrian 2026-11-08,
   `PostingActions`): Save primary, Skip secondary, Open posting as an icon link, More (…) holding Not this company**,
   all `md`; no match-reason line; below lg a Browse card's Show description (HDS Disclosure) reads the text on open,
   `usePostingText`, with a Skeleton);

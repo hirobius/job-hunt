@@ -463,7 +463,9 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(screen.getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
   });
 
-  it('gives the work mode no slot of its own when the place line already says it', async () => {
+  // #616 (Adrian 2026-11-12): one fact per line, in one order: place, work mode, posted day. The
+  // mode shows once, on its own line, also when the place text already says Remote.
+  it('puts each fact on its own line: place, work mode, posted', async () => {
     feed.fetchFeed.mockResolvedValue(
       result([
         post('hn:1', 'Design Systems Designer', 'Acme', {
@@ -474,9 +476,36 @@ describe('Review new: Deck card anatomy (#458)', () => {
     );
     renderReview();
     const card = within(await list()).getByRole('article');
-    expect(within(card).getByText('Lisbon, Portugal (Remote)')).toBeInTheDocument();
-    expect(within(card).queryByText('Remote')).toBeNull();
-    expect(card.querySelector('svg.lucide-briefcase')).toBeNull();
+    const place = within(card).getByText('Lisbon, Portugal (Remote)');
+    const mode = within(card).getByText('Remote');
+    const posted = within(card).getByText('Posted today');
+    const lines = [place, mode, posted].map((el) => el.parentElement!);
+    // Three lines, one fact each, each with its icon, in that order.
+    expect(new Set(lines).size).toBe(3);
+    const icons = ['lucide-map-pin', 'lucide-briefcase', 'lucide-calendar'];
+    lines.forEach((line, i) => {
+      expect(line.querySelectorAll('svg')).toHaveLength(1);
+      expect(line.querySelector('svg')!.classList.contains(icons[i])).toBe(true);
+      expect(line.textContent).toBe([place, mode, posted][i].textContent);
+    });
+    lines.slice(1).forEach((line, i) => expect(before(lines[i], line)).toBe(true));
+    expect(lines[0].parentElement).toBe(lines[1].parentElement);
+    expect(lines[1].parentElement).toBe(lines[2].parentElement);
+  });
+
+  it('says what the source leaves out, and shows a mode-only place once, as the mode', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('hn:1', 'Design Systems Designer', 'Acme', { location: 'Remote', mode: 'remote' }),
+        post('hn:2', 'Design Systems Lead', 'Kite', { location: 'Berlin', mode: undefined }),
+      ]),
+    );
+    renderReview();
+    const [first, second] = within(await list()).getAllByRole('article');
+    expect(within(first).getByText('Location not stated')).toBeInTheDocument();
+    expect(within(first).getAllByText('Remote')).toHaveLength(1);
+    expect(within(second).getByText('Berlin')).toBeInTheDocument();
+    expect(within(second).getByText(/^(Work mode not stated|Remote not stated)$/)).toBeInTheDocument();
   });
 });
 

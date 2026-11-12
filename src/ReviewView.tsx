@@ -585,13 +585,21 @@ function Fact({
   );
 }
 
-// Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
+// One fact per line, in one order on every card (#616, Adrian 2026-11-12): the place, the work mode,
+// the posted day. The place never carries the mode, so the mode shows once, on its own line.
+// A place that is only a work mode ("Remote") is no place: the mode line says it.
+const ONLY_MODE = /^(remote|hybrid|on[\s-]?site|in[\s-]?office)$/i;
 const placeOf = (r: FeedRow) => {
   const where = cleanPlace(r.location);
-  return r.remoteUnstated
-    ? `${where ? `${where} · ` : ''}Remote not stated`
-    : where || (r.mode ? modeLabel(r.mode) : 'Location not stated');
+  return where && !ONLY_MODE.test(where) ? where : 'Location not stated';
 };
+// Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
+const modeOf = (r: FeedRow) =>
+  r.remoteUnstated
+    ? 'Remote not stated'
+    : r.mode
+      ? modeLabel(r.mode)
+      : 'Work mode not stated';
 
 const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
 
@@ -732,17 +740,9 @@ function PostingCard({
   /** Extra content above the footer (the Deck's snippet). */
   children?: ReactNode;
 }) {
-  const place = placeOf(r);
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
-  // The mode is the place line's own fallback; it earns a slot of its own only when a stated
-  // location doesn't already say it.
-  const modeText = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
-  const saysMode =
-    !!modeText &&
-    new RegExp(`(^|[^a-z])${modeText.replace(/[^a-z]/gi, '[^a-z]?')}($|[^a-z])`, 'i').test(place);
-  const mode = saysMode ? '' : modeText;
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px8">
@@ -770,13 +770,9 @@ function PostingCard({
           </Text>
         )}
         <Stack gap="px4">
-          {place && <Fact icon={MapPin} text={place} truncate />}
-          {(mode || postedLabel) && (
-            <Stack direction="row" wrap="wrap" gap="tight" align="center">
-              {mode && <Fact icon={Briefcase} text={mode} />}
-              {postedLabel && <Fact icon={Calendar} text={postedLabel} />}
-            </Stack>
-          )}
+          <Fact icon={MapPin} text={placeOf(r)} truncate />
+          <Fact icon={Briefcase} text={modeOf(r)} />
+          {postedLabel && <Fact icon={Calendar} text={postedLabel} />}
         </Stack>
         {pay && (
           <Text variant="body" as="p" weight="bold">

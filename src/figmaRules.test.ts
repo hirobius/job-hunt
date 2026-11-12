@@ -135,4 +135,12 @@ describe('FIGMA-RULES.md', () => {
     expect(rail).not.toContain('LivenessCheck');
     expect(rail).not.toContain('Not in this filter');
   });
+
+  it('pins a posting\'s facts, one per line (#616)', () => {
+    expect(RULES).toMatch(/A posting's facts, one per line \(#616\)/);
+    expect(CLAUDE).toMatch(/\*\*one fact per line\*\* \(#616/);
+    const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
+    expect(review).toContain('<Fact icon={MapPin} text={placeOf(r)} truncate />');
+    expect(review).toContain('<Fact icon={Briefcase} text={modeOf(r)} />');
+  });
 });
