@@ -747,6 +747,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   checks open feed rows (`AGGREGATOR_BOARDS`) whose link is a Greenhouse / Lever / Ashby job on that board
   (`tracks/aggregatorLiveness.ts`: ≤ `MAX_LIVENESS_BOARDS` = 20 boards a run in a run-seeded order, `guardedFetch`
   fixed hosts, `readWithRetry`): absent from an answered list or a 404 board closes it, any failure closes nothing.
+  **Guards (#673):** an empty list closes nothing (no fixture shows a kind answering 404 rather than [] for an
+  unknown slug); a row closes as absent only when the list has jobs, all in the kind's id format (Greenhouse
+  digits, Lever / Ashby UUIDs), and its own id has that format (else skipped); the slug keeps its case in the
+  request (Ashby may be case-sensitive), boards group ignoring case. **Known risk:** a live job the board leaves
+  off its public list (Ashby `isListed: false`, Lever unlisted postings) reads as absent and closes.
   No migration. Pinned in `aggregatorLiveness.test.ts`, `plan.test.ts`, `feeds/keyless.test.ts`.
 - **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
   buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles, **signed in only and never while the sign-in screen is open**: it waits, and a run in flight stops

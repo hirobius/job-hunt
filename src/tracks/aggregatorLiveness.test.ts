@@ -27,7 +27,7 @@ describe('jobOnBoard', () => {
   it('reads the board and job id from checked board links', () => {
     expect(jobOnBoard('https://boards.greenhouse.io/Acme/jobs/123')).toEqual({
       kind: 'greenhouse',
-      slug: 'acme',
+      slug: 'Acme',
       jobId: '123',
     });
     expect(jobOnBoard('https://job-boards.greenhouse.io/acme/jobs/45?gh_src=x')?.jobId).toBe('45');
@@ -85,7 +85,12 @@ describe('checkAggregatorLiveness', () => {
       fetch: async () =>
         ++calls === 1
           ? new Response(null, { status: 503 })
-          : new Response(JSON.stringify([]), { status: 200 }),
+          : new Response(
+              JSON.stringify([{ id: U2, hostedUrl: `https://jobs.lever.co/lev/${U2}` }]),
+              {
+                status: 200,
+              },
+            ),
       wait: noWait,
     });
     expect(calls).toBe(2);
@@ -125,7 +130,14 @@ describe('checkAggregatorLiveness', () => {
     const r = await checkAggregatorLiveness(rows, {
       fetch: async (u) => {
         asked.push(u);
-        return new Response(JSON.stringify({ jobs: [] }), { status: 200 });
+        return new Response(
+          JSON.stringify({
+            jobs: [{ id: 2, absolute_url: 'https://boards.greenhouse.io/co/jobs/2' }],
+          }),
+          {
+            status: 200,
+          },
+        );
       },
       wait: noWait,
       seed: 'run-1',
@@ -133,5 +145,49 @@ describe('checkAggregatorLiveness', () => {
     expect(r.boards).toBe(MAX_LIVENESS_BOARDS);
     expect(asked).toHaveLength(MAX_LIVENESS_BOARDS);
     expect(r.gone).toHaveLength(MAX_LIVENESS_BOARDS);
+  });
+
+  it('an empty job list closes nothing (#673)', async () => {
+    const { f } = fakeFetch({ [GH]: { jobs: [] }, [LEVER]: [], [ASHBY]: { jobs: [] } });
+    const r = await checkAggregatorLiveness(
+      [
+        { id: 'a', url: 'https://boards.greenhouse.io/acme/jobs/1' },
+        { id: 'b', url: `https://jobs.lever.co/lev/${U1}` },
+        { id: 'c', url: `https://jobs.ashbyhq.com/ash/${U1}` },
+      ],
+      { fetch: f, wait: noWait },
+    );
+    expect(r.gone).toEqual([]);
+    expect(r.failed).toHaveLength(3);
+  });
+
+  it('keeps the slug case in the request, groups boards ignoring case (#673)', async () => {
+    const MixedAshby = 'https://api.ashbyhq.com/posting-api/job-board/AshCo';
+    const { f, asked } = fakeFetch({
+      [MixedAshby]: { jobs: [{ id: U1, jobUrl: `https://jobs.ashbyhq.com/AshCo/${U1}` }] },
+    });
+    const r = await checkAggregatorLiveness(
+      [
+        { id: 'a', url: `https://jobs.ashbyhq.com/AshCo/${U1}` },
+        { id: 'b', url: `https://jobs.ashbyhq.com/ashco/${U2}` },
+      ],
+      { fetch: f, wait: noWait },
+    );
+    expect(asked).toEqual([MixedAshby]);
+    expect(r.gone).toEqual(['b']);
+  });
+
+  it('a list whose ids are not the kind format closes nothing; unparsable rows are skipped', async () => {
+    const { f } = fakeFetch({ [LEVER]: [{ id: 'not-a-uuid', hostedUrl: 'x' }] });
+    const r = await checkAggregatorLiveness(
+      [
+        { id: 'b', url: `https://jobs.lever.co/lev/${U1}` },
+        { id: 'z', url: 'https://jobs.lever.co/lev/abcdef12' }, // not a UUID: skipped
+      ],
+      { fetch: f, wait: noWait },
+    );
+    expect(r.gone).toEqual([]);
+    expect(r.failed).toHaveLength(1);
+    expect(jobOnBoard('https://jobs.lever.co/lev/abcdef12')).toBeNull();
   });
 });
