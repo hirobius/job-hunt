@@ -109,7 +109,7 @@ test('Add job at 1440 is a centred dialog with Add job at the right; Close cance
 test('opens on Today with no setup; the sample pipeline lists due follow-ups', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
   await expect(page.getByText('Set up your search')).toHaveCount(0);
   await topTab(page, 'Apply').click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();

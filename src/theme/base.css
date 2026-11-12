@@ -440,8 +440,7 @@ p {
  * out of the title's row, and its target overflows the title's line (centred) instead of
  * stretching it, so a card or row keeps its rev-3 rhythm. Only text sits in that overflow, and the
  * link is stacked above it, so every point of the target takes the tap (QA 2026-10-22: the caption
- * under it took up to 11px). Where rows are only as tall as a line and each ends in a posting link,
- * the rows grow to the target instead (.rjb-posting-rows), so two targets never overlap. On a
+ * under it took up to 11px). On a
  * phone it is the app's 40x40 target: HDS's touch rule would lift the sm icon-only button to 44
  * wide there, off the row's centre line (as with .rjb-icon-40). */
 [data-hds] .rjb-posting-link {
@@ -469,28 +468,6 @@ p {
  * so the pair shrinks there too: a long unbroken title wraps instead of pushing the link out. */
 [data-hds] .rjb-posting-title {
   min-width: 0;
-}
-
-/* A list of one-line rows that each end in a posting link (the closed-on-the-board list): each row
- * is as tall as the link's target, a subgrid gap apart (NavList's), so neighbouring targets never
- * overlap or share an edge, and the first never reaches the control above the list (QA
- * 2026-10-22). */
-[data-hds] .rjb-posting-rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--semantic-space-subgrid-gap);
-}
-
-[data-hds] .rjb-posting-rows > li {
-  display: flex;
-  align-items: center;
-  min-height: var(--primitive-space-8);
-}
-
-@media (max-width: 639px) {
-  [data-hds] .rjb-posting-rows > li {
-    min-height: var(--rjb-touch);
-  }
 }
 
 /* A chip with a leading icon (the sweep's matched title on an opening row, rev-3 K). */
@@ -762,24 +739,6 @@ p {
   .rjb-boot {
     animation-timing-function: step-end;
   }
-}
-
-/* Review new: a posting's title selects it (#386; #471 slice 3: the right column). An HDS tertiary Button set as
- * the card's title: no padding, left-aligned, wrapping, in the title's own type; still 40px tall
- * on a phone for the tap. */
-.rjb-card-title .rjb-preview-title {
-  padding-inline: 0;
-  height: auto;
-  min-height: var(--primitive-space-10);
-  justify-content: flex-start;
-  text-align: left;
-  white-space: normal;
-  font: inherit;
-  color: var(--semantic-color-content-primary);
-}
-
-.rjb-card-title .rjb-preview-title:hover {
-  text-decoration: underline;
 }
 
 /* Find at lg: the selected posting stays in view beside a long list (its own scroll when taller

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openScanDetails } from './routes';
+import { findMenuItem, findMore, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
@@ -86,12 +86,13 @@ async function setUp(page: Page) {
   await page.goto('/#/find');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
   await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
   const since = await page.evaluate(() => Date.now());
-  await page.getByRole('button', { name: 'Scan now' }).click();
+  // Scan now is Find's More menu (#544).
+  await findMenuItem(page, 'Scan now');
   await scanFinished(page, since);
 }
 
@@ -127,7 +128,7 @@ for (const width of [390, 1440]) {
       });
     };
     await setUp(page);
-    await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
     // No status text above Browse / Deck (Adrian 2026-11-08): no scan line, counts or progress.
     await expect(
       page.getByText(
@@ -136,7 +137,8 @@ for (const width of [390, 1440]) {
     ).toHaveCount(0);
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(list.getByRole('listitem')).toHaveCount(4);
-    await expect(list.getByRole('heading', { name: 'UX Engineer', exact: true })).toBeVisible();
+    // Below lg a card's title is the link out, so its name also says it opens a new tab (#544).
+    await expect(list.getByRole('heading', { name: /^UX Engineer\b/ })).toBeVisible();
     await expect(list.getByRole('heading', { name: /Mechanical Design Engineer/ })).toHaveCount(0);
     // No fit tiers: every design-system posting is in the one list; the rest are counted. (The
     // HN source keeps a post only when it says a searched title, so Nimbus's is never read.)
@@ -175,13 +177,14 @@ for (const width of [390, 1440]) {
       await expect(list).toBeVisible();
       await page.evaluate(() => (location.hash = '#/find'));
     } else {
-      // Below lg there is no posting page (Adrian 2026-11-08): the card shows its description.
+      // Below lg there is no posting page (Adrian 2026-11-08): the compact card's title is the link
+      // out to the posting (#544); no description row, no Open posting key.
       const card = list.getByRole('article').filter({ hasText: 'Design Systems Designer' }).first();
-      await expect(
-        card.getByRole('link', { name: 'Design Systems Designer', exact: true }),
-      ).toHaveCount(0);
-      await card.getByRole('button', { name: 'Show description' }).click();
-      await expect(card.getByRole('button', { name: 'Hide description' })).toBeVisible();
+      const link = card.getByRole('heading', { level: 3 }).getByRole('link');
+      await expect(link).toHaveAttribute('href', /^https:/);
+      await expect(link).toHaveAttribute('target', '_blank');
+      await expect(card.getByRole('button', { name: /description/ })).toHaveCount(0);
+      await expect(card.getByRole('link', { name: /^Open posting for / })).toHaveCount(0);
       await expect(page).toHaveURL(/#\/find$/);
       await page.screenshot({ path: `test-results/review-selected-${width}.png` });
     }
@@ -191,7 +194,9 @@ for (const width of [390, 1440]) {
     await (await decideOn('Design Systems Engineer', 'Skip', 'Orbit')).click();
     await expect(list.getByRole('listitem')).toHaveCount(3);
     await expect(
-      list.getByRole('heading', { name: 'Design Systems Designer', exact: true }),
+      list.getByRole('heading', {
+        name: /^Design Systems Designer\u2060?( \(opens in new tab\))?$/,
+      }),
     ).toBeVisible();
 
     // Past the double-tap guard (answerGuard.ts), so the next decision is a new one.
@@ -226,10 +231,13 @@ for (const width of [390, 1440]) {
     await deck.click();
     await expect(deck).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('article')).toHaveCount(1);
-    // #545: no pager row; "1 of 2" is the caption under Find. #617: Sort shows in the Deck too.
+    // #545: no pager row; "1 of 2" is the caption under Find. #617: Sort is there in the Deck
+    // too, in Find's More menu (#544).
     await expect(page.getByRole('navigation', { name: 'Postings' })).toHaveCount(0);
     await expect(page.getByText('1 of 2', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Sort: / })).toBeVisible();
+    await findMore(page).click();
+    await expect(page.getByRole('menuitemradio', { name: 'Newest' })).toBeVisible();
+    await page.keyboard.press('Escape');
     // Skip (grey) and Save (filled, right) sit in the dock: fixed at the bottom on a phone, one
     // row, each key 44px tall at least; inline under the card at lg.
     const dock = page.getByRole('group', { name: /^Actions for / });

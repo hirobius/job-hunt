@@ -40,13 +40,18 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   sits in the caption under Find, and a sideways swipe steps it. Skip (grey, left) and Save (filled,
   right) sit in the action dock, in one row; both show a toast with Undo. The card shows the
   posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More on the
-  card keeps Not this company. The Sort menu shows in the Deck too: the deck's order and its
+  card keeps Not this company. Sort (Find's More menu) works in the Deck too: the deck's order and its
   "1 of N" follow the sort, and the card on screen stays when the sort changes.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 
 ## Surfaces
 
+- **The compact Find card (#544).** Title (bold body, 3 lines at most; it opens the posting), company,
+  the facts, the pay when stated, then Save (filled, plus), Skip (grey) and More (icon). No source
+  badge, no New badge, no Show description row, no Open posting key. Radius 12 until HDS G5.
+- **A posting's facts, one per line (#616).** Icon + one fact per line, in one order on every card:
+  place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.
@@ -59,11 +64,13 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Layout
 
-- **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings. The companies a
-  scan finds are the Account menu's Companies dialog, under **Found** (Follow / Ignore), never on Find
+- **Two screens: Find and Apply** (the two top tabs). **Find** is home: the Review list of postings (chips New and Remote; "New" = first seen today).
+  The companies a scan finds are the Account menu's Companies dialog, under **Found** (Follow / Ignore), never on Find
   (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: a filter bar
   (Filters, Add job), the sticky walk control, then the job.
+- **Find's short header (#544).** "Find" and one caption, "4 new · scanned 2 h ago", with one More
+  menu on its row holding Sort, Scan now and Search profile. No date line, no Sort or Scan now key.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the five views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All

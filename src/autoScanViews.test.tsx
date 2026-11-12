@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
-import { NewCompanies, ScanStatus } from './AutoScanViews';
+import { NewCompanies } from './AutoScanViews';
+import { FindHeader } from './FindHeader';
 import ScanDetails from './ScanDetails';
 import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import NoticeHost from './NoticeHost';
@@ -101,27 +102,43 @@ const renderViews = ({ signedIn = false } = {}) =>
       value={{ user: signedIn ? { id: 'u1', email: 'a@b.c' } : null } as CloudSyncApi}
     >
       <ToastProvider>
-        <ScanStatus />
+        <FindHeader newCount={4} />
         <NewCompanies />
         <NoticeHost />
       </ToastProvider>
     </CloudSyncContext.Provider>,
   );
 
-describe('ScanStatus (Adrian 2026-11-08: no status text on Find)', () => {
-  it('signed out: one compact Scan now and no line on the page', async () => {
+// #544: Scan now left the page for Find's one More menu; the header says how fresh the list is in
+// one caption, "4 new · scanned 2 h ago". No other status text on Find (Adrian 2026-11-08).
+describe('Find header: one caption and one More menu (#544)', () => {
+  const more = () => screen.getByRole('button', { name: 'More: sort, scan and search profile' });
+
+  it('signed out: Scan now is in More, and the caption says when it last scanned', async () => {
+    const user = userEvent.setup();
     renderViews();
-    expect(screen.getByRole('button', { name: 'Scan now' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    expect(screen.getByText('4 new')).toBeInTheDocument();
+    expect(screen.queryByText(/^scanned /)).toBeNull();
+    await user.click(more());
+    expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+    expect(await screen.findByText('scanned just now')).toBeInTheDocument();
     expect(screen.queryByText(/^Scanning |^Last scanned|^Not scanned|^Updated /)).toBeNull();
   });
 
-  it('signed in: nothing at all (the server syncs every 15 minutes)', async () => {
+  it('signed in: no Scan now (the server syncs every 15 minutes); "scanned" is its last run', async () => {
+    const user = userEvent.setup();
     server.at = new Date(Date.now() - 4 * 60_000).toISOString();
-    const { container } = renderViews({ signedIn: true });
-    await new Promise((r) => setTimeout(r, 50));
-    expect(screen.queryByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
-    expect(container.textContent).not.toMatch(/Updated|Scanning|scanned/);
+    renderViews({ signedIn: true });
+    expect(await screen.findByText('scanned 4 min ago')).toBeInTheDocument();
+    await user.click(more());
+    expect(await screen.findByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
+    expect(screen.queryByText(/Updated|Scanning/)).toBeNull();
   });
 });
 

@@ -18,7 +18,7 @@ async function seed(page: Page) {
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/find');
-  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: /^Review\b/ })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {
@@ -206,7 +206,8 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     ['button', 'Browse'],
     ['link', 'Apply'],
     ['link', 'Find'],
-    ['button', 'Scan now'],
+    // Scan now left the page for Find's More menu (#544): a menu moves focus into itself, as the
+    // Account menu does, so it is not in this list.
   ] as const) {
     await page.getByRole(role, { name, exact: true }).first().click();
     await page.waitForTimeout(200);

@@ -1,7 +1,7 @@
-// The auto-scan's UI (#415). On Find: signed out a compact "Scan now" beside Review new's heading
-// (signed in nothing: the server syncs). The companies the scan found (Follow / Ignore) are the
-// Account menu's Companies dialog's Found list (#618, Adrian 2026-11-12). Every action says so with
-// an Undo. The scan's line is Scan details in the Account menu's Search profile (ScanDetails.tsx).
+// The auto-scan's UI (#415). Scan now is Find's More menu, signed out only (FindHeader.tsx, #544).
+// The companies the scan found (Follow / Ignore) are the Account menu's Companies dialog's Found list
+// (#618, Adrian 2026-11-12). Every action says so with an Undo. The scan's line is Scan details in
+// the Account menu's Search profile (ScanDetails.tsx).
 import { useState } from 'react';
 import {
   Box,
@@ -13,23 +13,19 @@ import {
   Text,
   Tooltip as HdsTooltip,
 } from '@hirobius/design-system';
-import { ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { ItemList, ItemRow } from './PipelinePanel';
 import { httpUrl } from './httpUrl';
 import { showNotice } from './saveNotice';
 import {
-  cancelScan,
   followFound,
   foundRoles,
   ignoreFound,
   newCompanies,
-  scanNow,
   useScan,
   type FoundCompany,
   type LeadSource,
 } from './feed/autoScan';
-import { useScanInput } from './feed/useAutoScan';
-import { useCloudSync } from './account/accountContext';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -37,34 +33,6 @@ const VIA_LABEL: Record<LeadSource, string> = {
   github: 'GitHub',
   seed: 'the seed list',
 };
-
-/** Find's scan control (Adrian 2026-11-08): no status text on the page. Signed in, the server syncs
- *  every 15 minutes, so nothing shows. Signed out, nothing scans on its own: one compact Scan now
- *  (Stop scan while it runs) beside the Review new heading. When it last scanned, the sources that
- *  didn't answer and what was left out are Scan details in the Account menu's Search profile (ScanDetails.tsx). */
-export function ScanStatus() {
-  const { user } = useCloudSync();
-  return user ? null : <ScanButton />;
-}
-
-function ScanButton() {
-  const { running } = useScan();
-  const input = useScanInput();
-  return running ? (
-    <Button size="sm" variant="tertiary" onClick={cancelScan}>
-      Stop scan
-    </Button>
-  ) : (
-    <Button
-      size="sm"
-      variant="secondary"
-      iconLeft={<Icon icon={RefreshCw} />}
-      onClick={() => void scanNow(input, undefined, { force: true })}
-    >
-      Scan now
-    </Button>
-  );
-}
 
 /** "2 matching jobs · from YC", or why its board isn't read yet. */
 function companyLine(f: FoundCompany): string {
@@ -98,7 +66,7 @@ export function NewCompanies() {
     const undo = followFound(f.key);
     showNotice({
       title: `Following ${f.name}`,
-      description: 'Its jobs show in Review new.',
+      description: 'Its jobs show in Review on Find.',
       tone: 'success',
       actions: [{ label: 'Undo', run: undo }],
     });
@@ -119,7 +87,7 @@ export function NewCompanies() {
   return (
     <Stack gap="tight">
       <Text variant="caption" as="p" tone="secondary">
-        Found by the scan. A confirmed board’s matching jobs are already in Review new.
+        Found by the scan. A confirmed board’s matching jobs are already in Review.
       </Text>
       {matching.length > 0 && (
         <ItemList label="Found companies" inset="none">

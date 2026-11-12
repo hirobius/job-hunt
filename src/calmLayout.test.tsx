@@ -166,10 +166,10 @@ describe('Today: no cards within cards (#449)', () => {
     viewport(390);
     window.location.hash = '#/find';
     const { container } = renderApp();
-    const review = await screen.findByRole('region', { name: /^Review new/ });
+    const review = await screen.findByRole('region', { name: /^Review\b/ });
     expect(isCard(review)).toBe(false);
     expect(review.closest('[data-padding][data-variant]')).toBeNull();
-    expect(await screen.findByRole('heading', { name: 'Review new' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeInTheDocument();
     expect(nestedCards(container)).toEqual([]);
   });
 });

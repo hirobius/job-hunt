@@ -50,7 +50,7 @@ export default function SearchProfileDialog({
     <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
       <Dialog.Header>
         <Dialog.Title>Search profile</Dialog.Title>
-        <Dialog.Description>What Review new and the scan look for.</Dialog.Description>
+        <Dialog.Description>What Review on Find and the scan look for.</Dialog.Description>
       </Dialog.Header>
       <Stack gap="px24" className="rjb-dialog-body">
         {waiting ? (

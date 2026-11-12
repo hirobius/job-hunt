@@ -31,7 +31,7 @@ for (const width of [390, 1440] as const) {
       // Undo never navigates: still on Find, focus not dropped to <body>.
       await page.waitForTimeout(600);
       await expect(page).toHaveURL(/#\/find$/);
-      await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+      await expect(page.getByRole('region', { name: /^Review\b/ })).toBeVisible();
       await expect
         .poll(() => page.evaluate(() => document.activeElement !== document.body))
         .toBe(true);
