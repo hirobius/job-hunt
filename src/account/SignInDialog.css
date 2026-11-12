@@ -147,8 +147,14 @@
 .rjb-signin-screen[data-keyboard='open'] #rjb-signin-copy {
   display: none;
 }
+/* The Email field's helper ("We email you a sign-in link…", HDS helperText) gives way the same
+   way, so Send link stays above the keyboard; it still describes the field (aria-describedby). */
+.rjb-signin-screen[data-keyboard='open'] form .hds-type-caption.text-muted-foreground {
+  display: none;
+}
 @media (max-height: 480px) {
-  #rjb-signin-copy {
+  #rjb-signin-copy,
+  .rjb-signin-screen form .hds-type-caption.text-muted-foreground {
     display: none;
   }
 }
