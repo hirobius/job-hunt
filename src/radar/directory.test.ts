@@ -58,3 +58,23 @@ describe('starter directory, by starter pack', () => {
     expect(Object.keys(DIRECTORY_BY_PACK).sort()).toEqual(['designsystems']);
   });
 });
+
+// Prod audit 2026-11-12: these Greenhouse boards answer 404 on every load, so no new account
+// follows them and the server's rotation set does not read them.
+describe('dead boards stay out of the seed', () => {
+  const DEAD = ['doctolib', 'gr8tech', 'iterable', 'kayak', 'parloa'];
+  it.each(DEAD)(
+    'greenhouse %s is not followed on a first run or in the board set',
+    async (slug) => {
+      const url = `https://boards.greenhouse.io/${slug}`;
+      expect(DS_SEED_BOARDS).not.toContain(url);
+      expect(DIRECTORY_BY_PACK.designsystems).not.toContain(url);
+      const { default: boards } = await import('../feed/data/boards.json');
+      expect(
+        (boards as unknown as { boards: { kind: string; slug: string }[] }).boards.some(
+          (b) => b.kind === 'greenhouse' && b.slug === slug,
+        ),
+      ).toBe(false);
+    },
+  );
+});

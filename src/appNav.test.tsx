@@ -26,6 +26,8 @@ import { currentTab, queryCurrentTab, topTab, topTabs } from './test/topTabs';
 import { BRAND } from './brand';
 import { setScanDetails } from './feed/scanDetails';
 import { addJob, getAllJobs, removeJob } from './store';
+import { setPipelineView } from './pipelineView';
+import { act } from '@testing-library/react';
 
 beforeEach(() => {
   window.location.hash = '';
@@ -157,7 +159,8 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
 });
 
 // One app-bar row at every width (redesign §5.1, #548): the logo, Find / Apply and Account, each tab
-// with its count. Find: the new postings Review new last read. Apply: the jobs its list shows now.
+// with its count. Find: the new postings Review new last read. Apply: its To apply count, whatever
+// view is open (prod audit 2026-11-12).
 describe('the one-row app bar (#548)', () => {
   it('Find and Apply sit in the row with the logo and Account; there is no second row', () => {
     renderApp();
@@ -178,6 +181,18 @@ describe('the one-row app bar (#548)', () => {
     renderApp();
     await vi.waitFor(() => expect(topTab('Apply')).toHaveAccessibleName('Apply 2'));
     expect(topTab('Find')).toHaveAccessibleName('Find 7');
+  });
+
+  it("Apply's count is the To apply count and does not change with the view", async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    addJob('https://acme.example/jobs/2', 'Design Technologist');
+    window.location.hash = '#/apply';
+    renderApp();
+    await vi.waitFor(() => expect(topTab('Apply')).toHaveAccessibleName('Apply 2'));
+    act(() => setPipelineView({ filter: 'closed' }));
+    expect(topTab('Apply')).toHaveAccessibleName('Apply 2');
+    act(() => setPipelineView({ filter: 'applied' }));
+    expect(topTab('Apply')).toHaveAccessibleName('Apply 2');
   });
 
   it('no count while it is 0 or not known yet (Find before Review new has read)', async () => {

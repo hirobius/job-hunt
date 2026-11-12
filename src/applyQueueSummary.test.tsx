@@ -89,3 +89,28 @@ describe('the agenda keeps up with the clock (#309)', () => {
     expect(nextDays()).toHaveTextContent('Today, all day');
   });
 });
+
+describe('Follow up says the same number as its view chip (prod audit 2026-11-12)', () => {
+  afterEach(cleanup);
+  it('counts only the due follow-ups; the waiting ones are listed after them', async () => {
+    const { filterCounts } = await import('./pipelineView');
+    const now = new Date(2026, 9, 30, 12);
+    const jobs = [
+      { url: 'https://a.example.com/1', label: 'Due', status: 'Applied', applied: '2026-10-20' },
+      { url: 'https://a.example.com/2', label: 'Waiting', status: 'Applied', applied: '2026-10-28' },
+      {
+        url: 'https://a.example.com/3',
+        label: 'Snoozed',
+        status: 'Applied',
+        applied: '2026-10-20',
+        snoozeUntil: '2026-11-02',
+      },
+    ] as Job[];
+    render(<FollowUpSection jobs={jobs} now={now} />);
+    const due = filterCounts(jobs, now).followUp;
+    expect(due).toBe(1);
+    const panel = screen.getByRole('region', { name: `Follow up (${due})` });
+    expect(panel).toHaveTextContent('Waiting');
+    expect(panel).toHaveTextContent('Snoozed');
+  });
+});

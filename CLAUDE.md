@@ -461,8 +461,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. Each tab
   shows its **count** as plain text after its label, the way the view chips read (`TopTabCount.tsx`, a lazy chunk;
   over 99 reads "99+"; a Badge's chrome made the row too wide at 390): Find the new postings Review new last
-  read (`scanDetails.newToday`), Apply the jobs its list shows now (`visibleJobs`: open view + Remote only, the status
-  line's number); none while 0 or not known; the link's name is "Apply 12" (`test/topTabs.ts` matches label then
+  read (`scanDetails.newToday`), Apply its To apply count (`filterCounts(…, remoteOnly).toApply`: Remote only counts, the open
+  view never does, so the number keeps one meaning; prod audit 2026-11-12); none while 0 or not known; the link's name is "Apply 12" (`test/topTabs.ts` matches label then
   count). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
   a tab tap, which reopens where the tab was left. Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
@@ -472,8 +472,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `inferMode` on title + location, where a list offering remote among places, "Portland, OR, or Remote within
   Canada", counts), and **every count follows it**: the view chips (`filterCounts(…, remoteOnly)`), the status
   line, the closed count (`remoteFiltered`), the pager and All jobs. A view change (named view or Remote only)
-  that hides the open job opens the list's first job in place (`followView.ts`; none: the job stays and the list
-  says "No jobs match"); search typing never moves it, and the lg rail has no "Not in this filter" card. **lg list
+  that hides the open job opens the list's first job in place (`followView.ts`; none: at lg the job stays and the list
+  says "No jobs match", below lg the page shows the view's empty state "Nothing under “…”" and no pager); search typing never moves it, and the lg rail has no "Not in this filter" card. **lg list
   column header (#614, Adrian 2026-11-12):** Jobs + Add job, the chips and the view description unchanged, then
   one row: Remote only, with Search (opens the field under it) and Sort (`PipelineMenus compact`) as tertiary icon
   buttons, then one status line. `.job-rail` pads its scroll box by a ring's width on every side (given back by a

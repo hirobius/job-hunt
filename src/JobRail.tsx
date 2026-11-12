@@ -109,7 +109,7 @@ export default function JobRail({ openId }: { openId: string }) {
           <JobRowList jobs={shown} openId={openId} onPick={(j) => hop(jobIdOf(j.url))} />
         )}
         {/* Under the list, so the jobs are the first thing in the column (#471). */}
-        <FollowUpSection jobs={jobs} now={now} />
+        <FollowUpSection jobs={remoteFiltered(jobs, view.remoteOnly)} now={now} />
         <NextDaysSection jobs={jobs} now={now} />
       </Stack>
     </Box>

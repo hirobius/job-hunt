@@ -3,7 +3,9 @@
 // drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the six views and "All jobs and
 // filters". Beside it a "N filters" chip, only while a filter is on (search, Remote only); it opens
 // the All jobs sheet. Right, the pager: it only steps (a sideways swipe on the job steps it too).
-// The view name truncates, never the pager. Below lg only: at lg the list sits beside the job.
+// The view name takes the room it needs (prod audit 2026-11-12: it truncated with free space
+// left); when the row is too narrow for both, the pager wraps under it. It only truncates on a
+// screen too narrow for the name alone. Below lg only: at lg the list sits beside the job.
 import { ChevronDown } from 'lucide-react';
 import { Box, Button, Menu, Stack, Tag, Text } from '@hirobius/design-system';
 import ApplyPager from './ApplyPager';
@@ -27,7 +29,7 @@ const NAME = {
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
 } as const;
-const GROW = { flex: '1 1 0', minWidth: 0 } as const;
+const GROW = { flex: '1 0 auto', minWidth: 0, maxWidth: '100%' } as const;
 
 export default function ApplyWalk({
   job,
@@ -35,12 +37,15 @@ export default function ApplyWalk({
   list,
   order,
   onAllJobs,
+  empty = false,
 }: {
   job: Job;
   jobs: Job[];
   list: Job[];
   order: Job[];
   onAllJobs: () => void;
+  /** The view shows no jobs: no pager, the page shows the view's empty state. */
+  empty?: boolean;
 }) {
   const view = usePipelineView();
   const sheet = useBackSheet('apply-views');
@@ -48,7 +53,7 @@ export default function ApplyWalk({
   const n = filtersOn(view);
   const name = FILTER_LABEL[view.filter];
   return (
-    <Stack direction="row" gap="tight" align="center" justify="space-between">
+    <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
       <Stack direction="row" gap="tight" align="center" style={GROW}>
         <Menu {...sheet}>
           <Menu.Trigger asChild>
@@ -89,9 +94,11 @@ export default function ApplyWalk({
           </Tag>
         )}
       </Stack>
-      <Box>
-        <ApplyPager job={job} list={list} order={order} />
-      </Box>
+      {!empty && (
+        <Box>
+          <ApplyPager job={job} list={list} order={order} />
+        </Box>
+      )}
     </Stack>
   );
 }

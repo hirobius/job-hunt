@@ -581,7 +581,14 @@ p {
 /* A removable term pill (Manage track, rev-3 mock): 32px tall, its X a 40px hit area that
  * overhangs the pill by 4 each side. HDS Tag is one whole button with no dismiss slot.
  * Upstream ask: docs/hds-upstream-asks-0.9.md, "Dismissible tag". */
+/* The text gives way and the X never does, so a long term ellipsises before its X instead of
+ * running under it (prod audit 2026-11-12, Search profile at 390). */
+[data-hds] .rjb-term > .rjb-truncate {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 [data-hds] .rjb-term .rjb-term-x {
+  flex: none;
   width: var(--primitive-space-10);
   min-width: var(--primitive-space-10);
   height: var(--primitive-space-10);

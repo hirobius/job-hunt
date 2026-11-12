@@ -2,12 +2,29 @@
 // (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks). At
 // lg the list sits beside it; below lg it stands alone, with Back and the "‹ 2 of N ›" pager.
 import { useEffect, useState } from 'react';
-import { Box, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobius/design-system';
+import { Search } from 'lucide-react';
+import {
+  Box,
+  Button,
+  Skeleton,
+  Stack,
+  Text,
+  Sidebar,
+  useAtLeast,
+  VisuallyHidden,
+} from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import { findJobById, jobIdOf, useJobs } from './store';
 import { titleOf } from './jobRow';
 import { usePageTitle } from './pageTitle';
 import { goBackTo, openJob, originOf, useRoute } from './route';
-import { nearestShown, usePipelineView, visibleJobs } from './pipelineView';
+import {
+  FILTER_LABEL,
+  nearestShown,
+  setPipelineView,
+  usePipelineView,
+  visibleJobs,
+} from './pipelineView';
 import { openNextAfter } from './applyNext';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
@@ -92,7 +109,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // JS and show the job alone, with a Back link, instead.
   const wide = useAtLeast('lg');
   const view = usePipelineView();
-  useFollowView(job, jobs, view);
+  const viewEmpty = useFollowView(job, jobs, view);
   const [all, setAll] = useState(false);
   // The id AllJobsSheet pops on a jump.
   useBackCloses(all, () => setAll(false), 'all-jobs');
@@ -141,16 +158,39 @@ export default function JobPage({ jobId }: { jobId: string }) {
             list={list}
             order={order}
             onAllJobs={() => setAll(true)}
+            empty={viewEmpty}
           />
         </Box>
-        <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
-          <JobDetail
-            key={job.url}
-            job={job}
-            showBack={!!origin}
-            onAnswered={() => openNextAfter(job, jobs)}
-          />
-        </SwipeArea>
+        {viewEmpty ? (
+          <Stack gap="normal">
+            {/* The page keeps its one h1 while no job shows. */}
+            <VisuallyHidden>
+              <Text as="h1" variant="title">
+                Apply
+              </Text>
+            </VisuallyHidden>
+            <EmptyState
+              centered
+              icon={Search}
+              title={`Nothing under “${FILTER_LABEL[view.filter]}”`}
+              description="Try another view."
+              action={
+                <Button variant="secondary" onClick={() => setPipelineView({ filter: 'toApply' })}>
+                  Show to apply
+                </Button>
+              }
+            />
+          </Stack>
+        ) : (
+          <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
+            <JobDetail
+              key={job.url}
+              job={job}
+              showBack={!!origin}
+              onAnswered={() => openNextAfter(job, jobs)}
+            />
+          </SwipeArea>
+        )}
       </Stack>
       <AllJobsSheet jobs={jobs} openId={jobId} open={all} onOpenChange={setAll} />
     </Box>
