@@ -110,8 +110,9 @@ for (const [width, height, row] of [
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
     await seed(page);
     const menu = await openAccount(page);
-    await expect(menu.getByText('On this device only', { exact: true })).toBeVisible();
-    await expect(menu.getByText('Sign in to see your jobs on any device')).toBeVisible();
+    await expect(
+      menu.getByText('On this device only. Sign in to sync across devices.', { exact: true }),
+    ).toBeVisible();
     const rows = menu.locator('[role="menuitem"]:not(.rjb-menu-key), [role="menuitemcheckbox"]');
     await expect(rows).toHaveCount(8);
     for (const r of await rows.all()) {
@@ -122,7 +123,7 @@ for (const [width, height, row] of [
     }
     // The grey key: HDS secondary, a real fill, 44px tall on a phone.
     const key = menu.getByRole('menuitem', {
-      name: 'Sign in to see your jobs on any device',
+      name: 'Sign in',
       exact: true,
     });
     const bg = await key.evaluate((n) => getComputedStyle(n).backgroundColor);

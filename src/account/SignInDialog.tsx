@@ -174,21 +174,17 @@ export default function SignInDialog() {
           </>
         ) : (
           <>
-            {/* The title names the screen for screen readers only; under the wordmark, two lines,
-                the benefit first (redesign §5.8, #555), which also describe the screen (two
-                paragraphs: HDS Dialog.Description is one p). */}
+            {/* The title names the screen for screen readers only; under the wordmark, the benefit
+                (redesign §5.8, #555), which also describes the screen; how it works is the Email
+                field's helper (Adrian 2026-11-12). Provider keys have no raised edge
+                (shadow none) so Send link leads. */}
             <VisuallyHidden as="div">
               <Dialog.Title>Sign in</Dialog.Title>
             </VisuallyHidden>
             <Box id={SIGN_IN_COPY_ID}>
-              <Stack gap="px4">
-                <Text as="p" variant="body" tone="primary">
-                  {SIGN_IN_BENEFIT}
-                </Text>
-                <Text as="p" variant="caption" tone="secondary">
-                  {SIGN_IN_HOW}
-                </Text>
-              </Stack>
+              <Text as="p" variant="body" tone="primary">
+                {SIGN_IN_BENEFIT}
+              </Text>
             </Box>
             {/* Behind googleSignInFlag.ts / linkedInSignInFlag.ts (both on since 2026-11-12).
                 The buttons give way to the keyboard (SignInDialog.css); their error stays. */}
@@ -198,6 +194,7 @@ export default function SignInDialog() {
                   {googleSignInEnabled() && (
                     <Button
                       variant="secondary"
+                      shadow="none"
                       className="sign-in-dialog__primary"
                       iconLeft={<GoogleMark />}
                       loading={leaving === 'google'}
@@ -209,6 +206,7 @@ export default function SignInDialog() {
                   {linkedInSignInEnabled() && (
                     <Button
                       variant="secondary"
+                      shadow="none"
                       className="sign-in-dialog__primary"
                       iconLeft={<LinkedInMark />}
                       loading={leaving === 'linkedin'}
@@ -237,6 +235,7 @@ export default function SignInDialog() {
                   value={email}
                   error={!!fieldError}
                   errorMessage={fieldError ?? undefined}
+                  helperText={SIGN_IN_HOW}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (fieldError) setFieldError(null);

@@ -97,8 +97,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
-- **The Account menu (#549): 9 items in 4 groups.** Who you are: signed out "On this device only", then
-  "Sign in to see your jobs on any device" as a grey key (#555's words) (signed in: the email, the sync
+- **The Account menu (#549): 9 items in 4 groups.** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
+  "Sign in" as a grey key (signed in: the email, the sync
   line, Sign out). Then Documents, Search profile, Companies, Data. Then Dark theme and Pause
   animations as toggles with a switch on the right that shows the state. Then Send feedback, Privacy and
   terms. Every row has a 16 px icon; rows are 44 px on a phone (a bottom sheet), 38 px at 1440. Scan
@@ -145,10 +145,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The app bar logo (#639):** the flame's mass sits on the name's x-height centre (not its box
   centre): the flame sits about 3 px lower than a box-centred one at 19 px.
 - **Sign-in (#555, #556):** the stacked flame and name, centred by the flame's mass (not its box),
-  then two lines, the benefit leading: "Sign in to see your jobs on any device." (body, primary) and
-  "We email you a sign-in link. No password needed." (caption, secondary). Then the email field,
-  Send link (filled) and Continue without an account (underlined exit). Top right: Pause
-  animations, an icon key. The Account menu's signed-out item uses the same words.
+  then the benefit: "Sign in to see your jobs on any device." (body, primary). Continue with Google
+  and LinkedIn are secondary with no raised edge (shadow none), so Send link leads. Then the email
+  field with its helper under it, "We email you a sign-in link. No password needed." (caption,
+  secondary), Send link (filled) and Continue without an account (underlined exit). Top right: Pause
+  animations, an icon key.
 - **Empty, error and done states sit on the page background (#553):** centred icon tile, bold title,
   one line, then one filled key and one grey key. Never a card around them, and a second choice is a
   grey key, never a text button. Apply empty: "Track your first job" (Add job | Try with sample

@@ -93,6 +93,16 @@ describe('the mark', () => {
     expect(getProfile()?.auto).toBeUndefined();
   });
 
+  it('a Save of the Search profile with nothing changed keeps it auto', async () => {
+    const { ensureProfile, draftOf, fieldsOf } = await import('./searchDefaults');
+    const { getProfile, saveProfile, updateProfile } = await import('./profile');
+    ensureProfile();
+    saveProfile(fieldsOf(draftOf(getProfile()!)));
+    expect(getProfile()?.auto).toBe(true);
+    updateProfile({ leaveOut: [] });
+    expect(getProfile()?.auto).toBe(true);
+  });
+
   it("a starred or muted starter company is the person's", async () => {
     const { deviceData } = await import('./account/deviceData');
     const { emptyBlob } = await import('./syncBlob');
@@ -101,5 +111,61 @@ describe('the mark', () => {
     const blob = { ...emptyBlob(), sources: [s] };
     expect(deviceData(blob, 0).any).toBe(false);
     expect(deviceData({ ...blob, sources: [{ ...s, star: true as const }] }, 0).any).toBe(true);
+  });
+});
+
+// Adrian's phone test (2026-11-12): a fresh device that opened Find and Apply signed out, showing
+// "Track your first job", was asked "Add this device's saved data to …?" after signing in.
+describe('the merge guard on a fresh device', () => {
+  async function firstRunBlob() {
+    const { ensureProfile, draftOf, fieldsOf } = await import('./searchDefaults');
+    const { getProfile, getProfiles, saveProfile } = await import('./profile');
+    const { getSources } = await import('./sources');
+    const { emptyBlob } = await import('./syncBlob');
+    ensureProfile();
+    // Opened the Search profile from the Account menu and pressed Save, changing nothing.
+    saveProfile(fieldsOf(draftOf(getProfile()!)));
+    return { ...emptyBlob(), profiles: getProfiles(), sources: getSources() };
+  }
+
+  it('only the first-run defaults: no question', async () => {
+    const { deviceData } = await import('./account/deviceData');
+    expect(deviceData(await firstRunBlob(), 0)).toEqual({ jobs: 0, any: false });
+  });
+
+  it('one job the person saved: asks, and names it', async () => {
+    const { deviceData } = await import('./account/deviceData');
+    const blob = await firstRunBlob();
+    const job = { url: 'https://boards.greenhouse.io/x/jobs/1', label: 'Design Systems Lead' };
+    expect(deviceData({ ...blob, jobs: [job as never] }, 0)).toEqual({ jobs: 1, any: true });
+  });
+
+  it('a profile the person edited: asks', async () => {
+    const { deviceData } = await import('./account/deviceData');
+    const { updateProfile, getProfiles } = await import('./profile');
+    const blob = await firstRunBlob();
+    updateProfile({ leaveOut: ['Intern'] });
+    expect(deviceData({ ...blob, profiles: getProfiles() }, 0).any).toBe(true);
+  });
+
+  it('signing in after the first run signed out asks nothing', async () => {
+    history.replaceState(null, '', '/' + link);
+    await firstRunBlob();
+    rememberSignInRequest(ME);
+    const { default: CloudSyncProvider } = await import('./account/CloudSyncProvider');
+    const { useCloudSync } = await import('./account/accountContext');
+    function Probe() {
+      const { user, settled } = useCloudSync();
+      return <span>{user ? `in:${user.email}:${settled ? 'settled' : 'pulling'}` : 'out'}</span>;
+    }
+    render(
+      <ToastProvider>
+        <CloudSyncProvider>
+          <Probe />
+        </CloudSyncProvider>
+      </ToastProvider>,
+    );
+    expect(await screen.findByText(`in:${ME}:settled`)).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 });

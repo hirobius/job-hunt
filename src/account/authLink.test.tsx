@@ -431,15 +431,21 @@ describe('the pieces', () => {
     const fresh = {
       ...emptyBlob(),
       copydeck: [{ id: 'tpl-followup' }],
-      documents: [{ id: 'snippet-tpl-followup' }],
+      documents: [{ id: 'snippet-tpl-followup', versions: [{ id: 'v1', text: 'Hi' }] }],
     } as never;
     expect(deviceData(fresh, 0)).toEqual({ jobs: 0, any: false });
     expect(deviceData(emptyBlob(), 1).any).toBe(true);
-    // Per-track settings are this device's data too (work mode, sweep titles).
-    expect(deviceData({ ...emptyBlob(), modes: { t1: 'remote' } } as never, 0).any).toBe(true);
+    // v11 work modes and sweep titles are not asked about: no editor writes them since #389.
+    expect(deviceData({ ...emptyBlob(), modes: { t1: 'remote' } } as never, 0).any).toBe(false);
     expect(
       deviceData({ ...emptyBlob(), sweeps: { t1: { titles: [], on: [] } } } as never, 0).any,
-    ).toBe(true);
+    ).toBe(false);
+    // A starter document the person edited (a second Version) is theirs.
+    const edited = {
+      ...emptyBlob(),
+      documents: [{ id: 'snippet-tpl-followup', versions: [{ id: 'v1' }, { id: 'v2' }] }],
+    } as never;
+    expect(deviceData(edited, 0).any).toBe(true);
     expect(mergeQuestion({ jobs: 2, any: true }, ME)).toBe(`Add this device's 2 jobs to ${ME}?`);
     expect(mergeQuestion({ jobs: 0, any: true }, ME)).toBe(
       `Add this device's saved data to ${ME}?`,
