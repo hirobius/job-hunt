@@ -21,6 +21,7 @@ import {
   renderAccount,
   addDeviceDataIfAsked,
   chooseAccountItem,
+  chooseDataAction,
   openAccount,
 } from '../test/renderAccount';
 import { replaceCurationState } from '../curation/curationStore';
@@ -150,7 +151,7 @@ describe('a newer blob version in the cloud (#382)', () => {
   it('Delete my data still deletes', async () => {
     const { signOut } = await stoppedByNewer();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     await waitFor(() => expect(signOut).toHaveBeenCalled());
     expect(row()).toBeUndefined();
   });
@@ -159,7 +160,7 @@ describe('a newer blob version in the cloud (#382)', () => {
     await stoppedByNewer();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     fake().failNext('tracker', 'delete');
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     await waitFor(() => expect(tabFrozen()).toBe('newerVersion'));
     act(() => {
       addJob('https://x.example/jobs/after-delete', 'After');

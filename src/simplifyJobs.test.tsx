@@ -46,6 +46,13 @@ const openAccount = async () => {
   return screen.findByRole('menu');
 };
 
+/** The Account menu's Data dialog (#550). */
+const openData = async () => {
+  const menu = await openAccount();
+  await userEvent.click(within(menu).getByRole('menuitem', { name: 'Data' }));
+  return screen.findByRole('dialog', { name: 'Data' });
+};
+
 beforeEach(() => {
   localStorage.clear();
   window.history.replaceState(null, '', '/');
@@ -82,20 +89,21 @@ describe('the Jobs page keeps only what Adrian listed', () => {
     expect(screen.queryByRole('button', { name: 'Find the next company' })).toBeNull();
   });
 
-  it('Recently removed is not on the page: the Account menu opens it', async () => {
+  it("Recently removed is not on the page: the Account menu's Data dialog opens it", async () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
     window.location.hash = '#/apply';
     renderApp();
-    let menu = await openAccount();
-    expect(within(menu).queryByRole('menuitem', { name: /Recently removed/ })).toBeNull();
+    let data = await openData();
+    expect(within(data).queryByRole('button', { name: /Recently removed/ })).toBeNull();
     await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Data' })).toBeNull());
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Welder' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await waitFor(() => expect(getTrash()).toHaveLength(1));
     expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
-    menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Recently removed (1)' }));
+    data = await openData();
+    await userEvent.click(within(data).getByRole('button', { name: 'Recently removed (1)' }));
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Restore: Welder' }));
     expect(
@@ -105,12 +113,12 @@ describe('the Jobs page keeps only what Adrian listed', () => {
     ).toEqual(['Design Engineer', 'Welder']);
   });
 
-  it('Export links lives in the Account menu', async () => {
+  it("Export links lives in the Account menu's Data dialog", async () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = '#/apply';
     renderApp();
-    const menu = await openAccount();
-    expect(within(menu).getByRole('menuitem', { name: 'Export links' })).toBeInTheDocument();
+    const data = await openData();
+    expect(within(data).getByRole('button', { name: 'Export links' })).toBeEnabled();
   });
 });
 
@@ -298,8 +306,8 @@ describe('Recently removed from another page', () => {
     ]);
     window.location.hash = '#/find';
     renderApp();
-    const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Recently removed (1)' }));
+    const data = await openData();
+    await userEvent.click(within(data).getByRole('button', { name: 'Recently removed (1)' }));
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(
       within(dialog).getByRole('button', { name: 'Delete forever: Design Engineer' }),

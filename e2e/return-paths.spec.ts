@@ -1,5 +1,14 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, JOB_LINK, openAllJobs, openApply, openFilters, seed, topTab } from './routes';
+import {
+  go,
+  JOB_LINK,
+  openAllJobs,
+  openApply,
+  openFilters,
+  seed,
+  topTab,
+  openData,
+} from './routes';
 
 // Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
 // be able to get back easily enough / automatically." With the sample pipeline, Today behind it,
@@ -159,9 +168,8 @@ for (const width of [390, 800] as const) {
       await closesOnBack(page.getByRole('menu'), queue);
       await more.click();
       await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
-      // Recently removed is in the Account menu (#416).
-      await page.getByRole('button', { name: /^Account/ }).click();
-      await page.getByRole('menuitem', { name: /^Recently removed/ }).click();
+      // Recently removed is in the Account menu's Data dialog (#416, #550).
+      await (await openData(page)).getByRole('button', { name: /^Recently removed/ }).click();
       await closesOnBack(page.getByRole('dialog', { name: 'Recently removed' }), queue);
 
       // The Search profile, from the Account menu (#388).
