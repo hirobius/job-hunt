@@ -5,25 +5,25 @@
 // To apply, Undo) and puts the draft note and the fit line in the Job's Notes; Skip hides the pick
 // by posting fingerprint (the synced Decided store), with Undo. Hidden when there is nothing to show.
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Banknote, Calendar, Plus } from 'lucide-react';
 import {
   Badge,
   Box,
   Button,
-  Disclosure,
   Icon,
   InlineLink,
   Stack,
   Text,
   useToast,
 } from '@hirobius/design-system';
+import { DisclosureRow } from './DisclosureRow';
 import { ItemList, ItemRow, Panel } from './PipelinePanel';
 import { addJobDetailed, useJobs } from './store';
 import { decided } from './decided';
 import { collapseRow } from './feedback';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { copyFilled } from './templateCopy';
-import { metaLines } from './metaLines';
+import { FactLines } from './FactLines';
 import { loadPicks, openPicks, pickFacts, pickJobFields, shortDay, type DailyPick } from './picks';
 
 type OpenPick = ReturnType<typeof openPicks>[number];
@@ -76,7 +76,7 @@ function PickRow({ pick: p }: { pick: OpenPick }) {
   const { toast } = useToast();
   const [noteOpen, setNoteOpen] = useState(false);
   const name = `${p.title}${p.company ? ` at ${p.company}` : ''}`;
-  const [kind, ...facts] = pickFacts(p);
+  const [kind, pay, postedLine] = pickFacts(p);
   const copy = async () => {
     const r = await copyFilled(p.note);
     if (r.ok) toast({ title: 'Copied the note', description: name, tone: 'success' });
@@ -124,11 +124,13 @@ function PickRow({ pick: p }: { pick: OpenPick }) {
               )}
               <Badge tone={p.employment === 'contract' ? 'info' : 'neutral'}>{kind}</Badge>
             </Stack>
-            {metaLines(facts).map((line) => (
-              <Text key={line} variant="caption" as="p" tone="secondary">
-                {line}
-              </Text>
-            ))}
+            {/* One fact per line, the icon on the first line (#616; 2026-11-12). */}
+            <FactLines
+              items={[
+                { icon: Banknote, label: pay },
+                { icon: Calendar, label: postedLine },
+              ]}
+            />
             {p.why && (
               <Text variant="caption" as="p">
                 {p.why}
@@ -137,8 +139,7 @@ function PickRow({ pick: p }: { pick: OpenPick }) {
           </Stack>
         </Box>
         {p.note && (
-          <Disclosure
-            variant="row"
+          <DisclosureRow
             label="Draft note"
             preview={p.note}
             open={noteOpen}
@@ -157,7 +158,7 @@ function PickRow({ pick: p }: { pick: OpenPick }) {
             <Text variant="body" as="p" className="rjb-prewrap">
               {p.note}
             </Text>
-          </Disclosure>
+          </DisclosureRow>
         )}
         <Stack direction="row" wrap="wrap" gap="tight" align="center">
           <Button

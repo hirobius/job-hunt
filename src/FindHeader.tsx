@@ -1,4 +1,4 @@
-// Find's short header (#544, redesign §5.1): the page's name and one caption, "Scanned 2 h ago", with
+// Find's short header (#544, redesign §5.1; the page bar, 2026-11-12): the page's sr-only h1 and one caption, "Scanned 2 h ago", with
 // one More menu beside it that holds Sort, Scan now (signed out; Stop scan while it runs)
 // and Search profile. The date line, the Sort key on the toolbar and the Scan now key by the list's
 // heading are gone. Signed in, "scanned" is the server's last sync (#448); signed out, the last
@@ -15,6 +15,7 @@ import { useScanInput } from './feed/useAutoScan';
 import { agoPhrase, useServerUpdatedAt } from './feed/serverUpdated';
 import { SORT_LABEL, type FeedSort } from './feed/feed';
 import { findCaption } from './findCaption';
+import { InPageBar } from './PageBar';
 
 const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 
@@ -39,16 +40,22 @@ export function FindHeader({
   const { state, running } = useScan();
   const server = useServerUpdatedAt(!!user);
   const scanned = user ? agoPhrase(server.at, server.now) : agoPhrase(state.finishedAt);
+  // The page bar (2026-11-12): the Find / Apply nav sits where the title was, so "Find" is the h1
+  // for screen readers and focus only (.sr-only); the caption and More go at the bar's right.
   return (
-    <Stack direction="row" gap="tight" align="start" justify="space-between">
-      <Stack gap="px4" className="min-w-0">
-        <Text as={heading ? 'h1' : 'p'} variant="title">
+    <>
+      {heading && (
+        <Text as="h1" variant="title" className="sr-only">
           Find
         </Text>
-        <MetaCaption items={[...findCaption(scanned, !user && running), deckPlace]} />
-      </Stack>
-      <FindMore sort={sort} signedIn={!!user} running={running} />
-    </Stack>
+      )}
+      <InPageBar>
+        <Stack direction="row" gap="tight" align="center" className="min-w-0">
+          <MetaCaption items={[...findCaption(scanned, !user && running), deckPlace]} />
+          <FindMore sort={sort} signedIn={!!user} running={running} />
+        </Stack>
+      </InPageBar>
+    </>
   );
 }
 

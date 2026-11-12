@@ -451,6 +451,21 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   disclosure. Sort (Find's More menu since #544) works in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
   keeps the card on screen (`changeSort` finds it by fingerprint). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
   `figmaRules.test.ts`.
+- **The page bar (2026-11-12, a phone recording, #679):** Find / Apply (the `.rjb-segs` nav of links,
+  `aria-current`, never a radio group) left the app bar for the **page bar**, the first row of `main`
+  (`.rjb-page-bar` in App, `.rjb-main` keeps the 24 page rhythm under it) at top left, where the page title was; the
+  app bar is the logo and Account, one row. No visible "Find" / "Apply" title: each page keeps its h1 as
+  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). Find's caption ("Scanned
+  2 h ago", the Deck's "1 of N") and More go to the bar's right through `PageBar.tsx` `InPageBar`
+  (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
+  `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
+- **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/DisclosureRow.tsx` wraps HDS
+  `Disclosure variant="row"` (Copy into the form's Why this company / Cover note / Custom answers, Daily
+  picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
+  body starts a height tween, so rows jumped; here the gap stays 0, the body pads itself and opens at once.
+  BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/FactLines.tsx`
+  (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
+  (inline) in `DetailTitleBlock`, the posting cards and Daily picks. Both are in the HDS gap registry.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`, G7 hds#1438); **one app-bar row at every width (#548):**

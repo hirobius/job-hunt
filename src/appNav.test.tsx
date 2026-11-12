@@ -158,18 +158,26 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
   });
 });
 
-// One app-bar row at every width (redesign §5.1, #548): the logo, Find / Apply and Account, each tab
-// with its count. Find: the new postings Review new last read. Apply: its To apply count, whatever
+// One app-bar row at every width (redesign §5.1, #548): the logo and Account; Find / Apply moved into
+// the page bar, the first row of main at top left (2026-11-12), each tab with its count. Find: the new postings Review new last read. Apply: its To apply count, whatever
 // view is open (prod audit 2026-11-12).
 describe('the one-row app bar (#548)', () => {
-  it('Find and Apply sit in the row with the logo and Account; there is no second row', () => {
+  it('the app bar is one row (logo, Account); Find and Apply open the page bar at top left of main', () => {
     renderApp();
     const nav = screen.getByRole('navigation', { name: 'Sections' });
     expect(nav).toHaveClass('rjb-segs');
     expect(nav.className).not.toMatch(/rjb-segs-full/);
-    const row = nav.parentElement as HTMLElement;
-    expect(row.contains(screen.getByRole('link', { name: `${BRAND.name}, Find` }))).toBe(true);
+    // The page bar is main's first row and the nav its first item (where the page title was).
+    const bar = nav.parentElement as HTMLElement;
+    expect(bar).toHaveClass('rjb-page-bar');
+    expect(bar.firstElementChild).toBe(nav);
+    expect(bar.parentElement).toBe(screen.getByRole('main'));
+    expect(bar.parentElement?.firstElementChild).toBe(bar);
+    // The app bar's one row: the logo and Account, no tabs.
+    const logo = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    const row = logo.parentElement as HTMLElement;
     expect(row.contains(screen.getByRole('button', { name: /^Account/ }))).toBe(true);
+    expect(row.contains(nav)).toBe(false);
     expect(screen.getAllByRole('navigation', { name: 'Sections' })).toHaveLength(1);
   });
 

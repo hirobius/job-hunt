@@ -27,12 +27,17 @@ for (const width of [390, 1440]) {
           .first()
           .boundingBox();
         expect(box && logo).toBeTruthy();
-        // Inline in the app bar, on the logo's row, at every width (#548: the phone's second
-        // row went), right of the logo and left of Account.
-        expect(Math.abs(box!.y + box!.height / 2 - (logo!.y + logo!.height / 2))).toBeLessThan(24);
-        expect(box!.x).toBeGreaterThan(logo!.x + logo!.width - 1);
+        // The page bar (2026-11-12): at top left of the page, where its title was, under the
+        // app bar's one row (the logo, then Account on its row at the right).
+        expect(box!.y).toBeGreaterThan(logo!.y + logo!.height - 1);
+        expect(Math.abs(box!.x - logo!.x)).toBeLessThan(12);
+        const main = await page.getByRole('main').boundingBox();
+        expect(box!.y - main!.y).toBeLessThan(2);
         const account = await page.getByRole('button', { name: /^Account/ }).boundingBox();
-        expect(account!.x).toBeGreaterThan(box!.x + box!.width - 1);
+        expect(
+          Math.abs(account!.y + account!.height / 2 - (logo!.y + logo!.height / 2)),
+        ).toBeLessThan(24);
+        expect(account!.x).toBeGreaterThan(logo!.x + logo!.width - 1);
         expect(account!.width).toBeGreaterThanOrEqual(44);
       }).toPass({ timeout: 10_000 });
       await topTab(page, 'Find').click();

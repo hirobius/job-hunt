@@ -1,14 +1,15 @@
 // One detail template (redesign §5.4, #546): a saved job on Apply and a posting on Find, at 1440,
 // share one header. Top to bottom: an optional Back, the title block (the title as the page's h1,
-// the company or its "not stated" line, one HDS Card.Facts line, then the badges), with an
+// the company or its "not stated" line, the facts one per line (FactLines), then the badges), with an
 // optional More beside it, then one action row (ActionDock: inline from lg, docked on a phone).
 // The content follows the header on its own page (Apply: the kit, Details, Notes…; Find: the
 // description). Lives in the lazy route chunks only (JobPage and Today share it).
-import type { ComponentProps, ReactNode } from 'react';
-import { Box, Card, Stack, Text } from '@hirobius/design-system';
+import type { ReactNode } from 'react';
+import { Box, Stack, Text } from '@hirobius/design-system';
+import { FactLines, type FactItem } from './FactLines';
 import { ActionDock } from './hds-gaps/ActionDock';
 
-type Facts = ComponentProps<typeof Card.Facts>['items'];
+type Facts = FactItem[];
 
 /** The title block: title, company line, facts, then the badges (only when there are some). */
 export function DetailTitleBlock({
@@ -49,7 +50,7 @@ export function DetailTitleBlock({
           </Text>
         )}
       </Stack>
-      <Card.Facts items={facts} />
+      <FactLines list items={facts} />
       {badges && (
         <Stack direction="row" wrap="wrap" gap="px8" align="center">
           {badges}

@@ -19,13 +19,13 @@ export function tooSoon(): boolean {
 
 /** The second tap of a double tap can also land on another control the next job (or posting) put
  *  under the finger: its menu, a disclosure, a link. For the same window, presses inside the page
- *  (`main`) are swallowed before any control sees them (capture phase); the Account menu, tabs and
- *  notices outside `main` are left alone. */
+ *  (`main`) are swallowed before any control sees them (capture phase); the Account menu, notices
+ *  outside `main` and the tabs (the page bar's, inside `main` since #679) are left alone. */
 function swallow(e: Event) {
   if (!lastAnswer || Date.now() - lastAnswer >= DOUBLE_TAP_MS) return;
   const t = e.target as Element | null;
   // The action dock (#535) sits on body, outside main: it is part of the page too.
-  if (!t?.closest?.('main, .rjb-dock')) return;
+  if (!t?.closest?.('main, .rjb-dock') || t.closest('.rjb-page-bar nav')) return;
   e.preventDefault();
   e.stopPropagation();
 }

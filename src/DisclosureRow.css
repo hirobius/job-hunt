@@ -1,0 +1,13 @@
+/* HDS Disclosure variant="row", flat and steady (DisclosureRow.tsx; HDS gap registry in docs/hds-upstream-asks-0.9.md). */
+.rjb-disclosure-row > * {
+  /* HDS sets the wrapper's gap inline, 0 closed and 8px open, in the frame the body starts to grow. */
+  gap: 0 !important;
+}
+.rjb-disclosure-row > * > .overflow-hidden {
+  /* The body opens at once: no height tween next to the instant preview swap. */
+  height: auto !important;
+  opacity: 1 !important;
+}
+.rjb-disclosure-row > * > .overflow-hidden > div {
+  padding-block: var(--primitive-space-2) var(--primitive-space-3);
+}
