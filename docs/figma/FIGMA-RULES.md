@@ -76,13 +76,14 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Find's short header (#544).** "Find" and one caption, "4 new · scanned 2 h ago", with one More
   menu on its row holding Sort, Scan now and Search profile. No date line, no Sort or Scan now key.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
-  picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the five views and
+  picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the six views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
   jobs bottom sheet), and right the pager "7 of 12" with previous and next, which only steps (a
   sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
-  Interviewing, Applied, Recently closed, then All jobs. Each is a Tag chip with a count Badge, one
+  This week (interviews and closing dates in the next 7 days, soonest first; #640), Interviewing,
+  Applied, Recently closed, then All jobs. Each is a Tag chip with a count Badge, one
   picked at a time, and the open view's one-line description sits under the chips in caption. Follow
   up's count is amber while a follow-up is due; every other count is neutral. To apply sorts by
   closing date first, then newest. At 1440 the chips sit at the top of the list column. Closed jobs

@@ -302,10 +302,11 @@ describe('Sort shows only its value', () => {
 
 // The Pipeline holds no stats or funnel (#128); its agenda is the Follow up section (#236).
 describe('Pipeline holds the list only', () => {
-  it('has no This week agenda or Insights band', () => {
+  it('has no This week agenda or Insights band (This week is a named view, #640)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();
     expect(screen.queryByRole('button', { name: /Insights/ })).toBeNull();
-    expect(screen.queryByText(/^This week/)).toBeNull();
+    expect(screen.queryByRole('heading', { name: /^This week/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: /^This week/ })).toBeNull();
   });
 });

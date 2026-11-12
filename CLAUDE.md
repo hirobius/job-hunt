@@ -253,7 +253,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   empty state; no filter bar on the job since #543: Add job, search, filters, Sort and the sample line are the
   All jobs sheet's), the sticky **walk control** (#542, `ApplyWalk.tsx`:
   one row, no box: the **view picker** (the open view's name, bold, caret, named "View: <name>"; an HDS Menu drawn as
-  a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the five views with counts and
+  a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the six views with counts and
   "All jobs and filters"), a **"N filters" chip** only while a filter is on (`filtersOn`: search, Remote only; it opens
   the sheet), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
   label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways swipe on the job steps it too);
@@ -428,7 +428,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
 - **Named views (#541, redesign phase 2):** the Status select is gone. `pipelineView.ts` `Filter` is a named view:
   **To apply** (Saved, not set aside, not closed; sorted by closing date first, then the Sort's order, newest by
-  default), **Follow up** (`deriveJobState(…).followUp.due`), **Interviewing** (Interviewing or Offer), **Applied**,
+  default), **Follow up** (`deriveJobState(…).followUp.due`), **This week** (#640, Adrian 2026-11-12: `weekDateOf`, an
+  interview or event from today through the next 6 days (`upcomingEvents`) or a Saved job's closing date in that
+  window (`respondByJobs`), soonest first; it replaces the phone's lost Next 7 days section), **Interviewing**
+  (Interviewing or Offer), **Applied**,
   **Recently closed** (`isClosed`: gone from the board or past its day; #602, where closed jobs collect and each is
   removed or kept; the automatic check is #602's own work), then **All jobs** (every job, set-aside ones too: the old
   Saved / Offer / Rejected / Retired / Closing soon filters went with the select). `VIEW_DESCRIPTION` is each one's
@@ -839,8 +842,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   URL). It sits beside the title, never inside a link: the Pipeline table and cards, the Follow up
   and Next 7 days rows, the closed-on-the-board list, Recently removed, the Company page, the job
   page header (all through `PostingTitle` / `JobPostingTitle`: the title shrinks and wraps anywhere,
-  so a long unbroken title never runs under the link or pushes it off screen). The Apply list's rows (the
-  lg column and the All jobs sheet) have none since #543: the job page's header has it. Its
+  so a long unbroken title never runs under the link or pushes it off screen). **Apply rows carry no posting
+  icon** (the lg column and the All jobs sheet, since #543; Adrian accepts it, #640): the posting is one tap away
+  through More → Open posting, and the job page's header has it. Its
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
   and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Unsaved listings (Find's Browse cards) have no page:
   below lg their title is the link out, with HDS's external icon (#544; at lg it selects the posting). Apply mode keeps Open application.

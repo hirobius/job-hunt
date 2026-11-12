@@ -74,7 +74,9 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   const sheet = (await menu.boundingBox())!;
   expect(Math.round(sheet.x)).toBe(0);
   expect(Math.round(sheet.y + sheet.height)).toBe(844);
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(5);
+  // Six named views; This week right after Follow up (#640).
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(6);
+  await expect(menu.getByRole('menuitemradio').nth(2)).toHaveText(/^This week \(\d+\)$/);
   await menu.getByRole('menuitemradio', { name: /^Recently closed/ }).click();
   await expect(page.getByRole('button', { name: 'View: Recently closed' })).toBeVisible();
   // Both filters on: search and Remote only.

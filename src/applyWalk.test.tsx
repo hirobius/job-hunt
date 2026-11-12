@@ -1,4 +1,4 @@
-// The phone's walk control (#542): the view picker (a Menu with the five views and "All jobs and
+// The phone's walk control (#542): the view picker (a Menu with the six views and "All jobs and
 // filters"), the "N filters" chip only while a filter is on, and the pager, which only steps.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
@@ -62,7 +62,7 @@ describe('filtersOn', () => {
 });
 
 describe('the walk row on a phone', () => {
-  it('names the open view; the picker lists the five views and All jobs and filters', async () => {
+  it('names the open view; the picker lists the six views and All jobs and filters', async () => {
     const user = userEvent.setup();
     renderApp();
     const picker = await screen.findByRole('button', { name: 'View: To apply' });
@@ -72,13 +72,14 @@ describe('the walk row on a phone', () => {
     expect(radios.map((r) => r.textContent)).toEqual([
       'To apply (2)',
       'Follow up (0)',
+      'This week (0)',
       'Interviewing (0)',
       'Applied (1)',
       'Recently closed (0)',
     ]);
     expect(radios[0]).toHaveAttribute('aria-checked', 'true');
     expect(within(menu).getByRole('menuitem', { name: 'All jobs and filters' })).toBeVisible();
-    await user.click(radios[3]);
+    await user.click(radios[4]);
     expect(getPipelineView().filter).toBe('applied');
     expect(await screen.findByRole('button', { name: 'View: Applied' })).toBeInTheDocument();
   });
