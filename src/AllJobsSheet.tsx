@@ -7,6 +7,7 @@
 import { useEffect } from 'react';
 import { Box, Dialog } from '@hirobius/design-system';
 import { DialogNotice } from './NoticeHost';
+import './hds-gaps/BottomSheet.css';
 import { noticeHost } from './saveNotice';
 import { JobsList } from './TrackerView';
 import { FILTER_LABEL, usePipelineView, visibleJobs } from './pipelineView';

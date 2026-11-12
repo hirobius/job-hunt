@@ -193,4 +193,13 @@ describe('FIGMA-RULES.md', () => {
     expect(rail).not.toContain('LivenessCheck');
     expect(rail).not.toContain('Not in this filter');
   });
+
+  it('pins Add job (#551): one filled key, a grey key, no Cancel', () => {
+    expect(RULES).toMatch(/\*\*Add job \(#551\): one field and one filled key\.\*\*/);
+    expect(CLAUDE).toMatch(/\*\*Add job \(redesign §5\.10, #551\)/);
+    const dialog = fs.readFileSync('src/AddJobDialog.tsx', 'utf8');
+    expect(dialog).toContain("'Type a company or title instead'");
+    expect(dialog).toContain('rjb-bottom-sheet');
+    expect(dialog).not.toMatch(/>\s*Cancel\s*</);
+  });
 });

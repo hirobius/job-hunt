@@ -24,6 +24,7 @@ import { companiesLists, displayName, type CompanyEntry } from './companiesList'
 import { followBoard } from './sources';
 import { metaLines } from './metaLines';
 import { dismissSuggestion, loadSuggestions, type BoardSuggestion } from './boardSuggestions';
+import './hds-gaps/BottomSheet.css';
 
 type Show = 'followed' | 'ignored' | 'suggested';
 

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter,
+// Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter
+// (Add job's bottom sheet on its contents, #551),
 // and the lg Apply list column keeps its contents and focus rings inside its scroll box (#614).
 async function sample(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
@@ -21,8 +22,21 @@ test('Add job and Search profile sheets keep a side gutter at 390', async ({ pag
   await page.setViewportSize({ width: 390, height: 844 });
   await sample(page);
   await page.getByRole('button', { name: 'Add job' }).click();
-  await expect(page.getByRole('dialog', { name: 'Add a job' })).toBeVisible();
-  await expectGutter(page);
+  const add = page.getByRole('dialog', { name: 'Add a job' });
+  await expect(add).toBeVisible();
+  // Add job is a bottom sheet (#551): the sheet runs edge to edge and its contents keep the gutter.
+  const sheet = (await add.boundingBox())!;
+  expect(sheet.x).toBeLessThanOrEqual(0.5);
+  expect(sheet.width).toBeGreaterThanOrEqual(390 - 0.5);
+  for (const part of [
+    add.getByRole('textbox', { name: 'Job link' }),
+    add.getByRole('button', { name: 'Add job' }),
+    add.getByRole('button', { name: 'Type a company or title instead' }),
+  ]) {
+    const b = (await part.boundingBox())!;
+    expect(b.x).toBeGreaterThanOrEqual(16 - 0.5);
+    expect(b.x + b.width).toBeLessThanOrEqual(390 - 16 + 0.5);
+  }
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Account' }).click();
   await page.getByRole('menuitem', { name: 'Search profile' }).click();

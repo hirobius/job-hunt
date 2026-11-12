@@ -93,6 +93,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   Export CSV, Export links, Recently removed) and **This device** (Try with sample data, Reload app,
   Reset local data, Delete my data). Each row is a quiet key with a 16 px icon and one caption line on
   what it does. Reset and Delete are the danger tone and ask first.
+- **Add job (#551): one field and one filled key.** The Job link field with the helper "The title
+  fills in from the link. You can edit it after.", then Add job (filled) and "Type a company or title
+  instead" (grey). No Cancel key: Close (the X) and the scrim cancel. At 390 a bottom sheet with a
+  grab handle, Add job at full width over the grey key. At 1440 a centred dialog, Add job at the
+  right.
 - **One detail template at 1440 (#546).** Find is two columns too: postings left, the selected
   posting right. A posting and a job use one detail template: the title block (title, company,
   one facts line, then the badges; a posting's source is a neutral badge there), More beside it,

@@ -54,9 +54,18 @@ for (const width of [390, 1440]) {
       await seed(page);
       await page.goto('/#/apply');
       await expectExit(page.getByRole('button', { name: /^Not a fit: / }).first());
+      // Add job has no Cancel key (#551): Close and the scrim cancel it.
       await page.getByRole('button', { name: 'Add job' }).first().click();
       const add = page.getByRole('dialog', { name: 'Add a job' });
-      await expectExit(add.getByRole('button', { name: 'Cancel' }));
+      await expect(add).toBeVisible();
+      await expect(add.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+      await add.getByRole('button', { name: 'Close' }).click();
+      await expect(add).toBeHidden();
+      // A form dialog's Cancel is an exit (Search profile).
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await page.getByRole('menuitem', { name: 'Search profile' }).click();
+      const profile = page.getByRole('dialog', { name: 'Search profile' });
+      await expectExit(profile.getByRole('button', { name: 'Cancel' }));
     });
   });
 }

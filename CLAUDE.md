@@ -131,6 +131,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
   Follow-up due. `JobBadges` drops the fit chips and the Saved chip everywhere (the verdict stays in the data).
   Pinned in `jobTitleBlock.test.tsx`, `e2e/title-block.spec.ts`.
+- **Add job (redesign §5.10, #551):** `src/AddJobDialog.tsx`, its own component so any host opens it (`AddJob.tsx`
+  is the button; the All jobs sheet, #543): the Job link field (helper "The title fills in from the link. You can
+  edit it after."), Add job (filled) and "Type a company or title instead" (grey; turns the dialog into the Find
+  box). No Cancel key: Close (the X), Escape, the scrim and Back cancel, focus back on the opener. Below sm a
+  bottom sheet (`.rjb-bottom-sheet`, now `src/hds-gaps/BottomSheet.css`, lazy with All jobs and Add job; only
+  the handle's `display: none` stays in base.css) above the keyboard (`AddJobDialog.css`), Add job at full width
+  over the grey key; from sm HDS's centred dialog, Add job at the right. Pinned in `TrackerView.test.tsx`,
+  `findBox.test.tsx`, `e2e/add-job.spec.ts`, `e2e/sheet-gutter.spec.ts`.
 - **One detail template at 1440 (#546, redesign §5.4):** `src/DetailHeader.tsx` (`DetailTitleBlock` + `DetailHeader`)
   is the one header for a saved job (`JobHeader`) and a Find posting (`ReviewView` `PostingDetail`): Back, the title
   block (h1, company or "Company not stated", HDS `Card.Facts`, then the badges; a posting's source is a neutral

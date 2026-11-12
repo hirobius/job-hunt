@@ -405,7 +405,8 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     renderApp();
     const length = window.history.length;
     await userEvent.click(await screen.findByRole('button', { name: 'Add job' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    // Add job has no Cancel key (#551): its Close closes it on screen.
+    await userEvent.click(await screen.findByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     // The sheet's entry was popped: what is ahead of this one is only its forward step.
     await new Promise((r) => setTimeout(r, 30));
