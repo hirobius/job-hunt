@@ -293,6 +293,17 @@ describe('FIGMA-RULES.md', () => {
     expect(head).toContain('More: sort, scan and search profile');
   });
 
+  it('pins no duplicate counts at the top of Find: the chips hold them', () => {
+    expect(RULES).toContain('"Scanned 2 h ago" (no count');
+    expect(RULES).not.toContain('4 new · scanned');
+    expect(CLAUDE).not.toContain('4 new · scanned');
+    const caption = fs.readFileSync('src/findCaption.ts', 'utf8');
+    expect(caption).not.toMatch(/ new`/);
+    const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
+    expect(review).not.toContain('countLabel={`${listed.length} postings`}');
+    expect(review).toContain('role="status" aria-live="polite"');
+  });
+
   it('pins the one-row app bar (#548) and the logo home link (#620)', () => {
     expect(RULES).toMatch(/\*\*One app-bar row \(#548\)\.\*\*/);
     expect(RULES).toMatch(/\*\*The logo is the home link \(#620\)\.\*\*/);

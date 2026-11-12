@@ -274,19 +274,20 @@ export default function ReviewView({
     !on.length &&
     !decidedAny(view.hidden);
   const panel = (
-    <Panel
-      label={view ? `${label} (${listed.length})` : label}
-      title={label}
-      count={view ? listed.length : undefined}
-      countLabel={`${listed.length} postings`}
-      flat
-    >
+    <Panel label={label} title={label} flat>
       <PanelBody>
         <Stack gap="normal">
           {/* No status text above Browse / Deck (Adrian 2026-11-08): the source health and the "not
               shown" counts are the Account menu's Scan details. Screen readers still hear progress. */}
-          <VisuallyHidden as="p" role="status">
-            {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
+          {/* The counts left the heading and Find's caption (the New and Remote chips show them);
+              a screen reader still hears them here, politely. */}
+          <VisuallyHidden as="p" role="status" aria-live="polite">
+            {(scanStatus ? null : line) ??
+              (feed.loading
+                ? 'Reading your sources…'
+                : view
+                  ? `${listed.length} postings, ${counts.new} new`
+                  : '')}
           </VisuallyHidden>
           {/* The view toggle. Sort is the header's More menu (#544); it orders the Deck too (#617). */}
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">

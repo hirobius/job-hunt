@@ -62,7 +62,7 @@ for (const width of [390, 1440]) {
       ),
     ).toHaveCount(0);
     // The header's one caption says when the server last read the sources (#544).
-    await expect(page.getByText('scanned 4 min ago')).toBeVisible();
+    await expect(page.getByText('Scanned 4 min ago')).toBeVisible();
     // Its More menu holds no Scan now signed in (the server syncs every 15 minutes).
     await findMore(page).click();
     await expect(page.getByRole('menuitem', { name: 'Search profile' })).toBeVisible();

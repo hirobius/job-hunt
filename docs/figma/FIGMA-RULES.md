@@ -74,7 +74,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: the sticky walk
   control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
-- **Find's short header (#544).** "Find" and one caption, "4 new · scanned 2 h ago", with one More
+- **Find's short header (#544).** "Find" and one caption, "Scanned 2 h ago" (no count: the New
+  and Remote chips hold the numbers; the Review heading has no count either), with one More
   menu on its row holding Sort, Scan now and Search profile. No date line, no Sort or Scan now key.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the six views and

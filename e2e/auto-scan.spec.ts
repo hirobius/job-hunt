@@ -186,5 +186,5 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await expect(page.getByRole('menuitem', { name: 'Stop scan' })).toBeVisible();
   await page.keyboard.press('Escape');
   await scanFinished(page, again);
-  await expect(page.getByText(/^scanned (just now|\d+ min ago)$/)).toBeVisible();
+  await expect(page.getByText(/^Scanned (just now|\d+ min ago)$/)).toBeVisible();
 });

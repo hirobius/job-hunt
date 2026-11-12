@@ -2,21 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { findCaption } from './findCaption';
 import { agoPhrase } from './feed/serverUpdated';
 
-// #544: Find's one caption, "4 new · scanned 2 h ago". A part not known yet is left out.
+// #544, then the duplicate count left (the New chip has it): "Scanned 2 h ago". A part not known is left out.
 describe('findCaption', () => {
-  it('says the new count, then when the sources were scanned', () => {
-    expect(findCaption(4, '2 h ago')).toEqual(['4 new', 'scanned 2 h ago']);
-    expect(findCaption(0, 'just now')).toEqual(['Nothing new', 'scanned just now']);
+  it('says when the sources were scanned, with a capital, and never a count', () => {
+    expect(findCaption('2 h ago')).toEqual(['Scanned 2 h ago']);
+    expect(findCaption('just now').join(' ')).not.toMatch(/new/i);
   });
 
-  it('leaves out what is not known, and starts with a capital', () => {
-    expect(findCaption(null, null)).toEqual([]);
-    expect(findCaption(3, null)).toEqual(['3 new']);
-    expect(findCaption(null, '4 min ago')).toEqual(['Scanned 4 min ago']);
+  it('is empty when nothing is known', () => {
+    expect(findCaption(null)).toEqual([]);
   });
 
   it('says a scan runs instead of when the last one was', () => {
-    expect(findCaption(2, '2 h ago', true)).toEqual(['2 new', 'scanning…']);
+    expect(findCaption('2 h ago', true)).toEqual(['Scanning…']);
   });
 });
 

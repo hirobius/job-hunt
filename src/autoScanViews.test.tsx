@@ -102,7 +102,7 @@ const renderViews = ({ signedIn = false } = {}) =>
       value={{ user: signedIn ? { id: 'u1', email: 'a@b.c' } : null } as CloudSyncApi}
     >
       <ToastProvider>
-        <FindHeader newCount={4} />
+        <FindHeader />
         <NewCompanies />
         <NoticeHost />
       </ToastProvider>
@@ -110,7 +110,7 @@ const renderViews = ({ signedIn = false } = {}) =>
   );
 
 // #544: Scan now left the page for Find's one More menu; the header says how fresh the list is in
-// one caption, "4 new · scanned 2 h ago". No other status text on Find (Adrian 2026-11-08).
+// one caption, "Scanned 2 h ago" (no count: the New chip has it). No other status text on Find (Adrian 2026-11-08).
 describe('Find header: one caption and one More menu (#544)', () => {
   const more = () => screen.getByRole('button', { name: 'More: sort, scan and search profile' });
 
@@ -119,14 +119,14 @@ describe('Find header: one caption and one More menu (#544)', () => {
     renderViews();
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
-    expect(screen.getByText('4 new')).toBeInTheDocument();
-    expect(screen.queryByText(/^scanned /)).toBeNull();
+    expect(screen.queryByText(/^\d+ new$/)).toBeNull();
+    expect(screen.queryByText(/^Scanned /)).toBeNull();
     await user.click(more());
     expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
     await user.keyboard('{Escape}');
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
-    expect(await screen.findByText('scanned just now')).toBeInTheDocument();
+    expect(await screen.findByText('Scanned just now')).toBeInTheDocument();
     expect(screen.queryByText(/^Scanning |^Last scanned|^Not scanned|^Updated /)).toBeNull();
   });
 
@@ -134,7 +134,7 @@ describe('Find header: one caption and one More menu (#544)', () => {
     const user = userEvent.setup();
     server.at = new Date(Date.now() - 4 * 60_000).toISOString();
     renderViews({ signedIn: true });
-    expect(await screen.findByText('scanned 4 min ago')).toBeInTheDocument();
+    expect(await screen.findByText('Scanned 4 min ago')).toBeInTheDocument();
     await user.click(more());
     expect(await screen.findByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toBeNull();

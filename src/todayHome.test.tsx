@@ -144,7 +144,7 @@ describe('the shell: Today and Jobs', () => {
 });
 
 describe('the auto-scan', () => {
-  // #544: Find's short header is "Find" and one caption ("4 new · scanned 2 h ago"); Sort, Scan now
+  // #544: Find's short header is "Find" and one caption ("Scanned 2 h ago"; the new count is the New chip's alone); Sort, Scan now
   // and Search profile are its one More menu.
   it('signed out: Scan now is in the header’s More menu, and one caption, no status text', async () => {
     const user = userEvent.setup();
@@ -154,9 +154,9 @@ describe('the auto-scan', () => {
     const review = await screen.findByRole('region', { name: /^Review\b/ });
     await within(review).findByRole('button', { name: 'Browse' });
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
-    // No date line: the caption says what is new and when the sources were scanned.
-    expect(screen.getByText('scanned 2 h ago')).toBeInTheDocument();
-    expect(screen.getByText(/^(\d+ new|Nothing new)$/)).toBeInTheDocument();
+    // No date line: the caption says when the sources were scanned, and no count (the chip has it).
+    expect(screen.getByText('Scanned 2 h ago')).toBeInTheDocument();
+    expect(screen.queryByText(/^(\d+ new|Nothing new)$/)).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More: sort, scan and search profile' }));
     expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();

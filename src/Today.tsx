@@ -21,14 +21,14 @@ export default function Today() {
   const picks = user ? <DailyPicks key={user.id} /> : null;
   if (profile)
     return (
-      // The short header (#544: "Find", "4 new · scanned 2 h ago", one More menu), then every
+      // The short header (#544: "Find", "Scanned 2 h ago", one More menu), then every
       // design-system posting, newest first, as a list (the Deck is a toggle inside). Review hosts
       // the header, so its count is the Feed's own.
       <ReviewView
         label="Review"
         scanStatus
-        header={({ newCount, sort, selected, deckPlace }) => (
-          <FindHeader heading={!selected} newCount={newCount} sort={sort} deckPlace={deckPlace} />
+        header={({ sort, selected, deckPlace }) => (
+          <FindHeader heading={!selected} sort={sort} deckPlace={deckPlace} />
         )}
         before={picks}
       />

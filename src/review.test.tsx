@@ -94,8 +94,8 @@ const renderFindPage = () =>
     <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
       <ToastProvider>
         <ReviewView
-          header={({ newCount, sort, selected }) => (
-            <FindHeader heading={!selected} newCount={newCount} sort={sort} />
+          header={({ sort, selected }) => (
+            <FindHeader heading={!selected} sort={sort} />
           )}
         />
         <NoticeHost />
@@ -486,10 +486,10 @@ describe('Review new: Deck', () => {
       <ToastProvider>
         <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
           <ReviewView
-            header={({ deckPlace: place, sort, newCount }) => (
+            header={({ deckPlace: place, sort }) => (
               <>
                 <p data-testid="caption">{place ?? ''}</p>
-                <FindHeader newCount={newCount} sort={sort} />
+                <FindHeader sort={sort} />
               </>
             )}
           />
