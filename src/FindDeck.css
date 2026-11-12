@@ -1,0 +1,9 @@
+/* The Find Deck's excerpt (#545): the posting's text at once, cut at 7 lines. In Find's chunk, not
+   base.css. */
+.rjb-deck-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 7;
+  line-clamp: 7;
+  overflow: hidden;
+}

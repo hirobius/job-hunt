@@ -2,7 +2,9 @@
 // from every source, two ways. Browse (the default) is one list, newest first, to sort and filter;
 // a title selects the posting (#471 slice 3: `#/find/<fingerprint>`), and the posting shows in the
 // right column at lg (details, why it is listed, Save / Skip / Not this company, Open posting), or
-// as its own view with Back and a pager below lg. "Load more" pages the list. Deck is the same postings one card at a time. No fit tiers
+// as its own view with Back and a pager below lg. "Load more" pages the list. Deck is the same postings one card at a time
+// (#545): the same card, Skip and Save in the action dock, "1 of N" in Find's caption, a swipe steps; it
+// walks the list in the Sort's order (#617). No fit tiers
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
@@ -16,8 +18,8 @@ import {
   Card,
   Disclosure,
   Icon,
+  InlineLink,
   Menu,
-  Pagination,
   Sidebar,
   Skeleton,
   Stack,
@@ -42,6 +44,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
+import { ActionDock } from './hds-gaps/ActionDock';
+import { SwipeArea } from './SwipeArea';
+import './FindDeck.css';
 import { useBackSheet } from './useBackCloses';
 import { findHash, postingOf, selectPosting, useRoute } from './route';
 import { inPlaceClick } from './back';
@@ -99,8 +104,9 @@ export default function ReviewView({
    *  Feed's, so the page has one number); the panel doesn't repeat them. */
   scanStatus?: boolean;
   /** The page's head (its h1), shown while no posting is selected: a selected posting's title is
-   *  the page's h1 then (#363, as a job's is on Apply). */
-  header?: ReactNode;
+   *  the page's h1 then (#363, as a job's is on Apply). Given the Deck's place ("1 of 4", #545) to
+   *  put in its caption, or null outside the Deck. */
+  header?: ReactNode | ((deckPlace: string | null) => ReactNode);
   /** Find's list column, above the list: Daily picks. */
   before?: ReactNode;
 }) {
@@ -142,6 +148,20 @@ export default function ReviewView({
     if (!wide && selectedFp) selectPosting(null, true);
   }, [wide, selectedFp]);
   const sortSheet = useBackSheet('review-sort');
+
+  // The Deck's card (#545), and where it sits in the list as it shows ("1 of 4" in Find's caption).
+  const deckAt = Math.min(card, Math.max(0, listed.length - 1));
+  const deckPlace =
+    view && mode === 'deck' && listed.length ? `${deckAt + 1} of ${listed.length}` : null;
+  // A new sort reorders the Deck too (#617), and keeps the card on screen where it moved to.
+  const changeSort = (to: FeedSort) => {
+    const current = listed[deckAt]?.fingerprint;
+    setSort(to);
+    setShown(REVIEW_PAGE);
+    if (!view || !current) return;
+    const at = filterRows(sortRows(view.rows, to), on).findIndex((x) => x.fingerprint === current);
+    setCard(Math.max(0, at));
+  };
 
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
@@ -218,7 +238,8 @@ export default function ReviewView({
           <VisuallyHidden as="p" role="status">
             {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
           </VisuallyHidden>
-          {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). */}
+          {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). Sort shows
+              in the Deck too (#617): the Deck walks the same list in the same order. */}
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
             {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
                 takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
@@ -242,7 +263,7 @@ export default function ReviewView({
                 </HdsTooltip>
               ))}
             </Stack>
-            {view && view.rows.length > 0 && mode === 'browse' && (
+            {view && view.rows.length > 0 && (
               <Menu {...sortSheet}>
                 <Menu.Trigger asChild>
                   <Button size="sm" variant="secondary" iconRight={<Icon icon={ChevronDown} />}>
@@ -250,13 +271,7 @@ export default function ReviewView({
                   </Button>
                 </Menu.Trigger>
                 <Menu.Content align="end">
-                  <Menu.RadioGroup
-                    value={sort}
-                    onValueChange={(v) => {
-                      setSort(v as FeedSort);
-                      setShown(REVIEW_PAGE);
-                    }}
-                  >
+                  <Menu.RadioGroup value={sort} onValueChange={(v) => changeSort(v as FeedSort)}>
                     {SORTS.map((s) => (
                       <Menu.RadioItem key={s} value={s}>
                         {SORT_LABEL[s]}
@@ -318,8 +333,9 @@ export default function ReviewView({
         <PanelBody>
           <Deck
             rows={listed}
-            at={Math.min(card, Math.max(0, listed.length - 1))}
+            at={deckAt}
             onAt={setCard}
+            docked={!wide}
             now={feed.at}
             actions={actions}
             empty={caughtUp}
@@ -371,7 +387,7 @@ export default function ReviewView({
   );
   const list = (
     <Stack gap="px24">
-      {!selectedFp && header}
+      {!selectedFp && (typeof header === 'function' ? header(deckPlace) : header)}
       {before}
       {panel}
     </Stack>
@@ -595,30 +611,28 @@ const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''
 /** A posting's one action row (Adrian 2026-11-08): left-aligned, one HDS size, Save primary, Skip
  *  secondary, Open posting as an icon button, and More (…) holding Not this company. The same row
  *  on a Browse card, the Deck and the selected posting. */
-function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
+function PostingActions({
+  r,
+  actions,
+  decide = true,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  /** False in the Deck (#545): Save and Skip sit in the action dock; the card keeps More. */
+  decide?: boolean;
+}) {
   // Not this company is picked in the menu (a portal): its feedback anchors on the row's trigger.
   const more = useRef<HTMLButtonElement>(null);
   const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      <Button
-        size="md"
-        variant="primary"
-        aria-label={`Save ${rowName(r)}`}
-        onClick={(e) => actions.save(r, e.currentTarget)}
-      >
-        <Icon icon={Plus} />
-        Save
-      </Button>
-      <Button
-        size="md"
-        variant="secondary"
-        aria-label={`Skip ${rowName(r)}`}
-        onClick={(e) => actions.skip(r, e.currentTarget)}
-      >
-        Skip
-      </Button>
-      {httpUrl(r.url) && (
+      {decide && (
+        <>
+          <SaveKey r={r} actions={actions} />
+          <SkipKey r={r} actions={actions} />
+        </>
+      )}
+      {decide && httpUrl(r.url) && (
         <HdsTooltip>
           <HdsTooltip.Trigger asChild>
             <Button
@@ -661,6 +675,51 @@ function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
         </Menu>
       )}
     </Stack>
+  );
+}
+
+/** Save, the filled key, and Skip, the grey key: on a card's action row, or in the Deck's dock
+ *  (#545), where `from` is the Deck's card so it collapses as it goes. */
+function SaveKey({
+  r,
+  actions,
+  from,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  from?: () => Element | null;
+}) {
+  return (
+    <Button
+      size="md"
+      variant="primary"
+      aria-label={`Save ${rowName(r)}`}
+      onClick={(e) => actions.save(r, from ? from() : e.currentTarget)}
+    >
+      <Icon icon={Plus} />
+      Save
+    </Button>
+  );
+}
+
+function SkipKey({
+  r,
+  actions,
+  from,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  from?: () => Element | null;
+}) {
+  return (
+    <Button
+      size="md"
+      variant="secondary"
+      aria-label={`Skip ${rowName(r)}`}
+      onClick={(e) => actions.skip(r, from ? from() : e.currentTarget)}
+    >
+      Skip
+    </Button>
   );
 }
 
@@ -712,6 +771,7 @@ function PostingCard({
   noTitle = false,
   describe = false,
   describeOpen = false,
+  decide = true,
   actions,
   children,
 }: {
@@ -725,8 +785,10 @@ function PostingCard({
   describeOpen?: boolean;
   /** The selected posting's view names it in its own header. */
   noTitle?: boolean;
+  /** False in the Deck (#545): Save and Skip are in the action dock. */
+  decide?: boolean;
   actions: RowActions;
-  /** Extra content above the footer (the Deck's snippet). */
+  /** Extra content above the footer (the Deck's excerpt). */
   children?: ReactNode;
 }) {
   const place = placeOf(r);
@@ -783,19 +845,23 @@ function PostingCard({
         {children}
         {describe && <CardDescription r={r} initialOpen={describeOpen} />}
         <Box sx={{ pt: 'xs' }}>
-          <PostingActions r={r} actions={actions} />
+          <PostingActions r={r} actions={actions} decide={decide} />
         </Box>
       </Stack>
     </Box>
   );
 }
 
-/** One card at a time: the posting, then Save, Skip and Not this company. A decided card leaves
- *  the deck, so the next one takes its place. */
+/** One card at a time (#545): the same posting card, its text at once (7 lines) with "Read the
+ *  full posting", More on the card for Not this company, and Skip (grey) and Save (filled, right)
+ *  in the action dock (inline under the card at lg). "1 of N" is Find's caption, not a pager row;
+ *  a sideways swipe, or the arrow keys on the card, steps it. A decided card leaves the deck, so
+ *  the next one takes its place. */
 function Deck({
   rows,
   at,
   onAt,
+  docked,
   now,
   actions,
   empty,
@@ -803,10 +869,13 @@ function Deck({
   rows: FeedRow[];
   at: number;
   onAt: (n: number) => void;
+  /** Below lg: the keys dock at the bottom of the screen. */
+  docked: boolean;
   now: number;
   actions: RowActions;
   empty: string;
 }) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
   if (!rows.length)
     return (
       <EmptySection>
@@ -820,34 +889,66 @@ function Deck({
       </EmptySection>
     );
   const r = rows[at];
+  const step = (d: -1 | 1) => {
+    const to = at + d;
+    if (to >= 0 && to < rows.length) onAt(to);
+  };
+  const from = () => cardRef.current;
   return (
-    <Stack gap="tight">
-      <Stack direction="row" gap="tight" align="center" justify="end">
-        {rows.length > 1 && (
-          <Pagination
-            variant="compact"
-            label="Postings"
-            page={at + 1}
-            count={rows.length}
-            onPageChange={(p) => onAt(p - 1)}
-          />
-        )}
-      </Stack>
-      <Card
-        as="article"
-        aria-label={r.company ? `${r.title} at ${r.company}` : r.title}
-        padding="none"
-      >
-        <DeckBody>
-          <PostingCard r={r} now={now} actions={actions}>
-            {r.snippet && (
-              <Text variant="body" as="p" tone="secondary">
-                {r.snippet}
-              </Text>
-            )}
-          </PostingCard>
-        </DeckBody>
-      </Card>
+    <Stack gap="normal">
+      <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
+        <Card
+          ref={cardRef}
+          as="article"
+          aria-label={rowName(r)}
+          padding="none"
+          onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            if ((e.target as Element).closest('input, textarea, [role="menu"]')) return;
+            e.preventDefault();
+            step(e.key === 'ArrowLeft' ? -1 : 1);
+          }}
+        >
+          <DeckBody>
+            <PostingCard r={r} now={now} actions={actions} decide={false}>
+              <DeckExcerpt r={r} />
+            </PostingCard>
+          </DeckBody>
+        </Card>
+      </SwipeArea>
+      <ActionDock docked={docked} row label={`Actions for ${rowName(r)}`}>
+        <SkipKey r={r} actions={actions} from={from} />
+        <SaveKey r={r} actions={actions} from={from} />
+      </ActionDock>
+    </Stack>
+  );
+}
+
+/** The Deck's excerpt (#545): the posting's text at once, cut at 7 lines, then "Read the full
+ *  posting" (the posting itself, in a new tab). No disclosure. */
+function DeckExcerpt({ r }: { r: FeedRow }) {
+  const { text, loading } = usePostingText(r);
+  const body = text.trim() ? excerpt(text, 1200) : r.snippet;
+  const link = httpUrl(r.url);
+  return (
+    <Stack gap="px8">
+      {body ? (
+        <Text variant="body" as="p" tone="secondary" className="rjb-deck-excerpt">
+          {body}
+        </Text>
+      ) : loading ? (
+        <Stack gap="px8" aria-busy="true">
+          <Skeleton variant="text" width="90%" />
+          <Skeleton variant="text" width="70%" />
+        </Stack>
+      ) : null}
+      {link && (
+        <Text as="p" variant="ui">
+          <InlineLink href={r.url} standalone size="sm">
+            Read the full posting
+          </InlineLink>
+        </Text>
+      )}
     </Stack>
   );
 }
