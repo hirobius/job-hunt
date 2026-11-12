@@ -82,7 +82,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
-- **Planned (#471):** Find as two columns too (postings left, the selected posting right).
+- **One detail template at 1440 (#546).** Find is two columns too: postings left, the selected
+  posting right. A posting and a job use one detail template: the title block (title, company,
+  one facts line, then the badges; a posting's source is a neutral badge there), More beside it,
+  one action row (Save filled, Skip grey, Open posting as an icon), then the content (a posting's
+  Description panel). List cards carry no keys at 1440: the detail column has them. Below 1024
+  each Find card keeps its own keys.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - **One app-bar row (#548).** At every width: the logo, then Find / Apply as a segmented control, then
   the Account avatar. No second row on a phone. Each tab shows its count as plain text after its

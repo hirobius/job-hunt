@@ -352,6 +352,35 @@ describe('Review new: Deck', () => {
 
   const deckTitle = () => screen.getByRole('article').getAttribute('aria-label');
 
+  it('after Skip or Save in the dock, focus goes to the next card title, then Find’s h1 (#545)', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result(BASIC.slice(0, 2)));
+    render(
+      <ToastProvider>
+        <main>
+          <ReviewView header={<h1>Find</h1>} />
+        </main>
+        <NoticeHost />
+      </ToastProvider>,
+    );
+    await list();
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    const first = deckTitle();
+    await user.click(screen.getByRole('button', { name: `Skip ${first}` }));
+    // The next card's title takes focus, not the dock key or <body>.
+    await waitFor(() => {
+      const h = within(screen.getByRole('article')).getByRole('heading', { level: 3 });
+      expect(h).toHaveFocus();
+      expect(deckTitle()).not.toBe(first);
+    });
+    resetAnswerGuard();
+    await user.click(screen.getByRole('button', { name: `Save ${deckTitle()}` }));
+    // The deck is empty: Find's h1 takes focus.
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toHaveFocus(),
+    );
+  });
+
   it('has no pager row: "1 of N" is in the caption under Find (#545)', async () => {
     const user = userEvent.setup();
     render(
@@ -518,19 +547,35 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(within(seen).getByText('Hacker News')).toBeInTheDocument();
   });
 
-  it('the selected posting uses the same anatomy; a decision on the last one clears it', async () => {
+  it('the selected posting uses the job page’s template (#546); a decision on the last one clears it', async () => {
     const user = userEvent.setup();
     feed.fetchFeed.mockResolvedValue(result([ONE]));
     renderFind();
     const ul = await list();
     await user.click(within(ul).getByRole('link', { name: 'Design Systems Designer' }));
     const detail = await detailOf('Design Systems Designer');
-    const source = within(detail).getByText('Hacker News');
-    const pay = within(detail).getByText('$95k to $120k');
-    const save = within(detail).getByRole('button', {
-      name: 'Save Design Systems Designer at Acme',
+    // Title block (title, company, facts, the source), one action row, then the content.
+    const block = detail.querySelector('[data-rjb-title-block]') as HTMLElement;
+    const keys = within(detail).getByRole('group', {
+      name: 'Actions for Design Systems Designer at Acme',
     });
-    expect(before(source, pay) && before(pay, save)).toBe(true);
+    const title = within(block).getByRole('heading', { level: 1 });
+    const company = within(block).getByText('Acme');
+    const pay = within(block).getByText('$95k to $120k');
+    const source = within(block).getByText('Hacker News');
+    const save = within(keys).getByRole('button', { name: 'Save Design Systems Designer at Acme' });
+    const skip = within(keys).getByRole('button', { name: 'Skip Design Systems Designer at Acme' });
+    const content = within(detail).getByRole('region', { name: 'Description' });
+    const order = [title, company, pay, source, save, skip, content];
+    order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
+    expect(save).toHaveAttribute('data-variant', 'primary');
+    expect(skip).toHaveAttribute('data-variant', 'secondary');
+    // More (Not this company) sits beside the title block, as a job's does.
+    expect(
+      within(detail).getByRole('button', { name: 'More actions: Design Systems Designer at Acme' }),
+    ).toBeInTheDocument();
+    // No blue New badge in the title block: status there is neutral.
+    expect(within(block).queryByText('New')).toBeNull();
     await user.click(save);
     expect(await screen.findByText('Pick a posting')).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
@@ -748,16 +793,17 @@ describe('Review new: every design-system posting, no tiers', () => {
     expect(getAllDecided().decided).toHaveLength(1);
   });
 
-  it("at lg, Skip on the selected posting's own list card selects the next posting (#471)", async () => {
+  it('at lg, list cards carry no keys; the detail column has them (#546)', async () => {
     const user = userEvent.setup();
     renderFind();
     const ul = await list();
+    expect(within(ul).queryAllByRole('button', { name: /^(Save|Skip|More actions:) / })).toEqual(
+      [],
+    );
+    expect(within(ul).queryAllByRole('link', { name: /^Open posting for / })).toEqual([]);
     await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer, Web' }));
-    await detailOf('Design Systems Engineer, Web');
-    const card = within(ul)
-      .getAllByRole('article')
-      .find((a) => within(a).queryByText('Design Systems Engineer, Web'))!;
-    await user.click(within(card).getByRole('button', { name: /^Skip / }));
+    const detail = await detailOf('Design Systems Engineer, Web');
+    await user.click(within(detail).getByRole('button', { name: /^Skip / }));
     const next = await screen.findByRole('heading', { level: 1 });
     await waitFor(() => expect(next).not.toHaveTextContent('Design Systems Engineer, Web'));
     expect(screen.queryByText('Pick a posting')).toBeNull();
