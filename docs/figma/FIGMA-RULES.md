@@ -86,3 +86,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - Design 390 and 1440, light and dark. Use sample data, never real names.
 - Placeholders are the field's own name ("Job title", "Company"). No "e.g.".
 - Empty states teach: what this holds, one primary action, one way to see it work.
+- **Sign-in (#555, #556):** the stacked flame and name, centred by the flame's mass (not its box),
+  then two lines, the benefit leading: "Sign in to see your jobs on any device." (body, primary) and
+  "We email you a sign-in link. No password needed." (caption, secondary). Then the email field,
+  Send link (filled) and Continue without an account (underlined exit). Top right: Pause
+  animations, an icon key. The Account menu's signed-out item uses the same words.

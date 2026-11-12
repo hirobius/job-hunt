@@ -8,7 +8,17 @@
 // flag is on (googleSignInFlag.ts, off until the provider is set up), sits above the field: Google's mark and label on an HDS secondary Button; the page then leaves for Google.
 // Only the presentation lives here: sending and every auth rule stay in the CloudSync seam.
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Dialog, Input, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  Input,
+  Stack,
+  Text,
+  VisuallyHidden,
+} from '@hirobius/design-system';
+import { SIGN_IN_BENEFIT, SIGN_IN_COPY_ID, SIGN_IN_HOW } from './signInCopy';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
@@ -116,6 +126,8 @@ export default function SignInDialog() {
   return (
     <Dialog open={signInOpen} onOpenChange={onOpenChange}>
       <SignInShell
+        // The form step is described by its two lines; "Check your email" by its Description.
+        {...(sentTo ? {} : { 'aria-describedby': SIGN_IN_COPY_ID })}
         onCloseAutoFocus={refocusAccount(accountTrigger)}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -152,11 +164,22 @@ export default function SignInDialog() {
           </>
         ) : (
           <>
-            {/* No words beyond the controls (Adrian 2026-10-29): the title names the screen
-                  for screen readers only. */}
+            {/* The title names the screen for screen readers only; under the wordmark, two lines,
+                the benefit first (redesign §5.8, #555), which also describe the screen (two
+                paragraphs: HDS Dialog.Description is one p). */}
             <VisuallyHidden as="div">
               <Dialog.Title>Sign in</Dialog.Title>
             </VisuallyHidden>
+            <Box id={SIGN_IN_COPY_ID}>
+              <Stack gap="px4">
+                <Text as="p" variant="body" tone="primary">
+                  {SIGN_IN_BENEFIT}
+                </Text>
+                <Text as="p" variant="caption" tone="secondary">
+                  {SIGN_IN_HOW}
+                </Text>
+              </Stack>
+            </Box>
             {/* Off until the Google provider is on in Supabase (googleSignInFlag.ts). */}
             {googleSignInEnabled() && (
               <Stack gap="tight">

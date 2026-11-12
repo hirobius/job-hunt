@@ -30,6 +30,7 @@ import {
   useLoadedWhen,
 } from '../lazyDialogs';
 import { openRecentlyRemoved } from '../jobDialogs';
+import { SIGN_IN_ITEM } from './signInCopy';
 import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
@@ -127,7 +128,7 @@ export default function AccountMenu() {
             <>
               <Menu.Label data-account-line>Saved on this device only</Menu.Label>
               <Menu.Item onSelect={opensDialog(() => sync.setSignInOpen(true))}>
-                Sign in to sync…
+                {SIGN_IN_ITEM}
               </Menu.Item>
             </>
           )}
