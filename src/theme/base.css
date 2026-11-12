@@ -556,14 +556,6 @@ p {
   text-underline-offset: 3px;
 }
 
-/* Form sheets (Add job, Add a company; rev-3 s-add-company): HDS Dialog's panel at full width up
- * to 480, less the page's 16px phone gutter each side, so on a phone it never touches the screen
- * edge (round-2 review) and its footer stacks Add over Cancel. */
-[data-hds] .rjb-form-sheet {
-  width: calc(100% - 2 * var(--semantic-space-fixed-sm));
-  max-width: 480px;
-}
-
 /* Message dialogs (Follow up, Use template; rev-3 A): one chrome for both. HDS Dialog.Content has
  * no size prop and insets by the compact scale step (12px at 390); these take the page's 16px phone
  * gutter, and only the body scrolls, so the title and the footer's Copy message stay on screen.
@@ -874,32 +866,8 @@ p {
   padding-block: var(--primitive-space-2);
 }
 
-/* A bottom sheet on a phone (the All jobs list; Proposal A): HDS Dialog anchored to the bottom
- * edge below sm, full width, top corners rounded, a grab handle, its body scrolling (.rjb-dialog).
- * From sm up it stays HDS's centred dialog. Upstream: HDS Sheet does this (hds#690), but it costs
- * the startup chunk ~0.7 kB, which is at its budget. */
+/* The grab handle of the phone bottom sheets (hds-gaps/BottomSheet.css, theme/late.css): nothing
+ * from sm. */
 .rjb-sheet-handle {
   display: none;
-}
-@media (max-width: 639.98px) {
-  [data-hds] .rjb-bottom-sheet {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    translate: 0 0;
-    width: 100%;
-    max-width: none;
-    max-height: 85dvh;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-  .rjb-sheet-handle {
-    display: block;
-    align-self: center;
-    margin-bottom: var(--primitive-space-2);
-    width: var(--primitive-space-10);
-    height: var(--primitive-space-1);
-    border-radius: var(--primitive-radius-full, 999px);
-    background: var(--semantic-color-border-default);
-  }
 }

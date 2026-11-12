@@ -98,19 +98,28 @@ describe('Add job dialog', () => {
     expect(field).not.toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('says where the title comes from under the field, and is placed like the other shell sheets', async () => {
+  it('says where the title comes from under the field; one filled key, a grey key, no Cancel (#551)', async () => {
     const user = userEvent.setup();
     renderTracker();
     const dialog = await openAddJob(user);
     expect(within(dialog).getByRole('textbox', { name: 'Job link' })).toHaveAccessibleDescription(
       'The title fills in from the link. You can edit it after.',
     );
-    expect(dialog).toHaveClass('rjb-sheet');
-    // Add job first in the DOM (on top on a phone), then Cancel.
-    const names = within(dialog)
-      .getAllByRole('button')
-      .map((b) => b.textContent);
-    expect(names.indexOf('Add job')).toBeLessThan(names.indexOf('Cancel'));
+    // A bottom sheet below sm (#551).
+    expect(dialog).toHaveClass('rjb-bottom-sheet');
+    // Add job first in the DOM (full width on top on a phone), then the grey key; Close is the X.
+    const buttons = within(dialog).getAllByRole('button');
+    const names = buttons.map((b) => b.textContent || b.getAttribute('aria-label'));
+    expect(names).not.toContain('Cancel');
+    expect(names.indexOf('Add job')).toBeLessThan(names.indexOf('Type a company or title instead'));
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Add job' })).toHaveAttribute(
+      'data-variant',
+      'primary',
+    );
+    expect(
+      within(dialog).getByRole('button', { name: 'Type a company or title instead' }),
+    ).toHaveAttribute('data-variant', 'secondary');
   });
 });
 

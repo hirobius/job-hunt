@@ -1,5 +1,5 @@
 // One Find box (Simplify 3/9, #384): paste anything and it goes to the existing action. Reached
-// from the Pipeline's Add job dialog ("Paste a company, board or title instead") until Today hosts
+// from the Pipeline's Add job dialog ("Type a company or title instead") until Today hosts
 // it. The classifier itself is table-tested in find/classifyFind.test.ts.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -54,13 +54,11 @@ const renderPipeline = () =>
     </CloudSyncContext.Provider>,
   );
 
-/** Add job → "Paste a company, board or title instead" → the Find dialog. */
+/** Add job → "Type a company or title instead" → the Find dialog. */
 async function openFind(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getAllByRole('button', { name: 'Add job' })[0]);
   const add = await screen.findByRole('dialog', { name: 'Add a job' });
-  await user.click(
-    within(add).getByRole('button', { name: 'Paste a company, board or title instead' }),
-  );
+  await user.click(within(add).getByRole('button', { name: 'Type a company or title instead' }));
   const dialog = await screen.findByRole('dialog', { name: 'Find' });
   // The Find box is a lazy chunk.
   await within(dialog).findByRole('textbox', { name: 'Find' });
@@ -80,8 +78,9 @@ describe('Find box from the Pipeline', () => {
     const field = within(dialog).getByRole('textbox', { name: 'Find' });
     expect(field).toHaveAttribute('placeholder', 'Job link, company, board or title');
     expect(field).toHaveFocus();
-    // Cancel closes it; Add job opens on its own field again.
-    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    // Close (no Cancel key, #551) closes it; Add job opens on its own field again.
+    expect(within(dialog).queryByRole('button', { name: 'Cancel' })).toBeNull();
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
     await user.click(screen.getAllByRole('button', { name: 'Add job' })[0]);
     expect(await screen.findByRole('dialog', { name: 'Add a job' })).toBeInTheDocument();
   });
@@ -201,9 +200,7 @@ describe('Find box from the Pipeline', () => {
     await user.click(screen.getAllByRole('button', { name: 'Add job' })[0]);
     const add = await screen.findByRole('dialog', { name: 'Add a job' });
     await user.type(within(add).getByRole('textbox', { name: 'Job link' }), 'Figma');
-    await user.click(
-      within(add).getByRole('button', { name: 'Paste a company, board or title instead' }),
-    );
+    await user.click(within(add).getByRole('button', { name: 'Type a company or title instead' }));
     const dialog = await screen.findByRole('dialog', { name: 'Find' });
     expect(await within(dialog).findByRole('textbox', { name: 'Find' })).toHaveValue('Figma');
     expect(dialog).toHaveTextContent('Looks up Figma’s job board');

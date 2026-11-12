@@ -1,0 +1,13 @@
+/* Add job (#551). Below sm it is the bottom sheet (hds-gaps/BottomSheet.css), lifted above the
+ * phone keyboard (--rjb-vv-bottom from hds-gaps/useVisualViewportVars) and capped to what the
+ * keyboard leaves, its contents on the page's 16px phone gutter. From sm HDS's centred dialog at
+ * its own md width. Rides AddJob's lazy chunks, off the first-load CSS. */
+@media (max-width: 639.98px) {
+  [data-hds] .rjb-add-job.rjb-bottom-sheet {
+    bottom: var(--rjb-vv-bottom, 0px);
+    max-height: calc(var(--rjb-vv-height, 100dvh) - var(--semantic-space-fixed-sm));
+    overflow-y: auto;
+    padding-inline: var(--semantic-space-fixed-sm);
+    padding-bottom: calc(var(--semantic-space-fixed-sm) + env(safe-area-inset-bottom, 0px));
+  }
+}

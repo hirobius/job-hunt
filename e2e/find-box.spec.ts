@@ -13,7 +13,7 @@ const openFind = async (page: import('@playwright/test').Page) => {
   await page.getByRole('button', { name: 'Add job' }).click();
   await page
     .getByRole('dialog', { name: 'Add a job' })
-    .getByRole('button', { name: 'Paste a company, board or title instead' })
+    .getByRole('button', { name: 'Type a company or title instead' })
     .click();
   const dialog = page.getByRole('dialog', { name: 'Find' });
   await expect(dialog.getByRole('textbox', { name: 'Find' })).toBeFocused();
@@ -40,7 +40,7 @@ test('a board is followed at once; a title joins the Search profile', async ({ p
   await page.getByRole('button', { name: 'Add job' }).click();
   await page
     .getByRole('dialog', { name: 'Add a job' })
-    .getByRole('button', { name: 'Paste a company, board or title instead' })
+    .getByRole('button', { name: 'Type a company or title instead' })
     .click();
   await field.fill('Design Technologist');
   await expect(dialog.getByText('Adds “Design Technologist” to your titles.')).toBeVisible();

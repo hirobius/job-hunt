@@ -124,14 +124,6 @@
     {
       "rule": "px",
       "file": "src/theme/base.css",
-      "match": "max-width: 480px",
-      "count": 1,
-      "issue": "job-hunt#551",
-      "why": "Add job becomes an HDS sheet"
-    },
-    {
-      "rule": "px",
-      "file": "src/theme/base.css",
       "match": "min-height: 30px",
       "count": 1,
       "issue": "job-hunt#548",

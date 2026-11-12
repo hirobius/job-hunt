@@ -76,6 +76,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
+- **Add job (#551): one field and one filled key.** The Job link field with the helper "The title
+  fills in from the link. You can edit it after.", then Add job (filled) and "Type a company or title
+  instead" (grey). No Cancel key: Close (the X) and the scrim cancel. At 390 a bottom sheet with a
+  grab handle, Add job at full width over the grey key. At 1440 a centred dialog, Add job at the
+  right.
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
