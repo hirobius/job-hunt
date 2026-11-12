@@ -5,7 +5,7 @@
 // Continue without an account, which only closes it. The screen is sized to the visual viewport
 // (useVisualViewportVars), so on a phone the iOS keyboard never covers the field or the button;
 // on a short one the brand shrinks (SignInDialog.css). "Continue with Google" (#482), when its
-// flag is on (googleSignInFlag.ts, off until the provider is set up), sits above the field: Google's mark and label on an HDS secondary Button; the page then leaves for Google.
+// flag is on (googleSignInFlag.ts, on since 2026-11-12), sits above the field: Google's mark and label on an HDS secondary Button; the page then leaves for Google.
 // Only the presentation lives here: sending and every auth rule stay in the CloudSync seam.
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
@@ -180,20 +180,22 @@ export default function SignInDialog() {
                 </Text>
               </Stack>
             </Box>
-            {/* Off until the Google provider is on in Supabase (googleSignInFlag.ts). */}
+            {/* Behind googleSignInFlag.ts (on since the Google provider was turned on, 2026-11-12). */}
             {googleSignInEnabled() && (
-              <Stack gap="tight">
-                <Button
-                  variant="secondary"
-                  className="sign-in-dialog__primary"
-                  iconLeft={<GoogleMark />}
-                  loading={leaving}
-                  onClick={() => void google()}
-                >
-                  Continue with Google
-                </Button>
-                {googleError && <Alert tone="danger">{googleError}</Alert>}
-              </Stack>
+              <Box className="rjb-signin-google">
+                <Stack gap="tight">
+                  <Button
+                    variant="secondary"
+                    className="sign-in-dialog__primary"
+                    iconLeft={<GoogleMark />}
+                    loading={leaving}
+                    onClick={() => void google()}
+                  >
+                    Continue with Google
+                  </Button>
+                  {googleError && <Alert tone="danger">{googleError}</Alert>}
+                </Stack>
+              </Box>
             )}
             <Form noValidate onSubmit={(e) => void submit(e)}>
               <Stack gap="normal">

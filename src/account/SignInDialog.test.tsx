@@ -85,8 +85,12 @@ describe('SignInDialog', () => {
     ).toEqual(['Sign in']);
   });
 
-  it('ships without Continue with Google: Email, Send link and Continue without an account (provider not set up)', () => {
-    expect(googleSignInEnabled()).toBe(false);
+  it('ships with Continue with Google (the provider is on since 2026-11-12)', () => {
+    expect(googleSignInEnabled()).toBe(true);
+  });
+
+  it('with the flag off: Email, Send link and Continue without an account, no Google', () => {
+    setGoogleSignIn(false);
     const { dialog } = setup();
     expect(screen.queryByRole('button', { name: 'Continue with Google' })).toBeNull();
     expect(
