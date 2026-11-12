@@ -27,6 +27,7 @@ export function FindHeader({
   heading = true,
   newCount = null,
   sort = null,
+  deckPlace = null,
 }: {
   /** The page's h1; false while a selected posting's title is the h1 (at lg). */
   heading?: boolean;
@@ -34,6 +35,8 @@ export function FindHeader({
   newCount?: number | null;
   /** Browse's sort, when there is a list to sort. */
   sort?: FindSort | null;
+  /** The Deck's place, "1 of 4" (#545), at the end of the caption while the Deck is open. */
+  deckPlace?: string | null;
 }) {
   const { user } = useCloudSync();
   const { state, running } = useScan();
@@ -45,7 +48,7 @@ export function FindHeader({
         <Text as={heading ? 'h1' : 'p'} variant="title">
           Find
         </Text>
-        <MetaCaption items={findCaption(newCount, scanned, !user && running)} />
+        <MetaCaption items={[...findCaption(newCount, scanned, !user && running), deckPlace]} />
       </Stack>
       <FindMore sort={sort} signedIn={!!user} running={running} />
     </Stack>

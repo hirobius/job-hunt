@@ -46,7 +46,7 @@ describe('companiesLists', () => {
 
   it('ignored: a muted name no Source knows is listed as stored', () => {
     expect(companiesLists([], ['forward']).ignored).toEqual([
-      { key: 'forward', label: 'forward', known: false },
+      { key: 'forward', label: 'forward', name: 'forward', known: false },
     ]);
   });
 });
@@ -156,5 +156,24 @@ describe('Account menu → Companies', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Companies' }));
     const dialog = await screen.findByRole('dialog', { name: 'Companies' });
     expect(within(dialog).getByText(/No companies yet/)).toBeInTheDocument();
+  });
+});
+
+describe('displayName (#619)', () => {
+  it('keeps known acronyms upper case and drops a trailing separator', async () => {
+    const { displayName } = await import('./companiesList');
+    expect(displayName('Bbc')).toBe('BBC');
+    expect(displayName('Ca Technologies')).toBe('CA Technologies');
+    expect(displayName('Cambly ·')).toBe('Cambly');
+    expect(displayName('Acme - ')).toBe('Acme');
+    expect(displayName('Canva')).toBe('Canva');
+    expect(displayName('ca')).toBe('ca');
+  });
+  it('shows the clean name but keeps the stored label and key', () => {
+    const { followed } = companiesLists(
+      [{ kind: 'board', ref: 'https://boards.greenhouse.io/bbc', label: 'Bbc' }],
+      [],
+    );
+    expect(followed[0]).toMatchObject({ label: 'Bbc', name: 'BBC' });
   });
 });

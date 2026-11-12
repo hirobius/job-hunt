@@ -110,7 +110,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `priority` field stays in the data, backups and CSV (and still sorts). More's last item is "Remove from Apply"
   ("Removed from Apply: <title>", Undo; focus to the next title). Pinned in `e2e/saved-list.spec.ts`, `e2e/review.spec.ts`.
 - **Action dock (redesign §5.5, #535/#536):** `src/hds-gaps/ActionDock.tsx` (+ `.css`, `fieldFocus.ts`; G1,
-  hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
+  hds#1432; in the JobPage and Find chunks (the Find Deck, #545), nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
   transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
   (`hds.motion.spatial`; reduced motion = opacity); from lg an inline row under the title block. Keys: filled,
   grey, exit, per state from one table, `src/dockKeys.ts` `dockKeys` (see Keys by state above): to apply with a
@@ -376,6 +376,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the walk row's view picker picks them (#542, out
   of Filters); `PipelineMenus` is Sort only. Default view To apply; Clear filters goes back to it. Next: #543 moves
   search, filters, sort and Add job into the All jobs sheet. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
+- **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: badges, title step), one at a time (`ReviewView.tsx`
+  `Deck`). No pager row: "1 of 4" is the caption under Find (`header`'s tools carry the Deck's place, `FindHeader`
+  adds it to its caption); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
+  card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock row` (one row, `data-layout="row"`):
+  fixed at the bottom below lg, inline under the card at lg; the card collapses as it goes and both toast with Undo.
+  The card shows the posting's text at once (`usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
+  Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More keeps Not this company; no
+  disclosure. Sort (Find's More menu since #544) works in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
+  keeps the card on screen (`changeSort` finds it by fingerprint). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
+  `figmaRules.test.ts`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`); full width under the logo below md, inline in the

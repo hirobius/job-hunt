@@ -6,6 +6,7 @@
 import { startTransition, useEffect, useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import {
+  Box,
   Button,
   Dialog,
   Icon,
@@ -19,7 +20,7 @@ import { useFeedInputs } from './feed/useFeed';
 import { companyKey, followCompany, muteCompany, unmuteCompany, useDecided } from './feed/decided';
 import { canonicalBoardUrl } from './feed/sources/ats';
 import { httpUrl } from './httpUrl';
-import { companiesLists, type CompanyEntry } from './companiesList';
+import { companiesLists, displayName, type CompanyEntry } from './companiesList';
 import { followBoard } from './sources';
 import { metaLines } from './metaLines';
 import { dismissSuggestion, loadSuggestions, type BoardSuggestion } from './boardSuggestions';
@@ -64,20 +65,23 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
   );
   // The last suggestion gone while its segment is open: show Followed, so one option stays checked.
   const view: Show = show === 'suggested' && !suggested.length ? 'followed' : show;
+  const hasAny = followed.length > 0 || ignored.length > 0 || suggested.length > 0;
   const drop = (s: BoardSuggestion) => {
     setFound((cur) => cur.filter((x) => boardKey(x.board) !== boardKey(s.board)));
     void dismissSuggestion(s.board);
   };
   return (
-    <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
+    // Three rows (#619): the header (title, the list switch) and the footer (Done) stay put, and
+    // only the body scrolls, so Done never covers the last row. Below sm it is a bottom sheet.
+    // A further list (#618) is one more option and one more branch in the body.
+    <Dialog.Content className="rjb-dialog rjb-bottom-sheet" onCloseAutoFocus={onCloseAutoFocus}>
       <Dialog.Header>
+        <span className="rjb-sheet-handle" aria-hidden="true" />
         <Dialog.Title>Companies</Dialog.Title>
         <Dialog.Description>
           Followed companies’ jobs show in Review on Find. Ignored ones never do.
         </Dialog.Description>
-      </Dialog.Header>
-      {followed.length || ignored.length || suggested.length ? (
-        <Stack gap="normal">
+        {hasAny && (
           <SegmentedControl
             aria-label="Companies to show"
             size="sm"
@@ -91,99 +95,105 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
                 : []),
             ]}
           />
-          {view === 'followed' ? (
+        )}
+      </Dialog.Header>
+      <Box className="rjb-dialog-body" data-testid="companies-body">
+        {!hasAny ? (
+          <Text variant="body" as="p" tone="secondary">
+            No companies yet. The scan finds them, and saving a job follows its company.
+          </Text>
+        ) : view === 'followed' ? (
+          <Group
+            key="followed"
+            title="Followed"
+            rows={followed}
+            empty="None followed. Follow a new company on Find."
+            action={(c) => (
+              <Button
+                size="sm"
+                variant="tertiary"
+                aria-label={`Ignore ${c.name}`}
+                onClick={() => muteCompany(c.label)}
+              >
+                Ignore
+              </Button>
+            )}
+          />
+        ) : view === 'suggested' ? (
+          <Stack gap="tight">
+            <Text variant="caption" as="p" tone="secondary">
+              Boards found for companies in your feeds, each checked against the company’s name or
+              site. Open one to look before you follow. A dismissed board can come back after a
+              month.
+            </Text>
             <Group
-              key="followed"
-              title="Followed"
-              rows={followed}
-              empty="None followed. Follow a new company on Find."
-              action={(c) => (
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  aria-label={`Ignore ${c.label}`}
-                  onClick={() => muteCompany(c.label)}
-                >
-                  Ignore
-                </Button>
-              )}
+              key="suggested"
+              title="Suggested"
+              rows={suggested.map((s) => ({
+                key: boardKey(s.board),
+                label: metaLines([
+                  s.company,
+                  `${KIND_NAME[s.board.kind] ?? s.board.kind}${s.jobs ? ` (${s.jobs} open)` : ''}`,
+                ])[0],
+                name: metaLines([
+                  displayName(s.company),
+                  `${KIND_NAME[s.board.kind] ?? s.board.kind}${s.jobs ? ` (${s.jobs} open)` : ''}`,
+                ])[0],
+                known: false,
+              }))}
+              empty="No suggestions."
+              action={(c) => {
+                const s = suggested.find((x) => boardKey(x.board) === c.key);
+                return s ? (
+                  <Stack direction="row" gap="tight" align="center">
+                    <BoardLink suggestion={s} />
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      aria-label={`Follow ${s.company} on ${KIND_NAME[s.board.kind]}`}
+                      onClick={() => {
+                        followBoard(s.board, s.company);
+                        drop(s);
+                      }}
+                    >
+                      Follow
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      aria-label={`Dismiss ${s.company}`}
+                      onClick={() => drop(s)}
+                    >
+                      Dismiss
+                    </Button>
+                  </Stack>
+                ) : null;
+              }}
             />
-          ) : view === 'suggested' ? (
-            <Stack gap="tight">
-              <Text variant="caption" as="p" tone="secondary">
-                Boards found for companies in your feeds, each checked against the company’s name or
-                site. Open one to look before you follow. A dismissed board can come back after a
-                month.
-              </Text>
-              <Group
-                key="suggested"
-                title="Suggested"
-                rows={suggested.map((s) => ({
-                  key: boardKey(s.board),
-                  label: metaLines([
-                    s.company,
-                    `${KIND_NAME[s.board.kind] ?? s.board.kind}${s.jobs ? ` (${s.jobs} open)` : ''}`,
-                  ])[0],
-                  known: false,
-                }))}
-                empty="No suggestions."
-                action={(c) => {
-                  const s = suggested.find((x) => boardKey(x.board) === c.key);
-                  return s ? (
-                    <Stack direction="row" gap="tight" align="center">
-                      <BoardLink suggestion={s} />
-                      <Button
-                        size="sm"
-                        variant="tertiary"
-                        aria-label={`Follow ${s.company} on ${KIND_NAME[s.board.kind]}`}
-                        onClick={() => {
-                          followBoard(s.board, s.company);
-                          drop(s);
-                        }}
-                      >
-                        Follow
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="tertiary"
-                        aria-label={`Dismiss ${s.company}`}
-                        onClick={() => drop(s)}
-                      >
-                        Dismiss
-                      </Button>
-                    </Stack>
-                  ) : null;
+          </Stack>
+        ) : (
+          <Group
+            key="ignored"
+            title="Ignored"
+            rows={ignored}
+            empty="None ignored."
+            action={(c) => (
+              <Button
+                size="sm"
+                variant="tertiary"
+                aria-label={`Follow ${c.name} again`}
+                onClick={() => {
+                  unmuteCompany(c.key);
+                  // Muted from a posting, with no board or follow of its own: follow it by name.
+                  if (!c.known) followCompany(c.label);
                 }}
-              />
-            </Stack>
-          ) : (
-            <Group
-              key="ignored"
-              title="Ignored"
-              rows={ignored}
-              empty="None ignored."
-              action={(c) => (
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  aria-label={`Follow ${c.label} again`}
-                  onClick={() => {
-                    unmuteCompany(c.key);
-                    // Muted from a posting, with no board or follow of its own: follow it by name.
-                    if (!c.known) followCompany(c.label);
-                  }}
-                >
-                  Follow again
-                </Button>
-              )}
-            />
-          )}
-        </Stack>
-      ) : (
-        <Text variant="body" as="p" tone="secondary">
-          No companies yet. The scan finds them, and saving a job follows its company.
-        </Text>
-      )}
+              >
+                Follow again
+              </Button>
+            )}
+          />
+        )}
+      </Box>
       <Dialog.Footer>
         <Dialog.Close asChild>
           <Button variant="secondary">Done</Button>
@@ -234,7 +244,7 @@ function Group({
         <ItemRow key={c.key} dense>
           <Stack direction="row" gap="tight" align="center" justify="space-between">
             <Text variant="ui" as="span">
-              {c.label}
+              {c.name}
             </Text>
             {action(c)}
           </Stack>

@@ -36,6 +36,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   focus. At 1440 the same keys sit in one row under the title block. Not a fit is the dock's exit,
   never inside More; it acts at once with "Marked not a fit: <title> · Undo". A job with no link
   never shows Open application: its keys are Mark applied (filled), Add link (grey), Not a fit.
+- **Find Deck (#545, #617).** The same posting card as Browse, one at a time. No pager row: "1 of 4"
+  sits in the caption under Find, and a sideways swipe steps it. Skip (grey, left) and Save (filled,
+  right) sit in the action dock, in one row; both show a toast with Undo. The card shows the
+  posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More on the
+  card keeps Not this company. Sort (Find's More menu) works in the Deck too: the deck's order and its
+  "1 of N" follow the sort, and the card on screen stays when the sort changes.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 

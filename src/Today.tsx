@@ -27,8 +27,8 @@ export default function Today() {
       <ReviewView
         label="Review"
         scanStatus
-        header={({ newCount, sort, selected }) => (
-          <FindHeader heading={!selected} newCount={newCount} sort={sort} />
+        header={({ newCount, sort, selected, deckPlace }) => (
+          <FindHeader heading={!selected} newCount={newCount} sort={sort} deckPlace={deckPlace} />
         )}
         before={picks}
         after={<NewCompanies />}
