@@ -349,6 +349,13 @@ for (const width of [375, 390]) {
     expect(s!.x + s!.width).toBeLessThanOrEqual(width);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
     // lands on that key, never its neighbour.
+    // A tap just inside the last chip's right edge is the chip's, not Browse's.
+    const remote = chips.getByRole('button', { name: /^Remote / });
+    const onChip = await remote.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
+    });
+    expect(onChip).toBe(true);
     for (const name of ['Browse', 'Deck', /^Sort: /]) {
       const hit = await hitArea(page.getByRole('button', { name }));
       expect(hit.width).toBeGreaterThanOrEqual(44);
