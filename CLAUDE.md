@@ -961,21 +961,22 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **Don't add `[preview]` by default.** Only when Adrian asks for a preview link, or when a
     change can't be judged without a deployed URL. One preview per review round, on the last
     commit of the round, never per commit.
-  - **Don't merge to `main` unless Adrian says so** ("merge", "ship", "ready for merging"). Batch
-    finished work into one merge instead of merging slice by slice.
+  - **Merge:** agents squash-merge after green CI and an independent reviewer's
+    "Reviewed: PASS — <sha7>" on the exact head commit. Batch related work into one merge to save
+    production builds.
   - **Verify locally instead:** `npm run verify`, `npm run test:e2e`, and `npm run gallery`
     (builds and serves `dist/` locally — no Vercel) for screenshots. Vercel is the deploy, not
     the test runner.
 
-- **Do NOT use GitHub Actions (owner preference, 2026-07).** There is no Actions CI — the
-  `.github/workflows/ci.yml` workflow was removed. **Verification is local** (`npm run typecheck`
-  / `lint` / `test` / `build` + headless Chromium) **plus the Vercel deploy**. Never add or rely on
-  an Actions workflow; don't treat Actions checks as a merge gate.
+- **CI (GitHub Actions):** `.github/workflows/ci.yml` runs lint, unit (4 shards), build, e2e
+  (4 shards, pinned Playwright image), visual and gitleaks on every PR and on `main`. The "main
+  checks" ruleset requires verify, visual and gitleaks. Agents never edit `.github/workflows`: write
+  the change for Adrian.
 - `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`.
 - **Deploy gate (#95; moved off Vercel 2026-10-24):** `vercel.json`'s `buildCommand` is `npm run build`
-  (Adrian: ~3 min → ~30-60 s per deploy). Vercel no longer runs the checks, so **`npm run verify`
-  (typecheck → lint → vitest → build) must pass locally before every push to `main`**; `main` is the
-  live production site. `deployGate.test.ts` pins both halves. Branch pushes only
+  (Adrian: ~3 min → ~30-60 s per deploy). Vercel does not run the checks. Run **`npm run verify`
+  (typecheck → lint → vitest → build)** locally as the fast check before a push; CI is the merge
+  gate. `main` is the live production site. `deployGate.test.ts` pins both halves. Branch pushes only
   build a preview when the commit message contains `[preview]`. E2E in cloud sessions: plain
   `npm run test:e2e` (`playwright.config.ts` falls back to the stable `/opt/pw-browsers/chromium`
   link; set `PW_CHROMIUM_PATH` only to use another build).
@@ -1046,8 +1047,8 @@ _The 2026-07 pillar / track / Discover model (ADR 0006) was replaced by one Sear
   `src/screening.ts` (which also strips the retired `travelPct` / `applicants` from old records).
 - **Rules-based JD screener (#61).** `src/jdScreener.ts`: deterministic keyword rules, no AI.
 - **Supabase (#31).** `tracker` + `categories`/`groups`/`tiles` tables with RLS. `pillarStore` + `pillars.ts`
-  are retired (#99); curation syncs through its own tables. ⚠️ GitHub Actions CI is disabled by owner
-  preference (`.github/workflows/ci.yml` removed); merges rely on local verify + Vercel.
+  are retired (#99); curation syncs through its own tables. Merges rely on CI (see Build / deploy /
+  verify).
 
 ## 2026-10 — the feed data layer (`src/feed/`; its Live postings screen went in #389)
 
