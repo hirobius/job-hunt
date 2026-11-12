@@ -145,7 +145,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   badge there, no blue New), More beside it (a posting's holds Not this company), one action row (`ActionDock`:
   Save filled, Skip grey, Open posting icon for a posting), then the content (a posting's "Description" `Panel`).
   **List cards carry no keys at 1440** (`PostingCard keys={!onOpen}`): the detail column has them; below lg each
-  card keeps its own. Shared by the JobPage and Today chunks, never the entry. Pinned in `review.test.tsx`,
+  card keeps its own. **Find at lg opens on the first posting** (Adrian 2026-11-12; see Final shell). Shared by the JobPage and Today chunks, never the entry. Pinned in `review.test.tsx`,
   `figmaRules.test.ts`, `e2e/review.spec.ts` (`templateOf`: the posting's and the saved job's headers measure the same).
 - **Empty, error and done states sit on the page background (redesign §5.11, #553/#554):** `src/hds-gaps/EmptyState`
   `onPage` (centred, room above and below, no card); `framed` (a raised panel) is left for not-found and
@@ -410,10 +410,13 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (#544), an old `#/find/<fingerprint>` link scrolls to its card and drops the fingerprint, and after a
   decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, Review) beside
   `PostingDetail` (the job page's template since #546: title block, More with Not this company, Save / Skip / Open
-  posting, then the Description; "Pick a posting" until one is picked); below lg the list is the tab and a
+  posting, then the Description; the first posting when the tab opens, #546); below lg the list is the tab and a
   selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
   route, `#/find/<fingerprint>` (`route.postingOf` / `findHash` / `selectPosting`, URI-escaped): shareable, survives
-  a reload, nothing selected when the tab opens. A pick replaces the history entry at lg and pushes below lg (Back
+  a reload. **At lg Browse opens on the first posting (Adrian 2026-11-12, #546, like Apply's first job; in place, an
+  effect in `ReviewView`), a decided posting is never picked again while its card collapses (`deciding`), the Deck
+  keeps no selection (Find's header and its "1 of N" show), and with no posting left the list stands alone (caught
+  up, nothing beside it; Find's new h1 node takes the focus a decision left on body); below lg nothing is selected when the tab opens.** A pick replaces the history entry at lg and pushes below lg (Back
   returns to the list); a decision on the selected posting selects the next one in the list (in place). The
   selected card is `aria-current` (`.rjb-selected`). **Apply and Follow up left Find** (each item shows on one tab
   only): Follow up is on the Apply list; `today.ts` and Resume applying are gone. Followed and Ignored

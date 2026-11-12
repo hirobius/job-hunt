@@ -2,7 +2,7 @@
 // Two columns at lg: the list column (Daily picks when signed in, the auto-scan's status, Review new
 // as the Browse list; the companies the scan found are the Companies dialog's Found list since
 // #618) and the selected posting
-// (`#/find/<fingerprint>`; "Pick a posting" until one is picked). Below lg the list is the tab and a
+// (`#/find/<fingerprint>`; the first posting when the tab opens, #546). Below lg the list is the tab and a
 // picked posting is its own view with Back and a pager. Follow up and Apply moved to the Apply tab,
 // so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
 import { Skeleton, Stack, Text } from '@hirobius/design-system';
