@@ -296,3 +296,61 @@ for (const width of [390, 1440]) {
     }
   });
 }
+
+// Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 375 and
+// 390; wrapping is allowed at 360 and below. Each key keeps a 44px hit area.
+for (const width of [375, 390]) {
+  test(`the Review row fits on one line with two-digit counts (${width})`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+      const url = r.request().url();
+      const json = (body: unknown) =>
+        r.fulfill({
+          status: 200,
+          headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      if (!url.startsWith('https://hn.algolia.com/'))
+        return url.startsWith('https://api.lever.co/') ? json([]) : json({ jobs: [] });
+      if (url.includes('search_by_date'))
+        return json({
+          hits: [
+            {
+              objectID: '9',
+              title: 'Ask HN: Who is hiring? (October 2026)',
+              created_at: '2026-10-01',
+            },
+          ],
+        });
+      return json({
+        hits: Array.from({ length: 12 }, (_, i) => ({
+          objectID: `m-${i}`,
+          story_id: 9,
+          parent_id: 9,
+          created_at: new Date().toISOString(),
+          comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+        })),
+      });
+    });
+    await page.goto('/#/find');
+    await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
+    const since = await page.evaluate(() => Date.now());
+    await findMenuItem(page, 'Scan now');
+    await scanFinished(page, since);
+    const chips = page.getByRole('group', { name: 'Filter postings' });
+    await expect(chips.getByRole('button', { name: /^New \d\d$/ })).toBeVisible();
+    await expect(chips.getByRole('button', { name: /^Remote \d\d$/ })).toBeVisible();
+    const sort = page.getByRole('button', { name: /^Sort: / });
+    const [c, s] = [await chips.boundingBox(), await sort.boundingBox()];
+    // One row: the Sort key's middle is level with the chips'.
+    expect(Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(4);
+    expect(s!.x + s!.width).toBeLessThanOrEqual(width);
+    // The 44px hit area (.rjb-hit-44's ::after) holds on the smaller key.
+    const hit = await sort.evaluate((el) => {
+      const a = getComputedStyle(el, '::after');
+      return [parseFloat(a.width) || el.getBoundingClientRect().width, parseFloat(a.height) || 0];
+    });
+    expect(Math.max(hit[0], s!.width)).toBeGreaterThanOrEqual(44);
+    expect(Math.max(hit[1], s!.height)).toBeGreaterThanOrEqual(44);
+  });
+}

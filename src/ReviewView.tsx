@@ -288,7 +288,7 @@ export default function ReviewView({
   // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
   // (a compact two-icon segmented group) and Sort on the right; it wraps at narrow widths.
   const tools = (
-    <Stack direction="row" gap="hairline" align="center" className="rjb-review-tools">
+    <Stack direction="row" gap="xs" align="center" className="rjb-review-tools">
       {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
           takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
           with a tooltip; the pressed one is the secondary (filled) button. */}
@@ -309,6 +309,7 @@ export default function ReviewView({
                 label={name}
                 aria-label={name}
                 aria-pressed={mode === value}
+                className="rjb-hit-44"
                 onClick={() => setMode(value)}
                 iconLeft={<Icon icon={icon} />}
               />
@@ -349,7 +350,7 @@ export default function ReviewView({
               <Stack
                 direction="row"
                 wrap="wrap"
-                gap="px8"
+                gap="px4"
                 role="group"
                 aria-label="Filter postings"
               >
@@ -362,7 +363,7 @@ export default function ReviewView({
                     aria-label={`${FILTER_LABEL[f]} ${counts[f]}`}
                     onClick={() => toggle(f)}
                   >
-                    <Stack as="span" direction="row" gap="px8" align="center">
+                    <Stack as="span" direction="row" gap="px4" align="center">
                       {FILTER_LABEL[f]} <Badge count={counts[f]} />
                     </Stack>
                   </Tag>
