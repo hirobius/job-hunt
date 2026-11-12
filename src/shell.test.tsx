@@ -207,8 +207,8 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
-      'label:On this device only',
-      'item:Sign in to see your jobs on any device',
+      'label:On this device only. Sign in to sync across devices.',
+      'item:Sign in',
       '---',
       'item:Documents',
       'item:Search profile',
@@ -224,11 +224,10 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Privacy and terms',
     ]);
     // Sign in is the grey key (HDS secondary); every other row has a 16px icon.
-    expect(
-      within(menu).getByRole('menuitem', { name: 'Sign in to see your jobs on any device' }),
-    ).toHaveClass('rjb-menu-key');
+    expect(within(menu).getByRole('menuitem', { name: 'Sign in' })).toHaveClass('rjb-menu-key');
     for (const row of menu.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]'))
-      if (row.textContent !== SIGN_IN_ITEM) expect(row.querySelector(':scope > svg')).not.toBeNull();
+      if (row.textContent !== SIGN_IN_ITEM)
+        expect(row.querySelector(':scope > svg')).not.toBeNull();
     // Scan details is in the Search profile now (#549), not a menu row.
     expect(within(menu).queryByRole('menuitem', { name: 'Scan details' })).toBeNull();
   });
@@ -277,9 +276,7 @@ describe('app shell (#115 Phase 1)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Data' })).toBeNull());
     await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
     const menu = await openAccount();
-    await userEvent.click(
-      within(menu).getByRole('menuitem', { name: 'Sign in to see your jobs on any device' }),
-    );
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign in' }));
     await screen.findByRole('dialog', { name: 'Sign in' });
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
@@ -409,9 +406,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
   it('Sign in in the menu opens a dialog with the email field', async () => {
     renderApp();
     const menu = await openAccount();
-    await userEvent.click(
-      within(menu).getByRole('menuitem', { name: 'Sign in to see your jobs on any device' }),
-    );
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
     expect(within(dialog).getByRole('textbox', { name: /email/i })).toBeInTheDocument();
   });

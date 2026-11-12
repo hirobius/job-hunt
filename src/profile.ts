@@ -16,6 +16,11 @@ export const PROFILES_KEY = 'rjb_profiles';
 
 const readAll = () => sanitizeProfiles(loadPersisted<unknown>(PROFILES_KEY, []));
 const live = liveStorage(PROFILES_KEY);
+/** The profile's search, without who made it: an unchanged save keeps the auto mark, so opening
+ *  the Search profile and pressing Save is not an edit (the merge guard, deviceData.ts). */
+const searchOf = ({ auto: _a, id: _i, createdAt: _c, ...rest }: Profile) => JSON.stringify(rest);
+const keepAuto = (next: Profile, cur: Profile | undefined): Profile =>
+  cur?.auto && !next.auto && searchOf(next) === searchOf(cur) ? { ...next, auto: true } : next;
 const write = (all: Profile[]) => {
   savePersisted(PROFILES_KEY, all);
   live.notify();
@@ -48,8 +53,9 @@ export function saveProfile(
     createdAt: cur?.createdAt ?? new Date().toISOString(),
   });
   if (!next) return null;
-  write([next, ...all.slice(1)]);
-  return next;
+  const kept = keepAuto(next, cur);
+  write([kept, ...all.slice(1)]);
+  return kept;
 }
 
 /** Change the profile in use (merged over what it has). No profile yet: nothing happens. */
@@ -58,7 +64,7 @@ export function updateProfile(change: Partial<Omit<Profile, 'id' | 'createdAt'>>
   if (!all.length) return false;
   const next = sanitizeProfile({ ...all[0], ...change, auto: change.auto });
   if (!next) return false;
-  all[0] = next;
+  all[0] = keepAuto(next, all[0]);
   write(all);
   return true;
 }

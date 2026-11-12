@@ -1,6 +1,6 @@
 // The header's account menu (#115 Phase 1; redesign §5.9, #549: 9 items in 4 groups). One home for
 // everything about "my account and my data", top to bottom:
-//   1. who you are: signed out "On this device only" + why to sign in, and Sign in as a grey key;
+//   1. who you are: signed out "On this device only. Sign in to sync across devices.", and Sign in as a grey key;
 //      signed in the email, the sync line (Retry when it failed) and Sign out
 //   2. Documents (#227), Search profile (Scan details sits in it, #549), Companies, Data (#550: one
 //      lazy dialog for back up, restore, export, Recently removed and the repairs)

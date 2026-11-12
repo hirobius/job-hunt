@@ -77,7 +77,9 @@ const brandOf = (dialog: HTMLElement) => {
   return { flame, word };
 };
 
-const COPY = `${SIGN_IN_BENEFIT}${SIGN_IN_HOW}`;
+const COPY = SIGN_IN_BENEFIT;
+/** How it works is the Email field's helper (Adrian 2026-11-12). */
+const EMAIL = `Email${SIGN_IN_HOW}`;
 
 describe('SignInDialog', () => {
   it('is a full screen with the flame and the wordmark (not a heading) above the title', () => {
@@ -117,7 +119,7 @@ describe('SignInDialog', () => {
         .map((b) => b.textContent),
     ).toEqual(['Send link', 'Continue without an account', '']);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign in${COPY}EmailSend linkContinue without an account`,
+      `${BRAND.name}Sign in${COPY}${EMAIL}Send linkContinue without an account`,
     );
     // The magic link still signs in.
     expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument();
@@ -126,12 +128,12 @@ describe('SignInDialog', () => {
   it('with the flag on: the flame, the wordmark, Continue with Google, Email, Send link and Continue without an account', () => {
     setGoogleSignIn(true);
     const { dialog } = setup();
-    // Two paragraphs, the benefit first (#555; was none, 2026-10-29): the title is for screen
-    // readers only, and the two lines describe the screen.
-    expect([...dialog.querySelectorAll('p:not(.rjb-logo-word)')].map((p) => p.textContent)).toEqual(
-      [SIGN_IN_BENEFIT, SIGN_IN_HOW],
+    // The benefit describes the screen (#555); how it works describes the Email field (Adrian
+    // 2026-11-12): the title is for screen readers only.
+    expect(dialog).toHaveAccessibleDescription(SIGN_IN_BENEFIT);
+    expect(within(dialog).getByRole('textbox', { name: 'Email' })).toHaveAccessibleDescription(
+      SIGN_IN_HOW,
     );
-    expect(dialog).toHaveAccessibleDescription(`${SIGN_IN_BENEFIT} ${SIGN_IN_HOW}`);
     expect(
       within(dialog).getByRole('heading', { name: 'Sign in' }).closest('.sr-only'),
     ).not.toBeNull();
@@ -147,7 +149,7 @@ describe('SignInDialog', () => {
       '',
     ]);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign in${COPY}Continue with GoogleContinue with LinkedInEmailSend linkContinue without an account`,
+      `${BRAND.name}Sign in${COPY}Continue with GoogleContinue with LinkedIn${EMAIL}Send linkContinue without an account`,
     );
   });
 
