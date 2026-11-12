@@ -4,7 +4,7 @@
 // at its size budget. Nothing while the count is 0 or not known yet (Find before Review new has read).
 // An HDS count Badge after the label (2026-11-12), the way the view chips read ("To apply 21"): the
 // tabs live in the page bar since #680, so the pill fits at 375 and 390 (e2e/shell-controls.spec).
-import { Badge } from '@hirobius/design-system';
+import { CountBadge } from './CountBadge';
 import { useScanDetails } from './feed/scanDetails';
 import { filterCounts, usePipelineView } from './pipelineView';
 import { FIND_TAB } from './route';
@@ -24,7 +24,7 @@ export default function TopTabCount({ tab }: { tab: TopTab }) {
   return n > 0 ? (
     <>
       {' '}
-      <Badge count={n} max={99} className="rjb-seg-count" />
+      <CountBadge count={n} className="rjb-seg-count" />
     </>
   ) : null;
 }

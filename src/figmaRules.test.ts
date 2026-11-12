@@ -214,7 +214,10 @@ describe('FIGMA-RULES.md', () => {
 
   it("pins the top tabs' count Badges and equal segments (2026-11-12)", () => {
     expect(RULES).toMatch(/count\s+Badge after its label/);
-    expect(fs.readFileSync('src/TopTabCount.tsx', 'utf8')).toContain('<Badge count={n}');
+    expect(fs.readFileSync('src/TopTabCount.tsx', 'utf8')).toContain('<CountBadge count={n}');
+    expect(fs.readFileSync('src/CountBadge.tsx', 'utf8')).toContain(
+      '<Badge count={count} max={COUNT_MAX}',
+    );
     expect(fs.readFileSync('src/theme/base.css', 'utf8')).toContain(
       'grid-template-columns: 1fr 1fr;',
     );

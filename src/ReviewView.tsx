@@ -55,6 +55,7 @@ import { usePageTitle } from './pageTitle';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
+import { CountBadge } from './CountBadge';
 import type { FindSort } from './FindHeader';
 import { FindSortMenu } from './FindSortMenu';
 import { useAutoLoad } from './autoLoad';
@@ -359,7 +360,7 @@ export default function ReviewView({
                     onClick={() => toggle(f)}
                   >
                     <Stack as="span" direction="row" gap="px4" align="center">
-                      {FILTER_LABEL[f]} <Badge count={counts[f]} />
+                      {FILTER_LABEL[f]} <CountBadge count={counts[f]} />
                     </Stack>
                   </Tag>
                 ))}
