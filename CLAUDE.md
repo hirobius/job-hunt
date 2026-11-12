@@ -660,7 +660,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   posting it lists, and every one the recorded answers hold; it fails otherwise. Pinned in `feed/feed.test.ts`, `review.test.tsx`, `e2e/review.spec.ts`.
 - **Dedupe v2 + one remote classifier (#576 items 9, 10):** `src/tracks/roleKey.ts` (pure, `.ts`, no imports) is
   the one "same role" rule for the browser's Feed (`feed/match.ts` rank) and the server sync (`score.ts` `dedupe`):
-  `roleKey` = `normCompany` (case, punctuation, "the", Inc/LLC/Ltd/GmbH/Co…) + `normTitle` (Sr → Senior, Eng →
+  `roleKey` = `normCompany` (case, punctuation, "the", Inc/LLC/Ltd/GmbH/Co… at the end of the name only, #670) + `normTitle` (Sr → Senior, Eng →
   Engineer…; **seniority kept**, so Senior and Staff never merge; no company = no merge). `dedupeRoles` keeps the best
   source (`sourceRank`: company board, then designsystems.jobs / manual, aggregators, remote boards and HN, social);
   across sources the place is ignored, within the kept source two places stay. No alternates field: only the best copy
@@ -740,6 +740,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Front-End RSS); a muted Remote OK Source mutes it. All unverified live. Himalayas and Working Nomads stay off (terms
   unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
   Migrations `20261029100000` and `20261029100200` widen the `postings.source` check.
+  **Aggregator liveness (#576 item 11):** Remote OK and We Work Remotely are read whole (`WHOLE_LIST_FEEDS` in
+  `serverFeeds.ts`), so `answeredFeeds` counts them like rss and a row missing from 2 whole reads closes through
+  `mark_missed_postings`; a WWR read with one feed failed is `partial` (`markPartial`, `feeds/context.ts`) and closes
+  nothing. Arbeitnow (its newest pages) and the keyed searches keep the 30-day age-out. On the feeds run the sync also
+  checks open feed rows (`AGGREGATOR_BOARDS`) whose link is a Greenhouse / Lever / Ashby job on that board
+  (`tracks/aggregatorLiveness.ts`: ≤ `MAX_LIVENESS_BOARDS` = 20 boards a run in a run-seeded order, `guardedFetch`
+  fixed hosts, `readWithRetry`): absent from an answered list or a 404 board closes it, any failure closes nothing.
+  No migration. Pinned in `aggregatorLiveness.test.ts`, `plan.test.ts`, `feeds/keyless.test.ts`.
 - **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
   buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles, **signed in only and never while the sign-in screen is open**: it waits, and a run in flight stops
   when the screen opens or the person signs out; signed out, the line says "Sign in for automatic updates." beside Scan now;

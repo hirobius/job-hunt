@@ -5,6 +5,7 @@ import { ARBEITNOW_PAGES, arbeitnowUrl, parseArbeitnow, readArbeitnow } from './
 import { isDsRole } from './dsRole';
 import { parseRemoteOk, readRemoteOk, REMOTEOK_URL, remoteOkTermsOk } from './remoteok';
 import { parseWwr, readWwr, WWR_FEEDS } from './wwr';
+import { isPartial } from './context';
 
 const fixture = (name: string) => readFileSync(`src/tracks/feeds/fixtures/${name}`, 'utf8');
 const ctx = (fetch: FeedContext['fetch']): FeedContext => ({
@@ -137,7 +138,13 @@ describe('We Work Remotely', () => {
         ? new Response(fixture('wwr-design.rss'))
         : new Response('', { status: 500 }),
     );
-    expect(await readWwr(ctx(half))).toHaveLength(1);
+    const got = await readWwr(ctx(half));
+    expect(got).toHaveLength(1);
+    // Half the list: nothing may close as missed against it (#576 item 11).
+    expect(isPartial(got)).toBe(true);
+    expect(
+      isPartial(await readWwr(ctx(vi.fn(async () => new Response(fixture('wwr-design.rss')))))),
+    ).toBe(false);
     const none = ctx(vi.fn(async () => new Response('', { status: 403 })));
     await expect(readWwr(none)).rejects.toThrow(/We Work Remotely: HTTP 403/);
   });

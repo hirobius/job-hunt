@@ -1,128 +1,128 @@
 {
- "jobs": [
-  {
-   "absolute_url": "https://job-boards.greenhouse.io/discord/jobs/8846330002",
-   "data_compliance": [
+  "jobs": [
     {
-     "type": "gdpr",
-     "requires_consent": false,
-     "requires_processing_consent": false,
-     "requires_retention_consent": false,
-     "retention_period": null,
-     "demographic_data_consent_applies": true
-    }
-   ],
-   "education": "education_optional",
-   "internal_job_id": 6541587002,
-   "location": {
-    "name": "San Francisco Bay Area"
-   },
-   "metadata": [
-    {
-     "id": 4105571002,
-     "name": "Featured on Website",
-     "value": [],
-     "value_type": "multi_select"
+      "absolute_url": "https://job-boards.greenhouse.io/discord/jobs/8846330002",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "education": "education_optional",
+      "internal_job_id": 6541587002,
+      "location": {
+        "name": "San Francisco Bay Area"
+      },
+      "metadata": [
+        {
+          "id": 4105571002,
+          "name": "Featured on Website",
+          "value": [],
+          "value_type": "multi_select"
+        },
+        {
+          "id": 96196709002,
+          "name": "Careers Site Department",
+          "value": null,
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8846330002,
+      "updated_at": "2026-10-20T20:05:24-04:00",
+      "requisition_id": "R-107436",
+      "title": "Senior Product Designer, Design Systems",
+      "company_name": "Discord",
+      "first_published": "2026-09-30T19:30:22-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;Discord has a highly engaged community of millions of daily active users who use the platform for many different reasons, but there’s one thing that nearly everyone does: &lt;strong&gt;play video games.&lt;/strong&gt; Discord plays a uniquely important role in the future of gaming, and we are focused on making it easier and more fun for people to hang out before, during, and after playing games.&lt;/p&gt;&lt;/div&gt;&lt;p&gt;The Design Systems team is a cross-functional team that ensures design quality across all facets of UI, content, and graphics. Mana, our design system, is well loved and widely used by the product designers, engineers, and creatives who design and build Discord every day. This role is about stewardship: keeping Mana healthy, accurate, and useful as the product grows. You&#39;ll own the day-to-day work of fixing bugs, shipping updates, and evolving existing components, and you&#39;ll help decide what the system needs next.&lt;/p&gt;\n&lt;p&gt;You&#39;re a pattern and tooling expert who lives and breathes component building. Figma component building is second nature to you, you understand code well enough to desi",
+      "departments": [
+        {
+          "id": 4074055002,
+          "name": "Product Design",
+          "child_ids": [],
+          "parent_id": 4094266002
+        }
+      ],
+      "offices": [
+        {
+          "id": 4000383002,
+          "name": "San Francisco, CA",
+          "location": "San Francisco, California, United States",
+          "child_ids": [],
+          "parent_id": null
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": false,
+      "ai_opt_out_request_url": "http://app2.greenhouse.io/ai_opt_out_request/job_post/8846330002/ai_opt_out"
     },
     {
-     "id": 96196709002,
-     "name": "Careers Site Department",
-     "value": null,
-     "value_type": "single_select"
+      "absolute_url": "https://job-boards.greenhouse.io/discord/jobs/8806482002",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 6524134002,
+      "location": {
+        "name": "San Francisco Bay Area"
+      },
+      "metadata": [
+        {
+          "id": 4105571002,
+          "name": "Featured on Website",
+          "value": [],
+          "value_type": "multi_select"
+        },
+        {
+          "id": 96196709002,
+          "name": "Careers Site Department",
+          "value": null,
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8806482002,
+      "updated_at": "2026-10-20T20:27:20-04:00",
+      "requisition_id": "R-107406",
+      "title": "Commercial Policy Lead",
+      "company_name": "Discord",
+      "first_published": "2026-09-15T12:52:11-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;Discord has a highly engaged community of millions of daily active users who use the platform for many different reasons, but there’s one thing that nearly everyone does: &lt;strong&gt;play video games.&lt;/strong&gt; Discord plays a uniquely important role in the future of gaming, and we are focused on making it easier and more fun for people to hang out before, during, and after playing games.&lt;/p&gt;&lt;/div&gt;&lt;p&gt;We are seeking a strategic Commercial Policy Lead to shape Discord&#39;s approach to monetization and revenue products. As a key member of the Product Policy organization, you will develop and implement advertising and commerce policies that enable Discord&#39;s business while maintaining platform safety and user trust. This role requires a deep understanding of digital commerce, creator economies, and advertising ecosystems, with the ability to balance business objectives with responsible platform practices.&lt;/p&gt;\n&lt;p&gt;Please note: This role involves regular exposure to potentially disturbing content, including violence, hate speech, and other harmful material.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What yo",
+      "departments": [
+        {
+          "id": 4054683002,
+          "name": "Policy",
+          "child_ids": [],
+          "parent_id": 4094263002
+        }
+      ],
+      "offices": [
+        {
+          "id": 4082816002,
+          "name": "Remote (US)",
+          "location": null,
+          "child_ids": [],
+          "parent_id": null
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": false,
+      "ai_opt_out_request_url": "http://app2.greenhouse.io/ai_opt_out_request/job_post/8806482002/ai_opt_out"
     }
-   ],
-   "id": 8846330002,
-   "updated_at": "2026-10-20T20:05:24-04:00",
-   "requisition_id": "R-107436",
-   "title": "Senior Product Designer, Design Systems",
-   "company_name": "Discord",
-   "first_published": "2026-09-30T19:30:22-04:00",
-   "language": "en",
-   "application_deadline": null,
-   "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;Discord has a highly engaged community of millions of daily active users who use the platform for many different reasons, but there’s one thing that nearly everyone does: &lt;strong&gt;play video games.&lt;/strong&gt; Discord plays a uniquely important role in the future of gaming, and we are focused on making it easier and more fun for people to hang out before, during, and after playing games.&lt;/p&gt;&lt;/div&gt;&lt;p&gt;The Design Systems team is a cross-functional team that ensures design quality across all facets of UI, content, and graphics. Mana, our design system, is well loved and widely used by the product designers, engineers, and creatives who design and build Discord every day. This role is about stewardship: keeping Mana healthy, accurate, and useful as the product grows. You&#39;ll own the day-to-day work of fixing bugs, shipping updates, and evolving existing components, and you&#39;ll help decide what the system needs next.&lt;/p&gt;\n&lt;p&gt;You&#39;re a pattern and tooling expert who lives and breathes component building. Figma component building is second nature to you, you understand code well enough to desi",
-   "departments": [
-    {
-     "id": 4074055002,
-     "name": "Product Design",
-     "child_ids": [],
-     "parent_id": 4094266002
-    }
-   ],
-   "offices": [
-    {
-     "id": 4000383002,
-     "name": "San Francisco, CA",
-     "location": "San Francisco, California, United States",
-     "child_ids": [],
-     "parent_id": null
-    }
-   ],
-   "ai_disclaimer": null,
-   "include_ai_disclaimer": false,
-   "ai_opt_out_request_url": "http://app2.greenhouse.io/ai_opt_out_request/job_post/8846330002/ai_opt_out"
-  },
-  {
-   "absolute_url": "https://job-boards.greenhouse.io/discord/jobs/8806482002",
-   "data_compliance": [
-    {
-     "type": "gdpr",
-     "requires_consent": false,
-     "requires_processing_consent": false,
-     "requires_retention_consent": false,
-     "retention_period": null,
-     "demographic_data_consent_applies": true
-    }
-   ],
-   "internal_job_id": 6524134002,
-   "location": {
-    "name": "San Francisco Bay Area"
-   },
-   "metadata": [
-    {
-     "id": 4105571002,
-     "name": "Featured on Website",
-     "value": [],
-     "value_type": "multi_select"
-    },
-    {
-     "id": 96196709002,
-     "name": "Careers Site Department",
-     "value": null,
-     "value_type": "single_select"
-    }
-   ],
-   "id": 8806482002,
-   "updated_at": "2026-10-20T20:27:20-04:00",
-   "requisition_id": "R-107406",
-   "title": "Commercial Policy Lead",
-   "company_name": "Discord",
-   "first_published": "2026-09-15T12:52:11-04:00",
-   "language": "en",
-   "application_deadline": null,
-   "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;Discord has a highly engaged community of millions of daily active users who use the platform for many different reasons, but there’s one thing that nearly everyone does: &lt;strong&gt;play video games.&lt;/strong&gt; Discord plays a uniquely important role in the future of gaming, and we are focused on making it easier and more fun for people to hang out before, during, and after playing games.&lt;/p&gt;&lt;/div&gt;&lt;p&gt;We are seeking a strategic Commercial Policy Lead to shape Discord&#39;s approach to monetization and revenue products. As a key member of the Product Policy organization, you will develop and implement advertising and commerce policies that enable Discord&#39;s business while maintaining platform safety and user trust. This role requires a deep understanding of digital commerce, creator economies, and advertising ecosystems, with the ability to balance business objectives with responsible platform practices.&lt;/p&gt;\n&lt;p&gt;Please note: This role involves regular exposure to potentially disturbing content, including violence, hate speech, and other harmful material.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What yo",
-   "departments": [
-    {
-     "id": 4054683002,
-     "name": "Policy",
-     "child_ids": [],
-     "parent_id": 4094263002
-    }
-   ],
-   "offices": [
-    {
-     "id": 4082816002,
-     "name": "Remote (US)",
-     "location": null,
-     "child_ids": [],
-     "parent_id": null
-    }
-   ],
-   "ai_disclaimer": null,
-   "include_ai_disclaimer": false,
-   "ai_opt_out_request_url": "http://app2.greenhouse.io/ai_opt_out_request/job_post/8806482002/ai_opt_out"
+  ],
+  "meta": {
+    "total": 2
   }
- ],
- "meta": {
-  "total": 2
- }
 }

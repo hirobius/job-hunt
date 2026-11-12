@@ -429,5 +429,16 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
     expect(answeredFeeds(plan, [read('theirstack', undefined), read('ids', undefined)])).toEqual(
       [],
     );
+    // Arbeitnow reads its newest pages, a window too (#576 item 11).
+    expect(answeredFeeds(plan, [read('arbeitnow', undefined)])).toEqual([]);
+  });
+
+  it('a feed read whole counts as answered, unless it failed or came back partial (#576 item 11)', () => {
+    expect(answeredFeeds(plan, [read('remoteok', undefined), read('wwr', undefined)])).toEqual([
+      'remoteok',
+      'wwr',
+    ]);
+    expect(answeredFeeds(plan, [read('wwr', undefined, false)])).toEqual([]);
+    expect(answeredFeeds(plan, [{ ...read('wwr', undefined), partial: true }])).toEqual([]);
   });
 });
