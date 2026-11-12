@@ -1,7 +1,7 @@
 // Find (was Today), the home page and one of the two top tabs (#471 slice 3, Adrian 2026-11-05).
 // Two columns at lg: the list column (Daily picks when signed in, the auto-scan's status, Review new
 // as the Browse list, then the companies the scan found: Follow / Ignore) and the selected posting
-// (`#/find/<fingerprint>`; "Pick a posting" until one is picked). Below lg the list is the tab and a
+// (`#/find/<fingerprint>`; the first posting when the tab opens, #546). Below lg the list is the tab and a
 // picked posting is its own view with Back and a pager. Follow up and Apply moved to the Apply tab,
 // so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
 import { Skeleton, Stack, Text } from '@hirobius/design-system';

@@ -137,7 +137,8 @@ export default function ReviewView({
   const listed = useMemo(() => filterRows(rows, on), [rows, on]);
   const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   // The selected posting is in the route (#/find/<fingerprint>), so a link to it is shareable and
-  // survives a reload. Nothing is selected when the tab opens (Adrian 2026-11-05).
+  // survives a reload. At lg Browse opens on the first posting, as Apply opens on its first job
+  // (Adrian 2026-11-12, #546); below lg nothing is selected (no posting page).
   const route = useRoute();
   const selectedFp = postingOf(route);
   const selected = selectedFp
@@ -152,6 +153,29 @@ export default function ReviewView({
     if (!wide && selectedFp) selectPosting(null, true);
   }, [wide, selectedFp]);
   const sortSheet = useBackSheet('review-sort');
+  // At lg, Browse with nothing selected selects the list's first posting, in place (#546). The
+  // Deck walks its own card, so it keeps no selection: Find's header shows its "1 of N".
+  // A decided posting stays in the list while its card collapses: it is never picked again.
+  const columns = wide && !!header;
+  // Kept with the list it was decided on: once the list changes the card has left it.
+  const [deciding, setDeciding] = useState<{ on: FeedRow[]; gone: FeedRow[]; mute: boolean[] }>({
+    on: [],
+    gone: [],
+    mute: [],
+  });
+  // Never under a dialog on the route (Documents, Privacy and terms): a new page would close it.
+  const dialogOpen = route.documents != null || route.legal != null;
+  useEffect(() => {
+    if (!columns || dialogOpen) return;
+    if (mode === 'deck') {
+      if (selectedFp) selectPosting(null, true);
+      return;
+    }
+    if (selectedFp) return;
+    const gone = deciding.on === listed ? deciding.gone : [];
+    const first = listed.find((x) => !gone.some((g, i) => goneWith(g, deciding.mute[i])(x)));
+    if (first) selectPosting(first.fingerprint, true);
+  }, [columns, dialogOpen, mode, selectedFp, listed, deciding]);
 
   // The Deck's card (#545), and where it sits in the list as it shows ("1 of 4" in Find's caption).
   const deckAt = Math.min(card, Math.max(0, listed.length - 1));
@@ -184,10 +208,14 @@ export default function ReviewView({
       [...listed.slice(0, at)].reverse().find((x) => !gone(x));
     selectPosting(to?.fingerprint ?? null, true);
   };
-  const goneWith = (r: FeedRow, mute: boolean) => (x: FeedRow) =>
-    x.fingerprint === r.fingerprint ||
-    (mute && !!companyKey(r.company) && companyKey(x.company) === companyKey(r.company));
-  const next = (r: FeedRow, mute = false) => moveOff(goneWith(r, mute));
+  const next = (r: FeedRow, mute = false) => {
+    setDeciding((d) =>
+      d.on === listed
+        ? { on: listed, gone: [...d.gone, r], mute: [...d.mute, mute] }
+        : { on: listed, gone: [r], mute: [mute] },
+    );
+    moveOff(goneWith(r, mute));
+  };
   // A double tap's second tap lands on the card or posting that took the decided one's place: the
   // same 700 ms guard as Apply's answers (answerGuard.ts).
   // A list card's decision (#471 slice 3 follow-up): at lg the selected posting's own card is in the
@@ -402,14 +430,15 @@ export default function ReviewView({
     <PostingDetail
       key={selected?.fingerprint ?? selectedFp ?? 'none'}
       r={selected}
-      waiting={!!selectedFp && !selected && (feed.loading || !view)}
+      waiting={(!!selectedFp && !selected && (feed.loading || !view)) || (!selectedFp && !view)}
       wide={wide}
       now={feed.at}
       actions={detailActions}
     />
   );
-  // At lg: the list column beside the selected posting ("Pick a posting" until one is picked).
-  if (wide)
+  // At lg: the list column beside the selected posting (the first one until another is picked).
+  // With no posting left, the list alone says so: there is nothing to show beside it.
+  if (wide && (selectedFp || !view || listed.length))
     return (
       <Sidebar side="start" sideWidth="26rem" contentMin="50%" gap="normal">
         {list}
@@ -420,6 +449,11 @@ export default function ReviewView({
   // Below lg: the list is the tab; each card holds its description (no posting page).
   return list;
 }
+
+/** A decision takes this posting away, and with Not this company every posting of its company. */
+const goneWith = (r: FeedRow, mute: boolean) => (x: FeedRow) =>
+  x.fingerprint === r.fingerprint ||
+  (mute && !!companyKey(r.company) && companyKey(x.company) === companyKey(r.company));
 
 const EMPTY_TITLE_ID = 'rjb-review-empty-title';
 
