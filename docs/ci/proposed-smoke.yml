@@ -1,0 +1,79 @@
+# Post-deploy smoke test (#595). Copy to .github/workflows/smoke.yml (agents never edit
+# .github/workflows: Adrian copies it, see docs/ci/smoke-and-rollback.md).
+# Runs `npm run smoke` against https://roleflame.vercel.app after each successful Vercel
+# production deploy (Vercel's GitHub app posts a deployment_status), and on manual start.
+# A failure opens (or comments on) one issue labelled `smoke-failure`, which GitHub pushes to
+# the repo's watchers. The image is the pinned one from e2e/visual-env.json (keep them equal;
+# src/smokeConfig.test.ts checks it).
+name: smoke
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to check (default: production)'
+        required: false
+        default: 'https://roleflame.vercel.app'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: smoke
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+      options: --ipc=host
+    env:
+      HOME: /root
+      CI: '1'
+      SMOKE_URL: ${{ inputs.url || 'https://roleflame.vercel.app' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit Vercel deployed (the deployment's sha), so the spec matches the build.
+          ref: ${{ github.event.deployment.sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          HDS_PACKAGES_TOKEN: ${{ secrets.HDS_PACKAGES_TOKEN }}
+      # Vercel moves the alias as it marks the deploy ready; give the edge a short beat.
+      - run: sleep 20
+      - run: npm run smoke
+      - name: Alert on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.deployment.sha || github.sha }}
+        run: |
+          apt-get update -qq && apt-get install -y -qq gh > /dev/null || true
+          body="The post-deploy smoke test failed on $SMOKE_URL for commit $SHA.
+
+          Run: $RUN_URL
+
+          Rollback: Vercel > roleflame > Deployments > the previous Production deployment > ... > Instant Rollback.
+          Runbook: docs/ci/smoke-and-rollback.md"
+          gh label create smoke-failure --color B60205 --description "Post-deploy smoke test failed" 2>/dev/null || true
+          open=$(gh issue list --label smoke-failure --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "$body"
+          else
+            gh issue create --title "Production smoke test failed" --label smoke-failure --body "$body"
+          fi
