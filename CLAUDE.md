@@ -739,7 +739,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (its API `legal` notice is checked on every read; a change stops the read, loud) and We Work Remotely (Design +
   Front-End RSS); a muted Remote OK Source mutes it. All unverified live. Himalayas and Working Nomads stay off (terms
   unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
-  Migrations `20261029100000` and `20261029100200` widen the `postings.source` check.
+  Migrations `20261029100000` and `20261029100200` widen the `postings.source` check. **Aggregator liveness (#576 item 11, #675):** `tracks/aggregatorLiveness.ts` checks open feed rows whose link is a Greenhouse / Lever / Ashby job on that board; a row closes as absent from the list only once `postings.listed_seen_at` is set (the first read that finds its id sets it; Ashby isListed:false / Lever unlisted jobs never list, so they are left to the 30-day age-out); a 404 board still closes. Migration `20261112100100_postings_listed_seen.sql`, applied before the function is redeployed.
   **Aggregator liveness (#576 item 11):** Remote OK and We Work Remotely are read whole (`WHOLE_LIST_FEEDS` in
   `serverFeeds.ts`), so `answeredFeeds` counts them like rss and a row missing from 2 whole reads closes through
   `mark_missed_postings`; a WWR read with one feed failed is `partial` (`markPartial`, `feeds/context.ts`) and closes
