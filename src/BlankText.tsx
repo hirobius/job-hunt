@@ -7,16 +7,7 @@
 // fell to the dialog, which drew a heavy outline round the whole sheet).
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { TriangleAlert } from 'lucide-react';
-import {
-  Box,
-  Button,
-  Card,
-  Icon,
-  Input as HdsInput,
-  Stack,
-  Tag,
-  Text,
-} from '@hirobius/design-system';
+import { Box, Button, Icon, Input as HdsInput, Stack, Tag, Text } from '@hirobius/design-system';
 import { splitVariables } from './templateEditor';
 import { previewText } from './templateFill';
 import { fillBlank, savesOnJob } from './fillBlank';
@@ -165,7 +156,7 @@ export default function BlankText({
         body
       )}
       {fillable && picked && (
-        <Card padding="px16" className="rjb-fillbox" role="group" aria-label={`Fill ${picked}`}>
+        <Box className="rjb-fillbox" role="group" aria-label={`Fill ${picked}`} sx={{ pt: 'sm' }}>
           <Stack gap="px8">
             <Stack direction="row" gap="px8" align="end">
               <Box
@@ -192,7 +183,7 @@ export default function BlankText({
                 : 'Saves on this message, for every job.'}
             </Text>
           </Stack>
-        </Card>
+        </Box>
       )}
       {trailing ? (
         // "N blanks left" left, the action right; the empty span keeps the action right-aligned

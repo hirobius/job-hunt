@@ -73,7 +73,7 @@ for (const width of [390, 1440]) {
   });
 }
 
-// #544: one short header, "Find" and one caption, with one More menu on the h1's row holding Sort,
+// #544: one short header, one caption, with one More menu on the page bar's row (2026-11-12) holding Sort,
 // Scan now and Search profile. No Scan now key on the page.
 test('signed out: Scan now is in the header’s More menu, beside the h1 (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -81,11 +81,12 @@ test('signed out: Scan now is in the header’s More menu, beside the h1 (390)',
   const review = page.getByRole('region', { name: /^Review\b/ });
   await expect(review.getByRole('button', { name: 'Browse' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(0);
-  const h1 = await page.getByRole('heading', { level: 1, name: 'Find' }).boundingBox();
+  // The h1 stays for screen readers (sr-only); More sits on the page bar's row, right of Find / Apply.
+  await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toHaveClass(/sr-only/);
+  const nav = await page.getByRole('navigation', { name: 'Sections' }).boundingBox();
   const more = await findMore(page).boundingBox();
-  // On the h1's row, at the right, a 44px target.
-  expect(Math.abs(h1!.y - more!.y)).toBeLessThan(12);
-  expect(more!.x).toBeGreaterThan(h1!.x + h1!.width);
+  expect(Math.abs(nav!.y + nav!.height / 2 - (more!.y + more!.height / 2))).toBeLessThan(12);
+  expect(more!.x).toBeGreaterThan(nav!.x + nav!.width);
   expect(more!.width).toBeGreaterThanOrEqual(44);
   expect(more!.height).toBeGreaterThanOrEqual(44);
   await findMore(page).click();

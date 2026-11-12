@@ -80,6 +80,7 @@ import { collapseRow } from './feedback';
 import { usePostingText } from './feed/postingText';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
+import { FactLines } from './FactLines';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -635,30 +636,6 @@ function RowList({
   );
 }
 
-function Fact({
-  icon,
-  text,
-  truncate = false,
-}: {
-  icon: LucideIcon;
-  text: string;
-  truncate?: boolean;
-}) {
-  return (
-    <Stack direction="row" gap="px4" align="center" className={truncate ? 'min-w-0' : undefined}>
-      <Icon icon={icon} size="small" />
-      <Text
-        variant="caption"
-        as="span"
-        tone="secondary"
-        className={truncate ? 'rjb-truncate min-w-0' : undefined}
-      >
-        {text}
-      </Text>
-    </Stack>
-  );
-}
-
 // One fact per line, in one order on every card (#616, Adrian 2026-11-12): the place, the work mode,
 // the posted day. The place never carries the mode, so the mode shows once, on its own line.
 // A place that is only a work mode ("Remote") is no place: the mode line says it.
@@ -875,11 +852,14 @@ function PostingCard({
             {r.company}
           </Text>
         )}
-        <Stack gap="px4">
-          <Fact icon={MapPin} text={placeOf(r)} truncate />
-          <Fact icon={Briefcase} text={modeOf(r)} />
-          {postedLabel && <Fact icon={Calendar} text={postedLabel} />}
-        </Stack>
+        <FactLines
+          truncateFirst
+          items={[
+            { icon: MapPin, label: placeOf(r) },
+            { icon: Briefcase, label: modeOf(r) },
+            postedLabel ? { icon: Calendar, label: postedLabel } : null,
+          ]}
+        />
         {pay && (
           <Text variant="body" as="p" weight="bold">
             {pay}

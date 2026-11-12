@@ -664,10 +664,11 @@ describe('Company in the right column (#471 slice 2)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Acme' })).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe('#/apply/company/acme'));
     expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
-    // Its Back (the top tab "Apply" is a link too, outside main).
-    expect(
-      within(screen.getByRole('main')).getByRole('link', { name: /Back to Apply|Apply/ }),
-    ).toBeInTheDocument();
+    // Its Back (the top tab "Apply" is a link too, in the page bar's nav: not the Back).
+    const backs = within(screen.getByRole('main'))
+      .getAllByRole('link', { name: /Back to Apply|Apply/ })
+      .filter((l) => !l.closest('nav'));
+    expect(backs).toHaveLength(1);
   });
 });
 

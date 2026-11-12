@@ -169,7 +169,7 @@ test.describe('Tab from the open top tab goes on into the page (#364)', () => {
       await expect(page.getByRole('tabpanel')).toHaveCount(0);
       const panel = page.getByRole('main');
       await currentTab(page).focus();
-      // From md the tabs sit in the app bar before Account (2026-11-09): Tab on past the header.
+      // The tabs are the page bar's, in main (2026-11-12); Tab on past any header stop.
       for (let i = 0; i < 3; i++) {
         await page.keyboard.press('Tab');
         if (!(await page.evaluate(() => !!document.activeElement?.closest('header')))) break;

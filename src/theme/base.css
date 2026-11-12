@@ -163,10 +163,10 @@ p {
   opacity: 0.5;
 }
 
-/* The blank's fill field (rev-3 A): on the page surface, the input's own surface, as in the mock,
- * so in dark the input doesn't read as a hole in a raised card. */
+/* The blank's fill field (rev-3 A): rows in the panel's flow under a hairline, never a Card inside
+ * the panel's Card (#449; 2026-11-12, it read as nested). */
 .rjb-fillbox {
-  background: var(--semantic-color-surface-page);
+  border-top: thin solid var(--semantic-color-border-default);
 }
 
 /* "N blanks left": the warning icon inside the toned text, 4px from the words. */
@@ -379,6 +379,30 @@ p {
   /* Centre the label on the coloured fill, not the box (Adrian 2026-11-11): the ledge's height
    * as bottom padding moves it up by half the ledge (seg-centering.spec). */
   padding-bottom: var(--rjb-seg-ledge);
+}
+/* The page bar (2026-11-12): the first row of main on Find and Apply, the nav at top left where the
+ * page title was (each h1 is .sr-only), a page's own tools (Find's caption and More) at its right. */
+.rjb-main {
+  display: flex;
+  flex-direction: column;
+  /* The shell's page rhythm: 24 from the tab row to the first thing on the page (layout-rules 2d). */
+  gap: var(--primitive-space-6);
+}
+.rjb-page-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--primitive-space-2);
+}
+.rjb-page-bar-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--primitive-space-1);
+  min-width: 0;
+}
+.rjb-page-bar-tools:empty {
+  display: none;
 }
 /* One app-bar row on a phone (#548): narrower sides, so the logo, Find, Apply and Account fit at 390,
  * counts and all (the row wraps only where it cannot fit). */

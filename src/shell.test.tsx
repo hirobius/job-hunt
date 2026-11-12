@@ -106,11 +106,15 @@ describe('app shell (#115 Phase 1)', () => {
     // is the one h1, inside main.
     expect(within(banner).getByRole('img', { name: BRAND.name })).toBeInTheDocument();
     expect(within(banner).queryByRole('heading')).toBeNull();
-    expect(within(banner).getByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
     expect(within(banner).getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     const mains = screen.getAllByRole('main');
     expect(mains).toHaveLength(1);
-    expect(within(mains[0]).getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
+    // Find / Apply are the page bar's nav at top left of main (2026-11-12), not in the banner.
+    expect(within(banner).queryByRole('navigation', { name: 'Sections' })).toBeNull();
+    expect(within(mains[0]).getByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
+    // The page's h1 stays, for screen readers and focus, visually hidden (the nav shows the name).
+    const h1 = within(mains[0]).getByRole('heading', { level: 1, name: 'Apply' });
+    expect(h1).toHaveClass('sr-only');
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 

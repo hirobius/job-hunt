@@ -61,7 +61,7 @@ export default function TrackerView() {
   if (jobs.length === 0 && signedIn && (sync?.offline || stopped))
     return (
       <Stack gap="px24">
-        <Text as="h1" variant="title">
+        <Text as="h1" variant="title" className="sr-only">
           Apply
         </Text>
         <EmptyState
@@ -244,7 +244,7 @@ function DonePage({ jobs }: { jobs: Job[] }) {
   const page = (
     <Stack gap="px24">
       <Box as="header">
-        <Text as="h1" variant="title">
+        <Text as="h1" variant="title" className="sr-only">
           Apply
         </Text>
       </Box>
@@ -282,7 +282,7 @@ function PipelinePage() {
     <Stack gap="px24">
       <Stack gap="tight">
         <Box as="header">
-          <Text as="h1" variant="title" ref={heading}>
+          <Text as="h1" variant="title" ref={heading} className="sr-only">
             Apply
           </Text>
         </Box>

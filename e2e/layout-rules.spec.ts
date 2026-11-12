@@ -137,16 +137,29 @@ function probe(page: Page) {
 
       // 2d. Page rhythm (rev-3 .wrap): the shell owns the space under the tabs. The first thing on
       // every page (its back link or its title) sits 24 under the tab row, never a per-view gap.
+      // The tabs are the page bar's (2026-11-12), main's first row: measure from the bar's bottom
+      // (Find's tools can make it taller than the tabs), skip a page's .sr-only h1, and allow the
+      // 4px a list column gives back for its focus rings (.job-rail's negative margin).
       const tabs = document.querySelector('nav[aria-label="Sections"]');
-      if (tabs?.parentElement) {
+      const bar = tabs?.parentElement;
+      if (bar) {
+        const barTop = bar.getBoundingClientRect().top;
         let top = Infinity;
-        for (let page = tabs.parentElement.nextElementSibling; page; page = page.nextElementSibling)
+        for (let page = bar.nextElementSibling; page; page = page.nextElementSibling)
           if (visible(page))
             page.querySelectorAll('*').forEach((el) => {
-              if (visible(el)) top = Math.min(top, el.getBoundingClientRect().top);
+              // (A row scrolled up inside a list column sits above the bar: not the page's start.)
+              const y = el.getBoundingClientRect().top;
+              if (
+                visible(el) &&
+                !el.closest('.sr-only') &&
+                el.getBoundingClientRect().height > 0 &&
+                y >= barTop
+              )
+                top = Math.min(top, y);
             });
-        const gap = Math.round(top - tabs.getBoundingClientRect().bottom);
-        if (top !== Infinity && gap !== rhythm)
+        const gap = Math.round(top - bar.getBoundingClientRect().bottom);
+        if (top !== Infinity && (gap > rhythm || gap < rhythm - 4))
           out.push(`rhythm: the page starts ${gap}px under the tabs, not ${rhythm}`);
       }
 

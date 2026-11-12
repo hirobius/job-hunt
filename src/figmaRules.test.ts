@@ -155,7 +155,9 @@ describe('FIGMA-RULES.md', () => {
   it('pins the title block (#538): title first, facts, amber only for a date', () => {
     expect(RULES).toMatch(/A job leads with its title/);
     expect(RULES).toMatch(/No fit chips, no Saved chip, no blue/);
-    expect(fs.readFileSync('src/DetailHeader.tsx', 'utf8')).toContain('<Card.Facts');
+    expect(fs.readFileSync('src/DetailHeader.tsx', 'utf8')).toContain(
+      '<FactLines list items={facts} />',
+    );
     expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<DetailTitleBlock');
   });
 
@@ -287,8 +289,12 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/A posting's facts, one per line \(#616\)/);
     expect(CLAUDE).toMatch(/\*\*one fact per line\*\* \(#616/);
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
-    expect(review).toContain('<Fact icon={MapPin} text={placeOf(r)} truncate />');
-    expect(review).toContain('<Fact icon={Briefcase} text={modeOf(r)} />');
+    expect(review).toContain('<FactLines');
+    expect(review).toContain('{ icon: MapPin, label: placeOf(r) }');
+    expect(review).toContain('{ icon: Briefcase, label: modeOf(r) }');
+    // Icon on the first text line, never centred on a wrapped fact (2026-11-12).
+    expect(fs.readFileSync('src/FactLines.css', 'utf8')).toMatch(/align-items: flex-start/);
+    expect(fs.readFileSync('src/DailyPicks.tsx', 'utf8')).toContain('<FactLines');
   });
 
   it('pins the compact Find card and the short header (#544)', () => {
@@ -300,6 +306,11 @@ describe('FIGMA-RULES.md', () => {
     expect(review).toContain('openKey={!compact}');
     const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
     expect(head).toContain('More: sort, scan and search profile');
+    // No visible "Find" title: the h1 is .sr-only and the tools sit in the page bar (2026-11-12).
+    expect(head).toContain('className="sr-only"');
+    expect(head).toContain('<InPageBar>');
+    expect(RULES).toMatch(/\*\*The page bar \(2026-11-12\)\.\*\*/);
+    expect(CLAUDE).toMatch(/\*\*The page bar \(2026-11-12/);
   });
 
   it('pins no duplicate counts at the top of Find: the chips hold them', () => {
@@ -320,6 +331,7 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(/The logo is the home link \(#620\)/);
     const app = fs.readFileSync('src/App.tsx', 'utf8');
     expect(app).toContain('className="rjb-segs"');
+    expect(app).toContain('className="rjb-page-bar"');
     expect(app).not.toContain('rjb-segs-full');
     expect(app).toContain('rjb-logo-link');
     const base = fs.readFileSync('src/theme/base.css', 'utf8');

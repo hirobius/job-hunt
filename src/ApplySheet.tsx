@@ -6,7 +6,6 @@ import { Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   Box,
   Button,
-  Disclosure,
   Icon,
   Input as HdsInput,
   Select,
@@ -17,6 +16,7 @@ import {
   VisuallyHidden,
   useToast,
 } from '@hirobius/design-system';
+import { DisclosureRow } from './DisclosureRow';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { ExitButton } from './hds-gaps/ExitButton';
 import BlankText from './BlankText';
@@ -233,8 +233,7 @@ function DisclosureItem({
   const [open, setOpen] = useRemembered(`apply:${remember}`, false);
   return (
     <ItemRow label={label} dense>
-      <Disclosure
-        variant="row"
+      <DisclosureRow
         label={label}
         preview={preview}
         actions={actions}
@@ -242,7 +241,7 @@ function DisclosureItem({
         onOpenChange={setOpen}
       >
         {children}
-      </Disclosure>
+      </DisclosureRow>
     </ItemRow>
   );
 }

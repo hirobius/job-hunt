@@ -56,7 +56,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   the facts, the pay when stated, then Save (filled, plus), Skip (grey) and More (icon). No source
   badge, no New badge, no Show description row, no Open posting key. Radius 12 until HDS G5.
 - **A posting's facts, one per line (#616).** Icon + one fact per line, in one order on every card:
-  place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day.
+  place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day. Never inline after
+  each other: the same in a title block (place, pay, date) and Daily picks (pay, posted day). The 16 px
+  icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top.
+- **Disclosure rows are flat and steady.** A Disclosure row in a panel (Why this company, Cover note,
+  Draft note) is a hairline row in the panel's flow, never a card inside it; it opens without a jump.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.
@@ -74,9 +78,13 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: the sticky walk
   control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
-- **Find's short header (#544).** "Find" and one caption, "Scanned 2 h ago" (no count: the New
-  and Remote chips hold the numbers; the Review heading has no count either), with one More
-  menu on its row holding Sort, Scan now and Search profile. No date line, no Sort or Scan now key.
+- **Find's short header (#544).** No visible "Find" title (the page bar's Find / Apply says where
+  you are); one caption, "Scanned 2 h ago" (no count: the New and Remote chips hold the numbers; the
+  Review heading has no count either), with one More menu holding Sort, Scan now and Search profile,
+  both at the right of the page bar. No date line, no Sort or Scan now key.
+- **The page bar (2026-11-12).** The first row of every Find and Apply page: Find / Apply as a
+  segmented control at top left, where the page title was (no visible "Find" or "Apply" title; a
+  job's title stays). A page's own tools sit at the bar's right (Find: the caption and More).
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the six views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
@@ -128,8 +136,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   one opens; with none left, the list shows the caught-up state alone. Below 1024 each Find card
   keeps its own keys and nothing is selected.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
-- **One app-bar row (#548).** At every width: the logo, then Find / Apply as a segmented control, then
-  the Account avatar. No second row on a phone. Each tab shows its count as plain text after its
+- **One app-bar row (#548).** At every width: the logo, then the Account avatar (Find / Apply moved to
+  the page bar, 2026-11-12). No second row on a phone. Each tab shows its count as plain text after its
   label ("Find 12", "Apply 4"; over 99 is "99+"): Find the new postings, Apply the jobs its list
   shows. No count when it is 0. Segment corners are concentric: the
   inner radius is the rail's radius less its 4 px padding and 1 px.
