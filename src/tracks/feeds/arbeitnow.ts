@@ -15,7 +15,7 @@ import { htmlToText } from '../../feed/html.ts';
 import { httpUrl } from '../../httpUrl.ts';
 import type { NormalizedPosting } from '../score.ts';
 import { fetchKeyed, SourceHttpError, type FeedContext } from './context.ts';
-import { isDsRole } from './dsRole.ts';
+import { isDsRole, isRemoteRole } from './dsRole.ts';
 
 export const ARBEITNOW_PAGES = 5;
 export const PAGE_GAP_MS = 1000;
@@ -37,7 +37,7 @@ export function parseArbeitnow(json: unknown): NormalizedPosting[] {
     const slug = str(j.slug);
     const title = htmlToText(str(j.title));
     const url = httpUrl(str(j.url));
-    if (!slug || !title || !url || j.remote !== true) continue;
+    if (!slug || !title || !url || !isRemoteRole(j.remote, str(j.location))) continue;
     const text = htmlToText(str(j.description));
     if (!isDsRole(title, text)) continue;
     const seconds = typeof j.created_at === 'number' ? j.created_at : NaN;

@@ -5,6 +5,7 @@
 import type { WorkMode } from '../jobsData';
 import { ownString } from './ownString';
 import { dedupKey } from '../store';
+import { dedupeRoles } from '../tracks/roleKey.ts';
 import type { Posting, RankedPosting, Signal, SignalId } from './types';
 
 export { inflect, matchTerm, termRegex } from './term';
@@ -152,15 +153,16 @@ function rankWith(
       (b.postedAt ?? '').localeCompare(a.postedAt ?? '') ||
       a.title.localeCompare(b.title),
   );
-  // Same opening twice: one URL listed by two sources, or one company re-posting the same role
-  // (HN runs a fresh thread monthly). Sorted best-first, so the first one seen is the one kept.
+  // Same opening twice: one URL listed by two sources, or the same role at the same company from
+  // two sources (a board and HN, Remotive, an aggregator…) or re-posted (HN runs a fresh thread
+  // monthly). Dedupe v2 (#576 item 9, tracks/roleKey.ts): the company board's copy is kept over a
+  // feed's; otherwise the best-ranked. Senior and Staff, or two companies, never merge.
+  const roles = dedupeRoles(ranked, (p) => p.source);
   const seen = new Set<string>();
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
-  return ranked.filter((p) => {
-    const keys = [dedupKey(p.url)];
-    if (p.company.trim()) keys.push(`${norm(p.company)}|${norm(p.title)}|${norm(p.location)}`);
-    if (keys.some((k) => seen.has(k))) return false;
-    keys.forEach((k) => seen.add(k));
+  return roles.filter((p) => {
+    const key = dedupKey(p.url);
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }

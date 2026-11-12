@@ -12,7 +12,7 @@
 // legal.ts names it as a service our server reads.
 // Rate limit: none published; we make PHRASES.length calls on the morning run, CALL_GAP_MS apart.
 import { htmlToText } from '../../feed/html.ts';
-import { inferMode } from '../../feed/mode.ts';
+import { isRemoteRole } from './dsRole.ts';
 import { httpUrl } from '../../httpUrl.ts';
 import type { NormalizedPosting } from '../score.ts';
 import { fetchKeyed, needKeys, SourceHttpError, type FeedContext } from './context.ts';
@@ -57,7 +57,7 @@ export function parseJooble(json: unknown): NormalizedPosting[] {
       title,
       company: htmlToText(str(j.company)),
       location: location || undefined,
-      remote: inferMode(`${title} ${location} ${str(j.type)}`) === 'remote' || undefined,
+      remote: isRemoteRole(false, `${title} ${location} ${str(j.type)}`) || undefined,
       url,
       descriptionText: htmlToText(str(j.snippet)),
       postedAt: Number.isNaN(posted) ? undefined : new Date(posted).toISOString(),

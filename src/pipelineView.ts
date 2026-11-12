@@ -7,7 +7,7 @@ import { deriveJobState, localDay } from './jobState';
 import { isClosed } from './jobDates';
 import { respondByJobs, upcomingEvents } from './jobEvents';
 import { sortJobs, type SortKey } from './jobSort';
-import { inferMode, mentionsRemote } from './feed/mode';
+import { classifyRemote } from './feed/mode';
 import type { Job } from './types';
 
 /** The named views (#541, redesign phase 2): the Apply list is walked by view, not by a Status
@@ -101,13 +101,13 @@ function soonestFirst(jobs: Job[], now: Date): Job[] {
 }
 
 /** Remote only's test (#614): the job's own mode when it has one; else the title and location
- *  (`inferMode`), where a list that offers remote among other places ("San Francisco, CA, or
+ *  (mode.ts `classifyRemote`, #576), where a list that offers remote among other places ("San Francisco, CA, or
  *  Remote within Canada") counts as remote too: the person can take it remote. */
 export function isRemoteJob(j: Job): boolean {
   if (j.mode) return j.mode === 'remote';
   const text = `${j.location ?? ''} ${j.label ?? ''}`;
-  const m = inferMode(text);
-  return m === 'remote' || (m === undefined && mentionsRemote(text));
+  const c = classifyRemote(text);
+  return c.mode === 'remote' || (c.mode === 'unstated' && c.offersRemote);
 }
 
 /** The jobs Remote only lets through: what every count on Apply reads (chips, status line, closed

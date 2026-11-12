@@ -3,6 +3,7 @@
 // as given; tune a track through its config (track-config.ts), not here. Pure and shared by the
 // client (Live postings, Companies, dreams) and the sync edge function.
 import type { TrackConfig } from './track-config.ts';
+import { dedupeRoles } from './roleKey.ts';
 
 export interface NormalizedPosting {
   source:
@@ -138,39 +139,8 @@ export function fingerprint(p: Pick<NormalizedPosting, 'company' | 'title'>): st
   return `${norm(p.company)}::${norm(p.title)}`;
 }
 
+/** One posting per role across sources (#576 item 9, roleKey.ts): the company board's copy over
+ *  a feed's. Senior and Staff stay apart; the Skip fingerprint above is unchanged. */
 export function dedupe(postings: NormalizedPosting[]): NormalizedPosting[] {
-  const rank: Record<NormalizedPosting['source'], number> = {
-    greenhouse: 0,
-    lever: 0,
-    ashby: 0,
-    workable: 0,
-    recruitee: 0,
-    smartrecruiters: 0,
-    teamtailor: 0,
-    personio: 0,
-    bamboohr: 0,
-    rippling: 0,
-    gem: 0,
-    pinpoint: 0,
-    breezy: 0,
-    rss: 1,
-    manual: 1,
-    ids: 1,
-    adzuna: 2,
-    jsearch: 2,
-    theirstack: 2,
-    jooble: 2,
-    remotive: 3,
-    arbeitnow: 3,
-    remoteok: 3,
-    wwr: 3,
-    jobicy: 3,
-    hn: 3,
-  };
-  const byKey = new Map<string, NormalizedPosting>();
-  for (const p of [...postings].sort((a, b) => rank[a.source] - rank[b.source])) {
-    const key = fingerprint(p);
-    if (!byKey.has(key)) byKey.set(key, p);
-  }
-  return [...byKey.values()];
+  return dedupeRoles(postings, (p) => p.source);
 }
