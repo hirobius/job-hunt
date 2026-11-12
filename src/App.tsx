@@ -13,13 +13,14 @@ import {
   postingOf,
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
-import { Box, Stack, useAtLeast, useToast } from '@hirobius/design-system';
+import { Box, Stack, useToast } from '@hirobius/design-system';
 import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
 import { CompanyPage, JobPage, Today, TrackerView } from './routeViews';
 import { DocumentsView, LegalPage } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
 import { useViewEnter } from './viewEnter';
 import { BrandLogo } from './brand/Flame';
+import { BRAND } from './brand';
 import { BootHold } from './brand/BootHold';
 import { needsClientAtBoot } from './supabase';
 import CloudSyncProvider from './account/CloudSyncProvider';
@@ -50,6 +51,8 @@ import DialogHold from './DialogHold';
 // the Company page through routeViews.ts (they render without a Suspense step once
 // loaded, so moving between them never flashes a skeleton).
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
+// The count beside each top tab (#548): its own chunk (pipelineView is not in the entry).
+const TopTabCount = lazy(importFresh(() => import('./TopTabCount')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
 // The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan
 // (importFresh still raises the new-version notice).
@@ -162,30 +165,55 @@ export default function App() {
   useViewEnter(viewRef, route.tab);
 
   const current = (slug: TopTab) => !notFound && tabSlug === slug;
+  // A plain click is the app's; a modified one (new tab or window) keeps the browser's own way.
+  const plainClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return false;
+    e.preventDefault();
+    return true;
+  };
+  // The open tab's root: at the root, back to the top; else back to it (a pop when it is an earlier
+  // entry of this tab, so Back never bounces).
+  const toRoot = (slug: TopTab) => {
+    if (pageKey(getRoute()) === `${slug}/`) window.scrollTo({ top: 0, behavior: 'smooth' });
+    else goBackTo(parseHash(`#/${slug}`));
+  };
   const tabLink = (slug: TopTab) => ({
     href: `#/${slug}`,
     className: 'rjb-seg',
     'aria-current': current(slug) ? ('page' as const) : undefined,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // A modified click (new tab or window) keeps the browser's own way.
-      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      e.preventDefault();
-      if (!current(slug)) return openTab(slug);
-      if (pageKey(getRoute()) === `${slug}/`) window.scrollTo({ top: 0, behavior: 'smooth' });
-      else goBackTo(parseHash(`#/${slug}`));
+      if (!plainClick(e)) return;
+      if (!current(slug)) openTab(slug);
+      else toRoot(slug);
     },
   });
+  // The logo is the home link (#620): it opens Find at its root, from anywhere (a tab tap reopens
+  // where the tab was left; the logo never does).
+  const toFind = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!plainClick(e)) return;
+    if (current(FIND_TAB)) toRoot(FIND_TAB);
+    else navigate(parseHash(`#/${FIND_TAB}`));
+  };
 
-  // Find / Apply look like an HDS SegmentedControl (Adrian 2026-11-09): full width under the logo on
-  // a phone, inline in the app bar from md. HDS SegmentedControl is a radio group (Radix toggle
-  // group; arrow keys select), so it cannot be a nav: these stay links in a nav, the open one
+  // Find / Apply look like an HDS SegmentedControl (Adrian 2026-11-09), in the app bar's one row at
+  // every width (#548: the phone's second row went). HDS SegmentedControl is a radio group (Radix
+  // toggle group; arrow keys select), so it cannot be a nav: these stay links in a nav, the open one
   // aria-current="page", drawn with its tokens (base.css .rjb-segs). Upstream ask:
-  // docs/hds-upstream-asks/segmented-nav.md.
-  const wideBar = useAtLeast('md');
+  // docs/hds-upstream-asks/segmented-nav.md (G7, hds#1438). Each shows its count (TopTabCount).
   const sections = (
-    <Box as="nav" aria-label="Sections" className={wideBar ? 'rjb-segs' : 'rjb-segs rjb-segs-full'}>
-      <a {...tabLink(FIND_TAB)}>Find</a>
-      <a {...tabLink(APPLY_TAB)}>Apply</a>
+    <Box as="nav" aria-label="Sections" className="rjb-segs">
+      <a {...tabLink(FIND_TAB)}>
+        Find
+        <Suspense fallback={null}>
+          <TopTabCount tab={FIND_TAB} />
+        </Suspense>
+      </a>
+      <a {...tabLink(APPLY_TAB)}>
+        Apply
+        <Suspense fallback={null}>
+          <TopTabCount tab={APPLY_TAB} />
+        </Suspense>
+      </a>
     </Box>
   );
 
@@ -294,16 +322,21 @@ export default function App() {
               {/* Landmarks: the app bar is the banner, the page is the one main (axe
                     landmark-one-main / region). */}
               <Box as="header">
-                <Stack gap="normal">
-                  {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
-                      wordmark, named for the product; the page's own name is its h1, #363) · the
-                      Account avatar. */}
-                  <Stack direction="row" gap="gap" align="center" justify="space-between">
+                {/* Slim app bar, one row at every width (#548): the brand lockup (the flame from
+                    src/brand/flame.svg + the wordmark, named for the product; the page's own name is
+                    its h1, #363), a link home to Find (#620) · Find / Apply · the Account avatar. */}
+                {/* It wraps only where the row cannot fit (a 320px screen): the tabs go under the logo. */}
+                <Stack direction="row" gap="px4" align="center" justify="space-between" wrap="wrap">
+                  <a
+                    href={`#/${FIND_TAB}`}
+                    className="rjb-logo-link"
+                    aria-label={`${BRAND.name}, Find`}
+                    onClick={toFind}
+                  >
                     <BrandLogo fontSize={19} />
-                    {wideBar && sections}
-                    <AccountMenu />
-                  </Stack>
-                  {!wideBar && sections}
+                  </a>
+                  {sections}
+                  <AccountMenu />
                 </Stack>
               </Box>
               <Box as="main">

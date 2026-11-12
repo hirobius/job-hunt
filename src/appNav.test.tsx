@@ -23,6 +23,9 @@ import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { currentTab, queryCurrentTab, topTab, topTabs } from './test/topTabs';
+import { BRAND } from './brand';
+import { setScanDetails } from './feed/scanDetails';
+import { addJob, getAllJobs, removeJob } from './store';
 
 beforeEach(() => {
   window.location.hash = '';
@@ -30,6 +33,10 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   window.location.hash = '';
+  setScanDetails(null);
+  getAllJobs()
+    .slice()
+    .forEach((j) => removeJob(j.url));
 });
 
 const renderApp = () =>
@@ -146,5 +153,40 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
     expect(stack.classList.contains('rjb-view-enter')).toBe(true);
     expect(document.querySelector('.rjb-view-enter')).toBe(stack);
     expect(marker.isConnected).toBe(true);
+  });
+});
+
+// One app-bar row at every width (redesign §5.1, #548): the logo, Find / Apply and Account, each tab
+// with its count. Find: the new postings Review new last read. Apply: the jobs its list shows now.
+describe('the one-row app bar (#548)', () => {
+  it('Find and Apply sit in the row with the logo and Account; there is no second row', () => {
+    renderApp();
+    const nav = screen.getByRole('navigation', { name: 'Sections' });
+    expect(nav).toHaveClass('rjb-segs');
+    expect(nav.className).not.toMatch(/rjb-segs-full/);
+    const row = nav.parentElement as HTMLElement;
+    expect(row.contains(screen.getByRole('link', { name: `${BRAND.name}, Find` }))).toBe(true);
+    expect(row.contains(screen.getByRole('button', { name: /^Account/ }))).toBe(true);
+    expect(screen.getAllByRole('navigation', { name: 'Sections' })).toHaveLength(1);
+  });
+
+  it('Apply shows the count of jobs in its list, Find the new postings', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    addJob('https://acme.example/jobs/2', 'Design Technologist');
+    setScanDetails({ failed: [], hidden: [], newToday: 7, sourcesRead: 3 });
+    window.location.hash = '#/apply';
+    renderApp();
+    await vi.waitFor(() => expect(topTab('Apply')).toHaveAccessibleName('Apply 2'));
+    expect(topTab('Find')).toHaveAccessibleName('Find 7');
+  });
+
+  it('no count while it is 0 or not known yet (Find before Review new has read)', async () => {
+    window.location.hash = '#/apply';
+    renderApp();
+    // The count's chunk has landed: a job added now shows at once.
+    addJob('https://acme.example/jobs/3', 'Design Engineer');
+    await vi.waitFor(() => expect(topTab('Apply')).toHaveAccessibleName('Apply 1'));
+    expect(topTab('Find')).toHaveAccessibleName('Find');
+    expect(topTab('Find').textContent).toBe('Find');
   });
 });

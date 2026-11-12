@@ -339,14 +339,16 @@ p {
  * aria-current="page": HDS SegmentedControl is a radio group (docs/hds-upstream-asks/segmented-nav.md). */
 .rjb-segs {
   --rjb-seg-ledge: 3px;
+  /* Concentric corners (hds#1470): the inner radius is the rail's less its padding and the 1px gap;
+   * --seg-rail-pad must stay the real padding. */
+  --seg-rail-radius: calc(var(--role-radius) + min(var(--role-radius), var(--primitive-space-1)));
+  --seg-rail-pad: var(--primitive-space-1); /* 4px */
+  --seg-inner-radius: max(0px, calc(var(--seg-rail-radius) - var(--seg-rail-pad) - 1px));
   display: flex;
   gap: var(--semantic-space-subgrid-gap);
-  padding: 4px;
-  border-radius: calc(var(--role-radius) + min(var(--role-radius), 4px));
+  padding: var(--seg-rail-pad);
+  border-radius: var(--seg-rail-radius);
   background: var(--semantic-color-surface-muted);
-}
-.rjb-segs-full .rjb-seg {
-  flex: 1;
 }
 .rjb-seg {
   display: flex;
@@ -356,7 +358,7 @@ p {
   /* Centred the way HDS SegmentedControl (sm) is, hds#1461: flex centring, line-height 1 and
    * symmetric padding. The ui ramp's taller line box put the ink about 2px low (seg-centering.spec). */
   padding: 0 var(--semantic-space-layout-gap);
-  border-radius: var(--role-radius);
+  border-radius: var(--seg-inner-radius);
   font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-ui-font-size) / 1
     var(--semantic-typography-ui-font-family);
   color: var(--semantic-color-content-secondary);
@@ -378,12 +380,16 @@ p {
    * as bottom padding moves it up by half the ledge (seg-centering.spec). */
   padding-bottom: var(--rjb-seg-ledge);
 }
+/* One app-bar row on a phone (#548): narrower sides, so the logo, Find, Apply and Account fit at 390,
+ * counts and all (the row wraps only where it cannot fit). */
 @media (max-width: 639px) {
   .rjb-seg {
     min-height: var(--rjb-touch);
+    padding-inline: var(--primitive-space-px6);
   }
 }
-[data-hds] .rjb-seg:focus-visible {
+[data-hds] .rjb-seg:focus-visible,
+[data-hds] .rjb-logo-link:focus-visible {
   outline: var(--semantic-focus-ring-width) solid var(--semantic-focus-ring-color);
   outline-offset: var(--semantic-focus-gap-width);
 }
@@ -693,6 +699,15 @@ p {
   /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it loads. */
   min-height: calc(var(--rjb-logo-size) * 1.95);
   gap: calc(var(--rjb-logo-size) * 0.3);
+}
+/* The logo is the home link (#620): a 44px target, the lockup unchanged inside it. */
+.rjb-logo-link {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: var(--rjb-touch);
+  border-radius: var(--role-radius);
+  color: inherit;
 }
 .rjb-flame {
   --rjb-flame-1: var(--primitive-color-blue-500);

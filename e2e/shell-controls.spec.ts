@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { seed, pressAllJobs } from './routes';
+import { seed, pressAllJobs, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
 // segmented control but still a nav of links (routing, Back, deep links); Browse / Deck as two
 // icon-only toggle buttons with tooltips; Apply's Remote only switch, per device, that narrows the
-// pager's "n of N" and the All jobs sheet.
+// pager's "n of N" and the All jobs sheet. Since #548 Find / Apply sit in the app bar's one row at
+// every width, each with its count.
 for (const width of [390, 1440]) {
   test.describe(`at ${width}`, () => {
     test.use({ viewport: { width, height: width < 600 ? 844 : 900 } });
@@ -15,10 +16,7 @@ for (const width of [390, 1440]) {
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await page.goto('/#/apply');
       const nav = page.getByRole('navigation', { name: 'Sections' });
-      await expect(nav.getByRole('link', { name: 'Apply' })).toHaveAttribute(
-        'aria-current',
-        'page',
-      );
+      await expect(topTab(page, 'Apply')).toHaveAttribute('aria-current', 'page');
       await expect(page.getByRole('radiogroup')).toHaveCount(0);
       // The bar can re-render as the lazy logo lands; measure until both boxes are there.
       await expect(async () => {
@@ -29,26 +27,35 @@ for (const width of [390, 1440]) {
           .first()
           .boundingBox();
         expect(box && logo).toBeTruthy();
-        if (width < 600) {
-          // Full width under the logo.
-          expect(box!.y).toBeGreaterThan(logo!.y + logo!.height - 1);
-          expect(box!.width).toBeGreaterThan(width * 0.8);
-        } else {
-          // Inline in the app bar, on the logo's row.
-          expect(Math.abs(box!.y + box!.height / 2 - (logo!.y + logo!.height / 2))).toBeLessThan(
-            24,
-          );
-        }
+        // Inline in the app bar, on the logo's row, at every width (#548: the phone's second
+        // row went), right of the logo and left of Account.
+        expect(Math.abs(box!.y + box!.height / 2 - (logo!.y + logo!.height / 2))).toBeLessThan(24);
+        expect(box!.x).toBeGreaterThan(logo!.x + logo!.width - 1);
+        const account = await page.getByRole('button', { name: /^Account/ }).boundingBox();
+        expect(account!.x).toBeGreaterThan(box!.x + box!.width - 1);
+        expect(account!.width).toBeGreaterThanOrEqual(44);
       }).toPass({ timeout: 10_000 });
-      await nav.getByRole('link', { name: 'Find' }).click();
+      await topTab(page, 'Find').click();
       await expect(page).toHaveURL(/#\/find/);
-      await expect(nav.getByRole('link', { name: 'Find' })).toHaveAttribute('aria-current', 'page');
+      await expect(topTab(page, 'Find')).toHaveAttribute('aria-current', 'page');
       await page.goBack();
       await expect(page).toHaveURL(/#\/apply/);
-      await expect(nav.getByRole('link', { name: 'Apply' })).toHaveAttribute(
-        'aria-current',
-        'page',
-      );
+      await expect(topTab(page, 'Apply')).toHaveAttribute('aria-current', 'page');
+    });
+
+    test('Apply shows the count of jobs in its list (#548)', async ({ page }) => {
+      await seed(page);
+      await page.goto('/#/apply');
+      const apply = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', {
+        name: /^Apply/,
+      });
+      await expect(apply).toHaveAccessibleName(/^Apply \d+$/);
+      const status = await page
+        .getByText(/^To apply · \d+ jobs?/)
+        .first()
+        .textContent();
+      const n = status!.match(/(\d+) jobs?/)![1];
+      await expect(apply).toHaveAccessibleName(`Apply ${n}`);
     });
 
     test('Browse / Deck: icon-only toggle buttons with names and tooltips', async ({ page }) => {

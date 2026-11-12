@@ -201,6 +201,7 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
         ? `${e.tagName} ${e.textContent?.trim()}`
         : 'none';
     });
+  // The top tabs' names end in their count when they show one ("Apply 12", #548).
   for (const [role, name] of [
     ['button', 'Deck'],
     ['button', 'Browse'],
@@ -208,7 +209,9 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     ['link', 'Find'],
     ['button', 'Scan now'],
   ] as const) {
-    await page.getByRole(role, { name, exact: true }).first().click();
+    const target =
+      role === 'link' ? topTab(page, name) : page.getByRole(role, { name, exact: true }).first();
+    await target.click();
     await page.waitForTimeout(200);
     expect(await ring(), `${role} ${name}`).toBe('none');
   }

@@ -96,7 +96,7 @@ describe('the shell: Today and Jobs', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
     expect(topTabs().map((t) => t.textContent)).toEqual(['Find', 'Apply']);
-    expect(currentTab()).toHaveAccessibleName('Find');
+    expect(currentTab('Find')).toBeInTheDocument();
     expect(document.title).toMatch(/^Find/);
   });
 
@@ -107,7 +107,7 @@ describe('the shell: Today and Jobs', () => {
       const before = window.history.length;
       renderApp();
       await waitFor(() => expect(window.location.hash).toBe('#/find'));
-      expect(currentTab()).toHaveAccessibleName('Find');
+      expect(currentTab('Find')).toBeInTheDocument();
       expect(window.history.length).toBe(before);
     },
   );
