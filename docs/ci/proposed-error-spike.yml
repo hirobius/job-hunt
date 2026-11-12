@@ -1,0 +1,54 @@
+# Client error spike alert (#598). Copy to .github/workflows/error-spike.yml (agents never edit
+# .github/workflows: Adrian copies it, see docs/ci/error-spike.md).
+# Hourly: for each Vercel production deploy whose first hour has ended, compare its crash reports
+# (Supabase client_errors) with the 7 days before; on a jump, open one `error-spike` issue (GitHub
+# pushes it to the repo's watchers). No npm install: the script imports two plain files.
+name: error-spike
+
+on:
+  schedule:
+    - cron: '41 * * * *'
+  workflow_dispatch:
+    inputs:
+      deploy_at:
+        description: 'Check one deploy by its live time (ISO, e.g. 2026-11-12T10:04:00Z); empty = the normal run'
+        required: false
+      sha:
+        description: 'The commit of that deploy (with deploy_at)'
+        required: false
+      dry_run:
+        description: 'Print only, open no issue'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  deployments: read
+  issues: write
+
+concurrency:
+  group: error-spike
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Compare the hour after each deploy with the baseline
+        env:
+          ERROR_ALERT_TOKEN: ${{ secrets.ERROR_ALERT_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOY_AT: ${{ inputs.deploy_at }}
+          SHA: ${{ inputs.sha }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -- --experimental-strip-types --no-warnings scripts/error-spike.ts
+          if [ -n "$DEPLOY_AT" ]; then set -- "$@" --deploy-at "$DEPLOY_AT" --sha "${SHA:-manual}"; fi
+          if [ "$DRY_RUN" = "true" ]; then set -- "$@" --dry-run; fi
+          node "$@"
