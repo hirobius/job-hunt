@@ -116,9 +116,9 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
 });
 
 // The non-empty worst case (prod audit review): the longest view name that has jobs, both filters
-// on. At 390 the name, the chip and the pager share one row, all whole, none overlapping. Narrower,
-// the pager wraps under the name instead of cutting it.
-test('the walk row with jobs: name, chip and pager whole at 390; the pager wraps when narrow', async ({
+// on. The three do not fit one row at 390 or 320: the name and the chip keep their row and the
+// pager wraps under them, all whole, inside the gutter and apart.
+test('the walk row with jobs: name, chip and pager whole; the pager wraps under the name', async ({
   page,
 }) => {
   await page.goto('/#/apply');
