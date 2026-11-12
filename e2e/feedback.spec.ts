@@ -370,6 +370,11 @@ test.describe('reduced motion', () => {
     expect(await moving()).toEqual([]);
 
     // Remove from the job and its Undo, which flashes the row with motion on (the test above).
+    // The job moved to Offer: the list's All jobs view still lists it.
+    await page
+      .getByRole('group', { name: 'Views' })
+      .getByRole('button', { name: /^All jobs \d/ })
+      .click();
     const title = (await page.getByRole('main').locator('header h1').textContent())!.trim();
     await menu(page, `More actions: ${title}`, 'Remove from Apply');
     await page

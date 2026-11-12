@@ -89,8 +89,15 @@ async function loadBusy(page: Page, { long = false } = {}) {
     localStorage.setItem('rjb_liveness', JSON.stringify(live));
   }, BOARD);
   await page.reload();
-  // The closed jobs are counted on the list's status line, not listed again (#601).
+  // The closed jobs are counted on the list's status line, not listed again (#601): the lg
+  // column's, or the All jobs sheet's below lg (#543).
+  const phone = (page.viewportSize()?.width ?? 0) < 1024;
+  if (phone) await openAllJobs(page);
   await expect(page.getByText(/3 closed on the board/).first()).toBeVisible();
+  if (phone) {
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
+  }
 }
 
 /**

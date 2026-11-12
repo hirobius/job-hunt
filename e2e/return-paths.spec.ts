@@ -15,8 +15,11 @@ async function expectScroll(page: Page, y: number) {
 }
 /** Below lg the Apply tab is one job (Proposal A, Adrian 2026-11-08): the All jobs sheet is its
  *  list. Opens it and returns its Jobs panel. */
+/** The All jobs sheet's rows, on its All jobs view (the sheet lists one view, #543). */
 async function allJobs(page: Page) {
-  return (await openAllJobs(page)).getByRole('region', { name: 'Jobs' });
+  const sheet = await openAllJobs(page);
+  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
+  return sheet.getByRole('navigation', { name: 'Jobs' });
 }
 const h1 = (page: Page) => page.getByRole('heading', { level: 1 }).first();
 /** Step the "‹ k of N ›" pager one job (on, else back from the last); returns the new "k of N". */
@@ -401,7 +404,7 @@ test.describe('return paths at 1440', () => {
     // It opens on the first job to apply to.
     await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
     for (const i of [1, 2]) {
-      const title = (await rows(page).nth(i).locator('.rjb-semibold').textContent())!.trim();
+      const title = (await rows(page).nth(i).textContent())!.trim();
       await rows(page).nth(i).click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     }
@@ -414,7 +417,7 @@ test.describe('return paths at 1440', () => {
   }) => {
     await go(page, '#/find');
     await topTab(page, 'Apply').click();
-    const title = (await rows(page).nth(1).locator('.rjb-semibold').textContent())!.trim();
+    const title = (await rows(page).nth(1).textContent())!.trim();
     await rows(page).nth(1).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await topTab(page, 'Find').click();
@@ -428,8 +431,13 @@ test.describe('return paths at 1440', () => {
 
   test('a job and its Company page each name the other on their Back', async ({ page }) => {
     await go(page, '#/apply');
-    const row = rows(page).filter({ hasText: 'Larkspur Analytics' }).first();
-    const title = (await row.locator('.rjb-semibold').textContent())!.trim();
+    // The row's link holds the title; the company is on the row beside it (#543).
+    const row = rail(page)
+      .getByRole('listitem')
+      .filter({ hasText: 'Larkspur Analytics' })
+      .first()
+      .locator(JOB_LINK);
+    const title = (await row.textContent())!.trim();
     await row.click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await page

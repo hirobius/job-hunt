@@ -9,7 +9,8 @@ import { Box, Dialog } from '@hirobius/design-system';
 import { DialogNotice } from './NoticeHost';
 import { noticeHost } from './saveNotice';
 import { JobsList } from './TrackerView';
-import { FILTER_LABEL, usePipelineView, visibleJobs } from './pipelineView';
+import { FILTER_LABEL, remoteFiltered, usePipelineView, visibleJobs } from './pipelineView';
+import { useClosedOnBoard } from './useClosedOnBoard';
 import { afterBack, openJob, popSheet } from './route';
 import { jobIdOf } from './store';
 import type { Job } from './types';
@@ -28,6 +29,8 @@ export default function AllJobsSheet({
 }) {
   const view = usePipelineView();
   const shown = visibleJobs(jobs, view);
+  // The one quiet place for closed jobs (#601) on a phone: the sheet's status line, as the lg column's.
+  const closedTail = useClosedOnBoard(remoteFiltered(jobs, view.remoteOnly));
   // Star, Mark applied, Remove… raised in the sheet show their Undo in its footer.
   useEffect(() => {
     if (!open) return;
@@ -49,7 +52,7 @@ export default function AllJobsSheet({
           <span className="rjb-sheet-handle" aria-hidden="true" />
           <Dialog.Title>All jobs</Dialog.Title>
           <Dialog.Description>
-            {`${FILTER_LABEL[view.filter]} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}`}
+            {`${FILTER_LABEL[view.filter]} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}${closedTail}`}
           </Dialog.Description>
         </Dialog.Header>
         <Box className="rjb-dialog-body">{open && <JobsList onOpen={jump} openId={openId} />}</Box>
