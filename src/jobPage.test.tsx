@@ -587,21 +587,33 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_A)}`);
   });
 
-  it('pins the open job at the top with a note when the filter hides it', () => {
+  it('a job opened outside the filter stays open, with no "Not in this filter" card in the rail (#614)', () => {
     viewport(1280);
     setPipelineView({ filter: 'closed' });
     openJobPage(URL_A);
-    expect(railRows()[0]).toHaveAttribute('aria-current', 'page');
-    expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();
+    expect(within(rail()).queryByText('Not in this filter')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
   });
 
-  it('searching in the rail narrows it', async () => {
+  it("a view change that hides the open job opens the list's first job instead (#614)", async () => {
+    viewport(1280);
+    updateJob(URL_B, { location: 'Portland, OR, or Remote within the United States' });
+    openJobPage(URL_A);
+    act(() => setPipelineView({ remoteOnly: true }));
+    await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`));
+    // Remote only is kept per device: leave it off for the next test.
+    act(() => setPipelineView({ remoteOnly: false }));
+  });
+
+  it('searching in the rail narrows it, behind its search icon (#614)', async () => {
     viewport(1280);
     openJobPage(URL_A);
+    expect(screen.queryByRole('textbox', { name: 'Search jobs' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Search jobs' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Search jobs' }), 'Welder');
     expect(railRow('Welder')).toBeInTheDocument();
-    // The open job stays, pinned, because the search hides it.
-    expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();
+    // Search typing never moves the open job.
+    expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_A)}`);
   });
 
   it('marks a follow-up that is due', () => {
@@ -996,6 +1008,8 @@ describe('the keys follow the state (#540)', () => {
     await user.click(screen.getByRole('button', { name: 'Close out: Alpha Designer' }));
     expect(getAllJobs().find((j) => j.url === URL_A)?.archived).toBe(true);
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`));
+    // Remote only is kept per device: leave it off for the next test.
+    act(() => setPipelineView({ remoteOnly: false }));
     const next = await screen.findByRole('heading', { level: 1, name: 'Beta Designer' });
     await waitFor(() => expect(next).toHaveFocus());
   });

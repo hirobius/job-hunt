@@ -319,17 +319,19 @@ for (const theme of THEMES) {
         await seed(page);
         await page.evaluate(() => (location.hash = '#/apply'));
         // From lg the search is the list column's beside a job (#471); below lg it is in the
-        // Apply filter bar (Proposal A). The open job stays, "Not in this filter".
+        // Apply filter bar (Proposal A). The open job stays, "Not in this filter". From lg the
+        // search opens behind its icon (#614).
         if ((page.viewportSize()?.width ?? 0) < 1024) await openFilters(page);
+        else await page.locator('.job-rail').getByRole('button', { name: 'Search jobs' }).click();
         await page.getByRole('textbox', { name: /^Search (saved )?jobs$/ }).fill('zzz nothing');
         // The open job stays, outside the filter: below lg its pager says so; from lg the list
-        // column does.
+        // column says nothing matches (#614: no "Not in this filter" card there).
         await expect(
           (page.viewportSize()?.width ?? 0) < 1024
             ? page
                 .getByRole('navigation', { name: 'Jobs in the list' })
                 .getByText('Not in this filter', { exact: true })
-            : page.getByText('Not in this filter', { exact: true }).first(),
+            : page.getByText('No jobs match.', { exact: true }),
         ).toBeVisible();
         expect(await probe(page)).toEqual([]);
       });

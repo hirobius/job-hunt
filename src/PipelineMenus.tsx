@@ -1,8 +1,8 @@
 // The Apply list's Sort menu (#129, rev-3 item 1), select-style. The Status menu beside it went in
 // #541: the named views (JobViews) replaced it. Shared by the Jobs panel, the phone filter bar and
 // the job list column beside a job (#471).
-import { ChevronDown } from 'lucide-react';
-import { Button as UiButton, Menu as HdsMenu, Stack } from '@hirobius/design-system';
+import { ArrowUpDown, ChevronDown } from 'lucide-react';
+import { Button as UiButton, Icon, Menu as HdsMenu, Stack } from '@hirobius/design-system';
 import { SORTS, type SortKey } from './jobSort';
 import { setPipelineView, usePipelineView } from './pipelineView';
 import { useBackSheet } from './useBackCloses';
@@ -23,7 +23,14 @@ const SELECT_VALUE = {
   whiteSpace: 'nowrap',
 } as const;
 
-export default function PipelineMenus({ size }: { size?: 'sm' | 'md' }) {
+/** `compact`: the lg list column's quiet icon-only Sort (#614): not a filled select there. */
+export default function PipelineMenus({
+  size,
+  compact,
+}: {
+  size?: 'sm' | 'md';
+  compact?: boolean;
+}) {
   const { sort } = usePipelineView();
   const setSort = (sort: SortKey) => setPipelineView({ sort });
   const sortSheet = useBackSheet('pipeline-sort');
@@ -34,15 +41,25 @@ export default function PipelineMenus({ size }: { size?: 'sm' | 'md' }) {
     <Stack direction="row" gap="tight" align="center">
       <HdsMenu {...sortSheet}>
         <HdsMenu.Trigger asChild>
-          <UiButton
-            variant="secondary"
-            iconRight={<ChevronDown size={16} />}
-            label={`Sort: ${sortLabel}`}
-            size={size}
-            style={SELECT_LIKE}
-          >
-            <span style={SELECT_VALUE}>{sortLabel}</span>
-          </UiButton>
+          {compact ? (
+            <UiButton
+              iconOnly
+              variant="tertiary"
+              size={size}
+              label={`Sort: ${sortLabel}`}
+              iconLeft={<Icon icon={ArrowUpDown} size="small" />}
+            />
+          ) : (
+            <UiButton
+              variant="secondary"
+              iconRight={<ChevronDown size={16} />}
+              label={`Sort: ${sortLabel}`}
+              size={size}
+              style={SELECT_LIKE}
+            >
+              <span style={SELECT_VALUE}>{sortLabel}</span>
+            </UiButton>
+          )}
         </HdsMenu.Trigger>
         <HdsMenu.Content align="end">
           <HdsMenu.RadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>

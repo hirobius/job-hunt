@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { openAllJobs, openFilters } from './routes';
+import { openAllJobs } from './routes';
 
 // Adrian 2026-10-22: "Anywhere a job is listed, we should be able to click on the URL to visit the
 // link, or there should be a visit jump link button near the URL or name of the job." With the
@@ -79,9 +79,16 @@ async function loadBusy(page: Page, { long = false } = {}) {
   );
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  // Below lg it is in the filter bar (Proposal A); from lg in the list column.
-  if ((page.viewportSize()?.width ?? 0) < 1024) await openFilters(page);
-  await page.getByRole('button', { name: 'Check which are still open' }).click();
+  // The check runs by itself on open, signed in (#602): here, signed out, its answer is seeded.
+  await page.evaluate(async (board) => {
+    const { dedupKey } = await import('/src/store.ts');
+    const at = new Date().toISOString();
+    const live = Object.fromEntries(
+      board.map((u: string) => [dedupKey(u), { state: 'closed', checkedAt: at }]),
+    );
+    localStorage.setItem('rjb_liveness', JSON.stringify(live));
+  }, BOARD);
+  await page.reload();
   // The closed jobs are counted on the list's status line, not listed again (#601).
   await expect(page.getByText(/3 closed on the board/).first()).toBeVisible();
 }

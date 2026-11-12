@@ -13,6 +13,7 @@ import ApplyFilterBar from './ApplyFilterBar';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
 import ApplyPager from './ApplyPager';
+import { useFollowView } from './followView';
 import { ApplicationKit } from './ApplySheet';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
@@ -91,6 +92,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // JS and show the job alone, with a Back link, instead.
   const wide = useAtLeast('lg');
   const view = usePipelineView();
+  useFollowView(job, jobs, view);
   const [all, setAll] = useState(false);
   // The id AllJobsSheet pops on a jump.
   useBackCloses(all, () => setAll(false), 'all-jobs');

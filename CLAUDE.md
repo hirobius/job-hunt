@@ -220,8 +220,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
   screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
-  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search, the named views, Sort and "Check which
-  are still open"; Add job; a "Active · N jobs" status line), then a sticky row with the "‹ 3 of 55 ›" pager over the
+  empty state): `ApplyFilterBar.tsx` (Filters, remembered open/closed, holding search, the named views and Sort; Add job; a "Active · N jobs" status line), then a sticky row with the "‹ 3 of 55 ›" pager over the
   filtered list (`ApplyPager.tsx`, label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways
   swipe on the job steps it too) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
   `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (Follow up, Next 7
@@ -375,8 +374,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   app bar from md (`useAtLeast('md')`). Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
   `aria-pressed` in a `role="group"` "Review view", each with an HDS Tooltip. Apply's **Remote only** HDS `Toggle`
   (`RemoteOnlySwitch`, phone filter bar outside Filters and the lg job rail) sets `PipelineView.remoteOnly`, kept per
-  device (`rjb_apply_remote_only`); `visibleJobs` keeps `mode === 'remote'` only (no mode = not remote), so the list,
-  pager and All jobs follow. Pinned in `appNav.test.tsx`, `review.test.tsx`, `remoteOnly.test.tsx`,
+  device (`rjb_apply_remote_only`); `visibleJobs` keeps `isRemoteJob` (#614: the job's mode when set, else
+  `inferMode` on title + location, where a list offering remote among places, "Portland, OR, or Remote within
+  Canada", counts), and **every count follows it**: the view chips (`filterCounts(…, remoteOnly)`), the status
+  line, the closed count (`remoteFiltered`), the pager and All jobs. A view change (named view or Remote only)
+  that hides the open job opens the list's first job in place (`followView.ts`; none: the job stays and the list
+  says "No jobs match"); search typing never moves it, and the lg rail has no "Not in this filter" card. **lg list
+  column header (#614, Adrian 2026-11-12):** Jobs + Add job, the chips and the view description unchanged, then
+  one row: Remote only, with Search (opens the field under it) and Sort (`PipelineMenus compact`) as tertiary icon
+  buttons, then one status line. `.job-rail` pads its scroll box by a ring's width on every side (given back by a
+  negative margin), so rings and the selected fill are never clipped (`e2e/sheet-gutter.spec.ts`). Pinned in `appNav.test.tsx`, `review.test.tsx`, `remoteOnly.test.tsx`,
   `e2e/shell-controls.spec.ts`.
 - **Calm list shell (PR #208) and "Today is gone" (#236)** are history: the final shell above brought Today
   back as home and removed Companies.
@@ -977,10 +984,14 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
     **Saved searches** (`feed/savedFilters.ts`, `rjb_feed_filters`) are v11 data, still synced, with no UI.
   - **Liveness** (`feed/liveness.ts`, `livenessStore.ts`, `LivenessViews.tsx`): re-reads a saved
     Saved/Applied board job's board (once per board), flags "Closed on the board", never changes
-    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. **One quiet place (#601):** the Apply
-    list's status line ("Active · 33 jobs · 1 closed on the board", `useClosedOnBoard`) with `LivenessCheck` ("Check
-    which are still open") inside Filters on a phone and under the status line in the lg `JobRail`; no page-top line,
-    no "Checked live" date, no second link to a closed job (its Closed badge on the card and header says it).
+    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. **Runs on open (#602, Adrian
+    2026-11-11):** `LivenessViews.tsx` `LivenessOnOpen`, a lazy chunk App mounts like `AutoScanOnOpen` (behind
+    `scanOnOpenEnabled()`): once sync settles, signed in only, never behind the sign-in screen, once per page load
+    (`autoLivenessCheck`), each board read once, a job checked in the last 6 h not asked again (`dueJobs`). **No
+    manual action anywhere** ("Check which are still open" is gone from the lg rail and the phone's Filters). **One
+    quiet place (#601):** the Apply list's status line ("To apply · 21 jobs · 1 closed on the board",
+    `useClosedOnBoard`, over the Remote only pool); no page-top line, no "Checked live" date, no second link to a
+    closed job (its Closed badge on the card and header says it). Pinned in `liveness.test.tsx`.
   - **Starter boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; onboarding follows the design-systems
     list as Sources (`searchDefaults.seedSources`). `seedPack` / `topUpFromPack` (no app caller now) file the
     pack's boards as tiles (`addTiles`, upserts of `TILE_CHUNK` = 50 rows).

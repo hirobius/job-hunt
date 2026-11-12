@@ -26,8 +26,8 @@ export const BOARD_JOB = 'https://boards.greenhouse.io/acme/jobs/77';
 export async function seed(page: Page) {
   await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  // One job on a company board, so the Jobs panel's liveness row ("Check which are still
-  // open") is in every Pipeline shot (QA). External requests are refused, so it never says closed.
+  // One job on a company board (a liveness-eligible job; the check runs on open, signed in, #602).
+  // External requests are refused, so it never says closed.
   // The sample lands first (its notice, then focus moves to the page head); a click on Add job
   // while that settles could be lost, so open the dialog until it shows.
   await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
@@ -102,7 +102,7 @@ export async function openAllJobs(page: Page) {
   return sheet;
 }
 
-/** Below lg: open the Apply filter bar (search, Status, Sort, Check which are still open). */
+/** Below lg: open the Apply filter bar (search, the named views, Sort). */
 export async function openFilters(page: Page) {
   const filters = page.getByRole('button', { name: 'Filters' });
   if ((await filters.getAttribute('aria-expanded')) !== 'true') await filters.click();

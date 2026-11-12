@@ -19,7 +19,7 @@ export const checkFor = (all: Record<string, LiveCheck>, url: string): LiveCheck
 export interface CheckOptions {
   fetchJson?: FetchJson;
   now?: number;
-  /** Ignore the 6 hour rule (the button). */
+  /** Ignore the 6 hour rule (tests). */
   force?: boolean;
 }
 
@@ -52,7 +52,7 @@ export async function runLivenessCheck(
 }
 
 let autoRan = false;
-/** The once-per-session check when the Pipeline opens. */
+/** The once-per-page-load check on open (LivenessViews.tsx LivenessOnOpen, #602). */
 export async function autoLivenessCheck(jobs: Job[], opts: CheckOptions = {}): Promise<void> {
   if (autoRan) return;
   autoRan = true;

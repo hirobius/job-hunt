@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import type { Job } from './types';
 
@@ -10,7 +9,9 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
   liveFetchJson: (u: string) => feed.fetchJson(u),
 }));
 
-import { LivenessCheck } from './LivenessViews';
+import { LivenessOnOpen } from './LivenessViews';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
+import { replaceAll } from './store';
 import { useClosedOnBoard } from './useClosedOnBoard';
 import { liveness, resetLivenessSession } from './livenessStore';
 import { JobBadges } from './JobRowParts';
@@ -27,60 +28,100 @@ beforeEach(() => {
   localStorage.clear();
   liveness.set({});
   resetLivenessSession();
+  replaceAll([]);
   feed.fetchJson.mockReset();
 });
 afterEach(cleanup);
 
-/** The list's status line as Apply draws it: the count, then the closed tail (#601). */
-function StatusLine({ jobs }: { jobs: Job[] }) {
+const api = (over: Partial<CloudSyncApi>): CloudSyncApi => ({
+  user: { id: 'u1', email: 'sam@example.com' } as CloudSyncApi['user'],
+  authResolved: true,
+  status: '',
+  settled: true,
+  offline: false,
+  sendLink: async () => null,
+  signInWithGoogle: async () => null,
+  retry: () => {},
+  signOut: () => {},
+  deleteMyData: () => {},
+  signInOpen: false,
+  setSignInOpen: () => {},
+  ...over,
+});
+
+/** The list's status line as Apply draws it, with the on-open check mounted as App mounts it. */
+function StatusLine({ jobs, sync = {} }: { jobs: Job[]; sync?: Partial<CloudSyncApi> }) {
   const tail = useClosedOnBoard(jobs);
   return (
-    <>
+    <CloudSyncContext.Provider value={api(sync)}>
+      <LivenessOnOpen />
       <p role="status">
         Active · {jobs.length} jobs{tail}
       </p>
-      <LivenessCheck jobs={jobs} />
-    </>
+    </CloudSyncContext.Provider>
   );
 }
+/** Render with the jobs in the store, where LivenessOnOpen reads them. */
+function show(jobs: Job[], sync?: Partial<CloudSyncApi>) {
+  replaceAll(jobs);
+  return render(<StatusLine jobs={jobs} sync={sync} />);
+}
 
-describe('liveness on Apply (#601)', () => {
-  it('renders no action when no saved job is on a supported board', () => {
-    render(<StatusLine jobs={[job('https://x.example/1', 'x')]} />);
+describe('liveness on Apply (#601, on open since #602)', () => {
+  it('has no manual action: nothing to press, whatever the jobs', () => {
+    show([job(A, 'a'), job('https://x.example/1', 'x')]);
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getByText('Active · 1 jobs')).toBeInTheDocument();
+    expect(screen.queryByText(/check which are still open/i)).toBeNull();
   });
 
   it('checks on open, then counts the closed jobs on the status line, with no second link', async () => {
     feed.fetchJson.mockResolvedValue(board('aaaa'));
-    const { container } = render(<StatusLine jobs={[job(A, 'Open role'), job(B, 'Gone role')]} />);
+    const jobs = [job(A, 'Open role'), job(B, 'Gone role')];
+    const { container } = show(jobs);
     expect(await screen.findByText('Active · 2 jobs · 1 closed on the board')).toBeInTheDocument();
-    // The closed job is already in the list with its Closed badge: no link, no date line.
+    // Once per board.
+    expect(feed.fetchJson).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('link')).toBeNull();
-    expect(screen.queryByRole('list', { name: 'Closed on the board' })).toBeNull();
-    expect(screen.queryByText(/Checked live/i)).toBeNull();
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
   });
 
-  it('the button re-checks on demand', async () => {
+  it('runs once a page load: a second mount reads nothing', async () => {
     feed.fetchJson.mockResolvedValue(board('aaaa', 'bbbb'));
-    render(<StatusLine jobs={[job(A, 'a'), job(B, 'b')]} />);
+    const view = show([job(A, 'a'), job(B, 'b')]);
     await waitFor(() => expect(feed.fetchJson).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText(/closed on the board/i)).toBeNull();
-    feed.fetchJson.mockResolvedValue(board('aaaa'));
-    await userEvent.click(screen.getByRole('button', { name: /check which are still open/i }));
-    expect(await screen.findByText(/1 closed on the board/)).toBeInTheDocument();
+    view.unmount();
+    show([job(A, 'a'), job(B, 'b')]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(feed.fetchJson).toHaveBeenCalledTimes(1);
   });
 
-  it('says it could not check when the board is unreachable, and flags nothing', async () => {
+  it('respects 6 hours: a job checked within them is not asked again on the next load', async () => {
+    liveness.set({ [dedupKey(A)]: { state: 'open', checkedAt: new Date().toISOString() } });
+    show([job(A, 'a')]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(feed.fetchJson).not.toHaveBeenCalled();
+  });
+
+  it('a failed read never marks a job closed', async () => {
     feed.fetchJson.mockRejectedValue(new Error('offline'));
-    render(<StatusLine jobs={[job(A, 'a')]} />);
-    await userEvent.click(screen.getByRole('button', { name: /check which are still open/i }));
-    expect(await screen.findByText(/could not check/i)).toBeInTheDocument();
+    show([job(A, 'a')]);
+    await waitFor(() => expect(feed.fetchJson).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText(/closed on the board/i)).not.toBeInTheDocument();
+    expect(liveness.get()[dedupKey(A)]?.state).not.toBe('closed');
+  });
+
+  it('signed out, before sync settles, or behind the sign-in screen it does nothing', async () => {
+    show([job(A, 'a')], { user: null });
+    cleanup();
+    show([job(A, 'a')], { settled: false });
+    cleanup();
+    show([job(A, 'a')], { signInOpen: true });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(feed.fetchJson).not.toHaveBeenCalled();
   });
 
   it('the Closed badge stays in the badge row (#419)', () => {
