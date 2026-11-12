@@ -12,7 +12,14 @@ const ranks = (page: Page) =>
 async function openTitled(page: Page, title: string, width: number) {
   await page.goto('/#/apply');
   await page.getByRole('heading', { level: 1 }).first().waitFor();
-  if (width < 1024) await page.getByRole('button', { name: 'All jobs' }).click();
+  // Below lg the All jobs sheet; from lg the rail, on its All jobs view: the default view is
+  // To apply, which no longer lists an applied job (#611 named views).
+  if (width < 1024) await page.getByRole('button', { name: 'All jobs', exact: true }).click();
+  else
+    await page
+      .getByRole('group', { name: 'Views' })
+      .getByRole('button', { name: /^All jobs \d/ })
+      .click();
   const scope =
     width < 1024
       ? page.getByRole('dialog', { name: 'All jobs' })

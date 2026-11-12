@@ -38,7 +38,7 @@ for (const width of [390, 1440]) {
     // Apply: the list (below lg) or the list beside the first job (lg), with Follow up in it.
     await topTab(page, 'Apply').click();
     // Below lg the tab is one job and its list is the All jobs sheet (Proposal A).
-    if (width < 1024) await page.getByRole('button', { name: 'All jobs' }).click();
+    if (width < 1024) await page.getByRole('button', { name: 'All jobs', exact: true }).click();
     else await expect(page.getByRole('navigation', { name: 'Jobs' })).toBeVisible();
     const follow = page.getByRole('region', { name: /^Follow up/ });
     await follow

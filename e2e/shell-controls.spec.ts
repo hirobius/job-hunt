@@ -96,7 +96,7 @@ for (const width of [390, 1440]) {
         await expect(
           page.getByRole('navigation', { name: 'Jobs in the list' }).getByText(`of ${remote}`),
         ).toBeVisible();
-        await page.getByRole('button', { name: 'All jobs' }).click();
+        await page.getByRole('button', { name: 'All jobs', exact: true }).click();
         const sheet = page.getByRole('dialog', { name: 'All jobs' });
         await expect(sheet.getByRole('article')).toHaveCount(remote);
         await page.keyboard.press('Escape');
