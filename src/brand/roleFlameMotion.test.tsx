@@ -146,3 +146,23 @@ describe('RoleFlameLogo motion', () => {
     expect(d()).toBe(first);
   });
 });
+
+// Sign-in memory (2026-11-12): the sign-in screen's logo and the app bar's run at once; one that
+// unmounts must leave no timer or listener behind, or a second fire keeps running unseen.
+describe('unmount', () => {
+  it('leaves no flame timer, media-query or visibility listener running', () => {
+    const add = vi.spyOn(document, 'addEventListener');
+    const remove = vi.spyOn(document, 'removeEventListener');
+    const { unmount } = render(<RoleFlameLogo />);
+    act(() => void vi.advanceTimersByTime(500));
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(mqListeners).toHaveLength(0);
+    const visAdds = add.mock.calls.filter(([t]) => t === 'visibilitychange').length;
+    const visRemoves = remove.mock.calls.filter(([t]) => t === 'visibilitychange').length;
+    expect(visRemoves).toBe(visAdds);
+    add.mockRestore();
+    remove.mockRestore();
+  });
+});

@@ -20,6 +20,7 @@
 // survive a reload: the next open finishes it), and never in the way: network is async and the
 // CPU work yields to the browser between chunks. Everything is per browser (a cache): Follow
 // adds the board to the synced Sources, Ignore mutes the company (decided.ts).
+import { cutText } from './ownString';
 import { httpUrl } from '../httpUrl';
 import { useSyncExternalStore } from 'react';
 import { loadPersisted, savePersisted } from '../persisted';
@@ -685,7 +686,7 @@ export async function runScan(
       }
       kept.push({
         ...p,
-        text: p.text.length > TEXT_MAX ? p.text.slice(0, TEXT_MAX) : p.text,
+        text: cutText(p.text, TEXT_MAX),
         ...(remote === 'unstated' && { remoteUnstated: true as const }),
       });
     }
