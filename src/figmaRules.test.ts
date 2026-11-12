@@ -143,4 +143,15 @@ describe('FIGMA-RULES.md', () => {
     expect(review).toContain('<Fact icon={MapPin} text={placeOf(r)} truncate />');
     expect(review).toContain('<Fact icon={Briefcase} text={modeOf(r)} />');
   });
+
+  it('pins the compact Find card and the short header (#544)', () => {
+    expect(RULES).toMatch(/\*\*The compact Find card \(#544\)\.\*\*/);
+    expect(RULES).toMatch(/\*\*Find's short header \(#544\)\.\*\*/);
+    expect(CLAUDE).toMatch(/A Browse card is compact \(#544/);
+    const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
+    expect(review).toContain('lineClamp={3}');
+    expect(review).toContain('openKey={!compact}');
+    const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
+    expect(head).toContain('More: sort, scan and search profile');
+  });
 });

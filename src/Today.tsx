@@ -6,8 +6,8 @@
 // so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
 import { Skeleton, Stack, Text } from '@hirobius/design-system';
 import { Panel, PanelBody } from './PipelinePanel';
-import { MetaCaption } from './MetaCaption';
-import { NewCompanies, ScanStatus } from './AutoScanViews';
+import { NewCompanies } from './AutoScanViews';
+import { FindHeader } from './FindHeader';
 import ReviewView from './ReviewView';
 import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
@@ -16,30 +16,20 @@ import { useCloudSync } from './account/accountContext';
 export default function Today() {
   const profile = useProfile();
   const { offline, user } = useCloudSync();
-  const now = new Date();
-  const header = (
-    <Stack gap="px4">
-      <Text as="h1" variant="title">
-        Find
-      </Text>
-      <MetaCaption
-        items={[
-          now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-        ]}
-      />
-    </Stack>
-  );
   // The scheduled run's hand-picked roles (picks.ts), signed in only: fit line, draft note (Copy),
   // Save → Apply. Hidden when there are none.
   const picks = user ? <DailyPicks key={user.id} /> : null;
   if (profile)
     return (
-      // The scan's status, then every design-system posting, newest first, as a list (the Deck is a
-      // toggle inside). Review new hosts the status, so its counts are the Feed's own.
+      // The short header (#544: "Find", "4 new · scanned 2 h ago", one More menu), then every
+      // design-system posting, newest first, as a list (the Deck is a toggle inside). Review hosts
+      // the header, so its count is the Feed's own.
       <ReviewView
         label="Review"
         scanStatus
-        header={header}
+        header={({ newCount, sort, selected }) => (
+          <FindHeader heading={!selected} newCount={newCount} sort={sort} />
+        )}
         before={picks}
         after={<NewCompanies />}
       />
@@ -48,10 +38,10 @@ export default function Today() {
   // `ensureProfile`); until then Review new holds its place, or says why it can't.
   return (
     <Stack gap="px24">
-      {header}
+      <FindHeader />
       {picks}
       <Stack gap="normal">
-        <Panel label="Review" title="Review" trailing={<ScanStatus />} flat>
+        <Panel label="Review" title="Review" flat>
           <PanelBody>
             {offline ? (
               <Text variant="caption" as="p" tone="secondary">

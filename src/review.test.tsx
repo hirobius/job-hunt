@@ -23,6 +23,8 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
   fetchFeed: feed.fetchFeed,
 }));
 
+import { FindHeader } from './FindHeader';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import ReviewView, { REVIEW_PAGE } from './ReviewView';
 import { viewport } from './test/viewport';
 import { resetAnswerGuard } from './answerGuard';
@@ -85,6 +87,20 @@ const renderReview = () =>
       <NoticeHost />
     </ToastProvider>,
   );
+/** Find as the tab renders it: the short header (#544) with its More menu over the list. */
+const renderFindPage = () =>
+  render(
+    <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
+      <ToastProvider>
+        <ReviewView
+          header={({ newCount, sort, selected }) => (
+            <FindHeader heading={!selected} newCount={newCount} sort={sort} />
+          )}
+        />
+        <NoticeHost />
+      </ToastProvider>
+    </CloudSyncContext.Provider>,
+  );
 /** Find's two columns (#471 slice 3): the list and the selected posting, at lg. */
 const renderFind = () => {
   viewport(1280);
@@ -105,7 +121,7 @@ const list = () => screen.findByRole('list', { name: 'New postings' });
 const titles = (ul: HTMLElement) =>
   within(ul)
     .getAllByRole('heading', { level: 3 })
-    .map((h) => h.textContent?.replace(/\s*\(opens in new tab\)$/, ''));
+    .map((h) => h.textContent?.replace(/\s*\(opens in new tab\)$/, '').replace(/\u2060/g, ''));
 
 describe('Review new: no board progress on the page (Adrian 2026-11-08)', () => {
   it('never says "Read N of M boards", signed in or out', async () => {
@@ -152,10 +168,13 @@ describe('Review new: Browse', () => {
     expect(getScanDetails()?.failed.map((f) => f.label)).toEqual([
       expect.stringMatching(/^Jobicy/),
     ]);
-    // The posting is one tap away beside each title.
-    expect(
-      within(ul).getByRole('link', { name: 'Open posting for Design Systems Designer at Beta' }),
-    ).toHaveAttribute('href', expect.stringMatching(/^https:\/\/news\.ycombinator\.com/));
+    // The posting is one tap away: below lg a compact card's title is the link out (#544).
+    const beta = within(ul).getByRole('article', { name: /Designer at Beta/ });
+    expect(within(beta).getByRole('link', { name: /^Design Systems Designer/ })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^https:\/\/news\.ycombinator\.com/),
+    );
+    expect(within(ul).queryByRole('link', { name: /^Open posting for/ })).toBeNull();
     // One read: every title (and the related one) and board in one sweep.
     expect(feed.fetchFeed).toHaveBeenCalledTimes(1);
     expect(feed.fetchFeed.mock.calls[0][0]).toMatchObject({
@@ -294,17 +313,20 @@ describe('Review new: Browse', () => {
     );
     feed.fetchFeed.mockResolvedValue(result(many));
     const user = userEvent.setup();
-    renderReview();
+    renderFindPage();
     const ul = await list();
     expect(titles(ul)).toHaveLength(REVIEW_PAGE);
     // Newest first by default.
     expect(titles(ul)[0]).toBe('Design Systems Designer 0');
     await user.click(screen.getByRole('button', { name: 'Load more (5)' }));
     expect(titles(ul)).toHaveLength(REVIEW_PAGE + 5);
-    await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
-    await user.click(await screen.findByRole('menuitemradio', { name: 'Company' }));
+    // Sort is the header's one More menu (#544), no key on the toolbar.
+    expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'More: sort, scan and search profile' }));
+    expect(await screen.findByRole('menuitemradio', { name: 'Newest' })).toBeChecked();
+    await user.click(screen.getByRole('menuitemradio', { name: 'Company' }));
     expect(titles(ul)[0]).toBe('Design Systems Designer 29');
-    // Two filters only (Adrian 2026-10-28): New today and Remote.
+    // Two filters only (Adrian 2026-10-28): New (was "New today", #615) and Remote.
     expect(
       within(screen.getByRole('group', { name: 'Filter postings' }))
         .getAllByRole('button')
@@ -432,25 +454,37 @@ describe('Review new: Deck card anatomy (#458)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
   });
 
-  it('Browse rows are standalone cards in the same anatomy; below lg the title is no link', async () => {
+  // #544 (redesign §5.1): the compact Browse card is the title (bold body, 3 lines at most; it opens
+  // the posting), the company, the facts, the pay, then Save, Skip and More. No source or New badge,
+  // no Show description row, no Open posting key.
+  it('Browse rows are compact standalone cards; below lg the title is the link out', async () => {
     feed.fetchFeed.mockResolvedValue(result([ONE]));
     renderReview();
     const ul = await list();
-    const card = within(ul).getByRole('article');
-    const source = within(card).getByText('Hacker News');
+    const card = within(ul).getByRole('article', { name: 'Design Systems Designer at Acme' });
     const title = within(card).getByRole('heading', { level: 3 });
     const company = within(card).getByText('Acme');
     const place = within(card).getByText('Lisbon');
     const pay = within(card).getByText('$95k to $120k');
     const save = within(card).getByRole('button', { name: 'Save Design Systems Designer at Acme' });
     const skip = within(card).getByRole('button', { name: 'Skip Design Systems Designer at Acme' });
-    const order = [source, title, company, place, pay, save, skip];
+    const more = within(card).getByRole('button', {
+      name: 'More actions: Design Systems Designer at Acme',
+    });
+    const order = [title, company, place, pay, save, skip, more];
     order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
-    expect(
-      within(card).getByRole('button', { name: 'More actions: Design Systems Designer at Acme' }),
-    ).toBeInTheDocument();
-    // Below lg nothing on the card navigates (no posting page): the title is plain text.
-    expect(within(title).queryByRole('link')).toBeNull();
+    // Save is the filled key with a plus; Skip the grey one.
+    expect(save.querySelector('svg.lucide-plus')).not.toBeNull();
+    // The title is bold body text, cut at 3 lines, and it is the link to the posting.
+    expect(title.className).toMatch(/line-clamp-3|clamp/);
+    const link = within(title).getByRole('link', { name: /^Design Systems Designer/ });
+    expect(link).toHaveAttribute('href', ONE.url);
+    expect(link).toHaveAttribute('target', '_blank');
+    // Cut: badges, the description row, the Open posting key.
+    expect(within(card).queryByText('Hacker News')).toBeNull();
+    expect(within(card).queryByText('New')).toBeNull();
+    expect(within(card).queryByRole('button', { name: /description/ })).toBeNull();
+    expect(within(card).queryByRole('link', { name: /^Open posting/ })).toBeNull();
   });
 
   it('Browse and Deck cards draw no outline (soft surfaces: never bordered)', async () => {
@@ -505,7 +539,9 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(within(first).getByText('Location not stated')).toBeInTheDocument();
     expect(within(first).getAllByText('Remote')).toHaveLength(1);
     expect(within(second).getByText('Berlin')).toBeInTheDocument();
-    expect(within(second).getByText(/^(Work mode not stated|Remote not stated)$/)).toBeInTheDocument();
+    expect(
+      within(second).getByText(/^(Work mode not stated|Remote not stated)$/),
+    ).toBeInTheDocument();
   });
 });
 
@@ -522,23 +558,19 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
     );
   };
 
-  it('Show description opens the posting’s text in its card; the title goes nowhere', async () => {
-    const user = userEvent.setup();
+  it('the title opens the posting itself; nothing on the card opens a page in the app', async () => {
     renderPhoneFind();
     const ul = await list();
     const card = within(ul).getAllByRole('article')[0];
-    expect(within(card).getByRole('heading', { level: 3 })).not.toContainElement(
-      within(card).queryByRole('link', { name: /^Design Systems/ }),
-    );
+    const links = within(card).getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(within(card).getByRole('heading', { level: 3 })).toContainElement(links[0]);
+    expect(links[0].getAttribute('href')).toMatch(/^https:/);
     expect(within(card).queryByText('Own the design system.')).toBeNull();
-    await user.click(within(card).getByRole('button', { name: 'Show description' }));
-    expect(within(card).getByText('Own the design system.')).toBeInTheDocument();
-    await user.click(within(card).getByRole('button', { name: 'Hide description' }));
-    await waitFor(() => expect(within(card).queryByText('Own the design system.')).toBeNull());
     expect(window.location.hash).toBe('#/find');
   });
 
-  it('an old #/find/<fingerprint> link opens Find with that card in view and its text open', async () => {
+  it('an old #/find/<fingerprint> link opens Find with that card in view', async () => {
     const seen: Element[] = [];
     Element.prototype.scrollIntoView = vi.fn(function (this: Element) {
       seen.push(this);
@@ -551,8 +583,6 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
     const card = within(ul)
       .getAllByRole('article')
       .find((a) => within(a).queryByText('Beta'))!;
-    expect(within(card).getByRole('button', { name: 'Hide description' })).toBeInTheDocument();
-    expect(within(card).getByText('Own the design system.')).toBeInTheDocument();
     await waitFor(() => expect(seen.some((el) => el.contains(card))).toBe(true));
   });
 

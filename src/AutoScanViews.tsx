@@ -1,6 +1,6 @@
-// The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
-// (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
-// says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
+// The auto-scan's UI (#415) on Find: New companies (Follow / Ignore) at the end. Every action says so
+// with an Undo. Scan now is Find's More menu (FindHeader.tsx, #544); the scan's line is the Account
+// menu's Scan details (ScanDetailsDialog).
 import { useState } from 'react';
 import {
   Box,
@@ -12,23 +12,19 @@ import {
   Text,
   Tooltip as HdsTooltip,
 } from '@hirobius/design-system';
-import { ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { httpUrl } from './httpUrl';
 import { showNotice } from './saveNotice';
 import {
-  cancelScan,
   followFound,
   foundRoles,
   ignoreFound,
   newCompanies,
-  scanNow,
   useScan,
   type FoundCompany,
   type LeadSource,
 } from './feed/autoScan';
-import { useScanInput } from './feed/useAutoScan';
-import { useCloudSync } from './account/accountContext';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -36,34 +32,6 @@ const VIA_LABEL: Record<LeadSource, string> = {
   github: 'GitHub',
   seed: 'the seed list',
 };
-
-/** Find's scan control (Adrian 2026-11-08): no status text on the page. Signed in, the server syncs
- *  every 15 minutes, so nothing shows. Signed out, nothing scans on its own: one compact Scan now
- *  (Stop scan while it runs) beside the Review new heading. When it last scanned, the sources that
- *  didn't answer and what was left out are the Account menu's Scan details (ScanDetailsDialog). */
-export function ScanStatus() {
-  const { user } = useCloudSync();
-  return user ? null : <ScanButton />;
-}
-
-function ScanButton() {
-  const { running } = useScan();
-  const input = useScanInput();
-  return running ? (
-    <Button size="sm" variant="tertiary" onClick={cancelScan}>
-      Stop scan
-    </Button>
-  ) : (
-    <Button
-      size="sm"
-      variant="secondary"
-      iconLeft={<Icon icon={RefreshCw} />}
-      onClick={() => void scanNow(input, undefined, { force: true })}
-    >
-      Scan now
-    </Button>
-  );
-}
 
 /** "2 matching jobs · from YC", or why its board isn't read yet. */
 function companyLine(f: FoundCompany): string {

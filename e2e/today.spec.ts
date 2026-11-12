@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, topTab, pressAllJobs } from './routes';
+import { findMore, seed, topTab, pressAllJobs } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
 // status with Scan now and Review new (the Browse list); New companies follow once a scan finds some
@@ -22,7 +22,8 @@ for (const width of [390, 1440]) {
       'Find',
       'Apply',
     ]);
-    await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeVisible();
+    // Scan now is the short header's More menu (#544), on the h1's row.
+    await expect(findMore(page)).toBeVisible();
     const panels = page.getByRole('main').getByRole('region');
     await expect(panels.nth(0)).toHaveAccessibleName(/^Review\b/);
     await expect(page.getByRole('region', { name: /^Follow up/ })).toHaveCount(0);

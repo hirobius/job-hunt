@@ -119,3 +119,14 @@ export const topTab = (page: Page, name: string) =>
   page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name, exact: true });
 export const currentTab = (page: Page) =>
   page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]');
+
+/** Find's one More menu (#544): Sort, Scan now (signed out; Stop scan while it runs) and Search
+ *  profile. */
+export const findMore = (page: Page) =>
+  page.getByRole('button', { name: 'More: sort, scan and search profile' });
+
+/** Pick an item in Find's More menu ("Scan now", "Stop scan", "Search profile"). */
+export async function findMenuItem(page: Page, name: string) {
+  await findMore(page).click();
+  await page.getByRole('menuitem', { name, exact: true }).click();
+}

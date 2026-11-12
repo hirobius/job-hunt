@@ -143,13 +143,23 @@ describe('the shell: Today and Jobs', () => {
 });
 
 describe('the auto-scan', () => {
-  it('signed out: one compact Scan now beside the Review new heading, and no status text', async () => {
-    seedScan({ finishedAt: Date.now(), newCount: 4, sourceCount: 9, found: [] });
+  // #544: Find's short header is "Find" and one caption ("4 new · scanned 2 h ago"); Sort, Scan now
+  // and Search profile are its one More menu.
+  it('signed out: Scan now is in the header’s More menu, and one caption, no status text', async () => {
+    const user = userEvent.setup();
+    seedScan({ finishedAt: Date.now() - 2 * 3600_000, newCount: 4, sourceCount: 9, found: [] });
     window.location.hash = '#/find';
     renderApp();
     const review = await screen.findByRole('region', { name: /^Review\b/ });
-    expect(within(review).getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
     await within(review).findByRole('button', { name: 'Browse' });
+    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
+    // No date line: the caption says what is new and when the sources were scanned.
+    expect(screen.getByText('scanned 2 h ago')).toBeInTheDocument();
+    expect(screen.getByText(/^(\d+ new|Nothing new)$/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'More: sort, scan and search profile' }));
+    expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
     // Adrian 2026-11-08: the scan's line, the sources unavailable and the "not shown" counts are the
     // Account menu's Scan details.
     expect(
@@ -172,24 +182,23 @@ describe('Review new on Today', () => {
     const ul = await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
     const titles = within(ul)
       .getAllByRole('heading', { level: 3 })
-      .map((h) => h.textContent);
+      .map((h) => h.textContent?.replace(/\u2060/g, '').replace(/\s*\(opens in new tab\)$/, ''));
     expect(titles).toEqual(['Design Systems Engineer', 'Design Systems Designer']);
   });
 
-  it('below lg there is no posting page: the title is no link, the card shows its description', async () => {
-    const user = userEvent.setup();
+  it('below lg there is no posting page: the title is the link out to the posting', async () => {
     window.location.hash = '#/find';
     renderApp();
     const ul = await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
     const card = within(ul)
       .getAllByRole('article')
       .find((a) => within(a).queryByText('Beta'))!;
-    expect(within(card).queryByRole('link', { name: 'Design Systems Engineer' })).toBeNull();
-    expect(
-      within(card).getByRole('link', { name: 'Open posting for Design Systems Engineer at Beta' }),
-    ).toHaveAttribute('href', 'https://news.ycombinator.com/item?id=hn2');
-    await user.click(within(card).getByRole('button', { name: 'Show description' }));
-    expect(within(card).getByRole('button', { name: 'Hide description' })).toBeInTheDocument();
+    const link = within(card.querySelector('h3')!).getByRole('link', {
+      name: /^Design Systems Engineer/,
+    });
+    expect(link).toHaveAttribute('href', 'https://news.ycombinator.com/item?id=hn2');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(within(card).queryByRole('button', { name: /description/ })).toBeNull();
     expect(window.location.hash).toBe('#/find');
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });

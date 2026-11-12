@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { findMenuItem, findMore } from './routes';
 
 // Auto-scan (simplify 8/11, #415). Signed out, nothing scans on open (2026-11-07: on a phone the
 // browser scan drowned the sign-in screen; a signed-in account's boards are read by the server's
@@ -97,12 +98,12 @@ for (const width of [390, 1440]) {
     await page.goto('/#/find');
     // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
-    // No status text on Find (Adrian 2026-11-08): only the compact Scan now.
-    await expect(page.getByRole('button', { name: 'Scan now' })).toBeVisible();
+    // No status text on Find (Adrian 2026-11-08); Scan now is the header's More menu (#544).
+    await expect(findMore(page)).toBeVisible();
     await page.waitForTimeout(3000);
     expect(asked.filter((u) => u.includes('yc-oss.github.io'))).toEqual([]);
     const since = await page.evaluate(() => Date.now());
-    await page.getByRole('button', { name: 'Scan now' }).click();
+    await findMenuItem(page, 'Scan now');
     await scanFinished(page, since);
     // The scan's line is the Account menu's Scan details.
     await page.getByRole('button', { name: 'Account' }).click();
@@ -150,7 +151,7 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await page.goto('/#/find');
   await page.evaluate(seedTrack);
   const since = await page.evaluate(() => Date.now());
-  await page.getByRole('button', { name: 'Scan now' }).click();
+  await findMenuItem(page, 'Scan now');
   await scanFinished(page, since);
 
   await page.getByRole('button', { name: 'Follow Acme' }).click();
@@ -171,8 +172,12 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await expect(dialog).toBeHidden();
 
   const again = await page.evaluate(() => Date.now());
-  await page.getByRole('button', { name: 'Scan now' }).click();
-  await expect(page.getByRole('button', { name: 'Stop scan' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Scan now' })).toBeVisible({ timeout: 60_000 });
+  await findMenuItem(page, 'Scan now');
+  // While it runs the menu offers Stop scan, and the caption says it scans.
+  await expect(page.getByText('scanning…')).toBeVisible();
+  await findMore(page).click();
+  await expect(page.getByRole('menuitem', { name: 'Stop scan' })).toBeVisible();
+  await page.keyboard.press('Escape');
   await scanFinished(page, again);
+  await expect(page.getByText(/^scanned (just now|\d+ min ago)$/)).toBeVisible();
 });

@@ -193,9 +193,10 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
   expect(await enterName()).toBe('rjb-view-enter');
 });
 
-test('Today: Scan now and the Account menu’s Companies answer within 300 ms', async ({ page }) => {
+test('Find: Scan now and the Account menu’s Companies answer within 300 ms', async ({ page }) => {
   await go(page, '#/find');
-  await press(page, button(page, /^(Scan now|Stop scan)$/), 'Scan now');
+  // Scan now is the short header's More menu (#544); its caption says the scan runs.
+  await menu(page, 'More: sort, scan and search profile', 'Scan now');
   await menu(page, 'Account', 'Companies');
   await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
   await closeOverlay(page);

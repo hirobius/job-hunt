@@ -14,8 +14,8 @@ import {
   Box,
   Button,
   Card,
-  Disclosure,
   Icon,
+  InlineLink,
   Menu,
   Pagination,
   Sidebar,
@@ -30,7 +30,6 @@ import {
 import {
   Briefcase,
   Calendar,
-  ChevronDown,
   Ellipsis,
   ExternalLink,
   MapPin,
@@ -51,10 +50,9 @@ import { usePageTitle } from './pageTitle';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
-import { ScanStatus } from './AutoScanViews';
+import type { FindSort } from './FindHeader';
 import {
   FILTER_LABEL,
-  SORT_LABEL,
   filterCounts,
   filterRows,
   newTodayLine,
@@ -80,7 +78,6 @@ import { httpUrl } from './httpUrl';
 export const REVIEW_PAGE = 25;
 // Two filters (Adrian 2026-10-28): contract and first-hire chips are gone with the fit tiers.
 const FILTERS: FeedFilter[] = ['new', 'remote'];
-const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
 const VIEW_TOGGLE: { value: Mode; label: string; icon: LucideIcon }[] = [
   { value: 'browse', label: 'Browse', icon: List },
@@ -100,8 +97,9 @@ export default function ReviewView({
    *  Feed's, so the page has one number); the panel doesn't repeat them. */
   scanStatus?: boolean;
   /** The page's head (its h1), shown while no posting is selected: a selected posting's title is
-   *  the page's h1 then (#363, as a job's is on Apply). */
-  header?: ReactNode;
+   *  the page's h1 then (#363, as a job's is on Apply). Find passes a function and gets what its
+   *  short header shows (#544): the new count, Browse's sort and whether a posting is selected. */
+  header?: ReactNode | ((tools: FindTools) => ReactNode);
   /** Find's list column, above and under the list: Daily picks, New companies. */
   before?: ReactNode;
   after?: ReactNode;
@@ -137,13 +135,12 @@ export default function ReviewView({
     : null;
   const wide = useAtLeast('lg');
   // Below lg there is no posting page (Adrian 2026-11-08): an old #/find/<fingerprint> link opens
-  // Find with that card scrolled into view and its description open, and the route drops it.
+  // Find with that card scrolled into view, and the route drops it.
   const [linked, setLinked] = useState<string | null>(null);
   if (!wide && selectedFp && linked !== selectedFp) setLinked(selectedFp);
   useEffect(() => {
     if (!wide && selectedFp) selectPosting(null, true);
   }, [wide, selectedFp]);
-  const sortSheet = useBackSheet('review-sort');
 
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
@@ -202,15 +199,23 @@ export default function ReviewView({
 
   const caughtUp =
     'Every posting from your sources is saved or skipped. The next scan brings new ones.';
-  // Signed out, a compact Scan now beside the heading; signed in, nothing (the server syncs).
-  const status = scanStatus && <ScanStatus />;
+  // Sort, Scan now and Search profile are the header's one More menu (#544).
+  const sortTool: FindSort | null =
+    view && view.rows.length > 0 && mode === 'browse'
+      ? {
+          value: sort,
+          onChange: (v) => {
+            setSort(v);
+            setShown(REVIEW_PAGE);
+          },
+        }
+      : null;
   const panel = (
     <Panel
       label={view ? `${label} (${listed.length})` : label}
       title={label}
       count={view ? listed.length : undefined}
       countLabel={`${listed.length} postings`}
-      trailing={status}
       flat
     >
       <PanelBody>
@@ -220,7 +225,7 @@ export default function ReviewView({
           <VisuallyHidden as="p" role="status">
             {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
           </VisuallyHidden>
-          {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). */}
+          {/* The view toggle; Sort is the header's More menu (#544). */}
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
             {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
                 takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
@@ -244,30 +249,6 @@ export default function ReviewView({
                 </HdsTooltip>
               ))}
             </Stack>
-            {view && view.rows.length > 0 && mode === 'browse' && (
-              <Menu {...sortSheet}>
-                <Menu.Trigger asChild>
-                  <Button size="sm" variant="secondary" iconRight={<Icon icon={ChevronDown} />}>
-                    {`Sort: ${SORT_LABEL[sort]}`}
-                  </Button>
-                </Menu.Trigger>
-                <Menu.Content align="end">
-                  <Menu.RadioGroup
-                    value={sort}
-                    onValueChange={(v) => {
-                      setSort(v as FeedSort);
-                      setShown(REVIEW_PAGE);
-                    }}
-                  >
-                    {SORTS.map((s) => (
-                      <Menu.RadioItem key={s} value={s}>
-                        {SORT_LABEL[s]}
-                      </Menu.RadioItem>
-                    ))}
-                  </Menu.RadioGroup>
-                </Menu.Content>
-              </Menu>
-            )}
           </Stack>
           {view && view.rows.length > 0 && (
             <Stack direction="row" wrap="wrap" gap="px8" role="group" aria-label="Filter postings">
@@ -371,9 +352,13 @@ export default function ReviewView({
       )}
     </Panel>
   );
+  const head =
+    typeof header === 'function'
+      ? header({ newCount: view ? counts.new : null, sort: sortTool, selected: !!selectedFp })
+      : !selectedFp && header;
   const list = (
     <Stack gap="px24">
-      {!selectedFp && header}
+      {head}
       {before}
       {panel}
       {after}
@@ -399,11 +384,19 @@ export default function ReviewView({
         <Box className="rjb-find-detail">{detail}</Box>
       </Sidebar>
     );
-  // Below lg: the list is the tab; each card holds its description (no posting page).
+  // Below lg: the list is the tab; a card's title is the link out (no posting page).
   return list;
 }
 
 const EMPTY_TITLE_ID = 'rjb-review-empty-title';
+
+/** What Find's short header shows (#544). */
+export interface FindTools {
+  newCount: number | null;
+  sort: FindSort | null;
+  /** A posting is selected (at lg its title is the page's h1). */
+  selected: boolean;
+}
 
 /** After a decision on a Browse card, focus goes to the title of the card that takes its place
  *  (the next one, else the one before), else the empty state's title, once the decided card has
@@ -506,7 +499,7 @@ function RowList({
   onOpen?: (r: FeedRow) => void;
   /** The selected posting's fingerprint: its card is marked current. */
   selected: string | null;
-  /** Below lg, an old #/find/<fingerprint> link's posting: scrolled into view, description open. */
+  /** Below lg, an old #/find/<fingerprint> link's posting: scrolled into view. */
   linked?: string | null;
 }) {
   const linkedRef = useRef<HTMLDivElement | null>(null);
@@ -533,18 +526,12 @@ function RowList({
             <Card
               as="article"
               padding="none"
+              aria-label={rowName(r)}
               aria-current={r.fingerprint === selected ? 'true' : undefined}
               className={r.fingerprint === selected ? 'rjb-selected' : undefined}
             >
-              <Box sx={{ p: 'md' }}>
-                <PostingCard
-                  r={r}
-                  now={now}
-                  onOpen={onOpen}
-                  describe={!onOpen}
-                  describeOpen={r.fingerprint === linked}
-                  actions={actions}
-                />
+              <Box sx={{ p: 'sm' }}>
+                <PostingCard r={r} now={now} onOpen={onOpen} compact actions={actions} />
               </Box>
             </Card>
           </Box>
@@ -606,7 +593,16 @@ const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''
 /** A posting's one action row (Adrian 2026-11-08): left-aligned, one HDS size, Save primary, Skip
  *  secondary, Open posting as an icon button, and More (…) holding Not this company. The same row
  *  on a Browse card, the Deck and the selected posting. */
-function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
+function PostingActions({
+  r,
+  actions,
+  openKey = true,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  /** The Open posting key; a compact Browse card has none (its title is the way in, #544). */
+  openKey?: boolean;
+}) {
   // Not this company is picked in the menu (a portal): its feedback anchors on the row's trigger.
   const more = useRef<HTMLButtonElement>(null);
   const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
@@ -629,7 +625,7 @@ function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
       >
         Skip
       </Button>
-      {httpUrl(r.url) && (
+      {openKey && httpUrl(r.url) && (
         <HdsTooltip>
           <HdsTooltip.Trigger asChild>
             <Button
@@ -675,54 +671,18 @@ function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
   );
 }
 
-/** A Browse card's description, below lg (Adrian 2026-11-08: no separate posting page on a phone):
- *  Show description opens it in the card, read on open (usePostingText) with a Skeleton. */
-function CardDescription({ r, initialOpen = false }: { r: FeedRow; initialOpen?: boolean }) {
-  const [open, setOpen] = useState(initialOpen);
-  return (
-    <Disclosure
-      label={open ? 'Hide description' : 'Show description'}
-      open={open}
-      onOpenChange={setOpen}
-    >
-      {open && <DescriptionText r={r} />}
-    </Disclosure>
-  );
-}
-
-function DescriptionText({ r }: { r: FeedRow }) {
-  const { text, loading } = usePostingText(r);
-  if (text.trim())
-    return (
-      <Text variant="body" as="p" tone="secondary" className="rjb-prewrap">
-        {excerpt(text, 2000)}
-      </Text>
-    );
-  return loading ? (
-    <Stack gap="px8" aria-busy="true">
-      <Skeleton variant="text" width="90%" />
-      <Skeleton variant="text" width="80%" />
-      <Skeleton variant="text" width="60%" />
-    </Stack>
-  ) : (
-    <Text variant="caption" as="p" tone="secondary">
-      This source gives no description. Open the posting to read it.
-    </Text>
-  );
-}
-
 /** A posting card (#458, Adrian 2026-11-02; actions 2026-11-08): a badge row (the source; New only
  *  when the posting is new), the title on the ramp's title step, the company as a subline, the
  *  meta lines with their icons, the pay when the source states it (never invented), then one
- *  left-aligned action row (PostingActions). Below lg a Browse card holds its description behind
- *  Show description; nothing on the card navigates there. */
+ *  left-aligned action row (PostingActions). A compact Browse card (#544, redesign §5.1) is the
+ *  title (bold body, 3 lines at most; it opens the posting), the company, the facts, the pay, then
+ *  Save, Skip and More: no badges, no description row and no Open posting key. */
 function PostingCard({
   r,
   now,
   onOpen,
   noTitle = false,
-  describe = false,
-  describeOpen = false,
+  compact = false,
   actions,
   children,
 }: {
@@ -730,12 +690,10 @@ function PostingCard({
   now: number;
   /** At lg, Browse: the title selects the posting (#/find/<fingerprint>) for the detail column. */
   onOpen?: (r: FeedRow) => void;
-  /** Below lg, Browse: Show description opens the posting's text in the card. */
-  describe?: boolean;
-  /** Opened by an old #/find/<fingerprint> link on a phone. */
-  describeOpen?: boolean;
   /** The selected posting's view names it in its own header. */
   noTitle?: boolean;
+  /** A Browse card (#544): three cards and part of a fourth fit on a phone. */
+  compact?: boolean;
   actions: RowActions;
   /** Extra content above the footer (the Deck's snippet). */
   children?: ReactNode;
@@ -746,21 +704,19 @@ function PostingCard({
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px8">
-        <Stack direction="row" wrap="wrap" gap="px8" align="center">
-          <Badge>{SOURCE_LABEL[r.source]}</Badge>
-          {r.isNew && <Badge tone="info">New</Badge>}
-        </Stack>
-        {noTitle ? null : onOpen ? (
-          <Text variant="title" as="h3" weight="bold" className="rjb-card-title" tabIndex={-1}>
-            <Button variant="tertiary" size="sm" className="rjb-preview-title" asChild>
-              <a href={findHash(r.fingerprint)} onClick={inPlaceClick(() => onOpen(r))}>
-                {r.title}
-              </a>
-            </Button>
+        {!compact && (
+          <Stack direction="row" wrap="wrap" gap="px8" align="center">
+            <Badge>{SOURCE_LABEL[r.source]}</Badge>
+            {r.isNew && <Badge tone="info">New</Badge>}
+          </Stack>
+        )}
+        {noTitle ? null : compact ? (
+          // Takes focus after a decision on the card before it (no ring: focusAsHeading).
+          <Text variant="body" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>
+            <CardTitleLink r={r} onOpen={onOpen} />
           </Text>
         ) : (
-          // Takes focus after a decision on the card before it (no ring: focusAsHeading).
-          <Text variant="title" as="h3" weight="bold" className="rjb-card-title" tabIndex={-1}>
+          <Text variant="title" as="h3" weight="bold" tabIndex={-1}>
             {r.title}
           </Text>
         )}
@@ -780,12 +736,33 @@ function PostingCard({
           </Text>
         )}
         {children}
-        {describe && <CardDescription r={r} initialOpen={describeOpen} />}
-        <Box sx={{ pt: 'xs' }}>
-          <PostingActions r={r} actions={actions} />
+        <Box sx={{ pt: compact ? undefined : 'xs' }}>
+          <PostingActions r={r} actions={actions} openKey={!compact} />
         </Box>
       </Stack>
     </Box>
+  );
+}
+
+/** A compact card's title opens the posting (#544): at lg it selects it for the detail column
+ *  (in place); below lg, with no posting page, it is the link out to the posting itself. */
+function CardTitleLink({ r, onOpen }: { r: FeedRow; onOpen?: (r: FeedRow) => void }) {
+  if (onOpen)
+    return (
+      // A click on the link bubbles here: in place, the list keeps its history entry.
+      <span onClick={inPlaceClick(() => onOpen(r))}>
+        <InlineLink href={findHash(r.fingerprint)} externalIcon={false}>
+          <span>{r.title}</span>
+        </InlineLink>
+      </span>
+    );
+  // The title in its own span, so it reads as one text beside the link's "opens in new tab".
+  return httpUrl(r.url) ? (
+    <InlineLink href={r.url}>
+      <span>{r.title}</span>
+    </InlineLink>
+  ) : (
+    <>{r.title}</>
   );
 }
 

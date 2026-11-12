@@ -41,6 +41,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Surfaces
 
+- **The compact Find card (#544).** Title (bold body, 3 lines at most; it opens the posting), company,
+  the facts, the pay when stated, then Save (filled, plus), Skip (grey) and More (icon). No source
+  badge, no New badge, no Show description row, no Open posting key. Radius 12 until HDS G5.
 - **A posting's facts, one per line (#616).** Icon + one fact per line, in one order on every card:
   place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
@@ -59,6 +62,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: a filter bar
   (Filters, Add job), the sticky walk control, then the job.
+- **Find's short header (#544).** "Find" and one caption, "4 new · scanned 2 h ago", with one More
+  menu on its row holding Sort, Scan now and Search profile. No date line, no Sort or Scan now key.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the five views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All

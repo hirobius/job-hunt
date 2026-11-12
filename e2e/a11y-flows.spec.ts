@@ -206,7 +206,8 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     ['button', 'Browse'],
     ['link', 'Apply'],
     ['link', 'Find'],
-    ['button', 'Scan now'],
+    // Scan now left the page for Find's More menu (#544): a menu moves focus into itself, as the
+    // Account menu does, so it is not in this list.
   ] as const) {
     await page.getByRole(role, { name, exact: true }).first().click();
     await page.waitForTimeout(200);

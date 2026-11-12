@@ -339,16 +339,19 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
   and a sign-in error land on Today; there is no setup screen (see First run).
-  `Today.tsx`, top to bottom: `ScanStatus` (Scan now + "Last scanned hh:mm · N new from M sources"; N and M are the
-  Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review**
+  `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the h1 "Find" and one
+  caption, "4 new · scanned 2 h ago" (`findCaption.ts`: the New chip's count, then the server's last sync signed in
+  (`useServerUpdatedAt`) or this browser's last scan signed out (`agoPhrase`), "scanning…" while one runs; no date
+  line), with **one More menu** on its row ("More: sort, scan and search profile": Sort while Browse has a list,
+  Scan now / Stop scan signed out only, Search profile); `ReviewView`'s `header` is a function given the new count,
+  the sort and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
   (was "Review new", #615: the heading counts every posting not saved or skipped; labels only)
-  = `ReviewView` itself (`label="Review" scanStatus`: it hosts the status; one panel holding sources that didn't
-  answer as one quiet "N sources unavailable · details" disclosure, Browse | Deck, Sort as a menu, two filter chips
-  (**New**, was "New today" (#615): first seen today, the same rule as the card's count; Remote) and the Browse list; a row's title selects the posting, Open posting beside it) and **New
+  = `ReviewView` itself (`label="Review" scanStatus`: one panel holding Browse | Deck, two filter chips
+  (**New**, was "New today" (#615): first seen today, the same rule as the card's count; Remote) and the Browse list; at lg a card's title selects the posting) and **New
   companies** (`NewCompanies`, Follow / Ignore). **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
-  Find out (**below lg there is no posting page since 2026-11-08:** the card's title is plain text, an old
-  `#/find/<fingerprint>` link scrolls to its card with the description open and drops the fingerprint, and after a
-  decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, status, Review new, New companies) beside
+  Find out (**below lg there is no posting page since 2026-11-08:** the card's title is the link out to the posting
+  (#544), an old `#/find/<fingerprint>` link scrolls to its card and drops the fingerprint, and after a
+  decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, Review, New companies) beside
   `PostingDetail` (the old preview dialog's body: title as the page's h1, company, the card with its excerpt, Save /
   Skip / Not this company, Open posting; "Pick a posting" until one is picked); below lg the list is the tab and a
   selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
@@ -406,13 +409,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   **Review new's panel has no surface of its own** (`Panel flat`): its heading, count and metadata declare the group,
   and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
   `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
-  source + New badges, the title on the `title` step, company, then **one fact per line** (#616, Adrian
+  source + New badges, the title on the `title` step (Deck and the detail; a Browse card is compact, below), company, then **one fact per line** (#616, Adrian
   2026-11-12; Browse, Deck and the detail): MapPin place ("Location not stated" when none, or when it is only a mode
   word), Briefcase work mode (Remote / Hybrid / On-site, "Remote not stated", else "Work mode not stated"; once, on
   its own line, also when the place says Remote), Calendar posted day; the pay line, then **one left-aligned action row (Adrian 2026-11-08,
   `PostingActions`): Save primary, Skip secondary, Open posting as an icon link, More (…) holding Not this company**,
-  all `md`; no match-reason line; below lg a Browse card's Show description (HDS Disclosure) reads the text on open,
-  `usePostingText`, with a Skeleton);
+  all `md`; no match-reason line). **A Browse card is compact (#544, redesign §5.1):** the title (bold body, HDS
+  `lineClamp={3}`; it opens the posting: at lg it selects it, below lg it is the HDS `InlineLink` out, with the
+  external icon), the company, the facts, the pay, then Save (filled, plus), Skip (grey) and More (Not this company);
+  no source or New badge, no Show description row, no Open posting key, padding `sm`. Card radius stays 12 until HDS G5
+  (hds#1436). `.rjb-posting-rows` and `.rjb-preview-title` are deleted; `.rjb-card-title` stays only for the Apply
+  card, the agenda and Daily picks (their quiet title link);
   `calmLayout.test.tsx` fails on any Card inside a Card.
   Pinned in `src/calmLayout.test.tsx`.
 - **Documents library (#227; replaced Templates #132; a dialog since #471 slice 4):** one HDS `Dialog`
@@ -595,7 +602,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   table: the blob is the one source of truth, and the sync never writes it. Migrations `2026102410*`: postings,
   sync_log, `mark_missed_postings`, `watched_tile_urls`, the cron. Auth is `SYNC_SECRET` only. **Every 15 minutes
   (#448, Adrian 2026-11-06):** migration `20261106100000` (06:23 keeps the feeds); a 429/5xx/timeout is read once more
-  after 2 s (`tracks/retry.ts`); Today's `ScanStatus` shows "Updated N min ago" for a signed-in user
+  after 2 s (`tracks/retry.ts`); Find's caption says "scanned N min ago" for a signed-in user (#544; was ScanStatus's "Updated N min ago")
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
   `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
@@ -647,9 +654,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   stated"). Kept per browser: `rjb_autoscan` (last run, lead queue, probed, found companies) and
   `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
-  `AutoScanViews.tsx`: `ScanStatus` (**Adrian 2026-11-08: no status text above Browse / Deck.** Signed in nothing (the
-  server syncs every 15 minutes); signed out one compact Scan now / Stop scan in Review new's heading row (`Panel
-trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
+  `AutoScanViews.tsx` and `FindHeader.tsx` (**Adrian 2026-11-08: no status text above Browse / Deck.** Find's short
+  header has one caption, "4 new · scanned 2 h ago", and its More menu holds Scan now / Stop scan, signed out only (the
+  server syncs every 15 minutes signed in), #544; `ScanStatus` is gone). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
   signed out), the sources that didn't answer and the "not shown" counts are the Account menu's **Scan details**
   (`ScanDetailsDialog.tsx`, lazy; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears
   Review new's status. Pinned in `autoScanViews.test.tsx`, `review.test.tsx`, `todayHome.test.tsx`,
@@ -745,9 +752,8 @@ trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run si
   so a long unbroken title never runs under the link or pushes it off screen) and every job rail row
   (beside the row's link, `hds-gaps/NavListActionItem`: NavList.Item has no trailing slot). Its
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
-  and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Rows only a line
-  tall that each end in one (`.rjb-posting-rows`) grow to the target instead, so targets never
-  overlap. Unsaved listings (Review new's rows) have no page: their title is the link out, with HDS's external icon. Apply mode keeps Open application.
+  and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Unsaved listings (Find's Browse cards) have no page:
+  below lg their title is the link out, with HDS's external icon (#544; at lg it selects the posting). Apply mode keeps Open application.
   Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts` (hit-tests
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Company logos (2026-10-22):** `CompanyLogo.tsx` is an HDS `Avatar` per company (the To apply stack, Pipeline table and cards, job header, job rail, Company page, Companies and dream rows): letter first, the logo only once `new Image()` has loaded it at 16px or more (lazy, no referrer; errors and DuckDuckGo's tiny placeholder keep the letter). `companyLogo.ts` is the one table-tested rule for the domain (company website first, then the posting's host; never a job board, ATS or aggregator host, `*.example.com`, localhost, IPs). Icons come from `icons.duckduckgo.com` (`img-src`, `legal.ts` THIRD_PARTIES, `csp.test.ts`); e2e specs abort that host, so baselines show letters.
