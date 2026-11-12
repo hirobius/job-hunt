@@ -13,7 +13,8 @@ describe('the double-tap guard', () => {
 
   it('swallows presses inside main for 700 ms after an answer, then lets them through', () => {
     vi.useFakeTimers();
-    document.body.innerHTML = '<main><button id="in">In</button></main><button id="out">Out</button>';
+    document.body.innerHTML =
+      '<main><button id="in">In</button></main><button id="out">Out</button>';
     const hits: string[] = [];
     for (const id of ['in', 'out'])
       document.getElementById(id)!.addEventListener('click', () => hits.push(id));
@@ -24,5 +25,18 @@ describe('the double-tap guard', () => {
     vi.advanceTimersByTime(700);
     document.getElementById('in')!.click();
     expect(hits).toEqual(['out', 'in']);
+  });
+
+  it('leaves the top tabs alone: they sit in main, in the page bar, since #679', () => {
+    document.body.innerHTML =
+      '<main><div class="rjb-page-bar"><nav><a id="tab" href="#/find">Find</a></nav></div></main>';
+    const hits: string[] = [];
+    document.getElementById('tab')!.addEventListener('click', (e) => {
+      e.preventDefault();
+      hits.push('tab');
+    });
+    expect(tooSoon()).toBe(false); // an answer
+    document.getElementById('tab')!.click();
+    expect(hits).toEqual(['tab']);
   });
 });

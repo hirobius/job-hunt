@@ -102,8 +102,10 @@ test.describe('dock 390', () => {
     const shorter = await count();
     // The toast survives navigation for its full timeout (interaction review 2026-11-11).
     await topTab(page, 'Find').click();
+    await expect(page).toHaveURL(/#\/find/);
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
     await page.goBack();
+    await expect(page).toHaveURL(/#\/apply/);
     const undo = page.getByRole('button', { name: 'Undo' });
     await undo.focus();
     await page.keyboard.press('Enter');

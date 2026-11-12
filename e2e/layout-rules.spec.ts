@@ -142,7 +142,8 @@ function probe(page: Page) {
       // 4px a list column gives back for its focus rings (.job-rail's negative margin).
       const tabs = document.querySelector('nav[aria-label="Sections"]');
       const bar = tabs?.parentElement;
-      if (bar) {
+      // (Measured with the page at its top: a sticky list column rides over a scrolled page.)
+      if (bar && window.scrollY === 0) {
         const barTop = bar.getBoundingClientRect().top;
         let top = Infinity;
         for (let page = bar.nextElementSibling; page; page = page.nextElementSibling)
