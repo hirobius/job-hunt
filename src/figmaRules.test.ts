@@ -103,7 +103,20 @@ describe('FIGMA-RULES.md', () => {
   it('pins the title block (#538): title first, facts, amber only for a date', () => {
     expect(RULES).toMatch(/A job leads with its title/);
     expect(RULES).toMatch(/No fit chips, no Saved chip, no blue/);
-    expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<Card.Facts');
+    expect(fs.readFileSync('src/DetailHeader.tsx', 'utf8')).toContain('<Card.Facts');
+    expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<DetailTitleBlock');
+  });
+
+  it('pins one detail template for a posting and a job (#546)', () => {
+    expect(RULES).toContain('One detail template at 1440 (#546)');
+    expect(CLAUDE).toContain('One detail template at 1440 (#546');
+    for (const file of ['src/JobHeader.tsx', 'src/ReviewView.tsx']) {
+      const src = fs.readFileSync(file, 'utf8');
+      expect(src).toContain('<DetailHeader');
+      expect(src).toContain('<DetailTitleBlock');
+    }
+    // At lg a Find list card carries no keys: the detail column has them.
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('keys={!onOpen}');
   });
 
   it('pins the action dock (#535, #536)', () => {
