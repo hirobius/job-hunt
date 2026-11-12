@@ -13,6 +13,9 @@ const QUIET = [/\/_vercel\/(insights|speed-insights)\//, /^https:\/\/icons\.duck
 /** Console lines that are not app errors. Keep this list short and explain each line. */
 const ALLOWED_CONSOLE: RegExp[] = [];
 
+/** The site under test (the config's baseURL), so a 4xx on the page itself counts too. */
+const SITE = new URL(process.env.SMOKE_URL || 'https://roleflame.vercel.app').origin;
+
 function watchErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
@@ -25,7 +28,7 @@ function watchErrors(page: Page) {
   page.on('response', (r) => {
     // A missing chunk or stylesheet of our own is a broken deploy.
     const url = r.url();
-    if (r.status() >= 400 && new URL(url).origin === new URL(page.url() || url).origin) {
+    if (r.status() >= 400 && new URL(url).origin === SITE) {
       errors.push(`${r.status()} ${url}`);
     }
   });

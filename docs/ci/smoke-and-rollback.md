@@ -13,6 +13,8 @@ fresh, signed-out browser at 390 and 1440 and checks:
 6. No page error, no console error and no 4xx/5xx on the site's own files at any step.
 
 Analytics and the logo host are answered empty, so a run is not counted as a visit.
+It checks the production alias, which is what users get. While production is held on a
+rolled-back deployment, it checks that old build, not the new one.
 Run it by hand: `npm run smoke`, or `SMOKE_URL=<url> npm run smoke` for another deploy.
 
 ## Turn it on (Adrian)
@@ -31,7 +33,8 @@ The workflow opens one issue labelled `smoke-failure` (later failures comment on
 2. If the live site is broken, roll back first, then fix:
    1. Open vercel.com > the roleflame project > Deployments.
    2. Find the last Production deployment before the bad one (status Ready).
-   3. Open its ... menu and pick Instant Rollback (or Promote to Production).
+   3. Open its ... menu and pick Instant Rollback (or Promote to Production). On the Hobby plan,
+      Instant Rollback goes back only to the deployment just before; use Promote for an older one.
    4. Confirm. The alias moves in seconds. Run `npm run smoke` again to check.
 3. Fix on a branch, merge, and close the issue when the next smoke passes.
 4. After a rollback, Vercel holds production on the old deployment: the next push to main does not

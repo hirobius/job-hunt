@@ -33,6 +33,9 @@ jobs:
        github.event.deployment.environment == 'Production')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
       options: --ipc=host
@@ -59,21 +62,25 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+          API: ${{ github.api_url }}/repos/${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SHA: ${{ github.event.deployment.sha || github.sha }}
+        # curl and node are in the image, so the alert needs no extra install.
         run: |
-          apt-get update -qq && apt-get install -y -qq gh > /dev/null || true
-          body="The post-deploy smoke test failed on $SMOKE_URL for commit $SHA.
+          body=$(node -e 'console.log(JSON.stringify(process.argv[1]))' "The post-deploy smoke test failed on $SMOKE_URL for commit $SHA.
 
           Run: $RUN_URL
 
           Rollback: Vercel > roleflame > Deployments > the previous Production deployment > ... > Instant Rollback.
-          Runbook: docs/ci/smoke-and-rollback.md"
-          gh label create smoke-failure --color B60205 --description "Post-deploy smoke test failed" 2>/dev/null || true
-          open=$(gh issue list --label smoke-failure --state open --json number --jq '.[0].number')
+          Runbook: docs/ci/smoke-and-rollback.md")
+          auth=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json")
+          curl -sS "${auth[@]}" -X POST "$API/labels" \
+            -d '{"name":"smoke-failure","color":"B60205","description":"Post-deploy smoke test failed"}' > /dev/null || true
+          open=$(curl -sSf "${auth[@]}" "$API/issues?labels=smoke-failure&state=open&per_page=1" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const a=JSON.parse(s);console.log(a[0]?a[0].number:"")})')
           if [ -n "$open" ]; then
-            gh issue comment "$open" --body "$body"
+            curl -sSf "${auth[@]}" -X POST "$API/issues/$open/comments" -d "{\"body\":$body}" > /dev/null
           else
-            gh issue create --title "Production smoke test failed" --label smoke-failure --body "$body"
+            curl -sSf "${auth[@]}" -X POST "$API/issues" \
+              -d "{\"title\":\"Production smoke test failed\",\"labels\":[\"smoke-failure\"],\"body\":$body}" > /dev/null
           fi
