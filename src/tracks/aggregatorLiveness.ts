@@ -4,7 +4,9 @@
 // (Greenhouse, Lever, Ashby: fixed API hosts, boardFetch.ts `guardedFetch`), the board itself says
 // whether the job is still there. Pure apart from the fetch it is given: the edge function and the
 // tests share it (`.ts` specifiers: Deno loads it too).
-//   - A board that answers with its list and no longer holds the job: gone.
+//   - A board that answers with a non-empty list and no longer holds the job: gone (#673: an
+//     empty list is unknown, since no recorded fixture shows a kind answering 404, rather than [],
+//     for a slug it does not know; a list whose ids do not have the kind's id format is unknown).
 //   - A board that answers 404 (the board itself is gone): every job on it is gone.
 //   - Anything else (a timeout, a 429/5xx after the one retry of retry.ts, a body that is not a
 //     list, a link the rules cannot read a job id from): unknown, never gone.
@@ -64,12 +66,19 @@ export function jobOnBoard(
   } else {
     // jobs.lever.co/<slug>/<uuid>[/apply], jobs.ashbyhq.com/<slug>/<uuid>[/application]
     jobId = seg[1];
-    if (jobId && !/^[0-9a-f-]{8,}$/i.test(jobId)) jobId = undefined;
+    if (jobId && !UUID.test(jobId)) jobId = undefined;
   }
   return jobId
-    ? { kind: b.kind as ProbeHostKind, slug: b.slug.toLowerCase(), jobId: jobId.toLowerCase() }
+    ? // The slug keeps its case for the request (Ashby's may be case-sensitive, #673); boards are
+      // grouped by its lowercase form only.
+      { kind: b.kind as ProbeHostKind, slug: b.slug, jobId: jobId.toLowerCase() }
     : null;
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Whether a job id has the format of `kind`'s ids (Greenhouse numbers, Lever / Ashby UUIDs). */
+const idFits = (kind: ProbeHostKind, id: string) =>
+  kind === 'greenhouse' ? /^\d+$/.test(id) : UUID.test(id);
 
 type BoardRead = { ok: boolean; status?: number; error?: string; ids?: Set<string> };
 
@@ -96,10 +105,13 @@ async function readBoardIds(kind: ProbeHostKind, slug: string, f: Fetch): Promis
     const postings = await fetchBoard(board, shaped, { light: true });
     if (!boardJobs(board, body)) return { ok: false, error: `${kind} answer had no job list` };
     // Posting ids are `<kind>:<slug>:<job id>` (ats.ts parsers).
-    return {
-      ok: true,
-      ids: new Set(postings.map((p) => p.id.split(':').slice(2).join(':').toLowerCase())),
-    };
+    const ids = postings.map((p) => p.id.split(':').slice(2).join(':').toLowerCase());
+    // An empty list could be a slug the kind does not know: unknown, never "every job gone".
+    if (ids.length === 0) return { ok: false, error: `${kind} answered an empty job list` };
+    // A list whose ids are not the kind's format (a changed answer): unknown too.
+    if (!ids.every((id) => idFits(kind, id)))
+      return { ok: false, error: `${kind} job ids not in the expected format` };
+    return { ok: true, ids: new Set(ids) };
   } catch (e) {
     const status = e instanceof FetchError && e.status ? e.status : undefined;
     return { ok: false, status, error: String(e) };
@@ -132,7 +144,7 @@ export async function checkAggregatorLiveness(
   for (const r of rows) {
     const j = jobOnBoard(r.url);
     if (!j) continue;
-    const key = `${j.kind}:${j.slug}`;
+    const key = `${j.kind}:${j.slug.toLowerCase()}`;
     const g = byBoard.get(key) ?? { kind: j.kind, slug: j.slug, rows: [] };
     g.rows.push([r.id, j.jobId]);
     byBoard.set(key, g);
@@ -153,7 +165,8 @@ export async function checkAggregatorLiveness(
     const r = reads[i];
     const g = byBoard.get(k)!;
     if (r.ok && r.ids) {
-      for (const [id, jobId] of g.rows) if (!r.ids.has(jobId)) gone.push(id);
+      for (const [id, jobId] of g.rows)
+        if (idFits(g.kind, jobId) && !r.ids.has(jobId)) gone.push(id);
     } else if (r.status === 404) {
       for (const [id] of g.rows) gone.push(id);
     } else failed.push({ board: k, status: r.status, error: r.error });
