@@ -69,6 +69,12 @@ export function weekDateOf(j: Job, now: Date): string | null {
 }
 export const VIEWS: Filter[] = [...NAMED_VIEWS, 'all'];
 
+/** Whether a job is in a view: the one rule every count and list on Apply reads (the chips, the
+ *  list, and the Follow up panel under the lg column). */
+export function inView(j: Job, f: Filter, now: Date = new Date()): boolean {
+  return matchesFilter(j, f, now);
+}
+
 function matchesFilter(j: Job, f: Filter, now: Date): boolean {
   const s = deriveJobState(j, now);
   if (f === 'all') return true;

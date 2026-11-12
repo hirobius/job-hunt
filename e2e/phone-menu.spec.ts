@@ -59,8 +59,9 @@ test('closing Data or Sign in returns focus to the Account button', async ({ pag
 });
 
 // The walk control (#542): view picker, "N filters" chip and pager in one row with no box. At 390
-// the worst case (the longest view name, both filters on) fits: the name truncates, never the
-// pager. The picker opens as a sheet from the bottom edge.
+// the worst case (the longest view name, both filters on) fits, the name whole. An empty view
+// shows its empty state and no pager (prod audit 2026-11-12). The picker opens as a sheet from the
+// bottom edge.
 test('the walk row fits at 390; the view picker is a sheet', async ({ page }) => {
   await page.goto('/#/apply');
   await page
@@ -88,15 +89,19 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   await expect(all).toHaveCount(0);
   const chip = page.getByRole('button', { name: '2 filters, open All jobs' });
   await expect(chip).toBeVisible();
-  const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
-  const p = (await pager.boundingBox())!;
+  await expect(page.getByText('Nothing under “Recently closed”')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Jobs in the list' })).toHaveCount(0);
   const c = (await chip.boundingBox())!;
   const k = (await picker.boundingBox())!;
-  expect(p.x + p.width).toBeLessThanOrEqual(390 - 16);
-  expect(c.x + c.width).toBeLessThanOrEqual(p.x);
+  expect(c.x + c.width).toBeLessThanOrEqual(390 - 16);
   expect(k.x + k.width).toBeLessThanOrEqual(c.x);
-  // The pager's text is whole; the row's targets are 44px tall.
-  expect(await pager.evaluate((n) => n.scrollWidth <= n.clientWidth + 1)).toBe(true);
+  // The view's name is whole; the row's targets are 44px tall.
+  expect(
+    await picker
+      .locator('span')
+      .first()
+      .evaluate((n) => n.scrollWidth <= n.clientWidth + 1),
+  ).toBe(true);
   for (const b of [picker, chip])
     expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   // No box and no outline around the row.

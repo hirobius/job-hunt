@@ -122,6 +122,13 @@
 .sign-in-dialog__primary {
   width: 100%;
 }
+/* HDS's link button draws its focus ring on ::after, pulled out sideways past the text: on a
+   full-width exit that made the ring wider than Email and Send link. Keep it at the box's edges,
+   so all three rings line up (prod audit 2026-11-12). */
+.sign-in-dialog__primary[data-rjb-exit]::after {
+  left: 0;
+  right: 0;
+}
 
 /* "Continue with Google" (#482): Google's mark at 20px, its own colours (GoogleMark.tsx). */
 .rjb-google-mark {

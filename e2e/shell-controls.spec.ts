@@ -43,7 +43,7 @@ for (const width of [390, 1440]) {
       await expect(topTab(page, 'Apply')).toHaveAttribute('aria-current', 'page');
     });
 
-    test('Apply shows the count of jobs in its list (#548)', async ({ page }) => {
+    test('Apply shows its To apply count (#548)', async ({ page }) => {
       await seed(page);
       await page.goto('/#/apply');
       const apply = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', {

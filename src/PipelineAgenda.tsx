@@ -8,14 +8,8 @@ import { Panel, PanelRow, PanelRows } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { deriveJobState } from './jobState';
 import { followUpJobs } from './applyQueue';
-import {
-  dueFollowUps,
-  followUpDate,
-  KIND_WORD,
-  respondByJobs,
-  UPCOMING_DAYS,
-  upcomingEvents,
-} from './jobEvents';
+import { inView } from './pipelineView';
+import { followUpDate, KIND_WORD, respondByJobs, UPCOMING_DAYS, upcomingEvents } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
@@ -79,13 +73,23 @@ const jobs$ = (n: number, noun = 'job') => `${n} ${noun}${n === 1 ? '' : 's'}`;
 /** Applied or interviewing jobs: the due ones first (most overdue first), then the rest by date.
  *  Saved jobs closing this week (#308) are under Next 7 days (#419). */
 export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
-  const due = dueFollowUps(jobs, now).map((d) => d.job);
+  // The count is the Follow up view's own rule (pipelineView `inView`), so the panel and the
+  // view chip always say the same number; jobs not yet due are listed after it with their day.
+  const day = (j: Job) => followUpDate(j, now) ?? '';
+  const due = jobs
+    .filter((j) => inView(j, 'followUp', now))
+    .sort((a, b) => day(a).localeCompare(day(b)));
   const dueUrls = new Set(due.map((j) => j.url));
   const waiting = followUpJobs(jobs, now).filter((j) => !dueUrls.has(j.url));
-  const count = due.length + waiting.length;
-  if (count === 0) return null;
+  const count = due.length;
+  if (count + waiting.length === 0) return null;
   return (
-    <Panel label={`Follow up (${count})`} title="Follow up" count={count} countLabel={jobs$(count)}>
+    <Panel
+      label={`Follow up (${count})`}
+      title="Follow up"
+      count={count}
+      countLabel={`${jobs$(count)} due`}
+    >
       <PanelRows>
         {due.map((job) => (
           <PanelRow key={job.url}>

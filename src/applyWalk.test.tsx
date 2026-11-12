@@ -132,3 +132,17 @@ describe('the walk row on a phone', () => {
     ).toEqual(expect.arrayContaining(['Previous page', 'Next page']));
   });
 });
+
+describe('an empty view on a phone (prod audit 2026-11-12)', () => {
+  it("shows the view's empty state, not the last job under \"Not in this filter\"", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'View: To apply' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'Recently closed (0)' }));
+    expect(await screen.findByText('Nothing under “Recently closed”')).toBeInTheDocument();
+    expect(screen.queryByText('Not in this filter')).toBeNull();
+    expect(screen.queryByRole('heading', { level: 1, name: /Designer/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Show to apply' }));
+    expect(await screen.findByRole('heading', { level: 1, name: /Designer/ })).toBeInTheDocument();
+  });
+});

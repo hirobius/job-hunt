@@ -45,9 +45,9 @@
  ],
  "counts": {
   "companies": 898,
-  "boards": 282,
-  "confirmed": 185,
-  "watched": 164
+  "boards": 277,
+  "confirmed": 180,
+  "watched": 159
  },
  "companies": [
   {
@@ -2109,14 +2109,8 @@
   {
    "name": "Doctolib",
    "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "doctolib",
-    "url": "https://boards.greenhouse.io/doctolib",
-    "jobs": 151,
-    "confirmed": "name"
-   },
-   "state": "found",
+   "board": null,
+   "state": "missed",
    "evidence": [
     {
      "source": "dsjobs",
@@ -2471,14 +2465,8 @@
   {
    "name": "Gr8 Tech",
    "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "gr8tech",
-    "url": "https://boards.greenhouse.io/gr8tech",
-    "jobs": 0,
-    "confirmed": "name"
-   },
-   "state": "found",
+   "board": null,
+   "state": "missed",
    "evidence": [
     {
      "source": "dsjobs",
@@ -2665,14 +2653,8 @@
   {
    "name": "Iterable",
    "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "iterable",
-    "url": "https://boards.greenhouse.io/iterable",
-    "jobs": 0,
-    "confirmed": "name"
-   },
-   "state": "found",
+   "board": null,
+   "state": "missed",
    "evidence": [
     {
      "source": "dsjobs",
@@ -2749,14 +2731,8 @@
   {
    "name": "Kayak",
    "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "kayak",
-    "url": "https://boards.greenhouse.io/kayak",
-    "jobs": 0,
-    "confirmed": "name"
-   },
-   "state": "found",
+   "board": null,
+   "state": "missed",
    "evidence": [
     {
      "source": "dsjobs",
@@ -3194,14 +3170,8 @@
   {
    "name": "Parloa",
    "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "parloa",
-    "url": "https://boards.greenhouse.io/parloa",
-    "jobs": 48,
-    "confirmed": "name"
-   },
-   "state": "found",
+   "board": null,
+   "state": "missed",
    "evidence": [
     {
      "source": "dsjobs",
