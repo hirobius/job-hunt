@@ -27,7 +27,7 @@ for (const width of [390, 1440]) {
     // Scan now is the short header's More menu (#544), on the h1's row.
     await expect(findMore(page)).toBeVisible();
     const panels = page.getByRole('main').getByRole('region');
-    await expect(panels.nth(0)).toHaveAccessibleName(/^Review\b/);
+    await expect(panels.nth(0)).toHaveAccessibleName(/^New postings$/);
     await expect(page.getByRole('region', { name: /^Follow up/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Start applying/ })).toHaveCount(0);
     // No posting here (every host is aborted): the list alone says so at every width, and at lg

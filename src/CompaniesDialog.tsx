@@ -97,7 +97,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
         <span className="rjb-sheet-handle" aria-hidden="true" />
         <Dialog.Title>Companies</Dialog.Title>
         <Dialog.Description>
-          Followed companies’ jobs show in Review on Find. Ignored ones never do.
+          Followed companies’ jobs show in Find. Ignored ones never do.
         </Dialog.Description>
         {hasAny && (
           <SegmentedControl

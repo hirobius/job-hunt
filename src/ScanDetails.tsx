@@ -72,7 +72,7 @@ export default function ScanDetails() {
           <>
             <Stack gap="tight" as="section" aria-labelledby="rjb-scan-hidden">
               <Text variant="body" as="h3" className="rjb-semibold" id="rjb-scan-hidden">
-                Not shown in Review
+                Not shown in Find
               </Text>
               <Text variant="body" as="p" tone="secondary">
                 {d.hidden.length ? d.hidden.join(', ') : 'Nothing: every posting read is listed.'}

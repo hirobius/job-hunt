@@ -94,8 +94,8 @@ const renderFindPage = () =>
     <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
       <ToastProvider>
         <ReviewView
-          header={({ sort, selected }) => (
-            <FindHeader heading={!selected} sort={sort} />
+          header={({ selected, deckPlace }) => (
+            <FindHeader heading={!selected} deckPlace={deckPlace} />
           )}
         />
         <NoticeHost />
@@ -321,9 +321,11 @@ describe('Review new: Browse', () => {
     expect(titles(ul)[0]).toBe('Design Systems Designer 0');
     await user.click(screen.getByRole('button', { name: 'Load more (5)' }));
     expect(titles(ul)).toHaveLength(REVIEW_PAGE + 5);
-    // Sort is the header's one More menu (#544), no key on the toolbar.
-    expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'More: sort, scan and search profile' }));
+    // Sort is its own key beside Browse | Deck (2026-11-12), named by the open sort; More has none.
+    await user.click(screen.getByRole('button', { name: 'More: scan and search profile' }));
+    expect(screen.queryByRole('menuitemradio')).toBeNull();
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
     expect(await screen.findByRole('menuitemradio', { name: 'Newest' })).toBeChecked();
     await user.click(screen.getByRole('menuitemradio', { name: 'Company' }));
     expect(titles(ul)[0]).toBe('Design Systems Designer 29');
@@ -418,12 +420,14 @@ describe('Review new: Deck', () => {
     expect(screen.getByText('You’re all caught up')).toBeInTheDocument();
   });
 
-  it('has no pager row: "1 of N" is in the caption under Find (#545)', async () => {
+  it("steps the Deck by the arrow keys; its place is Find's (#545)", async () => {
     const user = userEvent.setup();
     render(
       <ToastProvider>
         <ReviewView
-          header={({ deckPlace: place }) => <p data-testid="caption">{place ?? 'no place'}</p>}
+          header={({ deckPlace: place }) => (
+            <p data-testid="caption">{place ? `${place.at + 1} of ${place.count}` : 'no place'}</p>
+          )}
         />
         <NoticeHost />
       </ToastProvider>,
@@ -486,10 +490,10 @@ describe('Review new: Deck', () => {
       <ToastProvider>
         <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
           <ReviewView
-            header={({ deckPlace: place, sort }) => (
+            header={({ deckPlace: place }) => (
               <>
-                <p data-testid="caption">{place ?? ''}</p>
-                <FindHeader sort={sort} />
+                <p data-testid="caption">{place ? `${place.at + 1} of ${place.count}` : ''}</p>
+                <FindHeader deckPlace={place} />
               </>
             )}
           />
@@ -502,8 +506,19 @@ describe('Review new: Deck', () => {
     // Newest first: Zeta's posting, 1 of 3.
     expect(deckTitle()).toBe('Design Systems Designer at Zeta');
     expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
-    // Sort is Find's More menu (#544), there in the Deck too.
-    await user.click(screen.getByRole('button', { name: 'More: sort, scan and search profile' }));
+    // The page bar's pager (2026-11-12): "‹ 1 of 3 ›", Previous off at the start.
+    const pager = screen.getByRole('navigation', { name: 'Postings in the deck' });
+    expect(within(pager).getByRole('button', { name: /previous/i })).toBeDisabled();
+    await user.click(within(pager).getByRole('button', { name: /next/i }));
+    expect(screen.getByTestId('caption')).toHaveTextContent('2 of 3');
+    await user.click(within(pager).getByRole('button', { name: /previous/i }));
+    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
+    // More (Not this company) sits beside the card's title (2026-11-12).
+    expect(
+      within(screen.getByRole('article')).getAllByRole('button', { name: /^More/ }),
+    ).toHaveLength(1);
+    // Sort is its own key (2026-11-12), there in the Deck too.
+    await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
     await user.click(await screen.findByRole('menuitemradio', { name: 'Company' }));
     // The same card stays on screen, now 3 of 3 (Acme, Mono, Zeta).
     expect(deckTitle()).toBe('Design Systems Designer at Zeta');
@@ -552,7 +567,9 @@ describe('Review new: pay read from a Hacker News post (#547)', () => {
     ).toBeInTheDocument();
     // No pay found: no pay fact on the card (never a funding or 401(k) figure).
     const none = card('Design Systems Engineer', 'Gamma');
-    expect(within(none).queryByText(/\$|€|£|Pay not stated/)).toBeNull();
+    expect(
+      within(none).queryByText(/\$|€|£|Pay not stated/, { ignore: '.rjb-clamp-2, script, style' }),
+    ).toBeNull();
   });
 });
 
@@ -569,12 +586,12 @@ describe('Review new: Deck card anatomy (#458)', () => {
     renderReview();
     await list();
     await user.click(screen.getByRole('button', { name: 'Deck' }));
-    return screen.getByRole('article', { name: 'Design Systems Designer at Acme' });
+    return screen.getByRole('article');
   };
   const before = (a: Node, b: Node) =>
     Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  it('stacks title, company, meta lines, pay, the excerpt, then More; Skip and Save in the dock (#545)', async () => {
+  it('stacks title (More beside it), company, meta lines, pay, the excerpt; Skip and Save in the dock (#545)', async () => {
     const card = await openDeck(ONE);
     const title = within(card).getByRole('heading', { level: 3 });
     const company = within(card).getByText('Acme');
@@ -591,7 +608,8 @@ describe('Review new: Deck card anatomy (#458)', () => {
     const more = within(card).getByRole('button', {
       name: 'More actions: Design Systems Designer at Acme',
     });
-    const order = [title, company, place, mode, posted, pay, text, full, more];
+    // More sits beside the title (2026-11-12), before the company.
+    const order = [title, more, company, place, mode, posted, pay, text, full];
     order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
     // Save and Skip left the card for the dock: Skip (grey) first, Save (filled) on the right.
     expect(within(card).queryByRole('button', { name: /^(Save|Skip) / })).toBeNull();
@@ -614,6 +632,13 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(
       card.querySelectorAll('svg.lucide-map-pin, svg.lucide-briefcase, svg.lucide-calendar'),
     ).toHaveLength(3);
+  });
+
+  it('says "Company not stated" for a posting with none, and has no More (2026-11-12)', async () => {
+    const card = await openDeck(post('hn:5', 'Design Systems Designer', ''));
+    expect(within(card).getByText('Company not stated')).toBeInTheDocument();
+    // More would hold only Not this company: with no company there is none.
+    expect(within(card).queryByRole('button', { name: /^More actions/ })).toBeNull();
   });
 
   it('shows no pay when the source states none, and Save still sits in the dock', async () => {
@@ -743,14 +768,14 @@ describe('Review new: Deck card anatomy (#458)', () => {
     feed.fetchFeed.mockResolvedValue(
       result([
         post('hn:1', 'Design Systems Designer', 'Acme', {
-          location: 'Lisbon, Portugal (Remote)',
+          location: 'Lisbon, Portugal',
           mode: 'remote',
         }),
       ]),
     );
     renderReview();
     const card = within(await list()).getByRole('article');
-    const place = within(card).getByText('Lisbon, Portugal (Remote)');
+    const place = within(card).getByText('Lisbon, Portugal');
     const mode = within(card).getByText('Remote');
     const posted = within(card).getByText('Posted today');
     const lines = [place, mode, posted].map((el) => el.parentElement!);
@@ -765,6 +790,17 @@ describe('Review new: Deck card anatomy (#458)', () => {
     lines.slice(1).forEach((line, i) => expect(before(lines[i], line)).toBe(true));
     expect(lines[0].parentElement).toBe(lines[1].parentElement);
     expect(lines[1].parentElement).toBe(lines[2].parentElement);
+  });
+
+  it('leaves the mode line out when the place already says remote (2026-11-12)', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([post('hn:1', 'Design Systems Designer', 'Acme', { location: 'Remote (US)' })]),
+    );
+    renderReview();
+    const card = within(await list()).getByRole('article');
+    expect(within(card).getByText('Remote (US)')).toBeInTheDocument();
+    expect(within(card).queryByText('Remote', { exact: true })).toBeNull();
+    expect(card.querySelectorAll('svg.lucide-briefcase')).toHaveLength(0);
   });
 
   it('says what the source leaves out, and shows a mode-only place once, as the mode', async () => {
@@ -806,7 +842,16 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
     expect(links).toHaveLength(1);
     expect(within(card).getByRole('heading', { level: 3 })).toContainElement(links[0]);
     expect(links[0].getAttribute('href')).toMatch(/^https:/);
-    expect(within(card).queryByText('Own the design system.')).toBeNull();
+    // Two lines of the held text (2026-11-12); Show more opens it in place, then the full posting.
+    expect(within(card).getByText('Own the design system.')).toHaveClass('rjb-clamp-2');
+    const more = within(card).getByRole('button', { name: 'Show more' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.setup().click(more);
+    expect(within(card).getByRole('button', { name: 'Show less' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(within(card).getByRole('link', { name: /Read the full posting/ })).toBeInTheDocument();
     expect(window.location.hash).toBe('#/find');
   });
 
@@ -883,7 +928,7 @@ describe('Review new: every design-system posting, no tiers', () => {
     renderReview();
     const ul = await list();
     expect(titles(ul)).toEqual(['Design Technologist', 'Design Systems Engineer']);
-    expect(screen.queryByRole('region', { name: 'Review' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Review' })).toBeNull();
     // Counted for Scan details (the Account menu), not shown on the page (Adrian 2026-11-08).
     expect(screen.queryByText(/not design-system roles/)).toBeNull();
     expect(getScanDetails()?.hidden).toContain('2 not design-system roles');

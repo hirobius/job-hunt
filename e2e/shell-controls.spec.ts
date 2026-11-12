@@ -168,3 +168,28 @@ for (const width of [390, 1440]) {
     });
   });
 }
+
+// Count pills and equal segments (2026-11-12): the counts are HDS count Badges; Find | Apply are two
+// equal segments, each 44px tall on a phone; the page bar fits on one row at 375 and 390 and wraps,
+// never scrolls sideways, at 320.
+for (const width of [320, 375, 390]) {
+  test(`Find | Apply: equal segments with count pills, fit at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await seed(page);
+    await page.goto('/#/apply');
+    const nav = page.getByRole('navigation', { name: 'Sections' });
+    const apply = nav.getByRole('link', { name: /^Apply/ });
+    await expect(apply).toHaveAccessibleName(/^Apply \d+\+?$/);
+    await expect(apply.locator('.rjb-seg-count')).toBeVisible();
+    const [find, app] = [await topTab(page, 'Find').boundingBox(), await apply.boundingBox()];
+    expect(Math.abs(find!.width - app!.width)).toBeLessThan(1);
+    expect(Math.abs(find!.y - app!.y)).toBeLessThan(1);
+    expect(find!.height).toBeGreaterThanOrEqual(44);
+    const navBox = await nav.boundingBox();
+    expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(width);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
+}

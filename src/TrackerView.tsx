@@ -294,7 +294,7 @@ function PipelinePage() {
         onPage
         icon={Briefcase}
         title="Track your first job"
-        description="Paste a job link to save it here, then apply and follow up. You can also save postings from Review on Find."
+        description="Paste a job link to save it here, then apply and follow up. You can also save postings from Find."
         action={
           <Stack direction="row" wrap="wrap" gap="tight" justify="center">
             {addJobButton}

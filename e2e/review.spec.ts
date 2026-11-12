@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findMenuItem, findMore, openScanDetails } from './routes';
+import { findMenuItem, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
@@ -86,7 +86,7 @@ async function setUp(page: Page) {
   await page.goto('/#/find');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
   await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
@@ -128,7 +128,7 @@ for (const width of [390, 1440]) {
       });
     };
     await setUp(page);
-    await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
     // No status text above Browse / Deck (Adrian 2026-11-08): no scan line, counts or progress.
     await expect(
       page.getByText(
@@ -238,13 +238,18 @@ for (const width of [390, 1440]) {
     await expect(card.getByText('New', { exact: true })).toHaveCount(0);
     await expect(card.locator('[data-tone="info"]')).toHaveCount(0);
     await expect(card.getByRole('heading', { level: 3 })).toBeVisible();
-    // #545: no pager row; "1 of 2" is the caption under Find. #617: Sort is there in the Deck
-    // too, in Find's More menu (#544).
-    await expect(page.getByRole('navigation', { name: 'Postings' })).toHaveCount(0);
-    await expect(page.getByText('1 of 2', { exact: true })).toBeVisible();
-    await findMore(page).click();
+    // 2026-11-12: "‹ 1 of 2 ›" in the page bar (HDS compact pager, Previous off at the start).
+    // #617: Sort is there in the Deck too, its own key beside Browse | Deck.
+    const pager = page.getByRole('navigation', { name: 'Postings in the deck' });
+    await expect(pager.getByText('1 of 2')).toBeVisible();
+    await expect(pager.getByRole('button', { name: /previous/i })).toBeDisabled();
+    await page.getByRole('button', { name: 'Sort: Newest' }).click();
     await expect(page.getByRole('menuitemradio', { name: 'Newest' })).toBeVisible();
     await page.keyboard.press('Escape');
+    // More (Not this company) sits beside the card's title.
+    const moreBox = await card.getByRole('button', { name: /^More actions/ }).boundingBox();
+    const titleBox = await card.getByRole('heading', { level: 3 }).boundingBox();
+    expect(Math.abs(moreBox!.y - titleBox!.y)).toBeLessThan(24);
     // Skip (grey) and Save (filled, right) sit in the dock: fixed at the bottom on a phone, one
     // row, each key 44px tall at least; inline under the card at lg.
     const dock = page.getByRole('group', { name: /^Actions for / });

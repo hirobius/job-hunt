@@ -344,7 +344,9 @@ p {
   --seg-rail-radius: calc(var(--role-radius) + min(var(--role-radius), var(--primitive-space-1)));
   --seg-rail-pad: var(--primitive-space-1); /* 4px */
   --seg-inner-radius: max(0px, calc(var(--seg-rail-radius) - var(--seg-rail-pad) - 1px));
-  display: flex;
+  /* Two equal segments (2026-11-12): the wider label sets both, each label centred. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--semantic-space-subgrid-gap);
   padding: var(--seg-rail-pad);
   border-radius: var(--seg-rail-radius);
@@ -354,6 +356,9 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* The label, then its count pill (TopTabCount, an HDS Badge). */
+  gap: var(--primitive-space-px6);
+  white-space: nowrap;
   min-height: 30px;
   /* Centred the way HDS SegmentedControl (sm) is, hds#1461: flex centring, line-height 1 and
    * symmetric padding. The ui ramp's taller line box put the ink about 2px low (seg-centering.spec). */
@@ -844,4 +849,21 @@ p {
  * from sm. */
 .rjb-sheet-handle {
   display: none;
+}
+
+/* Find's Review row (2026-11-12): the chips on the left, Browse | Deck and Sort on the right. The
+ * view switch is a compact two-icon segmented group on the muted rail, as the top tabs are. */
+.rjb-review-tools {
+  margin-inline-start: auto;
+}
+.rjb-view-segs {
+  padding: var(--primitive-space-px2);
+  border-radius: var(--role-radius);
+  background: var(--semantic-color-surface-muted);
+}
+@media (max-width: 639px) {
+  .rjb-review-tools button {
+    min-width: var(--rjb-touch);
+    min-height: var(--rjb-touch);
+  }
 }

@@ -25,10 +25,10 @@ export default function Today() {
       // design-system posting, newest first, as a list (the Deck is a toggle inside). Review hosts
       // the header, so its count is the Feed's own.
       <ReviewView
-        label="Review"
+        label="New postings"
         scanStatus
-        header={({ sort, selected, deckPlace }) => (
-          <FindHeader heading={!selected} sort={sort} deckPlace={deckPlace} />
+        header={({ selected, deckPlace }) => (
+          <FindHeader heading={!selected} deckPlace={deckPlace} />
         )}
         before={picks}
       />
@@ -40,7 +40,7 @@ export default function Today() {
       <FindHeader />
       {picks}
       <Stack gap="normal">
-        <Panel label="Review" title="Review" flat>
+        <Panel label="New postings" title="New postings" titleHidden flat>
           <PanelBody>
             {offline ? (
               <Text variant="caption" as="p" tone="secondary">

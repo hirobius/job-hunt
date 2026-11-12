@@ -73,12 +73,12 @@ for (const width of [390, 1440]) {
   });
 }
 
-// #544: one short header, one caption, with one More menu on the page bar's row (2026-11-12) holding Sort,
+// #544: one short header, one caption, with one More menu on the page bar's row (2026-11-12) holding
 // Scan now and Search profile. No Scan now key on the page.
 test('signed out: Scan now is in the header’s More menu, beside the h1 (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/find');
-  const review = page.getByRole('region', { name: /^Review\b/ });
+  const review = page.getByRole('region', { name: /^New postings$/ });
   await expect(review.getByRole('button', { name: 'Browse' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(0);
   // The h1 stays for screen readers (sr-only); More sits on the page bar's row, right of Find / Apply.
@@ -91,7 +91,7 @@ test('signed out: Scan now is in the header’s More menu, beside the h1 (390)',
   expect(more!.height).toBeGreaterThanOrEqual(44);
   await findMore(page).click();
   await expect(page.getByRole('menuitem', { name: 'Scan now' })).toBeVisible();
-  // (Sort joins them once there is a list to sort: review.spec.ts.)
+  // (Sort is its own key beside Browse / Deck since 2026-11-12: review.spec.ts.)
   await expect(page.getByRole('menuitem', { name: 'Search profile' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByText(/^Updated |^Not scanned|^Sign in for automatic/)).toHaveCount(0);

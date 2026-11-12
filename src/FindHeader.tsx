@@ -1,10 +1,10 @@
 // Find's short header (#544, redesign §5.1; the page bar, 2026-11-12): the page's sr-only h1 and one caption, "Scanned 2 h ago", with
-// one More menu beside it that holds Sort, Scan now (signed out; Stop scan while it runs)
-// and Search profile. The date line, the Sort key on the toolbar and the Scan now key by the list's
-// heading are gone. Signed in, "scanned" is the server's last sync (#448); signed out, the last
+// one More menu beside it that holds Scan now (signed out; Stop scan while it runs) and Search
+// profile. Sort is its own key in the Review row (2026-11-12, FindSortMenu). The date line and the
+// Scan now key by the list's heading are gone. Signed in, "scanned" is the server's last sync (#448); signed out, the last
 // scan in this browser. Nothing is said about a time that is not known.
 import { useRef, useState } from 'react';
-import { Button, Dialog, Icon, Menu, Stack, Text } from '@hirobius/design-system';
+import { Button, Dialog, Icon, Menu, Pagination, Stack, Text } from '@hirobius/design-system';
 import { Ellipsis } from 'lucide-react';
 import { MetaCaption } from './MetaCaption';
 import { useBackCloses, useBackSheet } from './useBackCloses';
@@ -13,11 +13,10 @@ import { refocusAccount, useCloudSync } from './account/accountContext';
 import { cancelScan, scanNow, useScan } from './feed/autoScan';
 import { useScanInput } from './feed/useAutoScan';
 import { agoPhrase, useServerUpdatedAt } from './feed/serverUpdated';
-import { SORT_LABEL, type FeedSort } from './feed/feed';
+import type { FeedSort } from './feed/feed';
+import type { DeckPlace } from './ReviewView';
 import { findCaption } from './findCaption';
 import { InPageBar } from './PageBar';
-
-const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 
 export interface FindSort {
   value: FeedSort;
@@ -26,15 +25,13 @@ export interface FindSort {
 
 export function FindHeader({
   heading = true,
-  sort = null,
   deckPlace = null,
 }: {
   /** The page's h1; false while a selected posting's title is the h1 (at lg). */
   heading?: boolean;
-  /** Browse's sort, when there is a list to sort. */
-  sort?: FindSort | null;
-  /** The Deck's place, "1 of 4" (#545), at the end of the caption while the Deck is open. */
-  deckPlace?: string | null;
+  /** The Deck's place (#545): "‹ 1 of 4 ›" after the caption while the Deck is open (2026-11-12:
+   *  HDS Pagination compact, as Apply's pager; arrows off at the ends). */
+  deckPlace?: DeckPlace | null;
 }) {
   const { user } = useCloudSync();
   const { state, running } = useScan();
@@ -51,23 +48,16 @@ export function FindHeader({
       )}
       <InPageBar>
         <Stack direction="row" gap="tight" align="center" className="min-w-0">
-          <MetaCaption items={[...findCaption(scanned, !user && running), deckPlace]} />
-          <FindMore sort={sort} signedIn={!!user} running={running} />
+          <MetaCaption items={findCaption(scanned, !user && running)} />
+          {deckPlace && <DeckPager place={deckPlace} />}
+          <FindMore signedIn={!!user} running={running} />
         </Stack>
       </InPageBar>
     </>
   );
 }
 
-function FindMore({
-  sort,
-  signedIn,
-  running,
-}: {
-  sort: FindSort | null;
-  signedIn: boolean;
-  running: boolean;
-}) {
+function FindMore({ signedIn, running }: { signedIn: boolean; running: boolean }) {
   const input = useScanInput();
   const trigger = useRef<HTMLButtonElement | null>(null);
   const sheet = useBackSheet('find-more');
@@ -92,26 +82,10 @@ function FindMore({
             variant="tertiary"
             iconOnly
             iconLeft={<Icon icon={Ellipsis} />}
-            label="More: sort, scan and search profile"
+            label="More: scan and search profile"
           />
         </Menu.Trigger>
         <Menu.Content align="end">
-          {sort && (
-            <>
-              <Menu.Label>Sort</Menu.Label>
-              <Menu.RadioGroup
-                value={sort.value}
-                onValueChange={(v) => sort.onChange(v as FeedSort)}
-              >
-                {SORTS.map((s) => (
-                  <Menu.RadioItem key={s} value={s}>
-                    {SORT_LABEL[s]}
-                  </Menu.RadioItem>
-                ))}
-              </Menu.RadioGroup>
-              <Menu.Separator />
-            </>
-          )}
           {/* Signed in the server syncs every 15 minutes; signed out nothing scans on its own. */}
           {!signedIn &&
             (running ? (
@@ -133,5 +107,25 @@ function FindMore({
         )}
       </Dialog>
     </>
+  );
+}
+
+/** The Deck's walk, "‹ 1 of 51 ›": the same HDS compact pager as Apply's (ApplyPager). */
+function DeckPager({ place }: { place: DeckPlace }) {
+  // HDS Pagination draws nothing for one page: the last card still says where it is.
+  if (place.count < 2)
+    return (
+      <Text variant="ui" as="span">
+        1 of 1
+      </Text>
+    );
+  return (
+    <Pagination
+      variant="compact"
+      label="Postings in the deck"
+      page={place.at + 1}
+      count={place.count}
+      onPageChange={(p) => place.onAt(p - 1)}
+    />
   );
 }
