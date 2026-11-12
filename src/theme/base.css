@@ -95,8 +95,8 @@ p {
   border-top: thin solid var(--semantic-color-border-default);
 }
 
-/* The Apply job's swipe area (Proposal A): the page still scrolls up and down; a sideways move is
-   the swipe's, never the browser's own. */
+/* The swipe area of the Apply job and the Find Deck (Proposal A, #545; SwipeArea.tsx): the page
+   still scrolls up and down; a sideways move is the swipe's, never the browser's own. */
 .rjb-swipe {
   touch-action: pan-y;
 }
@@ -867,6 +867,8 @@ p {
     max-height: 85dvh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+    /* The home indicator never sits on the footer (Companies' Done, #619). */
+    padding-bottom: max(var(--primitive-space-4), env(safe-area-inset-bottom));
   }
   .rjb-sheet-handle {
     display: block;
