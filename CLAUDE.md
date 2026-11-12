@@ -131,6 +131,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
   Follow-up due. `JobBadges` drops the fit chips and the Saved chip everywhere (the verdict stays in the data).
   Pinned in `jobTitleBlock.test.tsx`, `e2e/title-block.spec.ts`.
+- **One detail template at 1440 (#546, redesign §5.4):** `src/DetailHeader.tsx` (`DetailTitleBlock` + `DetailHeader`)
+  is the one header for a saved job (`JobHeader`) and a Find posting (`ReviewView` `PostingDetail`): Back, the title
+  block (h1, company or "Company not stated", HDS `Card.Facts`, then the badges; a posting's source is a neutral
+  badge there, no blue New), More beside it (a posting's holds Not this company), one action row (`ActionDock`:
+  Save filled, Skip grey, Open posting icon for a posting), then the content (a posting's "Description" `Panel`).
+  **List cards carry no keys at 1440** (`PostingCard keys={!onOpen}`): the detail column has them; below lg each
+  card keeps its own. Shared by the JobPage and Today chunks, never the entry. Pinned in `review.test.tsx`,
+  `figmaRules.test.ts`, `e2e/review.spec.ts` (`templateOf`: the posting's and the saved job's headers measure the same).
 - **Keys (redesign §3, Adrian 2026-11-10, #537):** one filled key per decision, a grey key for a real
   second choice, and **An exit is underlined text** for every way out (Cancel, Not a fit, Continue
   without an account): `src/hds-gaps/ExitButton.tsx` = HDS `Button variant="link"` + HDS's
@@ -352,8 +360,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Find out (**below lg there is no posting page since 2026-11-08:** the card's title is the link out to the posting
   (#544), an old `#/find/<fingerprint>` link scrolls to its card and drops the fingerprint, and after a
   decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, Review, New companies) beside
-  `PostingDetail` (the old preview dialog's body: title as the page's h1, company, the card with its excerpt, Save /
-  Skip / Not this company, Open posting; "Pick a posting" until one is picked); below lg the list is the tab and a
+  `PostingDetail` (the job page's template since #546: title block, More with Not this company, Save / Skip / Open
+  posting, then the Description; "Pick a posting" until one is picked); below lg the list is the tab and a
   selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
   route, `#/find/<fingerprint>` (`route.postingOf` / `findHash` / `selectPosting`, URI-escaped): shareable, survives
   a reload, nothing selected when the tab opens. A pick replaces the history entry at lg and pushes below lg (Back
@@ -381,6 +389,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   adds it to its caption); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
   card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock row` (one row, `data-layout="row"`):
   fixed at the bottom below lg, inline under the card at lg; the card collapses as it goes and both toast with Undo.
+  After a decision focus goes to the next card's title (h3), or Find's h1 once the deck is empty (`Deck`'s `decided`
+  mark; the card's elements stay, so `focusNextTitle`'s list-item walk does not apply).
   The card shows the posting's text at once (`usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
   Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More keeps Not this company; no
   disclosure. Sort (Find's More menu since #544) works in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
@@ -426,7 +436,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `PostingActions`): Save primary, Skip secondary, Open posting as an icon link, More (…) holding Not this company**,
   all `md`; no match-reason line). **A Browse card is compact (#544, redesign §5.1):** the title (bold body, HDS
   `lineClamp={3}`; it opens the posting: at lg it selects it, below lg it is the HDS `InlineLink` out, with the
-  external icon), the company, the facts, the pay, then Save (filled, plus), Skip (grey) and More (Not this company);
+  external icon), the company, the facts, the pay, then Save (filled, plus), Skip (grey) and More (Not this company;
+  below lg only: at lg a list card carries no keys, the detail column has them, #546);
   no source or New badge, no Show description row, no Open posting key, padding `sm`. Card radius stays 12 until HDS G5
   (hds#1436). `.rjb-posting-rows` and `.rjb-preview-title` are deleted; `.rjb-card-title` stays only for the Apply
   card, the agenda and Daily picks (their quiet title link);
