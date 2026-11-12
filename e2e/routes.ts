@@ -144,9 +144,12 @@ export async function openScanDetails(page: Page) {
   return dialog;
 }
 
-/** The shell's top tabs are links in a nav (top tabs PR): one by name, or the open one. */
+/** The shell's top tabs are links in a nav (top tabs PR): one by name, or the open one. The name is
+ *  the label, then the tab's count when it shows one ("Apply 12", #548). */
 export const topTab = (page: Page, name: string) =>
-  page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name, exact: true });
+  page
+    .getByRole('navigation', { name: 'Sections' })
+    .getByRole('link', { name: new RegExp(`^${name}( \\d+\\+?)?$`) });
 export const currentTab = (page: Page) =>
   page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]');
 

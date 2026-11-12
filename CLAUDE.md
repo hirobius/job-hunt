@@ -42,7 +42,7 @@ the still mark (`brandHtml.ts`); `src/brand/bootFlame.ts`, its own small chunk p
 budget), runs the simulation on those paths until React replaces the splash; reduced motion / no script shows the still
 mark. No flame anywhere repeats: `loopFrames`, the baked frames and the `rjb-boot-frame` CSS are gone
 (`flameEngine.test.ts` fails if a loop comes back). The splash still fades in after a short beat.
-**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
+**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Find, #620;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
 `.rjb-wordmark-l` for the flicker; the og-image keeps a plain run). `wordmark.css` sets them on one baseline, the
@@ -274,8 +274,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   stores, sync, Back up, CSV) but never surface: the v12 move reads design-systems tracks only. Guard:
   `src/dsOnly.test.ts` (pack ids, directory keys, curated groups, no `sam` source, and a scan of app source for
   Spokane / welding / sheet metal / apprenticeship / ServiceNow / SAM.gov with a commented allow-list).
-- **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (never a heading: `role="img"` named by
-  BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
+- **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header, one row at every width (#548) = the body-size wordmark, a link home to Find (#620; the lockup inside
+  never a heading: `role="img"` named by BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
   Apply, Find, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
   focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**: links in a `nav` named "Sections", the open one `aria-current="page"`, styled as HDS tabs by `.rjb-top-tab`; not ARIA tabs, no tab panel (top tabs PR, 2026-11-08; HDS ask: Tabs as navigation links); tests use `test/topTabs.ts` / `e2e/routes.ts` `topTab`, `currentTab`) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
@@ -434,8 +434,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `figmaRules.test.ts`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
-  radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`); full width under the logo below md, inline in the
-  app bar from md (`useAtLeast('md')`). Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
+  radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`, G7 hds#1438); **one app-bar row at every width (#548):**
+  logo · Find / Apply · Account (the phone's 52px second row is gone; below sm the segments' sides narrow to 6 and the
+  row's minimum gap is 4, so it fits at 375 and 390 with counts up to two digits; where it cannot fit, a 320 screen
+  or two "99+" counts, it wraps the tabs under the logo). Concentric corners (hds#1470): `.rjb-segs` sets
+  `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. Each tab
+  shows its **count** as plain text after its label, the way the view chips read (`TopTabCount.tsx`, a lazy chunk;
+  over 99 reads "99+"; a Badge's chrome made the row too wide at 390): Find the new postings Review new last
+  read (`scanDetails.newToday`), Apply the jobs its list shows now (`visibleJobs`: open view + Remote only, the status
+  line's number); none while 0 or not known; the link's name is "Apply 12" (`test/topTabs.ts` matches label then
+  count). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
+  a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
+  a tab tap, which reopens where the tab was left. Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
   `aria-pressed` in a `role="group"` "Review view", each with an HDS Tooltip. Apply's **Remote only** HDS `Toggle`
   (`RemoteOnlySwitch.tsx`, the lg job rail; the phone's All jobs sheet shows it as a chip, #543) sets `PipelineView.remoteOnly`, kept per
   device (`rjb_apply_remote_only`); `visibleJobs` keeps `isRemoteJob` (#614: the job's mode when set, else

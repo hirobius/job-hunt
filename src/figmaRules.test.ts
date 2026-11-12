@@ -259,4 +259,18 @@ describe('FIGMA-RULES.md', () => {
     const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
     expect(head).toContain('More: sort, scan and search profile');
   });
+
+  it('pins the one-row app bar (#548) and the logo home link (#620)', () => {
+    expect(RULES).toMatch(/\*\*One app-bar row \(#548\)\.\*\*/);
+    expect(RULES).toMatch(/\*\*The logo is the home link \(#620\)\.\*\*/);
+    expect(CLAUDE).toMatch(/one app-bar row at every width \(#548\)/);
+    expect(CLAUDE).toMatch(/The logo is the home link \(#620\)/);
+    const app = fs.readFileSync('src/App.tsx', 'utf8');
+    expect(app).toContain('className="rjb-segs"');
+    expect(app).not.toContain('rjb-segs-full');
+    expect(app).toContain('rjb-logo-link');
+    const base = fs.readFileSync('src/theme/base.css', 'utf8');
+    expect(base).toContain('border-radius: var(--seg-inner-radius);');
+    expect(base).toContain('padding: var(--seg-rail-pad);');
+  });
 });

@@ -127,6 +127,54 @@ describe('app shell (#115 Phase 1)', () => {
     ).toBeInTheDocument();
   });
 
+  // The logo is the home link (#620): named for the product and Find, never a heading, and it
+  // opens Find at its root from anywhere (a tab tap reopens where the tab was left; the logo never).
+  it('the logo is a link home to Find, out of the heading outline (#620)', () => {
+    window.location.hash = '#/apply';
+    renderApp();
+    const banner = screen.getAllByRole('banner').find((el) => !el.closest('main'))!;
+    const home = within(banner).getByRole('link', { name: `${BRAND.name}, Find` });
+    expect(home).toHaveAttribute('href', '#/find');
+    expect(home).toHaveClass('rjb-logo-link');
+    // The lockup inside it is unchanged: the image named for the product.
+    expect(within(home).getByRole('img', { name: BRAND.name })).toBeInTheDocument();
+    expect(home.closest('h1, h2, h3, [role="heading"]')).toBeNull();
+    expect(home.closest('nav')).toBeNull();
+  });
+
+  it('the logo opens Find at its root, not where Find was left (#620)', async () => {
+    window.location.hash = '#/find/some-posting';
+    renderApp();
+    await userEvent.click(topTab('Apply'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    await userEvent.click(screen.getByRole('link', { name: `${BRAND.name}, Find` }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    expect(currentTab('Find')).toBeInTheDocument();
+  });
+
+  it("on a Find posting the logo goes back to Find's root; at the root it scrolls to the top (#620)", async () => {
+    window.location.hash = '#/find';
+    renderApp();
+    window.location.hash = '#/find/some-posting';
+    await waitFor(() => expect(window.location.hash).toBe('#/find/some-posting'));
+    const home = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    await userEvent.click(home);
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    await userEvent.click(home);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    expect(window.location.hash).toBe('#/find');
+  });
+
+  it("a modified click on the logo keeps the browser's own way (new tab)", () => {
+    window.location.hash = '#/apply';
+    renderApp();
+    const home = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true });
+    home.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(false);
+  });
+
   // The animated logo (src/brand/RoleFlame.tsx) loads lazily behind the still wordmark.
   const animatedLogo = async () => {
     await waitFor(() => expect(document.querySelector('header .rjb-rf')).not.toBeNull());
@@ -413,7 +461,7 @@ describe('routes keep working (#115 Phase 1)', () => {
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
-    expect(currentTab()).toHaveAccessibleName(tab);
+    expect(currentTab(tab)).toBeInTheDocument();
   });
 
   it('#/copy-deck opens the Documents dialog over Find, its tab selected (#240, #227, #471)', async () => {
@@ -421,7 +469,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Templates', hidden: true })).toBeNull();
-    expect(currentTab(undefined, { hidden: true })).toHaveAccessibleName('Find');
+    expect(currentTab('Find', { hidden: true })).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
   });
 
@@ -496,7 +544,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/apply');
-    expect(currentTab()).toHaveAccessibleName('Apply');
+    expect(currentTab('Apply')).toBeInTheDocument();
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 
@@ -608,7 +656,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(window.location.hash).toBe('#/find');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(currentTab()).toHaveAccessibleName('Find');
+    expect(currentTab('Find')).toBeInTheDocument();
   });
 
   it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {

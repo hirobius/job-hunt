@@ -18,9 +18,10 @@ for (const width of [390, 1440]) {
     await page.goto('/#/discover/live');
     await expect(page).toHaveURL(/#\/find$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+    // Each tab's label, then its count when it shows one (#548).
     await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link')).toHaveText([
-      'Find',
-      'Apply',
+      /^Find( \d+\+?)?$/,
+      /^Apply( \d+\+?)?$/,
     ]);
     // Scan now is the short header's More menu (#544), on the h1's row.
     await expect(findMore(page)).toBeVisible();

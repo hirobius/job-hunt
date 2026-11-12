@@ -123,6 +123,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   Description panel). List cards carry no keys at 1440: the detail column has them. Below 1024
   each Find card keeps its own keys.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
+- **One app-bar row (#548).** At every width: the logo, then Find / Apply as a segmented control, then
+  the Account avatar. No second row on a phone. Each tab shows its count as plain text after its
+  label ("Find 12", "Apply 4"; over 99 is "99+"): Find the new postings, Apply the jobs its list
+  shows. No count when it is 0. Segment corners are concentric: the
+  inner radius is the rail's radius less its 4 px padding and 1 px.
+- **The logo is the home link (#620).** A tap on the logo opens Find at its root. Its target is 44 px.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
 - Touch targets are at least 44 px on a phone. Text contrast is AA (4.5) in light and dark.
 

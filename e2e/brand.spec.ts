@@ -226,3 +226,22 @@ test('Pause animations stops the app bar flame and is kept after a reload', asyn
     'true',
   );
 });
+
+// The logo is the home link (#620): named for the product and Find, a 44px target on a phone, and a
+// tap opens Find at its root from anywhere; the animated logo stays inside it.
+test('the logo links home to Find (#620)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+  await page.goto('/#/apply');
+  const home = page.getByRole('banner').getByRole('link', { name: 'roleflame, Find' });
+  await expect(home.locator('.rjb-rf > svg')).toBeVisible();
+  const box = await home.boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+  expect(box!.width).toBeGreaterThanOrEqual(44);
+  await home.click();
+  await expect(page).toHaveURL(/#\/find$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]'),
+  ).toHaveText(/^Find/);
+});

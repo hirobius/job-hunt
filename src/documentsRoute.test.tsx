@@ -331,7 +331,7 @@ describe('the Company page (#230)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
-    expect(currentTab()).toHaveAccessibleName('Apply');
+    expect(currentTab('Apply')).toBeInTheDocument();
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',
