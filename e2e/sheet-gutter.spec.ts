@@ -1,8 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openFilters } from './routes';
 
 // Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter,
-// and the Apply list's tertiary "Check which are still open" starts on its search field's edge.
+// and the lg Apply list column keeps its contents and focus rings inside its scroll box (#614).
 async function sample(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/apply');
@@ -31,29 +30,64 @@ test('Add job and Search profile sheets keep a side gutter at 390', async ({ pag
   await expectGutter(page);
 });
 
-for (const width of [390, 1440]) {
-  test(`"Check which are still open" starts on the Jobs panel's content edge (${width})`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await sample(page);
-    // A board job (Greenhouse) is what the liveness check reads.
-    await page.goto('/?add=' + encodeURIComponent('https://boards.greenhouse.io/acme/jobs/123'));
-    await page.evaluate(() => (location.hash = '#/apply'));
-    // Below lg it is in the Apply filter bar (Proposal A), under its search.
-    if (width < 1024) await openFilters(page);
-    const check = page.getByRole('button', { name: 'Check which are still open' });
-    await expect(check).toBeVisible();
-    const textLeft = await check.evaluate((b) => {
-      const r = document.createRange();
-      r.selectNodeContents(b);
-      return r.getBoundingClientRect().left;
-    });
-    // The search field (the panel's first content) is the bordered input itself.
-    // From lg it is the list column's search beside the job (#471).
-    const edge = (await page
-      .getByRole('textbox', { name: /^Search (saved )?jobs$/ })
-      .boundingBox())!.x;
-    expect(Math.abs(textLeft - edge)).toBeLessThanOrEqual(1);
+// #614: the lg list column scrolls on its own, and its scroll box clipped the left edge of its
+// contents and the focus rings of its header (Add job, the view chips, Remote only, Search, Sort).
+test('the Apply list column at 1440: nothing starts left of its content box, no ring is clipped', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await sample(page);
+  const rail = page.locator('.job-rail');
+  await expect(rail).toBeVisible();
+  const offenders = await rail.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const left = box.left + parseFloat(getComputedStyle(el).paddingLeft);
+    return [...el.querySelectorAll<HTMLElement>('*')]
+      .filter((n) => {
+        const r = n.getBoundingClientRect();
+        return r.width > 0 && r.left < left - 0.5;
+      })
+      .map((n) => `${n.tagName}.${n.className}`);
   });
-}
+  expect(offenders).toEqual([]);
+  // Every control in the header, focused by keyboard: its ring (outline or box-shadow, plus its
+  // offset) lies inside the scroll box, which clips at its padding edge.
+  const controls = rail.locator(
+    ':is(button, a, input, [role="switch"]):not(nav[aria-label="Jobs"] *)',
+  );
+  const n = await controls.count();
+  expect(n).toBeGreaterThan(3);
+  await page.keyboard.press('Tab');
+  for (let i = 0; i < n; i++) {
+    const c = controls.nth(i);
+    if (!(await c.isVisible())) continue;
+    await c.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    const clip = await c.evaluate(
+      (node, railEl) => {
+        const el = node as HTMLElement;
+        const cs = getComputedStyle(el);
+        const ring =
+          (parseFloat(cs.outlineWidth) || 0) + Math.max(0, parseFloat(cs.outlineOffset) || 0);
+        const shadow = cs.boxShadow
+          .split(/,(?![^(]*\))/)
+          .map((s) => s.match(/(-?[\d.]+)px/g)?.map(parseFloat) ?? [])
+          .reduce((m, v) => Math.max(m, (v[3] ?? 0) + Math.max(0, v[2] ?? 0) / 2), 0);
+        const grow = Math.max(ring, shadow);
+        const r = el.getBoundingClientRect();
+        const b = (railEl as HTMLElement).getBoundingClientRect();
+        const st = (railEl as HTMLElement).scrollTop;
+        return {
+          name: el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 30),
+          out:
+            r.left - grow < b.left - 0.5 ||
+            (st === 0 && r.top - grow < b.top - 0.5) ||
+            r.right + grow > b.left + (railEl as HTMLElement).clientWidth + 0.5,
+        };
+      },
+      await rail.elementHandle(),
+    );
+    expect(clip.out, `${clip.name} ring clipped`).toBe(false);
+  }
+});

@@ -124,4 +124,15 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).not.toMatch(/gutter is 16/i);
     expect(RULES).toMatch(/Page gutter 20 on a phone/);
   });
+
+  it('pins the lg Apply list header (#614) and the automatic liveness check (#602)', () => {
+    expect(RULES).toContain('Apply list column header at 1440 (#614)');
+    expect(CLAUDE).toMatch(/lg list\s+column header \(#614/);
+    for (const doc of [RULES, CLAUDE]) expect(doc).not.toMatch(/with `LivenessCheck`/);
+    const rail = fs.readFileSync('src/JobRail.tsx', 'utf8');
+    expect(rail).toContain('<RemoteOnlySwitch />');
+    expect(rail).toContain('<PipelineMenus size="sm" compact />');
+    expect(rail).not.toContain('LivenessCheck');
+    expect(rail).not.toContain('Not in this filter');
+  });
 });

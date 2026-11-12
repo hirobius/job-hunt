@@ -152,3 +152,50 @@ describe('To apply order and Recently closed (#541, #602)', () => {
     expect(FILTER_LABEL.closed).toBe('Recently closed');
   });
 });
+
+describe('Remote only (#614)', () => {
+  const j = (over: Partial<Job>): Job => ({
+    url: `https://x.example/${Math.random()}`,
+    label: 'Designer',
+    status: 'Saved',
+    ...over,
+  });
+  it('reads the mode first, else the title and location, with real location strings', async () => {
+    const { isRemoteJob } = await import('./pipelineView');
+    expect(isRemoteJob(j({ mode: 'remote' }))).toBe(true);
+    expect(isRemoteJob(j({ mode: 'onsite', location: 'Remote' }))).toBe(false);
+    expect(
+      isRemoteJob(
+        j({
+          location:
+            'San Francisco, CA, New York, NY, Portland, OR, or Remote within Canada or United States',
+        }),
+      ),
+    ).toBe(true);
+    expect(isRemoteJob(j({ location: 'Hybrid or Remote (US)' }))).toBe(true);
+    expect(isRemoteJob(j({ location: 'Remote - US' }))).toBe(true);
+    expect(isRemoteJob(j({ label: 'Senior Designer (Remote)', location: '' }))).toBe(true);
+    expect(isRemoteJob(j({ location: 'New York, NY' }))).toBe(false);
+    expect(isRemoteJob(j({ location: 'Hybrid, London' }))).toBe(false);
+    expect(isRemoteJob(j({}))).toBe(false);
+  });
+
+  it('chip counts, the list and the closed pool all follow Remote only, on every view', async () => {
+    const { filterCounts, remoteFiltered, VIEWS } = await import('./pipelineView');
+    const jobs = [
+      j({ location: 'Remote' }),
+      j({ location: 'Austin, TX' }),
+      j({ status: 'Applied', appliedAt: '2026-11-01', location: 'Remote' } as Partial<Job>),
+      j({ status: 'Applied', appliedAt: '2026-11-01', location: 'Austin, TX' } as Partial<Job>),
+    ];
+    for (const remoteOnly of [false, true]) {
+      const counts = filterCounts(jobs, undefined, remoteOnly);
+      for (const f of VIEWS)
+        expect(counts[f]).toBe(
+          visibleJobs(jobs, { ...DEFAULT_VIEW, filter: f, remoteOnly }).length,
+        );
+    }
+    expect(remoteFiltered(jobs, true)).toHaveLength(2);
+    expect(remoteFiltered(jobs, false)).toHaveLength(4);
+  });
+});

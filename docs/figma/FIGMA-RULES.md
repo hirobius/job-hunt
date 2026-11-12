@@ -69,6 +69,13 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   up's count is amber while a follow-up is due; every other count is neutral. To apply sorts by
   closing date first, then newest. At 1440 the chips sit at the top of the list column. Closed jobs
   collect in Recently closed, where each is removed or kept.
+- **Apply list column header at 1440 (#614).** Top to bottom: "Jobs" + Add job, the view chips, the
+  view's one-line description, then one row: the **Remote only** toggle (the one visible control),
+  with Search and Sort as quiet tertiary icon buttons at its end (Search opens the field under the
+  row; Sort is a menu, never a filled select there), then one status line in caption
+  ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
+  runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
+  Focus rings and the selected fill are never clipped at the column's edges.
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.

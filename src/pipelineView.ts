@@ -6,6 +6,7 @@ import { createStore } from './createStore';
 import { deriveJobState, localDay } from './jobState';
 import { isClosed } from './jobDates';
 import { sortJobs, type SortKey } from './jobSort';
+import { inferMode } from './feed/mode';
 import type { Job } from './types';
 
 /** The named views (#541, redesign phase 2): the Apply list is walked by view, not by a Status
@@ -16,8 +17,8 @@ export interface PipelineView {
   filter: Filter;
   sort: SortKey;
   q: string;
-  /** Apply's "Remote only" switch (Adrian 2026-11-09): only jobs whose mode is remote; an unknown
-   *  mode counts as not remote. Kept per device (`rjb_apply_remote_only`), unlike the rest. */
+  /** Apply's "Remote only" switch (Adrian 2026-11-09): only remote jobs (`isRemoteJob`: the mode,
+   *  else the title and location, #614). Kept per device (`rjb_apply_remote_only`), unlike the rest. */
   remoteOnly?: boolean;
 }
 
@@ -65,6 +66,22 @@ function closingFirst(jobs: Job[]): Job[] {
   return [...jobs].sort((a, b) => key(a).localeCompare(key(b)));
 }
 
+/** Remote only's test (#614): the job's own mode when it has one; else the title and location
+ *  (`inferMode`), where a list that offers remote among other places ("San Francisco, CA, or
+ *  Remote within Canada") counts as remote too: the person can take it remote. */
+export function isRemoteJob(j: Job): boolean {
+  if (j.mode) return j.mode === 'remote';
+  const text = `${j.location ?? ''} ${j.label ?? ''}`;
+  const m = inferMode(text);
+  return m === 'remote' || (m === undefined && /\bremote\b/i.test(text));
+}
+
+/** The jobs Remote only lets through: what every count on Apply reads (chips, status line, closed
+ *  count, pager, All jobs), so counts always follow the active filters (#614). */
+export function remoteFiltered(jobs: Job[], remoteOnly?: boolean): Job[] {
+  return remoteOnly ? jobs.filter(isRemoteJob) : jobs;
+}
+
 /** The jobs a view shows, in its order. */
 export function visibleJobs(jobs: Job[], view: PipelineView, now: Date = new Date()): Job[] {
   const needle = view.q.trim().toLowerCase();
@@ -78,7 +95,7 @@ export function visibleJobs(jobs: Job[], view: PipelineView, now: Date = new Dat
     (j) =>
       matchesFilter(j, view.filter, now) &&
       textMatch(j) &&
-      (!view.remoteOnly || j.mode === 'remote'),
+      (!view.remoteOnly || isRemoteJob(j)),
   );
 }
 
@@ -87,10 +104,15 @@ export function filtersOn(view: PipelineView): number {
   return (view.q.trim() ? 1 : 0) + (view.remoteOnly ? 1 : 0);
 }
 
-/** How many jobs each view would show. */
-export function filterCounts(jobs: Job[], now: Date = new Date()): Record<Filter, number> {
+/** How many jobs each view would show, under Remote only when it is on (#614). */
+export function filterCounts(
+  jobs: Job[],
+  now: Date = new Date(),
+  remoteOnly = false,
+): Record<Filter, number> {
+  const pool = remoteFiltered(jobs, remoteOnly);
   return Object.fromEntries(
-    VIEWS.map((f) => [f, jobs.filter((j) => matchesFilter(j, f, now)).length]),
+    VIEWS.map((f) => [f, pool.filter((j) => matchesFilter(j, f, now)).length]),
   ) as Record<Filter, number>;
 }
 

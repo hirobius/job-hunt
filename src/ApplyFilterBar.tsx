@@ -1,16 +1,15 @@
 // The Apply screen's filter bar on a phone (Proposal A, Adrian 2026-11-08): one compact row at the
 // top (Filters and Add job, then what is shown; All jobs sits with the pager under it); Filters opens the search and Sort (the named views moved to the walk row's picker, #542)
-// (the shared pipelineView) and the quiet "Check which are still open" line. Open or closed is
-// kept for this page load (view memory).
+// (the shared pipelineView). Liveness checks itself on open (#602): no action here. Open or closed
+// is kept for this page load (view memory).
 import { useRef } from 'react';
 import { ListFilter, Search } from 'lucide-react';
 import { Box, Button, Icon, Input, Stack, Text, Toggle } from '@hirobius/design-system';
 import AddJobButton from './AddJob';
 import PipelineMenus from './PipelineMenus';
-import { LivenessCheck } from './LivenessViews';
 import { useClosedOnBoard } from './useClosedOnBoard';
 import { SampleBanner } from './demo/SampleData';
-import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
+import { FILTER_LABEL, remoteFiltered, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
 import { useRemembered } from './viewMemory';
 import { focusNewHeading, pageHeadingNow } from './focusRescue';
 import type { Job } from './types';
@@ -20,7 +19,7 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
   const shown = visibleJobs(jobs, view);
   const [open, setOpen] = useRemembered('apply:filters', false);
   const search = useRef<HTMLInputElement>(null);
-  const closedTail = useClosedOnBoard(jobs);
+  const closedTail = useClosedOnBoard(remoteFiltered(jobs, view.remoteOnly));
   const cleared = view.filter !== 'toApply' || view.q.trim() !== '';
   // Two items at most on a dotted line (#192): the search rides with the status.
   const summary = `${FILTER_LABEL[view.filter]}${view.q.trim() ? ` “${view.q.trim()}”` : ''} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}${closedTail}`;
@@ -71,8 +70,6 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
                   </Button>
                 </Box>
               )}
-              {/* Quiet: one caption line with its action (Adrian 2026-11-08: not a list section). */}
-              <LivenessCheck jobs={jobs} />
             </Stack>
           </Box>
         )}

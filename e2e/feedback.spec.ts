@@ -239,7 +239,6 @@ test('Apply list: every row and page action answers within 300 ms', async ({ pag
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
-  await press(page, button(page, 'Check which are still open'), 'Check which are still open');
 });
 
 test('Apply cards (390): Remove collapses the card before it goes', async ({ page }) => {
@@ -383,8 +382,8 @@ test.describe('reduced motion', () => {
     await go(page, '#/apply');
     const sheet = await openAllJobs(page);
     await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
-  // Every job, not only To apply (#541): the rows below are applied ones too.
-  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
+    // Every job, not only To apply (#541): the rows below are applied ones too.
+    await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
     await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove from Apply', sheet);
     await expect(button(sheet, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Undo' })).toBeVisible();

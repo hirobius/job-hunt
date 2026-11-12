@@ -5,7 +5,11 @@
   top: var(--primitive-space-4);
   max-height: calc(100vh - 2 * var(--primitive-space-4));
   overflow-y: auto;
-  padding-right: var(--primitive-space-1);
+  /* The scroll box clips at its padding edge, so focus rings (width + offset) and the selected
+     fill on the first column and top row were cut off (#614). Inner padding as wide as the ring
+     on every side, given back by a negative margin, keeps the content where it was. */
+  padding: var(--primitive-space-1);
+  margin: calc(-1 * var(--primitive-space-1));
 }
 
 /* The open job (#603): the shared selected fill (base.css .rjb-selected tokens), no edge marker.
