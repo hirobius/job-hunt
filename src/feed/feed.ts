@@ -262,10 +262,14 @@ export function whyLine(p: SweptPosting): string {
   ].join('; ');
 }
 
-/** "$95k to $120k" from a source's stated yearly pay; '' when it states none. */
+/** The sign a pay line uses for a currency; any other currency is its code ("CAD 120k"). */
+const PAY_SIGN: Record<string, string> = { USD: '$', EUR: '€', GBP: '£' };
+
+/** "$95k to $120k" (or "€95k to €120k") from a source's stated yearly pay; '' when it states
+ *  none, so the card shows no pay line (#547). */
 export function payLabel(p: Pick<SweptPosting, 'salaryMin' | 'salaryMax' | 'currency'>): string {
-  const sym =
-    !p.currency || p.currency.toUpperCase() === 'USD' ? '$' : `${p.currency.toUpperCase()} `;
+  const code = (p.currency || 'USD').toUpperCase();
+  const sym = PAY_SIGN[code] ?? `${code} `;
   const k = (n: number) => `${sym}${Math.round(n / 1000)}k`;
   if (p.salaryMin && p.salaryMax && p.salaryMin !== p.salaryMax)
     return `${k(p.salaryMin)} to ${k(p.salaryMax)}`;
