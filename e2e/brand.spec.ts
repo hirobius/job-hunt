@@ -249,7 +249,9 @@ test('the logo links home to Find (#620)', async ({ page }) => {
 // #556: the stacked flame (sign-in) is centred by mass. RoleFlame.tsx's nudge assumes the name's
 // ink centre sits NAME_INK_OFFSET_EM (0.011em) right of its box centre in Sora 800: measure it in
 // the browser, and check the nudge is on the stacked flame and not on the app bar's row.
-test('the sign-in flame takes its mass nudge; the app bar row takes none', async ({ page }) => {
+test('the sign-in flame takes its mass nudge; the app bar row its own drop (#639)', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/apply');
   await page.getByRole('button', { name: /^Account/ }).click();
@@ -270,5 +272,28 @@ test('the sign-in flame takes its mass nudge; the app bar row takes none', async
   await page.keyboard.press('Escape');
   const row = page.locator('header .rjb-rf[data-layout="inline"] > svg');
   await expect(row).toBeVisible();
-  expect(await row.evaluate((el) => (el as SVGElement).style.transform)).toBe('');
+  expect(await row.evaluate((el) => (el as SVGElement).style.transform)).toBe(
+    'translateY(0.152em)',
+  );
+  // RoleFlame.tsx's X_HEIGHT_CENTRE_EM: Sora 800's x-height centre below a line-height 1 box centre.
+  const xCentre = await page.evaluate(async () => {
+    await document.fonts.load('800 100px "Roleflame Sora"');
+    const c = document.createElement('canvas').getContext('2d')!;
+    c.font = '800 100px "Roleflame Sora"';
+    const m = c.measureText('x');
+    const top =
+      -m.fontBoundingBoxAscent + (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent - 100) / 2;
+    return (-m.actualBoundingBoxAscent / 2 - (top + 50)) / 100;
+  });
+  expect(Math.abs(xCentre - 0.06)).toBeLessThan(0.01);
+  // The drop is a transform: the flame's box stays centred on the name's line, so the bar never moves.
+  const centres = await page.locator('header .rjb-rf[data-layout="inline"]').evaluate((el) => {
+    const svg = el.querySelector('svg')!;
+    const name = el.querySelector('svg + span')!;
+    const box = svg.getBoundingClientRect();
+    const drop = parseFloat(getComputedStyle(svg).fontSize) * 0.152;
+    const text = name.getBoundingClientRect();
+    return { flame: box.top - drop + box.height / 2, name: text.top + text.height / 2 };
+  });
+  expect(Math.abs(centres.flame - centres.name)).toBeLessThan(1);
 });
