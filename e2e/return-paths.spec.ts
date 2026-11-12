@@ -235,7 +235,7 @@ for (const width of [390, 800] as const) {
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const library = await page.evaluate(() => location.hash);
-      const outreach = page.getByRole('region', { name: 'Outreach messages' });
+      const outreach = page.getByRole('region', { name: 'Messages' });
       await outreach.locator('button[aria-expanded]').first().click();
       await outreach
         .getByRole('button', { name: /^Open / })
@@ -307,7 +307,9 @@ for (const width of [390, 800] as const) {
       const count = () =>
         page.evaluate(() => JSON.parse(localStorage.getItem('rjb_documents') || '[]').length);
       const docs = await count();
-      await page.getByRole('button', { name: 'New résumé' }).click();
+      // The library's one New key (#552): its menu, then the kind.
+      await page.getByRole('button', { name: 'New document' }).click();
+      await page.getByRole('menuitem', { name: 'Résumé' }).click();
       await page.getByRole('textbox', { name: 'Text' }).fill('Ten years of welding.');
       await page.getByRole('button', { name: 'Save', exact: true }).dblclick();
       await expect.poll(hash).toBe(apply);

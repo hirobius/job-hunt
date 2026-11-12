@@ -48,6 +48,20 @@ describe('FIGMA-RULES.md', () => {
     expect(walk).toContain('rjb-menu-sheet');
   });
 
+  it('pins Documents (#552): groups by use, one New menu, a blanks count', () => {
+    expect(RULES).toMatch(
+      /\*\*Documents \(#552\): grouped lists, one New menu, a blanks count\.\*\*/,
+    );
+    expect(CLAUDE).toMatch(
+      /\*\*Grouped lists, one New menu, a blanks count \(redesign §5\.10, #552\):\*\*/,
+    );
+    const lib = fs.readFileSync('src/DocumentsLibrary.tsx', 'utf8');
+    expect(lib).toContain("['outreach', 'cover', 'resume', 'note']");
+    expect(lib).toContain('label="New document"');
+    expect(lib).not.toContain('className="rjb-chip"');
+    expect(fs.readFileSync('src/theme/base.css', 'utf8')).not.toContain('.rjb-docs-');
+  });
+
   it('names the two screens as CLAUDE.md does', () => {
     // The top tabs, as CLAUDE.md states them (#471, #475).
     expect(CLAUDE).toMatch(/Two screens: Find and Apply/);

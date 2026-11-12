@@ -36,6 +36,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   focus. At 1440 the same keys sit in one row under the title block. Not a fit is the dock's exit,
   never inside More; it acts at once with "Marked not a fit: <title> · Undo". A job with no link
   never shows Open application: its keys are Mark applied (filled), Add link (grey), Not a fit.
+- **Documents (#552): grouped lists, one New menu, a blanks count.** The dialog is the one surface:
+  groups ordered by use (Messages, Cover letters, Résumés, then Notes), each a heading with a count
+  over hairline rows. One New key with a menu: Message, Cover letter, Résumé, Note. An empty group is
+  one row, "No résumés yet.", with its own Add. A row's blanks are a count ("5 blanks"), never chips.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 

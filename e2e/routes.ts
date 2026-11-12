@@ -50,7 +50,7 @@ export async function addStarters(page: Page) {
   await go(page, '#/find?documents=');
   const docs = page.getByRole('dialog', { name: 'Documents' });
   await docs.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(docs.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
+  await expect(docs.getByRole('region', { name: 'Messages' })).toBeVisible();
   await docs.getByRole('button', { name: 'Close' }).click();
   await expect(docs).toBeHidden();
 }

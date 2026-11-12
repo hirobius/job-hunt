@@ -422,8 +422,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   is just behind, else in place); opened over a job, a Save closes it there. Old `#/copy-deck[/<id>]`
   links redirect in place to their `?from=` page (else Find) with the dialog open. Reached from the
   Account menu's Documents item and the Apply sheet's Edit documents link. Headings in it are h2 (the
-  page keeps its h1). `DocumentsLibrary` is a `Panel` per kind (count, "New" in the header) of HDS Disclosure
-  rows, one open at a time (redesign slice 3, rev-3 M): closed, the title and its variables as chips;
+  page keeps its h1). **Grouped lists, one New menu, a blanks count (redesign §5.10, #552):** `DocumentsLibrary`
+  is a flat `Panel` per kind on the dialog's one surface, ordered by use (Messages, Cover letters, Résumés, then
+  Notes), each with its count; **one New key** heads the library, a Menu of Message, Cover letter, Résumé, Note
+  (no New per group); an empty group is one row ("No résumés yet.") with its own Add; the `.rjb-docs-*` rules
+  live in `DocumentsView.css` (off base.css). Each kind's list is HDS Disclosure
+  rows, one open at a time (redesign slice 3, rev-3 M): closed, the title and its blanks as a count ("5 blanks", never chips);
   open, the first lines (`templateFill.previewText`, cut on a word or blank boundary) with Copy, Open
   (the editor) and a menu (Pin, Duplicate, Delete). `DocumentEditor` (rev-3 N: the document's title as
   the page head; Save, Version history and the menu in one row) saves each change as a Version.

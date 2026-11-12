@@ -49,6 +49,11 @@ const renderLibWithNotices = () => {
   return r;
 };
 const section = (name: string) => screen.getByRole('region', { name });
+/** The library's one New key (#552): its menu, then the kind. */
+async function pickNew(kind: string) {
+  await userEvent.click(screen.getByRole('button', { name: 'New document' }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: kind }));
+}
 const doc = (id: string) => getAllDocuments().find((d) => d.id === id)!;
 /** A row expands (rev-3 M); its Open button opens the editor. */
 async function openDoc(title: string) {
@@ -83,7 +88,7 @@ describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)
     expect(screen.getByText('No documents yet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start from scratch' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Outreach messages' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Messages' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Résumés' })).toBeNull();
     expect(getAllDocuments()).toEqual([]);
   });
@@ -98,16 +103,16 @@ describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)
       'snippet-tpl-thanks',
       'snippet-tpl-intro-call',
     ]);
-    expect(within(section('Outreach messages')).getByText('Outreach note')).toBeInTheDocument();
+    expect(within(section('Messages')).getByText('Outreach note')).toBeInTheDocument();
     expect(within(section('Cover letters')).getByText('Cover letter')).toBeInTheDocument();
     expect(screen.queryByText('No documents yet')).toBeNull();
   });
 
-  it('Start from scratch shows the sections, each with its New button', async () => {
+  it('Start from scratch shows the groups, each empty one with its own Add', async () => {
     renderRaw();
     await userEvent.click(screen.getByRole('button', { name: 'Start from scratch' }));
     expect(
-      within(section('Résumés')).getByRole('button', { name: 'New résumé' }),
+      within(section('Résumés')).getByRole('button', { name: 'Add résumé' }),
     ).toBeInTheDocument();
     expect(getAllDocuments()).toEqual([]);
   });
@@ -144,18 +149,41 @@ describe('waits for cloud sync before offering starters (review, finding 3)', ()
 });
 
 describe('library', () => {
-  it('shows a section per kind, each with its own empty state and a New button', () => {
+  it('groups by use, an empty group is one row with its own Add, and one New key (#552)', async () => {
     renderLib();
-    for (const [name, empty, button] of [
-      ['Résumés', 'No résumés yet', 'New résumé'],
-      ['Cover letters', 'No cover letters yet', 'New cover letter'],
-      ['Notes', 'No notes yet', 'New note'],
-      ['Outreach messages', 'No outreach messages yet', 'New outreach message'],
+    // Messages, Cover letters, Résumés (by use), then Notes.
+    const heads = screen
+      .getAllByRole('region')
+      .map((r) => r.getAttribute('aria-label'))
+      .filter((h) => !h?.startsWith('Notifications'));
+    expect(heads).toEqual(['Messages', 'Cover letters', 'Résumés', 'Notes']);
+    for (const [name, empty, add] of [
+      ['Messages', 'No messages yet.', 'Add message'],
+      ['Cover letters', 'No cover letters yet.', 'Add cover letter'],
+      ['Résumés', 'No résumés yet.', 'Add résumé'],
+      ['Notes', 'No notes yet.', 'Add note'],
     ]) {
       const s = section(name);
-      expect(within(s).getByText(new RegExp(`^${empty}\\.`))).toBeInTheDocument();
-      expect(within(s).getByRole('button', { name: button })).toBeInTheDocument();
+      expect(within(s).getByText(empty)).toBeInTheDocument();
+      expect(within(s).getByRole('button', { name: add })).toBeInTheDocument();
+      // No New key per group: the library has one.
+      expect(within(s).queryByRole('button', { name: /^New/ })).toBeNull();
     }
+    expect(screen.getAllByRole('button', { name: /^New/ })).toHaveLength(1);
+    // Its menu lists the kinds in the same order.
+    await userEvent.click(screen.getByRole('button', { name: 'New document' }));
+    expect((await screen.findAllByRole('menuitem')).map((i) => i.textContent)).toEqual([
+      'Message',
+      'Cover letter',
+      'Résumé',
+      'Note',
+    ]);
+  });
+
+  it('an empty group’s Add opens a new document of its kind', async () => {
+    renderLib();
+    await userEvent.click(within(section('Résumés')).getByRole('button', { name: 'Add résumé' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('New résumé');
   });
 
   it('lists Base documents under their kind, pinned first; a job’s own documents stay out', () => {
@@ -180,9 +208,7 @@ describe('library', () => {
 describe('create, edit, delete', () => {
   it('creates a Base document on its first save', async () => {
     renderLib();
-    await userEvent.click(
-      within(section('Cover letters')).getByRole('button', { name: 'New cover letter' }),
-    );
+    await pickNew('Cover letter');
     expect(getAllDocuments()).toHaveLength(0);
     const title = screen.getByRole('textbox', { name: 'Title' });
     // rev-3 N: the field starts empty with the kind as its placeholder, under "New cover letter".
@@ -199,7 +225,7 @@ describe('create, edit, delete', () => {
 
   it('a new document saved with no title takes its kind as the title', async () => {
     renderLib();
-    await userEvent.click(within(section('Notes')).getByRole('button', { name: 'New note' }));
+    await pickNew('Note');
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Prep');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(getAllDocuments()[0]).toMatchObject({ kind: 'note', title: 'Note' });
@@ -207,7 +233,7 @@ describe('create, edit, delete', () => {
 
   it('a new document with nothing in it cannot be saved (no blank document left behind)', async () => {
     renderLib();
-    await userEvent.click(within(section('Notes')).getByRole('button', { name: 'New note' }));
+    await pickNew('Note');
     const save = screen.getByRole('button', { name: 'Save' });
     expect(save).toBeDisabled();
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), '   ');
@@ -314,7 +340,7 @@ describe('create, edit, delete', () => {
 
   it('a new document with nothing in it goes back without asking', async () => {
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: 'New note' }));
+    await pickNew('Note');
     await userEvent.click(await screen.findByRole('button', { name: 'All documents' }));
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(section('Notes')).toBeInTheDocument();
@@ -430,9 +456,7 @@ describe('Variables panel', () => {
 
   it('a new message has no Variables panel until it is saved', async () => {
     renderLib();
-    await userEvent.click(
-      within(section('Outreach messages')).getByRole('button', { name: 'New outreach message' }),
-    );
+    await pickNew('Message');
     expect(screen.queryByRole('region', { name: 'Variables' })).toBeNull();
     // "Preview" is the box's caption only, not also the panel's title.
     expect(screen.getByText('Fill for a job', { selector: 'h1,h2,h3,h4,h5,h6' })).toBeVisible();
@@ -552,13 +576,13 @@ describe('expandable rows', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Open Alpha' })).toBeNull());
   });
 
-  it('lists Outreach messages before Notes (rev-3 M mock order)', () => {
+  it('lists Messages before Notes (by use, #552)', () => {
     renderLib();
     const heads = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
-    expect(heads.indexOf('Outreach messages')).toBeLessThan(heads.indexOf('Notes'));
+    expect(heads.indexOf('Messages')).toBeLessThan(heads.indexOf('Notes'));
   });
 
-  it('a row shows three variable chips in a fixed order and +N, no brackets, kept when open', async () => {
+  it('a row shows its blanks as a count, no chips, no brackets, kept when open (#552)', async () => {
     const id = createDocument({
       kind: 'outreach',
       title: 'Many',
@@ -568,8 +592,8 @@ describe('expandable rows', () => {
     setDocumentPinned(id, true);
     renderLib();
     const row = screen.getByRole('listitem', { name: 'Many' });
-    const chips = () => [...row.querySelectorAll('.rjb-chip')].map((c) => c.textContent);
-    expect(chips()).toEqual(['Company', 'Role', 'Contact', '+2']);
+    expect(row.querySelectorAll('.rjb-chip')).toHaveLength(0);
+    expect(row).toHaveTextContent('5 blanks');
     expect(row).not.toHaveTextContent('[');
     expect(row).not.toHaveTextContent('…');
     // Pinned is a badge on the row's top line, above the title.
@@ -579,8 +603,8 @@ describe('expandable rows', () => {
     );
     await userEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    // The meta chips stay on the trigger while it is open.
-    expect(trigger.querySelectorAll('.rjb-chip')).toHaveLength(4);
+    // The count stays on the trigger while it is open.
+    expect(trigger).toHaveTextContent('5 blanks');
   });
 
   it('a document without variables shows its versions and last edit in the meta line', () => {
@@ -620,12 +644,12 @@ describe('Restore starters answers (#327, #212)', () => {
     createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
     renderLib();
     await userEvent.click(
-      within(section('Outreach messages')).getByRole('button', {
+      within(section('Messages')).getByRole('button', {
         name: 'Restore starter messages',
       }),
     );
     expect(await screen.findByText('Added 4 starter messages')).toBeInTheDocument();
-    const rows = within(section('Outreach messages')).getAllByRole('listitem');
+    const rows = within(section('Messages')).getAllByRole('listitem');
     expect(rows).toHaveLength(4);
     await waitFor(() => expect(rows[0]).toHaveAttribute('data-motion', 'flash'));
   });

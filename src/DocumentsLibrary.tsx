@@ -7,11 +7,13 @@
 // (outreachTemplates.ts); the starter set can be restored here when one is missing. An empty
 // library (a first run) is one empty state with one setup action, Add starter messages, and a quiet
 // Start from scratch that shows the sections (Adrian 2026-10-22: nothing is added unasked).
-// Layout is the rev-3 mock's (item M): a panel per kind with its count and a "New" button in the
-// header (Résumés, Cover letters, Outreach messages, Notes); each document is an expandable row (HDS
-// Disclosure variant="row", one open at a time). The row's top line carries a Pinned badge, then the
-// title, then a meta line: its variables as chips (no brackets, all of them, wrapping), or for a
-// document without variables its versions and last edit. The meta line is part of the trigger, so it
+// Layout (redesign §5.10, #552): grouped lists on one surface (the dialog), ordered by use: Messages,
+// Cover letters, Résumés, then Notes; each group a flat panel with its count. One New key with a
+// menu (Message, Cover letter, Résumé, Note) heads the library; an empty group is one row with its
+// own Add. Each document is an expandable row (HDS Disclosure variant="row", one open at a time).
+// The row's top line carries a Pinned badge, then the title, then a meta line: its blanks as a count
+// ("5 blanks"), or for a document without blanks its versions and last edit (a message: its first
+// line). The meta line is part of the trigger, so it
 // stays while the row is open; open, the row shows the text with its line breaks (four lines on a
 // phone, all of it from `sm` up) with the variables as chips, then Copy, Open and a menu (Pin,
 // Duplicate, Delete). Delete is soft (#329): the row collapses and a notice offers Undo.
@@ -32,7 +34,6 @@ import {
 import DocumentEditor from './DocumentEditor';
 import {
   createDocument,
-  DOCUMENT_KINDS,
   getAllDocuments,
   replaceDocuments,
   setDocumentPinned,
@@ -45,7 +46,7 @@ import { ItemList, Panel, PanelBody } from './PipelinePanel';
 import { WithChips } from './BlankText';
 import { postedAgo } from './feed/format';
 import { metaLines } from './metaLines';
-import { rowChips, templateVariables } from './templateEditor';
+import { templateVariables } from './templateEditor';
 import { copyFilled } from './templateCopy';
 import { collapseRow, highlightNew, useHighlight } from './feedback';
 import { removeDocumentWithUndo } from './documentRemove';
@@ -59,16 +60,18 @@ const PLURAL: Record<DocumentKind, string> = {
   resume: 'Résumés',
   cover: 'Cover letters',
   note: 'Notes',
-  outreach: 'Outreach messages',
+  outreach: 'Messages',
 };
-const EMPTY_HINT: Record<DocumentKind, string> = {
-  resume: 'Keep a base résumé here to copy into each job.',
-  cover: 'Write a base cover letter once, then tailor a copy per job.',
-  note: 'Keep stories and answers you reuse.',
-  outreach: 'Write a message once; variables like [Company] fill in for each job.',
+/** One of a kind, as the New menu and an empty group's Add say it. */
+const SINGULAR: Record<DocumentKind, string> = {
+  resume: 'Résumé',
+  cover: 'Cover letter',
+  note: 'Note',
+  outreach: 'Message',
 };
-// The library's order (the rev-3 mock): the kinds people reuse per job first, Notes last.
-const LIBRARY_ORDER: DocumentKind[] = ['resume', 'cover', 'outreach', 'note'];
+// The library's order, by use (#552): Messages, Cover letters, Résumés, then Notes. The New menu
+// lists them in the same order.
+const LIBRARY_ORDER: DocumentKind[] = ['outreach', 'cover', 'resume', 'note'];
 // An open row's text: a phone clamps it to four lines in CSS; a very long one is cut here.
 const OPEN_PREVIEW_CHARS = 4000;
 
@@ -79,6 +82,8 @@ const firstLine = (text: string) => text.split('\n').find((l) => l.trim()) ?? ''
 /** An open row's text: blank lines folded, so four phone lines hold more of it. */
 const openText = (text: string) => text.slice(0, OPEN_PREVIEW_CHARS).replace(/\n\s*\n/g, '\n');
 const versionsLabel = (n: number) => (n === 1 ? '1 version' : `${n} versions`);
+/** A row's blanks as a count (#552): "1 blank", "5 blanks". */
+const blanksLabel = (n: number) => (n === 1 ? '1 blank' : `${n} blanks`);
 
 /** Base documents of a kind, pinned first, then by title. */
 function libraryItems(docs: Document[], kind: DocumentKind): Document[] {
@@ -254,48 +259,55 @@ export default function DocumentsLibrary({
 
   return (
     <Stack gap="spacious">
-      {head}
-      {/* The Pipeline's panel rhythm: panels 24 apart (rev-3 mock). */}
+      {/* The head, and the library's one New key (#552) at its end. */}
+      <Stack direction="row" gap="tight" align="center" justify="space-between">
+        {head}
+        <NewMenu onPick={(kind) => go({ kind })} />
+      </Stack>
+      {/* Groups on the dialog's one surface (#552): flat panels, 24 apart. */}
       <Stack gap="px24">
         {LIBRARY_ORDER.map((kind) => {
-          const label = DOCUMENT_KINDS.find((k) => k.kind === kind)!.label;
           const items = libraryItems(docs, kind);
-          const newLabel = `New ${lower(label)}`;
+          const restorable = !!RESTORE_LABEL[kind] && starterMissing(docs, kind);
           return (
             <Panel
               key={kind}
+              flat
               label={PLURAL[kind]}
               title={PLURAL[kind]}
               count={items.length}
               countLabel={`${items.length} ${lower(PLURAL[kind])}`}
-              trailing={
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  iconLeft={<Icon icon={Plus} />}
-                  label={newLabel}
-                  onClick={() => go({ kind })}
-                >
-                  New
-                </Button>
-              }
             >
-              {(items.length === 0 || (RESTORE_LABEL[kind] && starterMissing(docs, kind))) && (
-                <PanelBody>
-                  <Stack gap="tight">
-                    {items.length === 0 && (
-                      <Text variant="caption" as="p" tone="secondary">
-                        {`No ${lower(PLURAL[kind])} yet. ${EMPTY_HINT[kind]}`}
-                      </Text>
-                    )}
-                    {RESTORE_LABEL[kind] && starterMissing(docs, kind) && (
-                      <Box>
-                        <Button variant="tertiary" size="sm" onClick={() => restore(kind)}>
-                          {RESTORE_LABEL[kind]}
-                        </Button>
-                      </Box>
+              {/* An empty group is one row with its own Add (#552). */}
+              {items.length === 0 && (
+                <ItemList as="div">
+                  <Stack direction="row" gap="tight" align="center" wrap="wrap">
+                    <Text variant="caption" as="span" tone="secondary">
+                      {`No ${lower(PLURAL[kind])} yet.`}
+                    </Text>
+                    <Button
+                      variant="tertiary"
+                      size="sm"
+                      iconLeft={<Icon icon={Plus} />}
+                      onClick={() => go({ kind })}
+                    >
+                      {`Add ${lower(SINGULAR[kind])}`}
+                    </Button>
+                    {restorable && (
+                      <Button variant="tertiary" size="sm" onClick={() => restore(kind)}>
+                        {RESTORE_LABEL[kind]}
+                      </Button>
                     )}
                   </Stack>
+                </ItemList>
+              )}
+              {items.length > 0 && restorable && (
+                <PanelBody>
+                  <Box>
+                    <Button variant="tertiary" size="sm" onClick={() => restore(kind)}>
+                      {RESTORE_LABEL[kind]}
+                    </Button>
+                  </Box>
                 </PanelBody>
               )}
               {items.length > 0 && (
@@ -319,8 +331,30 @@ export default function DocumentsLibrary({
   );
 }
 
-/** One document as an expandable row: closed, its title and variables; open, its first lines and
- *  Copy, Open and the menu. */
+/** The library's one New key (#552): a menu of the kinds, in the library's order. */
+function NewMenu({ onPick }: { onPick: (kind: DocumentKind) => void }) {
+  // The browser's Back closes the menu and stays on the page (return paths).
+  const menu = useBackSheet('documents-new');
+  return (
+    <Menu modal={false} {...menu}>
+      <Menu.Trigger asChild>
+        <Button variant="secondary" size="md" iconLeft={<Icon icon={Plus} />} label="New document">
+          New
+        </Button>
+      </Menu.Trigger>
+      <Menu.Content align="end">
+        {LIBRARY_ORDER.map((kind) => (
+          <Menu.Item key={kind} onSelect={() => onPick(kind)}>
+            {SINGULAR[kind]}
+          </Menu.Item>
+        ))}
+      </Menu.Content>
+    </Menu>
+  );
+}
+
+/** One document as an expandable row: closed, its title and its blanks as a count; open, its first
+ *  lines and Copy, Open and the menu. */
 function DocumentRow({
   doc,
   open,
@@ -339,7 +373,6 @@ function DocumentRow({
   const [now] = useState(() => Date.now());
   const text = latest(doc);
   const names = templateVariables(text);
-  const chips = rowChips(names);
   const title = doc.title || 'Untitled';
   const copy = async () => {
     const r = await copyFilled(text);
@@ -399,14 +432,10 @@ function DocumentRow({
                 </Text>
               )}
               {names.length > 0 ? (
-                <Stack direction="row" gap="px4" wrap="wrap">
-                  {chips.shown.map((n) => (
-                    <span key={n} className="rjb-chip">
-                      {n}
-                    </span>
-                  ))}
-                  {chips.more > 0 && <span className="rjb-chip">+{chips.more}</span>}
-                </Stack>
+                // Its blanks as a count, never a row of chips (#552).
+                <Text variant="caption" tone="secondary">
+                  {blanksLabel(names.length)}
+                </Text>
               ) : (
                 doc.kind === 'outreach' && (
                   <Text variant="caption" tone="secondary" className="rjb-truncate">

@@ -238,7 +238,7 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
     await screen.findByRole('dialog', { name: 'Documents' });
     await at(`#/apply/${jobIdOf(C)}?documents=`);
-    const outreach = screen.getByRole('region', { name: 'Outreach messages' });
+    const outreach = screen.getByRole('region', { name: 'Messages' });
     await userEvent.click(within(outreach).getByRole('button', { name: /Cold intro/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Open Cold intro' }));
     // From the library, the editor goes back to the library.
@@ -511,7 +511,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
     await screen.findByRole('dialog', { name: 'Documents' });
     const library = window.location.hash;
-    const outreach = screen.getByRole('region', { name: 'Outreach messages' });
+    const outreach = screen.getByRole('region', { name: 'Messages' });
     await userEvent.click(within(outreach).getByRole('button', { name: /Cold intro/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Open Cold intro' }));
     await screen.findByRole('button', { name: 'All documents' });
@@ -578,7 +578,9 @@ describe('one navigation per Remove, Delete or double click', () => {
     await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
     await screen.findByRole('dialog', { name: 'Documents' });
     const before = getAllDocuments().length;
-    await userEvent.click(screen.getByRole('button', { name: 'New résumé' }));
+    // The library's one New key (#552): its menu, then the kind.
+    await userEvent.click(screen.getByRole('button', { name: 'New document' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Résumé' }));
     await screen.findByRole('heading', { level: 2, name: 'New résumé' });
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Ten years of welding.');
     const pops = countPops();

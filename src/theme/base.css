@@ -839,31 +839,6 @@ p {
   transform-origin: 50% 100%;
 }
 
-/* The Documents dialog at lg (#471 slice 4): the library on the left, the open document's editor on
- * the right, each scrolling on its own inside the dialog's body. */
-/* The Documents dialog at lg (#471 slice 4): the dialog takes the screen's height, and the library
- * and the editor each scroll on their own, so the list stays put while a long document scrolls (and
- * a focus trap's wrap, which does not scroll, never lands off screen). */
-[data-hds] .rjb-docs-dialog:has(.rjb-docs-body) {
-  height: calc(100dvh - 2 * var(--semantic-space-fixed-sm));
-}
-.rjb-docs-body {
-  display: flex;
-  overflow: hidden;
-}
-.rjb-docs-columns {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: var(--semantic-space-fixed-md);
-}
-.rjb-docs-columns > * {
-  min-height: 0;
-  overflow-y: auto;
-  padding: calc(var(--primitive-space-1) / 2);
-}
-
 /* The Apply screen's pager on a phone (Proposal A, Adrian 2026-11-08): it stays at the top while
  * the job scrolls under it, on the page's own surface. */
 .rjb-apply-pager {
