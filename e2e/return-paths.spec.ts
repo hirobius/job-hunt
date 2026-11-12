@@ -145,7 +145,9 @@ for (const width of [390, 800] as const) {
       await signIn.getByLabel('Email').fill('typed@example.com');
       await closesOnBack(signIn, queue);
 
-      // The All jobs sheet, the job's menu, the Sort menu, and Recently removed.
+      // The view picker (#542), the All jobs sheet, the job's menu, the Sort menu, and Recently removed.
+      await page.getByRole('button', { name: /^View: / }).click();
+      await closesOnBack(page.getByRole('menu'), queue);
       await openAllJobs(page);
       await closesOnBack(page.getByRole('dialog', { name: 'All jobs' }), queue);
       const title = (await h1(page).textContent())!.trim();
@@ -291,9 +293,9 @@ for (const width of [390, 800] as const) {
 
       // A job still to apply to (Saved), so Not a fit is there: a double Save in a new document
       // from Edit documents saves one and comes back.
-      await openFilters(page);
-      // The To apply view (#541) holds only jobs still to apply to.
-      await page.getByRole('button', { name: /^To apply \d/ }).click();
+      // The To apply view (#541) holds only jobs still to apply to: the walk row's picker (#542).
+      await page.getByRole('button', { name: /^View: / }).click();
+      await page.getByRole('menuitemradio', { name: /^To apply/ }).click();
       await page
         .getByRole('navigation', { name: 'Jobs in the list' })
         .getByRole('button', { name: 'Next page' })

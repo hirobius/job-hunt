@@ -4,7 +4,7 @@
 // walkthroughs of the new flows. Local only (no Actions): `npm run test:e2e`.
 import { test, expect, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
-import { topTab, currentTab } from './routes';
+import { topTab, currentTab, pressAllJobs } from './routes';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
@@ -129,7 +129,7 @@ for (const theme of ['light', 'dark'] as const) {
         // Below lg the tab is one job (Proposal A): axe the All jobs sheet open.
         const rail = page.getByRole('navigation', { name: 'Jobs', exact: true });
         if (!(await rail.count())) {
-          await page.getByRole('button', { name: 'All jobs' }).click();
+          await pressAllJobs(page);
           await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeVisible();
           await page.waitForTimeout(300);
           bad.push(...(await axe(page, 'all jobs sheet')));
@@ -317,7 +317,7 @@ for (const width of [390, 1440] as const) {
       // From lg the Jobs tab is the list beside a job (#471): a pick there moves in place, so open
       // the second row. Below lg the list is the All jobs sheet (Proposal A): a pick closes it.
       const wide = width > 1000;
-      if (!wide) await page.getByRole('button', { name: 'All jobs' }).click();
+      if (!wide) await pressAllJobs(page);
       const scope = wide
         ? page.getByRole('navigation', { name: 'Jobs' })
         : page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Jobs' });
