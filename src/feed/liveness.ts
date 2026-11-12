@@ -117,7 +117,7 @@ export function eligibleJobs(jobs: Job[]): Job[] {
 }
 
 /** Eligible jobs worth checking now: never checked, last answer unknown, or older than the TTL.
- *  `force` (the "Check which are still open" button) ignores the cache. */
+ *  `force` (tests) ignores the cache. */
 export function dueJobs(
   jobs: Job[],
   stored: Record<string, LiveCheck>,

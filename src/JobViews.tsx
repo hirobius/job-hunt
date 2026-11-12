@@ -16,8 +16,9 @@ import {
 
 export default function JobViews() {
   const jobs = useJobs();
-  const { filter } = usePipelineView();
-  const counts = useMemo(() => filterCounts(jobs), [jobs]);
+  const { filter, remoteOnly } = usePipelineView();
+  // Counts follow Remote only, as the list and status line do (#614).
+  const counts = useMemo(() => filterCounts(jobs, undefined, !!remoteOnly), [jobs, remoteOnly]);
   return (
     <Stack gap="tight">
       <Stack direction="row" wrap="wrap" gap="px8" role="group" aria-label="Views">

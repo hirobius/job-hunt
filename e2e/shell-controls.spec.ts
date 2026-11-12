@@ -105,5 +105,38 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('switch', { name: 'Remote only' })).toBeChecked();
       await expect.poll(count).toBe(remote);
     });
+
+    test('Remote only on each view: chip count, status line and list agree (#614)', async ({
+      page,
+    }) => {
+      await seed(page);
+      await page.goto('/#/apply');
+      if (width < 1024) await page.getByRole('button', { name: 'Filters' }).click();
+      const sw = page.getByRole('switch', { name: 'Remote only' });
+      const chips = page.getByRole('group', { name: 'Views' }).first().getByRole('button');
+      const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
+      const status = page
+        .getByRole('status')
+        .filter({ hasText: /· \d+ jobs?/ })
+        .first();
+      const shownCount = async () => Number((await status.textContent())!.match(/(\d+) jobs?/)![1]);
+      for (const on of [false, true]) {
+        if ((await sw.isChecked()) !== on) await sw.click();
+        for (const name of names) {
+          const chip = chips.filter({ hasText: name }).first();
+          await chip.click();
+          await expect(chip).toHaveAttribute('aria-pressed', 'true');
+          const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
+          await expect.poll(shownCount, `${name}, Remote only ${on}`).toBe(badge);
+          if (width >= 1024) {
+            const n = await page
+              .getByRole('navigation', { name: 'Jobs' })
+              .locator('a[href^="#/apply/"]')
+              .count();
+            expect(n, `${name} rows`).toBe(badge);
+          }
+        }
+      }
+    });
   });
 }

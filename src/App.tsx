@@ -59,6 +59,13 @@ const AutoScanOnOpen = lazy(() =>
     () => ({ default: () => null }),
   ),
 );
+// The liveness check on open (#602): its own chunk too, mounted like the auto-scan.
+const LivenessOnOpen = lazy(() =>
+  importFresh(() => import('./LivenessViews'))().then(
+    (m) => ({ default: m.LivenessOnOpen }),
+    () => ({ default: () => null }),
+  ),
+);
 
 // Top-level tabs, in render order: exactly two, Find · Apply (#471; were Today · Jobs, slugs
 // `today` · `queue`, which route.ts redirects). The Companies tab is
@@ -267,6 +274,11 @@ export default function App() {
       {scanOnOpenEnabled() && hasProfile && (
         <Suspense fallback={null}>
           <AutoScanOnOpen />
+        </Suspense>
+      )}
+      {scanOnOpenEnabled() && (
+        <Suspense fallback={null}>
+          <LivenessOnOpen />
         </Suspense>
       )}
       <DataToolsProvider>

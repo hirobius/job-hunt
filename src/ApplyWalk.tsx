@@ -44,7 +44,7 @@ export default function ApplyWalk({
 }) {
   const view = usePipelineView();
   const sheet = useBackSheet('apply-views');
-  const counts = filterCounts(jobs);
+  const counts = filterCounts(jobs, undefined, !!view.remoteOnly);
   const n = filtersOn(view);
   const name = FILTER_LABEL[view.filter];
   return (

@@ -1,11 +1,13 @@
 // The job list column at lg and up (#130; #471: the Jobs tab is this column beside the open job):
-// Add job, the search, Status and Sort (the Pipeline's shared view, pipelineView), Follow up and
-// Next 7 days, then the jobs as compact links, the open one marked, each with its posting link
+// Jobs + Add job, the named views and their description, then one row (#614, Adrian 2026-11-12:
+// "Remote only is the only thing helpful"): Remote only, with Search and Sort as quiet icon
+// buttons (the search field opens under it), then one status line; Follow up and Next 7 days, then the jobs as compact links, the open one marked, each with its posting link
 // beside it (Adrian 2026-10-22). A hop to another job replaces
 // the history entry and keeps the page's origin (return paths), so one Back leaves the job pages
 // for wherever they were opened from.
 import { Search } from 'lucide-react';
-import { Box, Input, NavList, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Icon, Input, NavList, Stack, Text } from '@hirobius/design-system';
+import { useRemembered } from './viewMemory';
 import { useJobs, jobIdOf } from './store';
 import { getRoute, jobHash, navigate } from './route';
 import { inPlaceClick } from './back';
@@ -15,7 +17,6 @@ import PipelineMenus from './PipelineMenus';
 import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import { useAgendaNow } from './useAgendaNow';
 import { SampleBanner } from './demo/SampleData';
-import { LivenessCheck } from './LivenessViews';
 import { useClosedOnBoard } from './useClosedOnBoard';
 import { focusAsHeading } from './focusRescue';
 import { rowView } from './jobRow';
@@ -23,7 +24,13 @@ import { JobBadges } from './JobRowParts';
 import { JobPostingLink } from './PostingLink';
 import { NavListActionItem } from './hds-gaps/NavListActionItem';
 import { RemoteOnlySwitch } from './ApplyFilterBar';
-import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
+import {
+  FILTER_LABEL,
+  remoteFiltered,
+  setPipelineView,
+  usePipelineView,
+  visibleJobs,
+} from './pipelineView';
 import type { Job } from './types';
 import './JobRail.css';
 import CompanyLogo from './CompanyLogo';
@@ -65,11 +72,10 @@ export default function JobRail({ openId }: { openId: string }) {
   const jobs = useJobs();
   const view = usePipelineView();
   const shown = visibleJobs(jobs, view);
-  const closedTail = useClosedOnBoard(jobs);
-  const open = jobs.find((j) => jobIdOf(j.url) === openId);
-  // The open job stays on screen even when the filter or search would hide it.
-  const hidden = !!open && !shown.some((j) => j.url === open.url);
+  const closedTail = useClosedOnBoard(remoteFiltered(jobs, view.remoteOnly));
   const now = useAgendaNow(jobs);
+  const [searchOpen, setSearchOpen] = useRemembered('rail:search', false);
+  const searching = searchOpen || view.q.trim() !== '';
 
   // Rows are links (each job has its own route), as NavList's link mode. The posting link sits
   // beside each row's link, not in it: NavList.Item has no slot for that (hds-gaps).
@@ -101,34 +107,46 @@ export default function JobRail({ openId }: { openId: string }) {
         </Stack>
         {/* The named views at the top of the list column (#541). */}
         <JobViews />
-        <Input
-          size="sm"
-          aria-label="Search jobs"
-          placeholder="Search jobs…"
-          value={view.q}
-          onChange={(e) => setPipelineView({ q: e.target.value })}
-          leadingVisual={<Search size={16} />}
-        />
-        <SampleBanner jobs={jobs} onCleared={focusNewHeading} />
-        <PipelineMenus size="sm" />
-        <RemoteOnlySwitch />
+        <Stack direction="row" gap="tight" align="center" justify="space-between">
+          <RemoteOnlySwitch />
+          <Stack direction="row" gap="px4" align="center">
+            <Button
+              iconOnly
+              size="sm"
+              variant="tertiary"
+              label="Search jobs"
+              aria-expanded={searching}
+              aria-controls="rjb-rail-search"
+              onClick={() => {
+                if (searching) setPipelineView({ q: '' });
+                setSearchOpen(!searching);
+              }}
+              iconLeft={<Icon icon={Search} size="small" />}
+            />
+            <PipelineMenus size="sm" compact />
+          </Stack>
+        </Stack>
+        {searching && (
+          <Box id="rjb-rail-search">
+            <Input
+              size="sm"
+              aria-label="Search jobs"
+              placeholder="Search jobs…"
+              value={view.q}
+              autoFocus={searchOpen && !view.q}
+              onChange={(e) => setPipelineView({ q: e.target.value })}
+              leadingVisual={<Search size={16} />}
+            />
+          </Box>
+        )}
         <Text variant="caption" as="p" tone="secondary" role="status">
           {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
           {closedTail}
         </Text>
-        {/* The check sits with the line it updates (#601). */}
-        <LivenessCheck jobs={jobs} />
+        <SampleBanner jobs={jobs} onCleared={focusNewHeading} />
         <nav aria-label="Jobs">
           <Stack gap="normal">
-            {hidden && open && (
-              <Stack gap="tight">
-                <NavList>{item(open)}</NavList>
-                <Text variant="caption" as="p" tone="secondary">
-                  Not in this filter
-                </Text>
-              </Stack>
-            )}
-            {shown.length === 0 && !hidden ? (
+            {shown.length === 0 ? (
               <Text variant="ui" as="p" tone="secondary">
                 No jobs match.
               </Text>
