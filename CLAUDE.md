@@ -930,6 +930,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `oauthPkce.ts` is a lazy chunk (the entry is at its budget). Dashboard setup (Google
   Cloud OAuth client, Supabase provider, redirect allow-list) is Adrian's. Pinned in `googleSignIn.test.tsx`,
   `SignInDialog.test.tsx`, `authLinkError.test.ts`, `shell.test.tsx`.
+- **Continue with LinkedIn:** **on since 2026-11-12** (`account/linkedInSignInFlag.ts` `LINKEDIN_SIGN_IN_ON = true`,
+  `setLinkedInSignIn` for tests, reset in the test setup). Supabase provider `linkedin_oidc`, the same PKCE flow as
+  Google: `useCloudSync().signInWithLinkedIn` and `signInWithGoogle` both call `signInWithProvider` →
+  `oauthPkce.startOAuth(supa, provider, redirectTo)`; the kept record (`rjb_oauth_request`) also names the provider
+  (`p`, wording only; the verifier stays the binding, taken once by `oauthSession`). A cancelled/refused return toasts
+  "LinkedIn sign-in was cancelled." / "…didn't work" (`authLinkError.ts` `pendingOAuthProvider`, `oauthMessages`).
+  Order on the sign-in screen: Google, LinkedIn, then the email form; both buttons sit in `.rjb-signin-google`, hidden
+  while the keyboard is open or under 480px tall, and the provider error Alert sits outside it so it stays visible.
+  `src/account/linkedin-in.svg` is LinkedIn's "in" bug as given (#0A66C2), allowed in `THIRD_PARTY_MARKS`. No new
+  browser fetch host (the start is a navigation; the exchange is Supabase's own host). Pinned in
+  `googleSignIn.test.tsx`, `SignInDialog.test.tsx`, `authLinkError.test.ts`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.

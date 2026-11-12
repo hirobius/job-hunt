@@ -24,6 +24,8 @@ export interface CloudSyncApi {
   sendLink: (email: string) => Promise<string | null>;
   /** Start "Continue with Google" (the page leaves for Google); an error message, else null. */
   signInWithGoogle: () => Promise<string | null>;
+  /** Start "Continue with LinkedIn" (Supabase's linkedin_oidc; the page leaves); an error, else null. */
+  signInWithLinkedIn: () => Promise<string | null>;
   retry: () => void;
   signOut: () => void;
   deleteMyData: () => void;

@@ -24,7 +24,9 @@ function userTables(): string[] {
 }
 
 // The last migration that defines it wins on apply (Daily picks, 20261105, redefines it).
-const fnFile = [...files].reverse().find((f) => /create (?:or replace )?function public\.delete_my_data\(/i.test(sql(f)));
+const fnFile = [...files]
+  .reverse()
+  .find((f) => /create (?:or replace )?function public\.delete_my_data\(/i.test(sql(f)));
 const body = fnFile ? sql(fnFile) : '';
 
 describe('delete_my_data covers every per-user table', () => {

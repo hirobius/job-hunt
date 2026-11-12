@@ -1,4 +1,4 @@
-// "Continue with Google" (#482), bound to this browser with PKCE. The start makes a random code
+// "Continue with Google" (#482) and "Continue with LinkedIn" (Supabase's linkedin_oidc), bound to this browser with PKCE. The start makes a random code
 // verifier, keeps it here, and sends only its SHA-256 challenge to Supabase's /authorize. Google's
 // round trip comes back to the app's root with `?code=…`, and the code is worth a session only
 // together with the verifier this browser kept (Supabase's token endpoint checks the pair). So a
@@ -13,6 +13,9 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../config';
 import { tokenEmail } from './authLink';
 export const OAUTH_KEY = 'rjb_oauth_request';
 export const OAUTH_MAX_AGE_MS = 10 * 60 * 1000;
+
+/** The OAuth providers the sign-in screen offers (Supabase provider ids). */
+export type OAuthProvider = 'google' | 'linkedin_oidc';
 
 /** The kept verifier while fresh, else null. */
 export function readVerifier(now: number): string | null {
@@ -40,10 +43,15 @@ export function clearOAuthRequest(): void {
   }
 }
 
-/** Keep the verifier of the Google sign-in this browser is starting. */
-export function rememberOAuthRequest(verifier: string, now = Date.now()): void {
+/** Keep the verifier of the OAuth sign-in this browser is starting, and which provider it is for
+ *  (`p`: only words the return's messages; the verifier is the binding). */
+export function rememberOAuthRequest(
+  verifier: string,
+  now = Date.now(),
+  provider: OAuthProvider = 'google',
+): void {
   try {
-    localStorage.setItem(OAUTH_KEY, JSON.stringify({ v: verifier, at: now }));
+    localStorage.setItem(OAUTH_KEY, JSON.stringify({ v: verifier, at: now, p: provider }));
   } catch {
     /* storage blocked: the return cannot be exchanged, and says so */
   }
@@ -105,23 +113,24 @@ export async function exchangeCode(
 interface OAuthClient {
   auth: {
     signInWithOAuth(o: {
-      provider: 'google';
+      provider: OAuthProvider;
       options: { redirectTo: string; queryParams: Record<string, string> };
     }): Promise<{ error: { message: string; status?: number } | null }>;
   };
 }
 
-/** Start "Continue with Google": keep a verifier, send its challenge (the page then leaves).
+/** Start "Continue with <provider>": keep a verifier, send its challenge (the page then leaves).
  *  Resolves to Supabase's error, or null; any failure drops the verifier. */
-export async function startGoogle(
+export async function startOAuth(
   supa: OAuthClient,
+  provider: OAuthProvider,
   redirectTo: string,
 ): Promise<{ message: string; status?: number } | null> {
   try {
     const verifier = newVerifier();
-    rememberOAuthRequest(verifier);
+    rememberOAuthRequest(verifier, Date.now(), provider);
     const r = await supa.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: {
         redirectTo,
         queryParams: {
@@ -138,9 +147,13 @@ export async function startGoogle(
   }
 }
 
-/** A Google return's code → the session tokens and the email they name, using (once) the
+/** Start "Continue with Google". */
+export const startGoogle = (supa: OAuthClient, redirectTo: string) =>
+  startOAuth(supa, 'google', redirectTo);
+
+/** An OAuth return's code (Google or LinkedIn) → the session tokens and the email they name, using (once) the
  *  verifier this browser kept; null when there is none, or the exchange is refused. */
-export async function googleSession(
+export async function oauthSession(
   code: string,
   fetchFn?: FetchLike,
 ): Promise<{ tokens: AuthTokens; email: string } | null> {
@@ -150,3 +163,6 @@ export async function googleSession(
   const email = tokens ? tokenEmail(tokens.access_token) : null;
   return tokens && email ? { tokens, email } : null;
 }
+
+/** The Google name of the same exchange (#482). */
+export const googleSession = oauthSession;

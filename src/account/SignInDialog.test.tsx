@@ -12,14 +12,17 @@ import SignInDialog, { RESEND_COOLDOWN_S } from './SignInDialog';
 import { SIGN_IN_ERRORS } from './signInErrors';
 import { BRAND } from '../brand';
 import { googleSignInEnabled, setGoogleSignIn } from './googleSignInFlag';
+import { linkedInSignInEnabled, setLinkedInSignIn } from './linkedInSignInFlag';
 import { SIGN_IN_BENEFIT, SIGN_IN_HOW } from './signInCopy';
 
 function Harness({
   sendLink,
   signInWithGoogle = async () => null,
+  signInWithLinkedIn = async () => null,
 }: {
   sendLink: CloudSyncApi['sendLink'];
   signInWithGoogle?: CloudSyncApi['signInWithGoogle'];
+  signInWithLinkedIn?: CloudSyncApi['signInWithLinkedIn'];
 }) {
   const [open, setOpen] = useState(true);
   const api = {
@@ -30,6 +33,7 @@ function Harness({
     offline: false,
     sendLink,
     signInWithGoogle,
+    signInWithLinkedIn,
     retry: () => {},
     signOut: () => {},
     deleteMyData: () => {},
@@ -46,9 +50,16 @@ function Harness({
 const setup = (
   sendLink = vi.fn(async () => null as string | null),
   signInWithGoogle = vi.fn(async () => null as string | null),
+  signInWithLinkedIn = vi.fn(async () => null as string | null),
 ) => {
-  render(<Harness sendLink={sendLink} signInWithGoogle={signInWithGoogle} />);
-  return { sendLink, signInWithGoogle, dialog: screen.getByRole('dialog') };
+  render(
+    <Harness
+      sendLink={sendLink}
+      signInWithGoogle={signInWithGoogle}
+      signInWithLinkedIn={signInWithLinkedIn}
+    />,
+  );
+  return { sendLink, signInWithGoogle, signInWithLinkedIn, dialog: screen.getByRole('dialog') };
 };
 const field = () => screen.getByRole('textbox', { name: 'Email' });
 const submit = () => screen.getByRole('button', { name: 'Send link' });
@@ -89,10 +100,17 @@ describe('SignInDialog', () => {
     expect(googleSignInEnabled()).toBe(true);
   });
 
-  it('with the flag off: Email, Send link and Continue without an account, no Google', () => {
+  it('ships with Continue with LinkedIn (linkedin_oidc is on since 2026-11-12)', () => {
+    expect(linkedInSignInEnabled()).toBe(true);
+  });
+
+  it('with both flags off: Email, Send link and Continue without an account, no providers', () => {
     setGoogleSignIn(false);
+    setLinkedInSignIn(false);
     const { dialog } = setup();
     expect(screen.queryByRole('button', { name: 'Continue with Google' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Continue with LinkedIn' })).toBeNull();
+    expect(dialog.querySelector('.rjb-signin-google')).toBeNull();
     expect(
       within(dialog)
         .getAllByRole('button')
@@ -121,9 +139,15 @@ describe('SignInDialog', () => {
       within(dialog)
         .getAllByRole('button')
         .map((b) => b.textContent),
-    ).toEqual(['Continue with Google', 'Send link', 'Continue without an account', '']);
+    ).toEqual([
+      'Continue with Google',
+      'Continue with LinkedIn',
+      'Send link',
+      'Continue without an account',
+      '',
+    ]);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign in${COPY}Continue with GoogleEmailSend linkContinue without an account`,
+      `${BRAND.name}Sign in${COPY}Continue with GoogleContinue with LinkedInEmailSend linkContinue without an account`,
     );
   });
 
@@ -285,4 +309,51 @@ describe('SignInDialog', () => {
       expect(signInWithGoogle).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('Continue with LinkedIn', () => {
+    const linkedInButton = () => screen.getByRole('button', { name: 'Continue with LinkedIn' });
+
+    it("sits under Google and above the email field, with LinkedIn's blue in bug (decorative)", () => {
+      setup();
+      const button = linkedInButton();
+      expect(
+        googleButton2().compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        button.compareDocumentPosition(field()) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      const mark = button.querySelector('.rjb-linkedin-mark');
+      expect(mark).toHaveAttribute('aria-hidden', 'true');
+      expect(mark!.innerHTML.toUpperCase()).toContain('#0A66C2');
+    });
+
+    it('with only LinkedIn on, Google is gone and LinkedIn stays', () => {
+      setGoogleSignIn(false);
+      setup();
+      expect(screen.queryByRole('button', { name: 'Continue with Google' })).toBeNull();
+      expect(linkedInButton()).toBeInTheDocument();
+    });
+
+    it('starts the LinkedIn sign-in once; a second press of either provider does nothing', async () => {
+      let finish: (v: string | null) => void = () => {};
+      const signInWithLinkedIn = vi.fn(() => new Promise<string | null>((r) => (finish = r)));
+      const { signInWithGoogle } = setup(undefined, undefined, signInWithLinkedIn);
+      await userEvent.click(linkedInButton());
+      await userEvent.click(linkedInButton());
+      await userEvent.click(googleButton2());
+      expect(signInWithLinkedIn).toHaveBeenCalledTimes(1);
+      expect(signInWithGoogle).not.toHaveBeenCalled();
+      await act(async () => finish(null));
+    });
+
+    it("an error shows inline outside the buttons' wrapper, so it stays when the keyboard hides them", async () => {
+      const signInWithLinkedIn = vi.fn(async () => SIGN_IN_ERRORS.offline as string | null);
+      setup(undefined, undefined, signInWithLinkedIn);
+      await userEvent.click(linkedInButton());
+      const err = await screen.findByText(SIGN_IN_ERRORS.offline);
+      expect(err.closest('.rjb-signin-google')).toBeNull();
+    });
+  });
 });
+
+const googleButton2 = () => screen.getByRole('button', { name: 'Continue with Google' });

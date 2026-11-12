@@ -11,6 +11,7 @@ import { resetHistoryRecord } from '../route';
 import { resetTabAccount } from '../tabAccount';
 import { resetAnswerGuard } from '../answerGuard';
 import { resetGoogleSignIn } from '../account/googleSignInFlag';
+import { resetLinkedInSignIn } from '../account/linkedInSignInFlag';
 import '@testing-library/jest-dom/vitest';
 
 // findBy*/waitFor give up after 1 s by default; a busy Vercel builder (verify runs in the deploy)
@@ -53,6 +54,8 @@ beforeEach(resetTabAccount);
 beforeEach(resetAnswerGuard);
 // The Google button follows its shipped default (googleSignInFlag.ts, on); the hidden-state test turns it off.
 beforeEach(resetGoogleSignIn);
+// LinkedIn's button too (linkedInSignInFlag.ts, on).
+beforeEach(resetLinkedInSignIn);
 
 // HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
 // has no pointer capture.

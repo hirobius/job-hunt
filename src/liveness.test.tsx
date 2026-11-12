@@ -41,6 +41,7 @@ const api = (over: Partial<CloudSyncApi>): CloudSyncApi => ({
   offline: false,
   sendLink: async () => null,
   signInWithGoogle: async () => null,
+  signInWithLinkedIn: async () => null,
   retry: () => {},
   signOut: () => {},
   deleteMyData: () => {},

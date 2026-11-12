@@ -19,7 +19,7 @@ import {
   takeOAuthVerifier,
 } from './oauthPkce';
 import { readAuthCode, stripAuthFragment } from '../authFragment';
-import { GOOGLE_FAILED_MSG } from './authLinkError';
+import { GOOGLE_FAILED_MSG, LINKEDIN_FAILED_MSG } from './authLinkError';
 
 const h = vi.hoisted(() => ({
   fake: null as null | ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>,
@@ -86,7 +86,7 @@ async function boot(url: string, opts: { job?: boolean } = {}) {
   const { default: CloudSyncProvider } = await import('./CloudSyncProvider');
   const { useCloudSync } = await import('./accountContext');
   function Probe() {
-    const { user, signInWithGoogle } = useCloudSync();
+    const { user, signInWithGoogle, signInWithLinkedIn } = useCloudSync();
     return (
       <>
         <span>{user ? `in:${user.email}` : 'out'}</span>
@@ -99,6 +99,7 @@ async function boot(url: string, opts: { job?: boolean } = {}) {
         >
           Google
         </Button>
+        <Button onClick={() => void signInWithLinkedIn()}>LinkedIn</Button>
       </>
     );
   }
@@ -206,6 +207,43 @@ describe('coming back from Google', () => {
     await issue('good-code', v, ME);
     await boot('?code=good-code', { job: true });
     expect(await screen.findByRole('button', { name: 'Add to account' })).toBeInTheDocument();
+  });
+});
+
+describe('Continue with LinkedIn (linkedin_oidc), the same PKCE binding', () => {
+  it('asks Supabase for linkedin_oidc with the S256 challenge of a verifier kept here', async () => {
+    await boot('');
+    await userEvent.click(screen.getByRole('button', { name: 'LinkedIn' }));
+    await waitFor(() => expect(h.fake?.oauthCalls).toHaveLength(1));
+    const verifier = takeOAuthVerifier();
+    expect(h.fake!.oauthCalls[0]).toEqual({
+      provider: 'linkedin_oidc',
+      options: {
+        redirectTo: `${location.origin}/`,
+        queryParams: {
+          code_challenge: await challengeOf(verifier!),
+          code_challenge_method: 's256',
+        },
+      },
+    });
+  });
+
+  it("swaps LinkedIn's code with this browser's verifier, once", async () => {
+    const v = newVerifier();
+    rememberOAuthRequest(v, Date.now(), 'linkedin_oidc');
+    await issue('li-code', v, ME);
+    await boot('?code=li-code#/find');
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(exchanges).toEqual([{ auth_code: 'li-code', code_verifier: v }]);
+    expect(readOAuthRequest()).toBe(false);
+  });
+
+  it("someone else's code after an abandoned LinkedIn start: refused, worded for LinkedIn", async () => {
+    rememberOAuthRequest(newVerifier(), Date.now(), 'linkedin_oidc');
+    await issue('attacker-code', newVerifier(), ATTACKER);
+    await boot('?code=attacker-code', { job: true });
+    expect(await screen.findByText(LINKEDIN_FAILED_MSG)).toBeInTheDocument();
+    expect(screen.getByText('out')).toBeInTheDocument();
   });
 });
 

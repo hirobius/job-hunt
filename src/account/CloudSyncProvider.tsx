@@ -5,6 +5,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
+import type { OAuthProvider } from './oauthPkce';
 import { loadedSupabase, loadSupabase, needsClientAtBoot, onSupabaseLoaded } from '../supabase';
 import { signInErrorMessage } from './signInErrors';
 import { useJobs, getAllJobs, replaceAll } from '../store';
@@ -68,7 +69,7 @@ import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { CloudSyncContext, PULL_LIMIT, type CloudSyncApi } from './accountContext';
 import { magicLinkRedirect } from './authRedirect';
-import { GOOGLE_FAILED_MSG } from './authLinkError';
+import { oauthMessages } from './authLinkError';
 import { rememberSignInReturn, returnAfterSignIn } from './signInReturn';
 import { isChunkLoadError } from '../chunkError';
 import { importFresh, STALE_MSG } from '../staleBuild';
@@ -502,15 +503,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
     // A Google return (#482): its code signs in only with the verifier this browser kept, then
     // the same path as a link (the email the exchanged token names, checked by setSession).
+    // LinkedIn's return takes the same path; its words come from the provider this browser started.
     const code = takeBootAuthCode();
-    if (code)
+    if (code) {
+      const failed = oauthMessages().failed; // read before the exchange takes the record
       void loadPkce()
-        .then((p) => p.googleSession(code))
+        .then((p) => p.oauthSession(code))
         .catch(() => null)
         .then((got) => {
-          if (got) return acceptLink(got.tokens, got.email, GOOGLE_FAILED_MSG);
-          toast({ title: "Couldn't sign in", description: GOOGLE_FAILED_MSG, tone: 'danger' });
+          if (got) return acceptLink(got.tokens, got.email, failed);
+          toast({ title: "Couldn't sign in", description: failed, tone: 'danger' });
         });
+    }
     // A link signing in, or a stored session: the client is needed now.
     if (decision?.kind === 'auto' || needsClientAtBoot())
       void loadSupabase().catch(() => setAuthResolved(true));
@@ -774,17 +778,20 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // with `?code=…` (PKCE), which the boot path above swaps for a session with this browser's
   // verifier. Supabase links the Google identity to an existing account with the same verified
   // email, so that account's user id (and its sync base) is the one that comes back.
-  const signInWithGoogle = async (): Promise<string | null> => {
+  // "Continue with LinkedIn" (Supabase's linkedin_oidc) is the same start with its provider id.
+  const signInWithProvider = async (provider: OAuthProvider): Promise<string | null> => {
     rememberSignInReturn();
     try {
       const [supa, pkce] = await Promise.all([loadSupabase(), loadPkce()]);
       // Only this app's own origins, at the root (#44), as for the magic link.
-      const err = await pkce.startGoogle(supa, magicLinkRedirect(location));
-      return err ? signInErrorMessage(err) : null; // null: the page is on its way to Google
+      const err = await pkce.startOAuth(supa, provider, magicLinkRedirect(location));
+      return err ? signInErrorMessage(err) : null; // null: the page is on its way to the provider
     } catch (e) {
       return isChunkLoadError(e) ? STALE_MSG : signInErrorMessage({ message: 'Failed to fetch' });
     }
   };
+  const signInWithGoogle = () => signInWithProvider('google');
+  const signInWithLinkedIn = () => signInWithProvider('linkedin_oidc');
 
   // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry
   // flip the status through "Refreshing…" but don't re-toast until a sync has succeeded again.
@@ -869,6 +876,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         offline,
         sendLink,
         signInWithGoogle,
+        signInWithLinkedIn,
         retry: () =>
           tabFrozen() ? location.reload() : user && void adopt(seedPending.current, user),
         signOut: () => void signOut(),
