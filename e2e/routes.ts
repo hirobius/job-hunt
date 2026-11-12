@@ -126,6 +126,15 @@ export async function openFilters(page: Page) {
   return listScope(page);
 }
 
+/** Open the Account menu's Data dialog (#550) and return it. */
+export async function openData(page: Page) {
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: 'Data', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Data' });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
 /** The shell's top tabs are links in a nav (top tabs PR): one by name, or the open one. */
 export const topTab = (page: Page, name: string) =>
   page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name, exact: true });

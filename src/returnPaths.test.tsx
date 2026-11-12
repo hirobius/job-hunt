@@ -372,9 +372,11 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     addJob(B, 'Welder');
     trashJob(B);
     await over('#/discover/apply', '#/apply');
-    // In the Account menu since #416.
+    // In the Account menu since #416, in its Data dialog since #550.
     await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: /^Recently removed/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Data' }));
+    const data = await screen.findByRole('dialog', { name: 'Data' });
+    await userEvent.click(within(data).getByRole('button', { name: /^Recently removed/ }));
     await screen.findByRole('dialog', { name: 'Recently removed' });
     await closesOnBack(() => screen.queryByRole('dialog', { name: 'Recently removed' }), '#/apply');
   });

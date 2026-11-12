@@ -272,14 +272,23 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Find · Apply**: links in a `nav` named "Sections", the open one `aria-current="page"`, styled as HDS tabs by `.rjb-top-tab`; not ARIA tabs, no tab panel (top tabs PR, 2026-11-08; HDS ask: Tabs as navigation links); tests use `test/topTabs.ts` / `e2e/routes.ts` `topTab`, `currentTab`) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Page gutter: `PageShell`'s `clamp(1.25rem, 5vw, 4rem)` (20 on a phone, 64 from 1280; see Shell width below). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
-  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` (an HDS Menu; below sm drawn as a bottom sheet with a grab handle and its own scroll, from sm a dropdown ≥ 16rem, by `src/theme/late.css`: late shell styles that ride the animated logo's chunk, off the first-load CSS budget; account menu PR 2026-11-08) holds sign-in/out, Documents, Search profile, Companies, Back up,
-  Restore…, Export CSV, theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` (an HDS Menu; below sm drawn as a bottom sheet with a grab handle and its own scroll, from sm a dropdown ≥ 16rem, by `src/theme/late.css`: late shell styles that ride the animated logo's chunk, off the first-load CSS budget; account menu PR 2026-11-08) holds sign-in/out, Documents, Search profile, Companies, Data (the
+  **Data dialog**, below), theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
-  line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Documents, Search profile, Companies, Scan details | "Data": Back up, Restore…, Export CSV, Export links, Recently removed (N) when the trash has some). Pillars and tracks are gone from the UI (ADR 0009).
+  line as non-item labels | data | display | Sign out;
+  data = Documents, Search profile, Companies, Scan details, Data). Pillars and tracks are gone from the UI (ADR 0009).
+- **Data dialog (redesign §5.9, #550):** `src/account/DataDialog.tsx`, a lazy chunk (`lazyDialogs.ts` `DataDialog`,
+  `entryChunk.test.ts`), opened by the Account menu's one **Data** item. An HDS Dialog drawn as a bottom sheet below sm
+  (`.rjb-bottom-sheet` + grab handle, G2 hds#1433), a centred dialog from sm. Two lists (`ItemList` rows, no cards),
+  each row a tertiary key with a 16px icon and a caption line (its description): **Your data** = Back up, Restore…,
+  Export CSV, Export links, Recently removed (N) (only when the trash has some); **This device** = Try with sample
+  data (signed out with no jobs), Reload app, Reset local data… (danger; its confirm opens over the dialog and Cancel
+  gives focus back to the key), Delete my data (signed in, danger, last). Restore, Export links, Recently removed and
+  Delete my data close the dialog first (a modal hides a toast's actions) and hand focus back to the Account button.
+  Pinned in `account/dataDialog.test.tsx`, `shell.test.tsx`, `e2e/account-menu.spec.ts`, `e2e/phone-menu.spec.ts`.
 - **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local; update baselines with `npm run test:visual -- --update-snapshots`). **Baselines are drawn only in the pinned Playwright image** (`e2e/visual-env.json`: image digest + its Chromium, #485): `test:visual` runs the spec there through Docker (`scripts/visual-docker.mjs`); elsewhere the spec skips and an update fails (`src/visualEnv.test.ts`). Bump the digest with `@playwright/test` and re-take every baseline in the same PR.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
@@ -486,9 +495,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the Jobs page (`TrackerView`) is To apply + Start applying, Follow up, Next 7 days and the Jobs list
   (search, the named views since #541 (was Status incl. Closing soon / Closed from #423), Sort) and nothing else: `GettingStarted`,
   `ScoredQueue` and Find the next company are deleted (`gettingStarted.ts` too, in #390; an old
-  `rjb_ui_getting_started_done` key is ignored). **Recently removed** is an Account menu item ("Recently removed (N)", only when the trash
+  `rjb_ui_getting_started_done` key is ignored). **Recently removed** is in the Account menu's Data dialog ("Recently removed (N)", only when the trash
   has some; `RecentlyRemovedHost` in `DataToolsProvider`, open state in `jobDialogs.ts`); **Export links** is
-  Account menu only. The **job page is one page** (`JobPage` → `JobHeader` + `JobOverview`): Details, Notes,
+  Data dialog only (#550). The **job page is one page** (`JobPage` → `JobHeader` + `JobOverview`): Details, Notes,
   then **Documents** (`Job.docLinks`, additive, same shape and `sanitizeDecks` rule as `decks`, CSV `doc_links`
   appended last, Back up, Recently removed merge) and **Decks**, both `JobLinks.tsx` `LinksPanel` (a label and
   an http(s) link, Add, Remove with Undo). To-dos, Screening (Fit, JD screener), the Interviews log, Use
@@ -778,8 +787,8 @@ trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run si
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Company logos (2026-10-22):** `CompanyLogo.tsx` is an HDS `Avatar` per company (the To apply stack, Pipeline table and cards, job header, job rail, Company page, Companies and dream rows): letter first, the logo only once `new Image()` has loaded it at 16px or more (lazy, no referrer; errors and DuckDuckGo's tiny placeholder keep the letter). `companyLogo.ts` is the one table-tested rule for the domain (company website first, then the posting's host; never a job board, ATS or aggregator host, `*.example.com`, localhost, IPs). Icons come from `icons.duckduckgo.com` (`img-src`, `legal.ts` THIRD_PARTIES, `csp.test.ts`); e2e specs abort that host, so baselines show letters.
 - **Export links (2026-10-22):** one `ExportLinksHost` dialog (mounted in `DataToolsProvider`, open
-  scope in `exportLinks.ts`) opened from the Account menu only (after Export CSV; #416 took it off the Jobs
-  panel) on **All saved jobs**; its **This view** scope is the Jobs list as filtered (`visibleJobs`). Format Links only / With title and company; read-only
+  scope in `exportLinks.ts`) opened from the Account menu's Data dialog only (after Export CSV; #416 took it off the Jobs
+  panel, #550 moved it into Data) on **All saved jobs**; its **This view** scope is the Jobs list as filtered (`visibleJobs`). Format Links only / With title and company; read-only
   Preview; Copy (`copyFilled`, falls back to selecting the text) and Download .txt
   (`linksFilename`: `<slug>-links-YYYY-MM-DD.txt`). `buildLinkList` skips non-web links (counted),
   dedupes, keeps order. Pinned in `exportLinks.test.ts`, `exportLinksDialog.test.tsx`,

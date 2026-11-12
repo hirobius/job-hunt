@@ -148,8 +148,8 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Your choices',
       paragraphs: [
-        'Export: Back up in the Menu downloads everything as one file, and Export CSV downloads your jobs as a spreadsheet.',
-        'Erasure: when signed in, Delete my data in the Menu removes your synced data from the cloud and from this device. Your sign-in email stays with Supabase until you ask us to remove it; email us and we will.',
+        'Export: Back up (Account menu, Data) downloads everything as one file, and Export CSV downloads your jobs as a spreadsheet.',
+        'Erasure: when signed in, Delete my data (Account menu, Data) removes your synced data from the cloud and from this device. Your sign-in email stays with Supabase until you ask us to remove it; email us and we will.',
         'Signed out, clearing this site’s data in your browser removes everything.',
       ],
     },

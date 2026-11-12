@@ -15,7 +15,7 @@ vi.mock('@supabase/supabase-js', () => ({
   }),
 }));
 
-import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
+import { renderAccount, openData, chooseDataAction } from '../test/renderAccount';
 import { buildBackup, MAX_BACKUP_CHARS, parseBackup } from '../backup';
 import { getAllJobs, replaceAll } from '../store';
 import { replaceSnippets } from '../copyDeckStore';
@@ -93,7 +93,7 @@ describe('DataToolsProvider (via the account menu)', () => {
   it('Back up downloads a file that parses back as a backup', async () => {
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
-    await chooseAccountItem('Back up');
+    await chooseDataAction('Back up');
     await waitFor(() => expect(downloads).toHaveLength(1));
     expect(downloads[0].name).toMatch(
       new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`),
@@ -107,7 +107,7 @@ describe('DataToolsProvider (via the account menu)', () => {
       { ...job('https://example.com/a', 'A'), notes: 'x'.repeat(MAX_BACKUP_CHARS) } as Job,
     ]);
     setup();
-    await chooseAccountItem('Back up');
+    await chooseDataAction('Back up');
     expect(downloads).toHaveLength(1);
     expect(await screen.findByText('This backup is too large to restore')).toBeTruthy();
   });
@@ -204,15 +204,12 @@ describe('DataToolsProvider (via the account menu)', () => {
 
   it('Export CSV is disabled with no jobs and downloads once there are some', async () => {
     const { unmount } = setup();
-    const menu = await openAccount();
-    expect(within(menu).getByRole('menuitem', { name: 'Export CSV' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    const data = await openData();
+    expect(within(data).getByRole('button', { name: 'Export CSV' })).toBeDisabled();
     unmount();
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
-    await chooseAccountItem('Export CSV');
+    await chooseDataAction('Export CSV');
     await waitFor(() => expect(downloads[0]?.name).toBe(`${BRAND.slug}.csv`));
   });
 

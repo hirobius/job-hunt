@@ -193,11 +193,17 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
   expect(await enterName()).toBe('rjb-view-enter');
 });
 
-test('Today: Scan now and the Account menu’s Companies answer within 300 ms', async ({ page }) => {
+test('Today: Scan now and the Account menu’s Companies and Data answer within 300 ms', async ({
+  page,
+}) => {
   await go(page, '#/find');
   await press(page, button(page, /^(Scan now|Stop scan)$/), 'Scan now');
   await menu(page, 'Account', 'Companies');
   await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
+  await closeOverlay(page);
+  // The Data dialog (#550) is its own chunk, fetched as the menu opens.
+  await menu(page, 'Account', 'Data');
+  await expect(page.getByRole('dialog', { name: 'Data' })).toBeVisible();
   await closeOverlay(page);
 });
 

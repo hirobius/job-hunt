@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { openAllJobs } from './routes';
+import { openAllJobs, openData } from './routes';
 
 // Adrian 2026-10-22: "Anywhere a job is listed, we should be able to click on the URL to visit the
 // link, or there should be a visit jump link button near the URL or name of the job." With the
@@ -324,9 +324,8 @@ for (const width of [390, 800] as const) {
       expect(await targetOffences(page.locator('#root'))).toEqual([]);
       // Recently removed.
       await page.evaluate(() => (location.hash = '#/apply'));
-      // In the Account menu since #416.
-      await page.getByRole('button', { name: /^Account/ }).click();
-      await page.getByRole('menuitem', { name: 'Recently removed (3)' }).click();
+      // In the Account menu since #416, in its Data dialog since #550.
+      await (await openData(page)).getByRole('button', { name: 'Recently removed (3)' }).click();
       const dialog = page.getByRole('dialog', { name: 'Recently removed' });
       await expect(dialog.getByRole('link', { name: /^Open posting for / })).toHaveCount(3);
       expect(await targetOffences(dialog)).toEqual([]);
@@ -346,9 +345,8 @@ for (const width of [390, 800] as const) {
       if (width >= 1024)
         expect(await longTitleOffences(page.getByRole('navigation', { name: 'Jobs' }))).toEqual([]);
       await page.evaluate(() => (location.hash = '#/apply'));
-      // In the Account menu since #416.
-      await page.getByRole('button', { name: /^Account/ }).click();
-      await page.getByRole('menuitem', { name: 'Recently removed (3)' }).click();
+      // In the Account menu since #416, in its Data dialog since #550.
+      await (await openData(page)).getByRole('button', { name: 'Recently removed (3)' }).click();
       const dialog = page.getByRole('dialog', { name: 'Recently removed' });
       await expect(dialog.getByRole('link', { name: /^Open posting for / })).toHaveCount(3);
       expect(await longTitleOffences(dialog)).toEqual([]);

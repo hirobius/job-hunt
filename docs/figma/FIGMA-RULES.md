@@ -88,6 +88,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   each row is the badge row, the title (two lines at most), the company, the place and one date.
   The open job takes the selected fill, never an outline ring. No key on a row and no posting icon:
   the job's own page has its next step and Open posting.
+- **The Data dialog (#550).** The Account menu has one Data item. It opens one dialog (a bottom sheet
+  on a phone, centred at 1440) with two hairline lists, no cards: **Your data** (Back up, Restore,
+  Export CSV, Export links, Recently removed) and **This device** (Try with sample data, Reload app,
+  Reset local data, Delete my data). Each row is a quiet key with a 16 px icon and one caption line on
+  what it does. Reset and Delete are the danger tone and ask first.
 - **One detail template at 1440 (#546).** Find is two columns too: postings left, the selected
   posting right. A posting and a job use one detail template: the title block (title, company,
   one facts line, then the badges; a posting's source is a neutral badge there), More beside it,

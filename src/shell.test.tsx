@@ -52,6 +52,13 @@ const menuOutline = (menu: HTMLElement) =>
       : `${el.getAttribute('role') === 'menuitem' ? 'item' : 'label'}:${el.textContent?.trim()}`,
   );
 
+/** The Account menu's Data dialog (#550). */
+const openData = async () => {
+  const menu = await openAccount();
+  await userEvent.click(within(menu).getByRole('menuitem', { name: 'Data' }));
+  return screen.findByRole('dialog', { name: 'Data' });
+};
+
 const openAccount = async () => {
   await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
   return screen.findByRole('menu');
@@ -144,7 +151,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.lastElementChild).toHaveTextContent(BRAND.name);
   });
 
-  it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {
+  it('signed out, the account menu reads: device-only line, sign in | data | display', async () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
@@ -155,32 +162,22 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Search profile',
       'item:Companies',
       'item:Scan details',
-      // Data (account menu PR): what copies your data in or out, under its own label.
-      '---',
-      'item:Back up',
-      'item:Restore…',
-      'item:Export CSV',
-      'item:Export links',
+      // Data (#550): back up, restore, export and the repairs moved into one lazy dialog.
+      'item:Data',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       // WCAG 2.2.2 (#516): the app bar's flame loops on; this stops it.
       expect.stringMatching(/^item:(Pause|Play) animations$/),
       'item:Send feedback',
       'item:Privacy and terms',
-      '---',
-      'item:Reload app',
-      'item:Reset local data…',
     ]);
-    // The two groups are named (account menu PR).
-    expect(within(menu).getByText('Data')).toBeInTheDocument();
-    expect(within(menu).getByText('Troubleshooting')).toBeInTheDocument();
   });
 
   it('Reset local data asks first and says what goes; Cancel keeps everything (rev-3 O)', async () => {
     addJob('https://acme.example/jobs/9', 'Welder');
     renderApp();
-    const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Reset local data…' }));
+    const data = await openData();
+    await userEvent.click(within(data).getByRole('button', { name: 'Reset local data…' }));
     const dialog = await screen.findByRole('alertdialog', { name: 'Reset local data?' });
     expect(dialog).toHaveTextContent(/This deletes everything in this browser: 1 job/);
     expect(within(dialog).getByRole('button', { name: 'Back up first' })).toBeInTheDocument();
@@ -199,19 +196,27 @@ describe('app shell (#115 Phase 1)', () => {
     expect(reset).not.toHaveClass('rjb-danger-outline');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(getAllJobs().map((j) => j.label)).toContain('Welder');
-    // Focus goes back to the Account button, not <body> (QA: the menu is non-modal and the
-    // confirm has no trigger of its own).
-    await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
+    // Focus goes back to the Reset row under the confirm (the Data dialog stays open), not <body>.
+    await waitFor(() =>
+      expect(within(data).getByRole('button', { name: 'Reset local data…' })).toHaveFocus(),
+    );
   });
 
-  it('Escape on Reset, and closing Sign in, both hand focus back to the Account button', async () => {
+  it('Escape on Data, and closing Sign in, both hand focus back to the Account button', async () => {
     renderApp();
-    let menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Reset local data…' }));
+    const data = await openData();
+    await userEvent.click(within(data).getByRole('button', { name: 'Reset local data…' }));
     await screen.findByRole('alertdialog', { name: 'Reset local data?' });
+    // Escape closes the confirm only (the Data dialog stays), then the Data dialog.
     await userEvent.keyboard('{Escape}');
+    await waitFor(() =>
+      expect(screen.queryByRole('alertdialog', { name: 'Reset local data?' })).toBeNull(),
+    );
+    expect(screen.getByRole('dialog', { name: 'Data' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Data' })).toBeNull());
     await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
-    menu = await openAccount();
+    const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign in to sync…' }));
     await screen.findByRole('dialog', { name: 'Sign in' });
     await userEvent.keyboard('{Escape}');
@@ -274,8 +279,8 @@ describe('app shell (#115 Phase 1)', () => {
       name = this.download;
     });
     renderApp();
-    const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Back up' }));
+    const data = await openData();
+    await userEvent.click(within(data).getByRole('button', { name: 'Back up' }));
     // The backup format loads on demand (#371).
     await waitFor(() =>
       expect(name).toMatch(new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`)),
@@ -350,12 +355,8 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'item:Search profile',
       'item:Companies',
       'item:Scan details',
-      // Data (account menu PR): what copies your data in or out, under its own label.
-      '---',
-      'item:Back up',
-      'item:Restore…',
-      'item:Export CSV',
-      'item:Export links',
+      // Data (#550): back up, restore, export and the repairs moved into one lazy dialog.
+      'item:Data',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       // WCAG 2.2.2 (#516): the app bar's flame loops on; this stops it.
@@ -363,11 +364,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'item:Send feedback',
       'item:Privacy and terms',
       '---',
-      'item:Reload app',
-      'item:Reset local data…',
-      '---',
       'item:Sign out',
-      'item:Delete my data',
     ]);
     // The email is plain text: not a link, not a menu item, not focusable.
     expect(within(menu).queryAllByRole('link')).toEqual([]);
