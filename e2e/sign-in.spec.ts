@@ -326,3 +326,12 @@ for (const width of [390, 1440])
       dialog.getByRole('button', { name: 'Continue without an account' }),
     ).toHaveAttribute('data-variant', 'link');
   });
+
+// #555: on a screen too short for them (or with the keyboard up), the two lines give way to the
+// field and Send link, and still describe the screen.
+test('the sign-in copy gives way on a short screen, and still describes it', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 400 });
+  const dialog = await openSignIn(page);
+  await expect(dialog.getByText('Sign in to see your jobs on any device.')).toBeHidden();
+  await expect(dialog).toHaveAccessibleDescription(/^Sign in to see your jobs on any device\./);
+});

@@ -21,6 +21,7 @@ import {
 // Late shell styles ride this chunk: it always loads just after first paint (the app bar's logo).
 import '../theme/late.css';
 
+/* eslint-disable react-refresh/only-export-components -- #556: the nudge stays in this file, beside the logo it moves (flameEngine.test.ts reads it). */
 /** The stacked flame's box height, in em of the logo's font size (1.6 x TEXT_SETTINGS.flameScale 1.5). */
 export const STACKED_FLAME_EM = 2.4;
 /** The name's ink centre in Sora 800 sits this far right of its text box centre, in em (canvas
@@ -37,6 +38,8 @@ export const FLAME_MASS = { x: 57.9, y: 66.1 };
  *  with today's tuning (the plan's 0.066em was measured on the flame before the 2026-11-10 engine).
  *  The row layout (app bar) has no nudge. */
 export const STACKED_FLAME_NUDGE_EM = 0.0044;
+
+/* eslint-enable react-refresh/only-export-components */
 
 export type FlameColors = { outer: string; middle: string; core: string };
 /** The brand blues are HDS primitives, set on `.rjb-rf` in base.css (light and dark), so one set of
