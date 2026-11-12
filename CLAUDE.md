@@ -340,10 +340,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
   and a sign-in error land on Today; there is no setup screen (see First run).
   `Today.tsx`, top to bottom: `ScanStatus` (Scan now + "Last scanned hh:mm · N new from M sources"; N and M are the
-  Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review new**
-  = `ReviewView` itself (`label="Review new" scanStatus`: it hosts the status; one panel holding sources that didn't
+  Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review**
+  (was "Review new", #615: the heading counts every posting not saved or skipped; labels only)
+  = `ReviewView` itself (`label="Review" scanStatus`: it hosts the status; one panel holding sources that didn't
   answer as one quiet "N sources unavailable · details" disclosure, Browse | Deck, Sort as a menu, two filter chips
-  (New today, Remote) and the Browse list; a row's title selects the posting, Open posting beside it) and **New
+  (**New**, was "New today" (#615): first seen today, the same rule as the card's count; Remote) and the Browse list; a row's title selects the posting, Open posting beside it) and **New
   companies** (`NewCompanies`, Follow / Ignore). **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
   Find out (**below lg there is no posting page since 2026-11-08:** the card's title is plain text, an old
   `#/find/<fingerprint>` link scrolls to its card with the description open and drops the fingerprint, and after a

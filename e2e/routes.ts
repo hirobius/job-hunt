@@ -42,7 +42,7 @@ export async function seed(page: Page) {
   await addStarters(page);
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/find');
-  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: /^Review\b/ })).toBeVisible();
 }
 
 /** Add the starter messages from Documents' empty state (a first run adds none). */

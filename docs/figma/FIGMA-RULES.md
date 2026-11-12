@@ -53,7 +53,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Layout
 
-- **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings, Apply, Follow up
+- **Two screens: Find and Apply** (the two top tabs). **Find** is home: the Review list of postings (chips New and Remote; "New" = first seen today)
   and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: a filter bar
   (Filters, Add job), the sticky walk control, then the job.

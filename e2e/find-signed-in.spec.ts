@@ -70,10 +70,10 @@ for (const width of [390, 1440]) {
 test('signed out: one compact Scan now beside the Review new heading (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/find');
-  const review = page.getByRole('region', { name: /^Review new/ });
+  const review = page.getByRole('region', { name: /^Review\b/ });
   await expect(review.getByRole('button', { name: 'Scan now' })).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(1);
-  const heading = await review.getByRole('heading', { name: 'Review new' }).boundingBox();
+  const heading = await review.getByRole('heading', { name: 'Review' }).boundingBox();
   const button = await review.getByRole('button', { name: 'Scan now' }).boundingBox();
   // On the heading's row.
   expect(

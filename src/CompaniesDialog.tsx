@@ -73,7 +73,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
       <Dialog.Header>
         <Dialog.Title>Companies</Dialog.Title>
         <Dialog.Description>
-          Followed companies’ jobs show in Review new. Ignored ones never do.
+          Followed companies’ jobs show in Review on Find. Ignored ones never do.
         </Dialog.Description>
       </Dialog.Header>
       {followed.length || ignored.length || suggested.length ? (

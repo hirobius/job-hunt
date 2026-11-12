@@ -37,7 +37,7 @@ export default function Today() {
       // The scan's status, then every design-system posting, newest first, as a list (the Deck is a
       // toggle inside). Review new hosts the status, so its counts are the Feed's own.
       <ReviewView
-        label="Review new"
+        label="Review"
         scanStatus
         header={header}
         before={picks}
@@ -51,7 +51,7 @@ export default function Today() {
       {header}
       {picks}
       <Stack gap="normal">
-        <Panel label="Review new" title="Review new" trailing={<ScanStatus />} flat>
+        <Panel label="Review" title="Review" trailing={<ScanStatus />} flat>
           <PanelBody>
             {offline ? (
               <Text variant="caption" as="p" tone="secondary">

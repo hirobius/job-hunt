@@ -97,7 +97,7 @@ export function NewCompanies() {
     const undo = followFound(f.key);
     showNotice({
       title: `Following ${f.name}`,
-      description: 'Its jobs show in Review new.',
+      description: 'Its jobs show in Review on Find.',
       tone: 'success',
       actions: [{ label: 'Undo', run: undo }],
     });
@@ -121,7 +121,7 @@ export function NewCompanies() {
       title="New companies"
       count={list.length}
       countLabel={`${list.length} companies`}
-      description="Found by the scan. A confirmed board’s matching jobs are already in Review new."
+      description="Found by the scan. A confirmed board’s matching jobs are already in Review."
     >
       {matching.length > 0 && <ItemList label="New companies">{matching.map(row)}</ItemList>}
       {empty.length > 0 && (

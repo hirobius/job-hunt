@@ -60,7 +60,7 @@ async function setUp(page: Page) {
   await page.goto('/#/find');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
   await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
@@ -89,7 +89,7 @@ for (const width of [390, 1440]) {
   test(`browse, skip one posting, save one, then the deck (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await setUp(page);
-    await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review' })).toBeVisible();
     // No status text above Browse / Deck (Adrian 2026-11-08): no scan line, counts or progress.
     await expect(
       page.getByText(

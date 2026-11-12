@@ -76,7 +76,7 @@ export default function ScanDetailsDialog({ onCloseAutoFocus }: { onCloseAutoFoc
           <>
             <Stack gap="tight" as="section" aria-labelledby="rjb-scan-hidden">
               <Text variant="body" as="h3" className="rjb-semibold" id="rjb-scan-hidden">
-                Not shown in Review new
+                Not shown in Review
               </Text>
               <Text variant="body" as="p" tone="secondary">
                 {d.hidden.length ? d.hidden.join(', ') : 'Nothing: every posting read is listed.'}

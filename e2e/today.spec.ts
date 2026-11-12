@@ -24,7 +24,7 @@ for (const width of [390, 1440]) {
     ]);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeVisible();
     const panels = page.getByRole('main').getByRole('region');
-    await expect(panels.nth(0)).toHaveAccessibleName(/^Review new/);
+    await expect(panels.nth(0)).toHaveAccessibleName(/^Review\b/);
     await expect(page.getByRole('region', { name: /^Follow up/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Start applying/ })).toHaveCount(0);
     if (width >= 1024) await expect(page.getByText('Pick a posting')).toBeVisible();

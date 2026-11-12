@@ -309,7 +309,7 @@ describe('Review new: Browse', () => {
       within(screen.getByRole('group', { name: 'Filter postings' }))
         .getAllByRole('button')
         .map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['New today 30', 'Remote 30']);
+    ).toEqual(['New 30', 'Remote 30']);
   });
 });
 

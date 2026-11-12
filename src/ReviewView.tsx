@@ -478,7 +478,7 @@ const rowActions: RowActions = {
   mute: (r, from) =>
     collapseRow(from, () => {
       const undo = muteCompany(r.company);
-      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Review new.');
+      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Review on Find.');
     }),
 };
 
