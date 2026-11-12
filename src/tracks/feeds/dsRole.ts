@@ -3,6 +3,7 @@
 // fills with rows the scorer would reject anyway; the scorer still makes the call on what is kept.
 // Whole words: "ecosystem" and "system design" never count. Pure, `.ts` imports for Deno.
 import { relatedTitleOk } from '../designRoleGuard.ts';
+import { classifyRemote } from '../../feed/mode.ts';
 
 const DS = /\bdesign[\s-]+systems?\b/i;
 const TECHNOLOGIST = /\bdesign[\s-]+technologists?\b/i;
@@ -15,3 +16,8 @@ export const isDsRole = (title: string, text = ''): boolean =>
   DS.test(title) ||
   ((TECHNOLOGIST.test(title) || DESIGN_ENGINEER.test(title)) && relatedTitleOk(title)) ||
   DS.test(text);
+
+/** Remote, by the one shared classifier (feed/mode.ts `classifyRemote`, #576 item 10): the source's
+ *  own remote flag, else a location / title line that states remote and nothing else. */
+export const isRemoteRole = (flag: unknown, line = ''): boolean =>
+  flag === true || classifyRemote(line).mode === 'remote';

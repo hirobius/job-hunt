@@ -15,7 +15,7 @@
 // Budget: COUNTRIES × PHRASES = 8 calls on the morning run, CALL_GAP_MS apart (under 25 a minute;
 // 248 a month).
 import { htmlToText } from '../../feed/html.ts';
-import { inferMode } from '../../feed/mode.ts';
+import { isRemoteRole } from './dsRole.ts';
 import { httpUrl } from '../../httpUrl.ts';
 import type { NormalizedPosting } from '../score.ts';
 import { fetchKeyed, needKeys, SourceHttpError, type FeedContext } from './context.ts';
@@ -62,7 +62,7 @@ export function parseAdzuna(json: unknown): NormalizedPosting[] {
       title,
       company: htmlToText(str(obj(j.company).display_name)),
       location: location || undefined,
-      remote: inferMode(`${title} ${location}`) === 'remote' || undefined,
+      remote: isRemoteRole(false, `${title} ${location}`) || undefined,
       url,
       descriptionText: htmlToText(str(j.description)),
       postedAt: Number.isNaN(posted) ? undefined : new Date(posted).toISOString(),

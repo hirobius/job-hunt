@@ -658,6 +658,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   name; Undo takes both back). **Breadth guard** (`feed/breadth.test.ts` on `breadth.fixture.ts`): the deleted Live
   postings' list (`feed/liveList.ts`, kept as the baseline) at its widest; the Feed must list every design-system
   posting it lists, and every one the recorded answers hold; it fails otherwise. Pinned in `feed/feed.test.ts`, `review.test.tsx`, `e2e/review.spec.ts`.
+- **Dedupe v2 + one remote classifier (#576 items 9, 10):** `src/tracks/roleKey.ts` (pure, `.ts`, no imports) is
+  the one "same role" rule for the browser's Feed (`feed/match.ts` rank) and the server sync (`score.ts` `dedupe`):
+  `roleKey` = `normCompany` (case, punctuation, "the", Inc/LLC/Ltd/GmbH/Co…) + `normTitle` (Sr → Senior, Eng →
+  Engineer…; **seniority kept**, so Senior and Staff never merge; no company = no merge). `dedupeRoles` keeps the best
+  source (`sourceRank`: company board, then designsystems.jobs / manual, aggregators, remote boards and HN, social);
+  across sources the place is ignored, within the kept source two places stay. No alternates field: only the best copy
+  is kept. **`score.ts` `fingerprint` is unchanged** (it strips seniority; `decided` Skips are stored by it). **Remote:**
+  `feed/mode.ts` `classifyRemote(line)` → `{ mode: remote|hybrid|onsite|unstated, offersRemote, region? }` (synonyms
+  Anywhere / Distributed (not "distributed systems") / WFH / work from home; "3 days in office" is hybrid; a line that
+  only rules remote out is on-site; "Remote (US only)" → region US) is behind `inferMode`, `remoteVerdict` (auto-scan
+  and rotation remote only), `isRemoteJob` and the server feeds (`tracks/feeds/dsRole.ts` `isRemoteRole`). Pinned in
+  `tracks/roleKey.test.ts`, `feed/classifyRemote.test.ts`, `feed/mode.test.ts`.
 - **Remote Rocketship (2026-10-22):** a "Big job boards" link (`BOARDS`, tag "Remote only",
   `modes: ['remote','any']`, shown through `boardsFor(mode)`): `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=<first ticked title>`.
   Link only: no API (its paid one needs a personal key; a later bring-your-own-key slice), no fetch, so CSP and

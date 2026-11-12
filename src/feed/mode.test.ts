@@ -4,7 +4,8 @@ import { inferMode, remoteVerdict } from './mode';
 describe('a line that rules remote out (#624)', () => {
   it('is never read as remote', () => {
     for (const s of ['No remote', 'Not remote', 'Non-remote', 'remote not available'])
-      expect(inferMode(s), s).toBeUndefined();
+      // #576 item 10: a line that only rules remote out now reads as on-site (was unstated).
+      expect(inferMode(s), s).toBe('onsite');
     expect(inferMode('Onsite - No remote')).toBe('onsite');
     expect(remoteVerdict(undefined, 'Berlin, Germany (No remote)')).toBe('drop');
   });
