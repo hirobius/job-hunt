@@ -232,6 +232,12 @@ for (const width of [390, 1440]) {
     await expect(page).toHaveURL(/#\/find$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
     await expect(page.getByRole('article')).toHaveCount(1);
+    // #557 cuts: no source or blue New badge on the Deck card; the company stays.
+    const card = page.getByRole('article');
+    await expect(card.getByText('Hacker News', { exact: true })).toHaveCount(0);
+    await expect(card.getByText('New', { exact: true })).toHaveCount(0);
+    await expect(card.locator('[data-tone="info"]')).toHaveCount(0);
+    await expect(card.getByRole('heading', { level: 3 })).toBeVisible();
     // #545: no pager row; "1 of 2" is the caption under Find. #617: Sort is there in the Deck
     // too, in Find's More menu (#544).
     await expect(page.getByRole('navigation', { name: 'Postings' })).toHaveCount(0);

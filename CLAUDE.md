@@ -437,7 +437,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the walk row's view picker picks them (#542, out
   of Filters); `PipelineMenus` is Sort only (an icon at lg, a chip in the sheet). Default view To apply. Since #543 search,
   filters, sort and Add job live in the All jobs sheet (see Two screens); "Clear N" clears the filters, not the view. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
-- **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: badges, title step), one at a time (`ReviewView.tsx`
+- **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: the title step; no source or New badge since #557), one at a time (`ReviewView.tsx`
   `Deck`). No pager row: "1 of 4" is the caption under Find (`header`'s tools carry the Deck's place, `FindHeader`
   adds it to its caption); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
   card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock row` (one row, `data-layout="row"`):
@@ -492,7 +492,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   **Review new's panel has no surface of its own** (`Panel flat`): its heading, count and metadata declare the group,
   and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
   `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
-  source + New badges, the title on the `title` step (Deck and the detail; a Browse card is compact, below), company, then **one fact per line** (#616, Adrian
+  no source or New badge on a card (#557 cuts; the detail's title block keeps the source, neutral), the title on the `title` step (Deck and the detail; a Browse card is compact, below), company, then **one fact per line** (#616, Adrian
   2026-11-12; Browse, Deck and the detail): MapPin place ("Location not stated" when none, or when it is only a mode
   word), Briefcase work mode (Remote / Hybrid / On-site, "Remote not stated", else "Work mode not stated"; once, on
   its own line, also when the place says Remote), Calendar posted day; the pay line, then **one left-aligned action row (Adrian 2026-11-08,
