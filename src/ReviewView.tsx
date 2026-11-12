@@ -76,7 +76,7 @@ import { SOURCE_LABEL } from './feed/types';
 import { addJobDetailed } from './store';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
-import { collapseRow } from './feedback';
+import { exitRow, fadeInTitle } from './feedback';
 import { usePostingText } from './feed/postingText';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
@@ -529,7 +529,7 @@ interface RowActions {
 const rowActions: RowActions = {
   // The row collapses first, then the job is saved (a saved posting leaves the list).
   save: (r, from) =>
-    collapseRow(from, () => {
+    exitRow(from, 'save', () => {
       // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
       if (alreadyInApply(r.url)) return;
       const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
@@ -545,12 +545,15 @@ const rowActions: RowActions = {
       notifySaved([url], r.title, [], unfollow);
     }),
   skip: (r, from) =>
-    collapseRow(from, () => {
+    exitRow(from, 'burn', () => {
       decide(r, 'skipped');
-      notifyRemoved(`Skipped “${r.title}”`, () => undecide(r), 'Only this posting is hidden.');
+      notifyRemoved(`Skipped “${r.title}”`, () => {
+        undecide(r);
+        fadeInTitle(r.title);
+      }, 'Only this posting is hidden.');
     }),
   mute: (r, from) =>
-    collapseRow(from, () => {
+    exitRow(from, 'burn', () => {
       const undo = muteCompany(r.company);
       notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Review on Find.');
     }),

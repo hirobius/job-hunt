@@ -7,6 +7,11 @@
 // and its cells' divider class changes), which would wipe a class mid-flash.
 import { useCallback, useState } from 'react';
 import { createStore } from './createStore';
+import { importFresh } from './staleBuild';
+import { motionPaused } from './motionPref';
+
+/** Prototype (proto/theme-burn): the burn / save motions, a lazy chunk. */
+export const loadBurn = importFresh(() => import('./burn/burn'));
 
 /** Motion is on: the browser can tell, and the user has not asked for less. Without matchMedia
  *  (jsdom) there is no motion, so tests see the state change at once. */
@@ -104,4 +109,26 @@ export function useArrived(on: boolean, key = ''): boolean {
   if (seen.key !== key) setSeen({ key, on, arrived: false });
   else if (seen.on !== on) setSeen({ key, on, arrived: on });
   return seen.arrived;
+}
+
+/** Prototype (proto/theme-burn): a removal burns the card away, a save lifts it toward Apply, then
+ *  the usual collapse closes the gap. Reduced motion or Pause animations: the collapse alone. */
+export function exitRow(from: Element | null, kind: 'burn' | 'save', then: () => void) {
+  const row = rowOf(from);
+  if (!row || !motionOk() || motionPaused()) return collapseRow(from, then);
+  void loadBurn()
+    .then((b) => b.decisionMotion(kind, row as HTMLElement) || undefined)
+    .catch(() => undefined)
+    .then(() => collapseRow(from, then));
+}
+
+/** Undo: fade the card that comes back in (found by its title once it renders). */
+export function fadeInTitle(title: string) {
+  if (!motionOk() || motionPaused()) return;
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const card = [...document.querySelectorAll('article')].find((a) => a.textContent?.includes(title));
+      if (card) void loadBurn().then((b) => b.fadeIn(card));
+    }),
+  );
 }

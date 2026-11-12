@@ -1,12 +1,21 @@
 /* eslint-disable react-refresh/only-export-components -- provider + hook co-located by design */
+import { flushSync } from 'react-dom';
+import { loadBurn, motionOk } from './feedback';
+import { motionPaused } from './motionPref';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type ColorMode = 'light' | 'dark';
 const STORAGE_KEY = 'rjb_color_mode';
 
-const ColorModeContext = createContext<{ mode: ColorMode; toggle: () => void }>({
+const ColorModeContext = createContext<{
+  mode: ColorMode;
+  toggle: () => void;
+  /** Prototype (proto/theme-burn): toggle with the burn from a point. */
+  burnToggle: (at: { x: number; y: number }) => void;
+}>({
   mode: 'dark',
   toggle: () => {},
+  burnToggle: () => {},
 });
 
 export const useColorMode = () => useContext(ColorModeContext);
@@ -64,21 +73,31 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener?.('change', onChange);
   }, [picked]);
 
-  const value = useMemo(
-    () => ({
-      mode,
-      toggle: () => {
-        const next: ColorMode = mode === 'dark' ? 'light' : 'dark';
-        setPicked(next);
-        try {
-          localStorage.setItem(STORAGE_KEY, next);
-        } catch {
-          /* ignore */
-        }
-      },
-    }),
-    [mode],
-  );
+  const value = useMemo(() => {
+    const next: ColorMode = mode === 'dark' ? 'light' : 'dark';
+    const toggle = () => {
+      setPicked(next);
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        /* ignore */
+      }
+    };
+    // The swap inside the View Transition must land in one sync step: set the attributes, then flush React.
+    const swap = () => {
+      const root = document.documentElement;
+      root.setAttribute('data-theme', next);
+      root.classList.toggle('dark', next === 'dark');
+      flushSync(toggle);
+    };
+    const burnToggle = (at: { x: number; y: number }) => {
+      if (!('startViewTransition' in document) || !motionOk() || motionPaused()) return toggle();
+      void loadBurn()
+        .then((b) => b.burnTheme(at, swap))
+        .catch(toggle);
+    };
+    return { mode, toggle, burnToggle };
+  }, [mode]);
 
   return <ColorModeContext.Provider value={value}>{children}</ColorModeContext.Provider>;
 }

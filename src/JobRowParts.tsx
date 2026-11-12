@@ -6,7 +6,7 @@ import { Badge, Box, Button, Icon, Menu, Stack } from '@hirobius/design-system';
 import { setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
 import { changeWithUndo } from './jobUndo';
-import { collapseRow } from './feedback';
+import { exitRow } from './feedback';
 import { FollowUpButton } from './FollowUp';
 import { openFollowUp } from './followUpFlow';
 import { openAddInterview } from './jobDialogs';
@@ -204,7 +204,7 @@ export function RowMenu({
             if (onRemoved) {
               removeWithUndo(job);
               onRemoved();
-            } else collapseRow(anchor.current, () => removeWithUndo(job));
+            } else exitRow(anchor.current, 'burn', () => removeWithUndo(job));
           }}
           tone="danger"
         >

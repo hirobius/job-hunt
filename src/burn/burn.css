@@ -1,0 +1,34 @@
+/* Prototype (proto/theme-burn): the burn-away theme switch and card burn. Lazy, with burn.ts. */
+:root {
+  --rjb-burn-1: var(--primitive-color-blue-500);
+  --rjb-burn-2: var(--primitive-color-cobalt-400);
+  --rjb-burn-3: var(--primitive-color-cobalt-100);
+  --rjb-ash-1: var(--primitive-color-neutral-500);
+  --rjb-ash-2: var(--primitive-color-neutral-300);
+  --rjb-ash-3: var(--primitive-color-neutral-200);
+}
+:root[data-rjb-burning]::view-transition-old(root),
+:root[data-rjb-burning]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root[data-rjb-burning]::view-transition-old(root) {
+  z-index: 2;
+  mask-image: var(--rjb-burn-mask);
+  mask-size: 100% 100%;
+}
+:root[data-rjb-burning]::view-transition-group(rjb-burn-rim) {
+  z-index: 3;
+  animation: none;
+}
+.rjb-burn-rim {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10;
+}
+.rjb-burn-rim[data-root] {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  view-transition-name: rjb-burn-rim;
+}
