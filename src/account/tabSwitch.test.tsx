@@ -19,7 +19,12 @@ vi.mock('@supabase/supabase-js', async () => {
   };
 });
 
-import { renderAccount, addDeviceDataIfAsked, chooseAccountItem } from '../test/renderAccount';
+import {
+  renderAccount,
+  addDeviceDataIfAsked,
+  chooseAccountItem,
+  chooseDataAction,
+} from '../test/renderAccount';
 import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { TAB_SIGNED_OUT, TAB_SWITCHED } from '../cloudMessages';
@@ -243,7 +248,7 @@ describe('an account switch in another tab (#288)', () => {
       tabB('y');
       return true;
     });
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     await settle();
     expect(signOut).not.toHaveBeenCalled();
     expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']);

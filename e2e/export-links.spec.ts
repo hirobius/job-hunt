@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openData } from './routes';
 
 // Export links (2026-10-22) end to end: the dialog opens from the Account menu only (#416, on All
 // saved jobs; This view is the Jobs list), switches scope and format, copies to the clipboard and
@@ -37,9 +38,8 @@ test('export links: open, switch scope and format, copy and download', async ({ 
   // The Jobs tab: the Pipeline, or from lg the list beside the first job (#471).
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
-  // The Account menu opens it; This view is the Jobs list: Active holds Acme only.
-  await page.getByRole('button', { name: /^Account/ }).click();
-  await page.getByRole('menuitem', { name: 'Export links' }).click();
+  // The Account menu's Data dialog opens it (#550); This view is the Jobs list: Active holds Acme only.
+  await (await openData(page)).getByRole('button', { name: 'Export links' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export links' });
   const preview = dialog.getByRole('textbox', { name: 'Preview' });
   await dialog.getByRole('radio', { name: 'This view (1)' }).click();
@@ -74,8 +74,7 @@ test('export links: open, switch scope and format, copy and download', async ({ 
 
 test('export links opens from the Account menu on all saved jobs', async ({ page }) => {
   await page.goto('/#/apply');
-  await page.getByRole('button', { name: /^Account/ }).click();
-  await page.getByRole('menuitem', { name: 'Export links' }).click();
+  await (await openData(page)).getByRole('button', { name: 'Export links' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export links' });
   await expect(dialog.getByRole('radio', { name: 'All saved jobs (2)' })).toBeChecked();
 });
@@ -83,8 +82,7 @@ test('export links opens from the Account menu on all saved jobs', async ({ page
 test('export links on a phone has 40px targets', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/apply');
-  await page.getByRole('button', { name: /^Account/ }).click();
-  await page.getByRole('menuitem', { name: 'Export links' }).click();
+  await (await openData(page)).getByRole('button', { name: 'Export links' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export links' });
   await expect(dialog).toBeVisible();
   for (const el of await dialog.locator('button, [role="radio"]').all()) {

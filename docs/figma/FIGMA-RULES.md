@@ -76,6 +76,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
+- **The Data dialog (#550).** The Account menu has one Data item. It opens one dialog (a bottom sheet
+  on a phone, centred at 1440) with two hairline lists, no cards: **Your data** (Back up, Restore,
+  Export CSV, Export links, Recently removed) and **This device** (Try with sample data, Reload app,
+  Reset local data, Delete my data). Each row is a quiet key with a 16 px icon and one caption line on
+  what it does. Reset and Delete are the danger tone and ask first.
 - **Planned (#471):** Find as two columns too (postings left, the selected posting right).
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.

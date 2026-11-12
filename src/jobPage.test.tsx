@@ -360,10 +360,12 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
   });
 });
 
-/** Recently removed is an Account menu item (#416: off the Jobs page). */
+/** Recently removed is in the Account menu's Data dialog (#416: off the Jobs page; #550). */
 const openRecentlyRemoved = async (n: number) => {
   await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
-  await userEvent.click(await screen.findByRole('menuitem', { name: `Recently removed (${n})` }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'Data' }));
+  const data = await screen.findByRole('dialog', { name: 'Data' });
+  await userEvent.click(within(data).getByRole('button', { name: `Recently removed (${n})` }));
 };
 
 describe('job page remove (Recently removed)', () => {
@@ -461,9 +463,9 @@ describe('job page remove (Recently removed)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
     await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
-    expect(
-      await screen.findByRole('menuitem', { name: 'Recently removed (1)' }),
-    ).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Data' }));
+    const data = await screen.findByRole('dialog', { name: 'Data' });
+    expect(within(data).getByRole('button', { name: 'Recently removed (1)' })).toBeInTheDocument();
   });
 
   it('a removed job still opens its posting from Recently removed (Adrian 2026-10-22)', async () => {

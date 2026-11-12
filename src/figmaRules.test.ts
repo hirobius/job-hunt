@@ -60,6 +60,18 @@ describe('FIGMA-RULES.md', () => {
     expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
   });
 
+  it('pins the Data dialog (#550): one lazy dialog for the data actions', () => {
+    expect(RULES).toMatch(/\*\*The Data dialog \(#550\)\.\*\*/);
+    expect(CLAUDE).toMatch(/\*\*Data dialog \(redesign §5\.9, #550\):\*\*/);
+    const dialog = fs.readFileSync('src/account/DataDialog.tsx', 'utf8');
+    expect(dialog).toContain('rjb-bottom-sheet');
+    for (const name of ['Your data', 'This device', 'Back up', 'Reset local data…'])
+      expect(dialog).toContain(name);
+    expect(fs.readFileSync('src/lazyDialogs.ts', 'utf8')).toContain(
+      "import('./account/DataDialog')",
+    );
+  });
+
   it('pins the exit style (#537): underlined text, the one way out', () => {
     const exit = fs.readFileSync('src/hds-gaps/ExitButton.tsx', 'utf8');
     expect(exit).toContain('variant="link"');
