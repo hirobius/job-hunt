@@ -95,6 +95,7 @@ describe('FIGMA-RULES.md', () => {
       expect(src).toContain('<DetailHeader');
       expect(src).toContain('<DetailTitleBlock');
     }
+    expect(RULES).toContain('Find at 1440\n  opens with the first posting selected');
     // At lg a Find list card carries no keys: the detail column has them.
     expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('keys={!onOpen}');
   });

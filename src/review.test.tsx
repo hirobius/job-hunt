@@ -381,6 +381,20 @@ describe('Review new: Deck', () => {
     );
   });
 
+  it('at lg, after the Deck’s last card Find’s h1 keeps focus as the list stands alone (#546)', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result(BASIC.slice(0, 1)));
+    renderFind();
+    await list();
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: `Skip ${deckTitle()}` }));
+    // The two columns go with the last posting: the new heading node takes the focus.
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toHaveFocus(),
+    );
+    expect(screen.getByText('You’re all caught up')).toBeInTheDocument();
+  });
+
   it('has no pager row: "1 of N" is in the caption under Find (#545)', async () => {
     const user = userEvent.setup();
     render(
@@ -577,8 +591,26 @@ describe('Review new: Deck card anatomy (#458)', () => {
     // No blue New badge in the title block: status there is neutral.
     expect(within(block).queryByText('New')).toBeNull();
     await user.click(save);
-    expect(await screen.findByText('Pick a posting')).toBeInTheDocument();
+    // No posting left: the list alone says so (Adrian 2026-11-12), nothing beside it.
+    expect(await screen.findByText('You’re all caught up')).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    expect(screen.queryByText('Pick a posting')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+  });
+
+  it('at lg Browse opens on the first posting, in place; the Deck keeps none (#546)', async () => {
+    const user = userEvent.setup();
+    renderFind();
+    const ul = await list();
+    const first = titles(ul)[0]!;
+    expect(await screen.findByRole('heading', { level: 1, name: first })).toBeInTheDocument();
+    expect(window.location.hash).toMatch(/^#\/find\/./);
+    expect(within(ul).getAllByRole('article', { current: true })).toHaveLength(1);
+    expect(screen.queryByText('Pick a posting')).toBeNull();
+    // The Deck walks its own card: the selection goes and Find's header shows again.
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
 
   it('Browse rows are standalone cards in the same anatomy; below lg the title is no link', async () => {

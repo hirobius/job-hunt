@@ -1,8 +1,8 @@
 // The final shell (simplify 2/9 #383 + amendment 2, Q6; #471): two top tabs, Find and Apply. Find,
 // top to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"),
 // Review new as the Browse list (a title selects the posting: #/find/<fingerprint>) and New
-// companies (Follow / Ignore). At lg the selected posting is the right column ("Pick a posting"
-// until one is picked); below lg its own view with Back and a pager. Follow up and Apply moved to
+// companies (Follow / Ignore). At lg the selected posting is the right column (the first posting
+// when the tab opens, #546); below lg its own view with Back and a pager. Follow up and Apply moved to
 // the Apply tab (#471 slice 3). Tested at the route seam through App and driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -194,15 +194,20 @@ describe('Review new on Today', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
 
-  it('at lg nothing is selected when the tab opens; a pick shows beside the list, in place', async () => {
+  it('at lg the tab opens on the first posting (#546); a pick shows beside the list, in place', async () => {
     viewport(1280);
     const user = userEvent.setup();
     window.location.hash = '#/find';
+    const steps = window.history.length;
     renderApp();
     const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
-    expect(screen.getByText('Pick a posting')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
-    const steps = window.history.length;
+    // Like Apply's first job (Adrian 2026-11-12): the first posting, its title the page's h1, in
+    // place (no history step).
+    const first = within(ul).getAllByRole('heading', { level: 3 })[0].textContent!;
+    expect(await screen.findByRole('heading', { level: 1, name: first })).toBeInTheDocument();
+    expect(screen.queryByText('Pick a posting')).toBeNull();
+    expect(window.location.hash).toMatch(/^#\/find\/./);
+    expect(window.history.length).toBe(steps);
     await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer' }));
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Design Systems Engineer' }),
@@ -212,6 +217,23 @@ describe('Review new on Today', () => {
     expect(window.history.length).toBe(steps);
     expect(within(ul).getAllByRole('article', { current: true })).toHaveLength(1);
     expect(screen.queryByRole('navigation', { name: 'Postings in the list' })).toBeNull();
+  });
+
+  it('at lg the first posting waits while a dialog is open over Find (#546)', async () => {
+    viewport(1280);
+    window.location.hash = '#/find?documents=';
+    renderApp();
+    expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
+    // The list has loaded behind the modal dialog (hidden from the accessibility tree there).
+    await waitFor(() =>
+      expect(
+        document.querySelectorAll('[aria-label="New postings"] article').length,
+      ).toBeGreaterThan(0),
+    );
+    // Selecting would be a new page, and a new page closes the dialog: it waits.
+    await new Promise((r) => setTimeout(r, 300));
+    expect(window.location.hash).toBe('#/find?documents=');
+    expect(screen.getByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
   });
 
   it('a decision on the selected posting moves on to the next one', async () => {

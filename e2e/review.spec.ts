@@ -153,7 +153,12 @@ for (const width of [390, 1440]) {
     await page.emulateMedia({ colorScheme: 'light' });
 
     if (width >= 1024) {
-      // At lg a title selects the posting for the detail column (#471 slice 3), in place.
+      // At lg Find opens on the first posting (Adrian 2026-11-12, #546), like Apply's first job.
+      await expect(page).toHaveURL(/#\/find\/.+/);
+      const first = await list.getByRole('heading', { level: 3 }).first().innerText();
+      await expect(page.getByRole('heading', { level: 1, name: first })).toBeVisible();
+      await expect(page.getByText('Pick a posting')).toHaveCount(0);
+      // A title selects another posting for the detail column (#471 slice 3), in place.
       await list.getByRole('link', { name: 'Design Systems Designer', exact: true }).click();
       await expect(page).toHaveURL(/#\/find\/.+/);
       await expect(
@@ -174,7 +179,6 @@ for (const width of [390, 1440]) {
       expect(await selectionStyle(selected, unselected)).toEqual(FILL_ONLY);
       await page.screenshot({ path: `test-results/review-selected-${width}.png` });
       await expect(list).toBeVisible();
-      await page.evaluate(() => (location.hash = '#/find'));
     } else {
       // Below lg there is no posting page (Adrian 2026-11-08): the card shows its description.
       const card = list.getByRole('article').filter({ hasText: 'Design Systems Designer' }).first();
@@ -185,8 +189,8 @@ for (const width of [390, 1440]) {
       await expect(card.getByRole('button', { name: 'Hide description' })).toBeVisible();
       await expect(page).toHaveURL(/#\/find$/);
       await page.screenshot({ path: `test-results/review-selected-${width}.png` });
+      await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
     }
-    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
 
     // Skip hides only that posting: Orbit's other one stays.
     await (await decideOn('Design Systems Engineer', 'Skip', 'Orbit')).click();
@@ -214,18 +218,15 @@ for (const width of [390, 1440]) {
     await expect(page.getByText(/shortlist/i)).toHaveCount(0);
     await expect(list.getByRole('listitem')).toHaveCount(2);
 
-    // At 1440 the decision in the detail selected the next posting (#546); the Deck is tested with
-    // nothing selected, so Find's header (its "1 of 2" caption) and one action row show.
-    if (wide) {
-      await page.evaluate(() => (location.hash = '#/find'));
-      await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
-    }
     // The deck: one card at a time, Skip each of the two left. Past the double-tap guard first: it
     // swallows any press inside the page for 700 ms after Save, Deck's too.
     await page.waitForTimeout(800);
     const deck = page.getByRole('button', { name: 'Deck' });
     await deck.click();
     await expect(deck).toHaveAttribute('aria-pressed', 'true');
+    // The Deck keeps no selection (#546): Find's header shows again, with its "1 of N" caption.
+    await expect(page).toHaveURL(/#\/find$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
     await expect(page.getByRole('article')).toHaveCount(1);
     // #545: no pager row; "1 of 2" is the caption under Find. #617: Sort shows in the Deck too.
     await expect(page.getByRole('navigation', { name: 'Postings' })).toHaveCount(0);
