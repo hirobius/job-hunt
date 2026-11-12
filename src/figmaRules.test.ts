@@ -83,7 +83,20 @@ describe('FIGMA-RULES.md', () => {
   it('pins the title block (#538): title first, facts, amber only for a date', () => {
     expect(RULES).toMatch(/A job leads with its title/);
     expect(RULES).toMatch(/No fit chips, no Saved chip, no blue/);
-    expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<Card.Facts');
+    expect(fs.readFileSync('src/DetailHeader.tsx', 'utf8')).toContain('<Card.Facts');
+    expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<DetailTitleBlock');
+  });
+
+  it('pins one detail template for a posting and a job (#546)', () => {
+    expect(RULES).toContain('One detail template at 1440 (#546)');
+    expect(CLAUDE).toContain('One detail template at 1440 (#546');
+    for (const file of ['src/JobHeader.tsx', 'src/ReviewView.tsx']) {
+      const src = fs.readFileSync(file, 'utf8');
+      expect(src).toContain('<DetailHeader');
+      expect(src).toContain('<DetailTitleBlock');
+    }
+    // At lg a Find list card carries no keys: the detail column has them.
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('keys={!onOpen}');
   });
 
   it('pins the action dock (#535, #536)', () => {
@@ -95,6 +108,19 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/dockKeys.ts', 'utf8')).toContain(
       "{ id: 'addLink', rank: 'secondary' }",
     );
+  });
+
+  it('pins the Find Deck (#545, #617): keys in the dock, "1 of N" in the caption, Sort shows', () => {
+    expect(RULES).toMatch(/Find Deck \(#545, #617\)/);
+    expect(RULES).toMatch(
+      /Skip \(grey, left\) and Save \(filled,\s+right\) sit in the action dock/,
+    );
+    expect(CLAUDE).toMatch(/\*\*Find Deck \(#545, #617/);
+    const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
+    expect(review).toContain('<ActionDock docked={docked} row');
+    expect(review).not.toContain('Pagination');
+    expect(review).not.toMatch(/mode === 'browse' && \(/);
+    expect(fs.readFileSync('src/FindDeck.css', 'utf8')).toContain('line-clamp: 7');
   });
 
   it('pins the keys by state (#540)', () => {

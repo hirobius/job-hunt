@@ -36,6 +36,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   focus. At 1440 the same keys sit in one row under the title block. Not a fit is the dock's exit,
   never inside More; it acts at once with "Marked not a fit: <title> · Undo". A job with no link
   never shows Open application: its keys are Mark applied (filled), Add link (grey), Not a fit.
+- **Find Deck (#545, #617).** The same posting card as Browse, one at a time. No pager row: "1 of 4"
+  sits in the caption under Find, and a sideways swipe steps it. Skip (grey, left) and Save (filled,
+  right) sit in the action dock, in one row; both show a toast with Undo. The card shows the
+  posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More on the
+  card keeps Not this company. The Sort menu shows in the Deck too: the deck's order and its
+  "1 of N" follow the sort, and the card on screen stays when the sort changes.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 
@@ -81,7 +87,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   Export CSV, Export links, Recently removed) and **This device** (Try with sample data, Reload app,
   Reset local data, Delete my data). Each row is a quiet key with a 16 px icon and one caption line on
   what it does. Reset and Delete are the danger tone and ask first.
-- **Planned (#471):** Find as two columns too (postings left, the selected posting right).
+- **One detail template at 1440 (#546).** Find is two columns too: postings left, the selected
+  posting right. A posting and a job use one detail template: the title block (title, company,
+  one facts line, then the badges; a posting's source is a neutral badge there), More beside it,
+  one action row (Save filled, Skip grey, Open posting as an icon), then the content (a posting's
+  Description panel). List cards carry no keys at 1440: the detail column has them. Below 1024
+  each Find card keeps its own keys.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
 - Touch targets are at least 44 px on a phone. Text contrast is AA (4.5) in light and dark.

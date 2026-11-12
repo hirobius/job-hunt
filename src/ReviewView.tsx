@@ -2,7 +2,9 @@
 // from every source, two ways. Browse (the default) is one list, newest first, to sort and filter;
 // a title selects the posting (#471 slice 3: `#/find/<fingerprint>`), and the posting shows in the
 // right column at lg (details, why it is listed, Save / Skip / Not this company, Open posting), or
-// as its own view with Back and a pager below lg. "Load more" pages the list. Deck is the same postings one card at a time. No fit tiers
+// as its own view with Back and a pager below lg. "Load more" pages the list. Deck is the same postings one card at a time
+// (#545): the same card, Skip and Save in the action dock, "1 of N" in Find's caption, a swipe steps; it
+// walks the list in the Sort's order (#617). No fit tiers
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
@@ -16,8 +18,8 @@ import {
   Card,
   Disclosure,
   Icon,
+  InlineLink,
   Menu,
-  Pagination,
   Sidebar,
   Skeleton,
   Stack,
@@ -28,6 +30,7 @@ import {
   VisuallyHidden,
 } from '@hirobius/design-system';
 import {
+  Banknote,
   Briefcase,
   Calendar,
   ChevronDown,
@@ -42,6 +45,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
+import { ActionDock } from './hds-gaps/ActionDock';
+import { SwipeArea } from './SwipeArea';
+import './FindDeck.css';
 import { useBackSheet } from './useBackCloses';
 import { findHash, postingOf, selectPosting, useRoute } from './route';
 import { inPlaceClick } from './back';
@@ -75,6 +81,7 @@ import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
 import { usePostingText } from './feed/postingText';
 import { httpUrl } from './httpUrl';
+import { DetailHeader, DetailTitleBlock } from './DetailHeader';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -100,8 +107,9 @@ export default function ReviewView({
    *  Feed's, so the page has one number); the panel doesn't repeat them. */
   scanStatus?: boolean;
   /** The page's head (its h1), shown while no posting is selected: a selected posting's title is
-   *  the page's h1 then (#363, as a job's is on Apply). */
-  header?: ReactNode;
+   *  the page's h1 then (#363, as a job's is on Apply). Given the Deck's place ("1 of 4", #545) to
+   *  put in its caption, or null outside the Deck. */
+  header?: ReactNode | ((deckPlace: string | null) => ReactNode);
   /** Find's list column, above and under the list: Daily picks, New companies. */
   before?: ReactNode;
   after?: ReactNode;
@@ -144,6 +152,20 @@ export default function ReviewView({
     if (!wide && selectedFp) selectPosting(null, true);
   }, [wide, selectedFp]);
   const sortSheet = useBackSheet('review-sort');
+
+  // The Deck's card (#545), and where it sits in the list as it shows ("1 of 4" in Find's caption).
+  const deckAt = Math.min(card, Math.max(0, listed.length - 1));
+  const deckPlace =
+    view && mode === 'deck' && listed.length ? `${deckAt + 1} of ${listed.length}` : null;
+  // A new sort reorders the Deck too (#617), and keeps the card on screen where it moved to.
+  const changeSort = (to: FeedSort) => {
+    const current = listed[deckAt]?.fingerprint;
+    setSort(to);
+    setShown(REVIEW_PAGE);
+    if (!view || !current) return;
+    const at = filterRows(sortRows(view.rows, to), on).findIndex((x) => x.fingerprint === current);
+    setCard(Math.max(0, at));
+  };
 
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
@@ -220,7 +242,8 @@ export default function ReviewView({
           <VisuallyHidden as="p" role="status">
             {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
           </VisuallyHidden>
-          {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). */}
+          {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). Sort shows
+              in the Deck too (#617): the Deck walks the same list in the same order. */}
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
             {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
                 takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
@@ -244,7 +267,7 @@ export default function ReviewView({
                 </HdsTooltip>
               ))}
             </Stack>
-            {view && view.rows.length > 0 && mode === 'browse' && (
+            {view && view.rows.length > 0 && (
               <Menu {...sortSheet}>
                 <Menu.Trigger asChild>
                   <Button size="sm" variant="secondary" iconRight={<Icon icon={ChevronDown} />}>
@@ -252,13 +275,7 @@ export default function ReviewView({
                   </Button>
                 </Menu.Trigger>
                 <Menu.Content align="end">
-                  <Menu.RadioGroup
-                    value={sort}
-                    onValueChange={(v) => {
-                      setSort(v as FeedSort);
-                      setShown(REVIEW_PAGE);
-                    }}
-                  >
+                  <Menu.RadioGroup value={sort} onValueChange={(v) => changeSort(v as FeedSort)}>
                     {SORTS.map((s) => (
                       <Menu.RadioItem key={s} value={s}>
                         {SORT_LABEL[s]}
@@ -320,8 +337,9 @@ export default function ReviewView({
         <PanelBody>
           <Deck
             rows={listed}
-            at={Math.min(card, Math.max(0, listed.length - 1))}
+            at={deckAt}
             onAt={setCard}
+            docked={!wide}
             now={feed.at}
             actions={actions}
             empty={caughtUp}
@@ -373,7 +391,7 @@ export default function ReviewView({
   );
   const list = (
     <Stack gap="px24">
-      {!selectedFp && header}
+      {!selectedFp && (typeof header === 'function' ? header(deckPlace) : header)}
       {before}
       {panel}
       {after}
@@ -541,6 +559,7 @@ function RowList({
                   r={r}
                   now={now}
                   onOpen={onOpen}
+                  keys={!onOpen}
                   describe={!onOpen}
                   describeOpen={r.fingerprint === linked}
                   actions={actions}
@@ -595,75 +614,127 @@ const placeOf = (r: FeedRow) => {
 
 const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
 
-/** A posting's one action row (Adrian 2026-11-08): left-aligned, one HDS size, Save primary, Skip
- *  secondary, Open posting as an icon button, and More (…) holding Not this company. The same row
- *  on a Browse card, the Deck and the selected posting. */
-function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
-  // Not this company is picked in the menu (a portal): its feedback anchors on the row's trigger.
-  const more = useRef<HTMLButtonElement>(null);
-  const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
+/** A posting's keys (Adrian 2026-11-08): one HDS size, Save primary, Skip secondary, Open
+ *  posting as an icon button. The same keys on a Browse card and the selected posting. */
+function postingKeys(r: FeedRow, actions: RowActions): ReactNode[] {
+  return [
+    <SaveKey key="save" r={r} actions={actions} />,
+    <SkipKey key="skip" r={r} actions={actions} />,
+    httpUrl(r.url) && (
+      <HdsTooltip key="open">
+        <HdsTooltip.Trigger asChild>
+          <Button
+            size="md"
+            variant="secondary"
+            iconOnly
+            label={`Open posting for ${rowName(r)}`}
+            asChild
+          >
+            <a
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open posting for ${rowName(r)}`}
+            >
+              <Icon icon={ExternalLink} />
+            </a>
+          </Button>
+        </HdsTooltip.Trigger>
+        <HdsTooltip.Content>Open posting</HdsTooltip.Content>
+      </HdsTooltip>
+    ),
+  ].filter(Boolean);
+}
+
+/** A card's one action row: left-aligned, the keys, then More (…) holding Not this company. */
+function PostingActions({
+  r,
+  actions,
+  decide = true,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  /** False in the Deck (#545): Save and Skip sit in the action dock; the card keeps More. */
+  decide?: boolean;
+}) {
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      <Button
-        size="md"
-        variant="primary"
-        aria-label={`Save ${rowName(r)}`}
-        onClick={(e) => actions.save(r, e.currentTarget)}
-      >
-        <Icon icon={Plus} />
-        Save
-      </Button>
-      <Button
-        size="md"
-        variant="secondary"
-        aria-label={`Skip ${rowName(r)}`}
-        onClick={(e) => actions.skip(r, e.currentTarget)}
-      >
-        Skip
-      </Button>
-      {httpUrl(r.url) && (
-        <HdsTooltip>
-          <HdsTooltip.Trigger asChild>
-            <Button
-              size="md"
-              variant="secondary"
-              iconOnly
-              label={`Open posting for ${rowName(r)}`}
-              asChild
-            >
-              <a
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Open posting for ${rowName(r)}`}
-              >
-                <Icon icon={ExternalLink} />
-              </a>
-            </Button>
-          </HdsTooltip.Trigger>
-          <HdsTooltip.Content>Open posting</HdsTooltip.Content>
-        </HdsTooltip>
-      )}
-      {r.company.trim() && (
-        <Menu modal={false} {...sheet}>
-          <Menu.Trigger asChild>
-            <Button
-              ref={more}
-              size="md"
-              variant="secondary"
-              iconOnly
-              iconLeft={<Icon icon={Ellipsis} />}
-              label={`More actions: ${rowName(r)}`}
-            />
-          </Menu.Trigger>
-          <Menu.Content align="start">
-            <Menu.Item onSelect={() => actions.mute(r, more.current)}>
-              {`Not this company: ${r.company}`}
-            </Menu.Item>
-          </Menu.Content>
-        </Menu>
-      )}
+      {decide && postingKeys(r, actions)}
+      <PostingMenu r={r} actions={actions} />
     </Stack>
+  );
+}
+
+/** More (…): Not this company. On a card it ends the action row; in the detail it sits beside
+ *  the title block, as a job's More does (one detail template, #546). */
+function PostingMenu({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  // Not this company is picked in the menu (a portal): its feedback anchors on the trigger.
+  const more = useRef<HTMLButtonElement>(null);
+  const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
+  if (!r.company.trim()) return null;
+  return (
+    <Menu modal={false} {...sheet}>
+      <Menu.Trigger asChild>
+        <Button
+          ref={more}
+          size="md"
+          variant="secondary"
+          iconOnly
+          iconLeft={<Icon icon={Ellipsis} />}
+          label={`More actions: ${rowName(r)}`}
+        />
+      </Menu.Trigger>
+      <Menu.Content align="start">
+        <Menu.Item onSelect={() => actions.mute(r, more.current)}>
+          {`Not this company: ${r.company}`}
+        </Menu.Item>
+      </Menu.Content>
+    </Menu>
+  );
+}
+
+/** Save, the filled key, and Skip, the grey key: on a card's action row, or in the Deck's dock
+ *  (#545), where `from` is the Deck's card so it collapses as it goes. */
+function SaveKey({
+  r,
+  actions,
+  from,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  from?: () => Element | null;
+}) {
+  return (
+    <Button
+      size="md"
+      variant="primary"
+      aria-label={`Save ${rowName(r)}`}
+      onClick={(e) => actions.save(r, from ? from() : e.currentTarget)}
+    >
+      <Icon icon={Plus} />
+      Save
+    </Button>
+  );
+}
+
+function SkipKey({
+  r,
+  actions,
+  from,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  from?: () => Element | null;
+}) {
+  return (
+    <Button
+      size="md"
+      variant="secondary"
+      aria-label={`Skip ${rowName(r)}`}
+      onClick={(e) => actions.skip(r, from ? from() : e.currentTarget)}
+    >
+      Skip
+    </Button>
   );
 }
 
@@ -712,9 +783,10 @@ function PostingCard({
   r,
   now,
   onOpen,
-  noTitle = false,
+  keys = true,
   describe = false,
   describeOpen = false,
+  decide = true,
   actions,
   children,
 }: {
@@ -726,10 +798,12 @@ function PostingCard({
   describe?: boolean;
   /** Opened by an old #/find/<fingerprint> link on a phone. */
   describeOpen?: boolean;
-  /** The selected posting's view names it in its own header. */
-  noTitle?: boolean;
+  /** At lg a list card carries no keys: the detail column has them (#546). */
+  keys?: boolean;
+  /** False in the Deck (#545): Save and Skip are in the action dock. */
+  decide?: boolean;
   actions: RowActions;
-  /** Extra content above the footer (the Deck's snippet). */
+  /** Extra content above the footer (the Deck's excerpt). */
   children?: ReactNode;
 }) {
   const place = placeOf(r);
@@ -750,7 +824,7 @@ function PostingCard({
           <Badge>{SOURCE_LABEL[r.source]}</Badge>
           {r.isNew && <Badge tone="info">New</Badge>}
         </Stack>
-        {noTitle ? null : onOpen ? (
+        {onOpen ? (
           <Text variant="title" as="h3" weight="bold" className="rjb-card-title" tabIndex={-1}>
             <Button variant="tertiary" size="sm" className="rjb-preview-title" asChild>
               <a href={findHash(r.fingerprint)} onClick={inPlaceClick(() => onOpen(r))}>
@@ -764,7 +838,7 @@ function PostingCard({
             {r.title}
           </Text>
         )}
-        {r.company && !noTitle && (
+        {r.company && (
           <Text variant="ui" as="p">
             {r.company}
           </Text>
@@ -785,20 +859,26 @@ function PostingCard({
         )}
         {children}
         {describe && <CardDescription r={r} initialOpen={describeOpen} />}
-        <Box sx={{ pt: 'xs' }}>
-          <PostingActions r={r} actions={actions} />
-        </Box>
+        {keys && (
+          <Box sx={{ pt: 'xs' }}>
+            <PostingActions r={r} actions={actions} decide={decide} />
+          </Box>
+        )}
       </Stack>
     </Box>
   );
 }
 
-/** One card at a time: the posting, then Save, Skip and Not this company. A decided card leaves
- *  the deck, so the next one takes its place. */
+/** One card at a time (#545): the same posting card, its text at once (7 lines) with "Read the
+ *  full posting", More on the card for Not this company, and Skip (grey) and Save (filled, right)
+ *  in the action dock (inline under the card at lg). "1 of N" is Find's caption, not a pager row;
+ *  a sideways swipe, or the arrow keys on the card, steps it. A decided card leaves the deck, so
+ *  the next one takes its place. */
 function Deck({
   rows,
   at,
   onAt,
+  docked,
   now,
   actions,
   empty,
@@ -806,10 +886,45 @@ function Deck({
   rows: FeedRow[];
   at: number;
   onAt: (n: number) => void;
+  /** Below lg: the keys dock at the bottom of the screen. */
+  docked: boolean;
   now: number;
   actions: RowActions;
   empty: string;
 }) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  // After Save, Skip or Not this company the decided card leaves: focus goes to the title of the
+  // card that takes its place, or to Find's h1 once the deck is empty (#545 follow-up), never left
+  // on the dock key or dropped to <body>. A decision that does not land (the double-tap guard, a
+  // double Save) lets the mark lapse.
+  const decided = useRef<{ fp: string; until: number } | null>(null);
+  const shown = rows[at]?.fingerprint ?? null;
+  useEffect(() => {
+    const mark = decided.current;
+    if (!mark || shown === mark.fp) return;
+    decided.current = null;
+    if (Date.now() > mark.until) return;
+    const title = cardRef.current?.querySelector<HTMLElement>('h3');
+    if (shown && title) focusAsHeading(title);
+    else focusNewHeading(null);
+  }, [shown]);
+  const mark = (row: FeedRow) => {
+    decided.current = { fp: row.fingerprint, until: Date.now() + 2000 };
+  };
+  const deckActions: RowActions = {
+    save: (row, from) => {
+      mark(row);
+      actions.save(row, from);
+    },
+    skip: (row, from) => {
+      mark(row);
+      actions.skip(row, from);
+    },
+    mute: (row, from) => {
+      mark(row);
+      actions.mute(row, from);
+    },
+  };
   if (!rows.length)
     return (
       <EmptySection>
@@ -823,34 +938,66 @@ function Deck({
       </EmptySection>
     );
   const r = rows[at];
+  const step = (d: -1 | 1) => {
+    const to = at + d;
+    if (to >= 0 && to < rows.length) onAt(to);
+  };
+  const from = () => cardRef.current;
   return (
-    <Stack gap="tight">
-      <Stack direction="row" gap="tight" align="center" justify="end">
-        {rows.length > 1 && (
-          <Pagination
-            variant="compact"
-            label="Postings"
-            page={at + 1}
-            count={rows.length}
-            onPageChange={(p) => onAt(p - 1)}
-          />
-        )}
-      </Stack>
-      <Card
-        as="article"
-        aria-label={r.company ? `${r.title} at ${r.company}` : r.title}
-        padding="none"
-      >
-        <DeckBody>
-          <PostingCard r={r} now={now} actions={actions}>
-            {r.snippet && (
-              <Text variant="body" as="p" tone="secondary">
-                {r.snippet}
-              </Text>
-            )}
-          </PostingCard>
-        </DeckBody>
-      </Card>
+    <Stack gap="normal">
+      <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
+        <Card
+          ref={cardRef}
+          as="article"
+          aria-label={rowName(r)}
+          padding="none"
+          onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            if ((e.target as Element).closest('input, textarea, [role="menu"]')) return;
+            e.preventDefault();
+            step(e.key === 'ArrowLeft' ? -1 : 1);
+          }}
+        >
+          <DeckBody>
+            <PostingCard r={r} now={now} actions={deckActions} decide={false}>
+              <DeckExcerpt r={r} />
+            </PostingCard>
+          </DeckBody>
+        </Card>
+      </SwipeArea>
+      <ActionDock docked={docked} row label={`Actions for ${rowName(r)}`}>
+        <SkipKey r={r} actions={deckActions} from={from} />
+        <SaveKey r={r} actions={deckActions} from={from} />
+      </ActionDock>
+    </Stack>
+  );
+}
+
+/** The Deck's excerpt (#545): the posting's text at once, cut at 7 lines, then "Read the full
+ *  posting" (the posting itself, in a new tab). No disclosure. */
+function DeckExcerpt({ r }: { r: FeedRow }) {
+  const { text, loading } = usePostingText(r);
+  const body = text.trim() ? excerpt(text, 1200) : r.snippet;
+  const link = httpUrl(r.url);
+  return (
+    <Stack gap="px8">
+      {body ? (
+        <Text variant="body" as="p" tone="secondary" className="rjb-deck-excerpt">
+          {body}
+        </Text>
+      ) : loading ? (
+        <Stack gap="px8" aria-busy="true">
+          <Skeleton variant="text" width="90%" />
+          <Skeleton variant="text" width="70%" />
+        </Stack>
+      ) : null}
+      {link && (
+        <Text as="p" variant="ui">
+          <InlineLink href={r.url} standalone size="sm">
+            Read the full posting
+          </InlineLink>
+        </Text>
+      )}
     </Stack>
   );
 }
@@ -901,8 +1048,6 @@ function PostingDetail({
   actions: RowActions;
 }) {
   usePageTitle(r ? r.title : wide ? 'Find' : null);
-  // Fetched on open when the list was read without it (a phone, or the server's rows).
-  const { text, loading } = usePostingText(r);
   if (!r)
     return (
       <Stack gap="normal">
@@ -930,31 +1075,47 @@ function PostingDetail({
         )}
       </Stack>
     );
+  const pay = payLabel(r);
+  const posted = postedAgo(r.postedAt, now);
+  const place = placeOf(r);
+  const modeText = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
+  const facts = [
+    { icon: MapPin, label: place },
+    // The mode only when the place line doesn't already say it.
+    ...(modeText && !place.toLowerCase().includes(modeText.toLowerCase())
+      ? [{ icon: Briefcase, label: modeText }]
+      : []),
+    // As on a job's page: a missing pay says so, you need it to decide.
+    { icon: Banknote, label: pay || 'Pay not stated' },
+    ...(posted
+      ? [{ icon: Calendar, label: posted === 'today' ? 'Posted today' : `Posted ${posted}` }]
+      : []),
+  ];
+  // One detail template (#546): the job page's header, then the content.
   return (
     <Box as="section" aria-labelledby="rjb-posting-title" sx={{ minWidth: 0 }}>
-      <Stack gap="normal">
-        <Stack gap="px4">
-          <Text as="h1" variant="title" id="rjb-posting-title">
-            {r.title}
-          </Text>
-          <Text variant="ui" as="p" tone="secondary">
-            {r.company || SOURCE_LABEL[r.source]}
-          </Text>
-        </Stack>
-        <Card as="article" padding="none" aria-label={rowName(r)}>
-          <DeckBody>
-            <PostingCard r={r} now={now} noTitle actions={actions}>
-              {text.trim() ? (
-                <Text variant="body" as="p" tone="secondary">
-                  {excerpt(text)}
-                </Text>
-              ) : loading ? (
-                <Skeleton variant="text" width="80%" />
-              ) : null}
-            </PostingCard>
-          </DeckBody>
-        </Card>
-      </Stack>
+      <DetailHeader
+        titleBlock={
+          <DetailTitleBlock
+            title={r.title}
+            titleId="rjb-posting-title"
+            company={r.company}
+            noCompany="Company not stated"
+            facts={facts}
+            // The source shows here (neutral, as a job's status does).
+            badges={<Badge tone="neutral">{SOURCE_LABEL[r.source]}</Badge>}
+          />
+        }
+        more={<PostingMenu r={r} actions={actions} />}
+        docked={!wide}
+        label={`Actions for ${rowName(r)}`}
+        keys={postingKeys(r, actions)}
+      />
+      <Panel label="Description" title="Description">
+        <PanelBody>
+          <DescriptionText r={r} />
+        </PanelBody>
+      </Panel>
     </Box>
   );
 }

@@ -110,7 +110,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `priority` field stays in the data, backups and CSV (and still sorts). More's last item is "Remove from Apply"
   ("Removed from Apply: <title>", Undo; focus to the next title). Pinned in `e2e/saved-list.spec.ts`, `e2e/review.spec.ts`.
 - **Action dock (redesign §5.5, #535/#536):** `src/hds-gaps/ActionDock.tsx` (+ `.css`, `fieldFocus.ts`; G1,
-  hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
+  hds#1432; in the JobPage and Find chunks (the Find Deck, #545), nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
   transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
   (`hds.motion.spatial`; reduced motion = opacity); from lg an inline row under the title block. Keys: filled,
   grey, exit, per state from one table, `src/dockKeys.ts` `dockKeys` (see Keys by state above): to apply with a
@@ -131,6 +131,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
   Follow-up due. `JobBadges` drops the fit chips and the Saved chip everywhere (the verdict stays in the data).
   Pinned in `jobTitleBlock.test.tsx`, `e2e/title-block.spec.ts`.
+- **One detail template at 1440 (#546, redesign §5.4):** `src/DetailHeader.tsx` (`DetailTitleBlock` + `DetailHeader`)
+  is the one header for a saved job (`JobHeader`) and a Find posting (`ReviewView` `PostingDetail`): Back, the title
+  block (h1, company or "Company not stated", HDS `Card.Facts`, then the badges; a posting's source is a neutral
+  badge there, no blue New), More beside it (a posting's holds Not this company), one action row (`ActionDock`:
+  Save filled, Skip grey, Open posting icon for a posting), then the content (a posting's "Description" `Panel`).
+  **List cards carry no keys at 1440** (`PostingCard keys={!onOpen}`): the detail column has them; below lg each
+  card keeps its own. Shared by the JobPage and Today chunks, never the entry. Pinned in `review.test.tsx`,
+  `figmaRules.test.ts`, `e2e/review.spec.ts` (`templateOf`: the posting's and the saved job's headers measure the same).
 - **Keys (redesign §3, Adrian 2026-11-10, #537):** one filled key per decision, a grey key for a real
   second choice, and **An exit is underlined text** for every way out (Cancel, Not a fit, Continue
   without an account): `src/hds-gaps/ExitButton.tsx` = HDS `Button variant="link"` + HDS's
@@ -357,8 +365,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Find out (**below lg there is no posting page since 2026-11-08:** the card's title is plain text, an old
   `#/find/<fingerprint>` link scrolls to its card with the description open and drops the fingerprint, and after a
   decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, status, Review new, New companies) beside
-  `PostingDetail` (the old preview dialog's body: title as the page's h1, company, the card with its excerpt, Save /
-  Skip / Not this company, Open posting; "Pick a posting" until one is picked); below lg the list is the tab and a
+  `PostingDetail` (the job page's template since #546: title block, More with Not this company, Save / Skip / Open
+  posting, then the Description; "Pick a posting" until one is picked); below lg the list is the tab and a
   selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
   route, `#/find/<fingerprint>` (`route.postingOf` / `findHash` / `selectPosting`, URI-escaped): shareable, survives
   a reload, nothing selected when the tab opens. A pick replaces the history entry at lg and pushes below lg (Back
@@ -381,6 +389,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the walk row's view picker picks them (#542, out
   of Filters); `PipelineMenus` is Sort only. Default view To apply; Clear filters goes back to it. Next: #543 moves
   search, filters, sort and Add job into the All jobs sheet. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
+- **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse, one at a time (`ReviewView.tsx`
+  `Deck`). No pager row: "1 of 4" is the caption under Find (`header` takes the Deck's place, `Today.tsx` adds it to
+  its `MetaCaption`); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
+  card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock row` (one row, `data-layout="row"`):
+  fixed at the bottom below lg, inline under the card at lg; the card collapses as it goes and both toast with Undo.
+  After a decision focus goes to the next card's title (h3), or Find's h1 once the deck is empty (`Deck`'s `decided`
+  mark; the card's elements stay, so `focusNextTitle`'s list-item walk does not apply).
+  The card shows the posting's text at once (`usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
+  Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More keeps Not this company; no
+  disclosure. The Sort menu shows in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
+  keeps the card on screen (`changeSort` finds it by fingerprint). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
+  `figmaRules.test.ts`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`); full width under the logo below md, inline in the
