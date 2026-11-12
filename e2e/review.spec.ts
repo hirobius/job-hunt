@@ -214,6 +214,12 @@ for (const width of [390, 1440]) {
     await expect(page.getByText(/shortlist/i)).toHaveCount(0);
     await expect(list.getByRole('listitem')).toHaveCount(2);
 
+    // At 1440 the decision in the detail selected the next posting (#546); the Deck is tested with
+    // nothing selected, so Find's header (its "1 of 2" caption) and one action row show.
+    if (wide) {
+      await page.evaluate(() => (location.hash = '#/find'));
+      await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+    }
     // The deck: one card at a time, Skip each of the two left. Past the double-tap guard first: it
     // swallows any press inside the page for 700 ms after Save, Deck's too.
     await page.waitForTimeout(800);
@@ -221,15 +227,37 @@ for (const width of [390, 1440]) {
     await deck.click();
     await expect(deck).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('article')).toHaveCount(1);
+    // #545: no pager row; "1 of 2" is the caption under Find. #617: Sort shows in the Deck too.
+    await expect(page.getByRole('navigation', { name: 'Postings' })).toHaveCount(0);
+    await expect(page.getByText('1 of 2', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Sort: / })).toBeVisible();
+    // Skip (grey) and Save (filled, right) sit in the dock: fixed at the bottom on a phone, one
+    // row, each key 44px tall at least; inline under the card at lg.
+    const dock = page.getByRole('group', { name: /^Actions for / });
+    const skipKey = dock.getByRole('button', { name: /^Skip / });
+    const saveKey = dock.getByRole('button', { name: /^Save / });
+    const [skipBox, saveBox] = [await skipKey.boundingBox(), await saveKey.boundingBox()];
+    expect(skipBox && saveBox && skipBox.x < saveBox.x).toBe(true);
+    expect(Math.abs((skipBox?.y ?? 0) - (saveBox?.y ?? 1))).toBeLessThan(1);
+    if (width < 1024) {
+      expect(await dock.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
+      expect(skipBox!.height).toBeGreaterThanOrEqual(44);
+      expect(skipBox!.y + skipBox!.height).toBeGreaterThan(900 - 80);
+    } else {
+      expect(await dock.evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed');
+    }
     await page.screenshot({ path: `test-results/review-deck-${width}.png`, fullPage: true });
     for (let left = 2; left > 0; left--) {
       // Past the double-tap guard again.
       await page.waitForTimeout(800);
       await page
-        .getByRole('article')
+        .getByRole('group', { name: /^Actions for / })
         .getByRole('button', { name: /^Skip / })
         .click();
-      if (left > 1) await expect(page.getByRole('article')).toHaveCount(1);
+      if (left > 1) {
+        await expect(page.getByRole('article')).toHaveCount(1);
+        await expect(page.getByText('1 of 1', { exact: true })).toBeVisible();
+      }
     }
     await expect(page.getByText('You’re all caught up')).toBeVisible();
 

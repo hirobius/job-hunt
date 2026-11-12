@@ -7,7 +7,8 @@
 // stays above an on-screen keyboard even when no field has focus (#593), and it reserves one row
 // for one key and two for more (`data-rows`). When a key with focus leaves (the job's state
 // changed, e.g. a sync from another device), focus goes to the new filled key, or to `onKeysGone`
-// when no key is left (#540 contract, #593); a key that stays keeps its focus.
+// when no key is left (#540 contract, #593); a key that stays keeps its focus. `row` puts every key
+// in one row, in order (the Find Deck, #545: Skip grey, Save filled on the right).
 // Delete this when HDS ships a bottom action bar.
 // hds-gap: hirobius/hds#1432 (G1: a bottom dock that hides while a field has focus)
 import { Children, useCallback, useLayoutEffect, useRef, type ReactNode } from 'react';
@@ -24,6 +25,7 @@ export function ActionDock({
   docked,
   label,
   onKeysGone,
+  row = false,
   children,
 }: {
   /** Dock at the bottom (a phone) or sit inline under the title block (lg). */
@@ -32,6 +34,8 @@ export function ActionDock({
   label: string;
   /** Where focus goes when the focused key left and no key is left (e.g. the page's title). */
   onKeysGone?: () => void;
+  /** Every key in one row, in the order given (no first row for the filled key). */
+  row?: boolean;
   children: ReactNode;
 }) {
   const typing = useFieldFocused();
@@ -99,7 +103,8 @@ export function ActionDock({
           className="rjb-dock"
           data-rjb-actions=""
           // The filled key takes the first row; any other keys share the second.
-          data-rows={count > 1 ? '2' : '1'}
+          data-rows={count > 1 && !row ? '2' : '1'}
+          data-layout={row ? 'row' : undefined}
           data-hidden={hidden ? 'true' : 'false'}
           aria-hidden={hidden || undefined}
           inert={hidden || undefined}

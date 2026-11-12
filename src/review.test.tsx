@@ -338,11 +338,101 @@ describe('Review new: Deck', () => {
     await user.click(screen.getByRole('button', { name: 'Deck' }));
     const first = screen.getByRole('article');
     const name = first.getAttribute('aria-label');
-    await user.click(within(first).getByRole('button', { name: /^Skip / }));
+    // Skip is in the action dock (#545), not on the card.
+    await user.click(
+      within(screen.getByRole('group', { name: `Actions for ${name}` })).getByRole('button', {
+        name: /^Skip /,
+      }),
+    );
     await waitFor(() =>
       expect(screen.getByRole('article')).not.toHaveAttribute('aria-label', name!),
     );
     expect(screen.getAllByRole('article')).toHaveLength(1);
+  });
+
+  const deckTitle = () => screen.getByRole('article').getAttribute('aria-label');
+
+  it('has no pager row: "1 of N" is in the caption under Find (#545)', async () => {
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <ReviewView header={(place) => <p data-testid="caption">{place ?? 'no place'}</p>} />
+        <NoticeHost />
+      </ToastProvider>,
+    );
+    await list();
+    expect(screen.getByTestId('caption')).toHaveTextContent('no place');
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    expect(screen.queryByRole('navigation', { name: 'Postings' })).toBeNull();
+    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
+    // The arrow keys on the card step it, like a swipe.
+    await user.click(within(screen.getByRole('article')).getByRole('heading', { level: 3 }));
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByTestId('caption')).toHaveTextContent('2 of 3');
+    await user.keyboard('{ArrowLeft}{ArrowLeft}');
+    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
+  });
+
+  it('a sideways swipe on the card steps the deck; a short or upright one does not (#545)', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    await list();
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    const first = deckTitle();
+    const swipe = (dx: number, dy = 0) => {
+      const el = within(screen.getByRole('article')).getByRole('heading', { level: 3 });
+      const touch = (x: number, y: number) => ({ clientX: x, clientY: y }) as Touch;
+      act(() => {
+        el.dispatchEvent(
+          Object.assign(new Event('touchstart', { bubbles: true }), {
+            touches: [touch(200, 200)],
+          }),
+        );
+        el.dispatchEvent(
+          Object.assign(new Event('touchend', { bubbles: true }), {
+            changedTouches: [touch(200 + dx, 200 + dy)],
+          }),
+        );
+      });
+    };
+    swipe(-30);
+    expect(deckTitle()).toBe(first);
+    swipe(-100, 120);
+    expect(deckTitle()).toBe(first);
+    swipe(-100);
+    expect(deckTitle()).not.toBe(first);
+    swipe(100);
+    expect(deckTitle()).toBe(first);
+  });
+
+  it('shows the Sort menu; the deck follows the sort and keeps its card (#617)', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('hn:1', 'Design Systems Designer', 'Zeta', { postedAt: '2026-11-12T10:00:00Z' }),
+        post('hn:2', 'Design Systems Engineer', 'Acme', { postedAt: '2026-11-11T10:00:00Z' }),
+        post('hn:3', 'Design Systems Lead', 'Mono', { postedAt: '2026-11-10T10:00:00Z' }),
+      ]),
+    );
+    render(
+      <ToastProvider>
+        <ReviewView header={(place) => <p data-testid="caption">{place ?? ''}</p>} />
+        <NoticeHost />
+      </ToastProvider>,
+    );
+    await list();
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    // Newest first: Zeta's posting, 1 of 3.
+    expect(deckTitle()).toBe('Design Systems Designer at Zeta');
+    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
+    await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'Company' }));
+    // The same card stays on screen, now 3 of 3 (Acme, Mono, Zeta).
+    expect(deckTitle()).toBe('Design Systems Designer at Zeta');
+    expect(screen.getByTestId('caption')).toHaveTextContent('3 of 3');
+    await user.click(within(screen.getByRole('article')).getByRole('heading', { level: 3 }));
+    await user.keyboard('{ArrowLeft}');
+    expect(deckTitle()).toBe('Design Systems Lead at Mono');
   });
 });
 
@@ -364,7 +454,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
   const before = (a: Node, b: Node) =>
     Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  it('stacks source pill, title, company, meta lines, pay, then one action row', async () => {
+  it('stacks source pill, title, company, meta lines, pay, the excerpt, then More; Skip and Save in the dock (#545)', async () => {
     const card = await openDeck(ONE);
     const source = within(card).getByText('Hacker News');
     const title = within(card).getByRole('heading', { level: 3 });
@@ -373,32 +463,46 @@ describe('Review new: Deck card anatomy (#458)', () => {
     const mode = within(card).getByText('Remote');
     const posted = within(card).getByText('Posted today');
     const pay = within(card).getByText('$95k to $120k');
-    const save = within(card).getByRole('button', { name: 'Save Design Systems Designer at Acme' });
-    const skip = within(card).getByRole('button', { name: 'Skip Design Systems Designer at Acme' });
-    const open = within(card).getByRole('link', {
-      name: 'Open posting for Design Systems Designer at Acme',
-    });
+    // The text shows at once (no disclosure), cut at 7 lines, then the link to the full posting.
+    const text = within(card).getByText('Own the design system.');
+    expect(text).toHaveClass('rjb-deck-excerpt');
+    expect(within(card).queryByRole('button', { name: /description/i })).toBeNull();
+    const full = within(card).getByRole('link', { name: /Read the full posting/ });
+    expect(full).toHaveAttribute('href', ONE.url);
     const more = within(card).getByRole('button', {
       name: 'More actions: Design Systems Designer at Acme',
     });
-    const order = [source, title, company, place, mode, posted, pay, save, skip, open, more];
+    const order = [source, title, company, place, mode, posted, pay, text, full, more];
     order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
-    // One action row (Adrian 2026-11-08): Save primary, Skip secondary, the posting, More.
-    const row = save.parentElement!;
-    for (const el of [skip, more]) expect(row).toContainElement(el);
-    expect(row).not.toContainElement(pay);
+    // Save and Skip left the card for the dock: Skip (grey) first, Save (filled) on the right.
+    expect(within(card).queryByRole('button', { name: /^(Save|Skip) / })).toBeNull();
+    expect(within(card).queryByRole('link', { name: /^Open posting for/ })).toBeNull();
+    const dock = screen.getByRole('group', {
+      name: 'Actions for Design Systems Designer at Acme',
+    });
+    const keys = within(dock).getAllByRole('button');
+    expect(keys.map((k) => k.getAttribute('aria-label'))).toEqual([
+      'Skip Design Systems Designer at Acme',
+      'Save Design Systems Designer at Acme',
+    ]);
+    expect(keys[1]).toHaveAttribute('data-variant', 'primary');
+    expect(keys[0]).toHaveAttribute('data-variant', 'secondary');
+    // Below lg the dock is fixed at the bottom of the screen, one row of two keys.
+    expect(dock).toHaveClass('rjb-dock');
+    expect(dock).toHaveAttribute('data-layout', 'row');
+    expect(dock).toHaveAttribute('data-rows', '1');
     // The meta lines carry their icons (lucide marks them aria-hidden svgs).
     expect(
       card.querySelectorAll('svg.lucide-map-pin, svg.lucide-briefcase, svg.lucide-calendar'),
     ).toHaveLength(3);
   });
 
-  it('shows no pay when the source states none, and Save still sits in the footer', async () => {
+  it('shows no pay when the source states none, and Save still sits in the dock', async () => {
     const card = await openDeck(post('hn:1', 'Design Systems Designer', 'Acme'));
     expect(within(card).queryByText(/\$|EUR|GBP|\bk\b/)).toBeNull();
     expect(within(card).queryByText(/pay|salary/i)).toBeNull();
     expect(
-      within(card).getByRole('button', { name: 'Save Design Systems Designer at Acme' }),
+      screen.getByRole('button', { name: 'Save Design Systems Designer at Acme' }),
     ).toBeInTheDocument();
   });
 
