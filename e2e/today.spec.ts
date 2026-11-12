@@ -3,8 +3,8 @@ import { seed, topTab, pressAllJobs } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
 // status with Scan now and Review new (the Browse list); New companies follow once a scan finds some
-// (auto-scan.spec.ts). At lg the selected posting is the right column, "Pick a posting" until one is
-// picked. Follow up and Apply live on the Apply tab (#471 slice 3). At 390 (phone first) and 1440.
+// (auto-scan.spec.ts). At lg the selected posting is the right column, the first one when the tab
+// opens (#546). Follow up and Apply live on the Apply tab (#471 slice 3). At 390 (phone first) and 1440.
 for (const width of [390, 1440]) {
   test(`Find at ${width}: scan status and Review new; Follow up is on Apply`, async ({ page }) => {
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
@@ -27,8 +27,9 @@ for (const width of [390, 1440]) {
     await expect(panels.nth(0)).toHaveAccessibleName(/^Review new/);
     await expect(page.getByRole('region', { name: /^Follow up/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Start applying/ })).toHaveCount(0);
-    if (width >= 1024) await expect(page.getByText('Pick a posting')).toBeVisible();
-    else await expect(page.getByText('Pick a posting')).toHaveCount(0);
+    // No posting here (every host is aborted): the list alone says so at every width, and at lg
+    // nothing sits beside it (#546: Find opens on its first posting, and there is none).
+    await expect(page.getByText('Pick a posting')).toHaveCount(0);
     // No sideways scroll on a phone.
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
