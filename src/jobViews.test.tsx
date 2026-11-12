@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('JobViews (#541)', () => {
-  it('shows the five views and All jobs, each with its count, To apply pressed', () => {
+  it('shows the six views and All jobs, each with its count, To apply pressed', () => {
     addJob('https://a.example/1', 'Saved one');
     addJob('https://a.example/2', 'Gone one');
     updateJob('https://a.example/2', { closedAt: '2026-11-01T00:00:00Z' });
@@ -25,6 +25,7 @@ describe('JobViews (#541)', () => {
     expect(names).toEqual([
       'To apply 1',
       'Follow up 0',
+      'This week 0',
       'Interviewing 0',
       'Applied 0',
       'Recently closed 1',

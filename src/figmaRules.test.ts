@@ -56,7 +56,14 @@ describe('FIGMA-RULES.md', () => {
 
   it('names the views as CLAUDE.md and pipelineView.ts do (#541)', () => {
     const VIEW = fs.readFileSync('src/pipelineView.ts', 'utf8');
-    for (const name of ['To apply', 'Follow up', 'Interviewing', 'Applied', 'Recently closed']) {
+    for (const name of [
+      'To apply',
+      'Follow up',
+      'This week',
+      'Interviewing',
+      'Applied',
+      'Recently closed',
+    ]) {
       expect(RULES).toContain(name);
       expect(CLAUDE).toContain(`**${name}**`);
       expect(VIEW).toContain(`'${name}'`);
@@ -104,11 +111,7 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/\*\*The Account menu \(#549\): 9 items in 4 groups\.\*\*/);
     expect(CLAUDE).toMatch(/9 items in 4 groups, redesign §5\.9, #549/);
     const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
-    for (const name of [
-      'On this device only',
-      'SIGN_IN_ITEM',
-      'Dark theme',
-    ])
+    for (const name of ['On this device only', 'SIGN_IN_ITEM', 'Dark theme'])
       expect(menu).toContain(name);
     expect(menu).toContain('<MenuToggleItem');
     expect(menu).not.toMatch(/>\s*Scan details\s*</);

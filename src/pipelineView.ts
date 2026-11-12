@@ -5,13 +5,16 @@
 import { createStore } from './createStore';
 import { deriveJobState, localDay } from './jobState';
 import { isClosed } from './jobDates';
+import { respondByJobs, upcomingEvents } from './jobEvents';
 import { sortJobs, type SortKey } from './jobSort';
 import { inferMode, mentionsRemote } from './feed/mode';
 import type { Job } from './types';
 
 /** The named views (#541, redesign phase 2): the Apply list is walked by view, not by a Status
- *  select. Five named views, then All jobs (every job, set-aside ones too, so none is out of reach). */
-export type Filter = 'toApply' | 'followUp' | 'interviewing' | 'applied' | 'closed' | 'all';
+ *  select. Six named views, then All jobs (every job, set-aside ones too, so none is out of reach).
+ *  This week (#640) holds what the phone's Next 7 days section did: interviews and closing dates. */
+export type Filter =
+  'toApply' | 'followUp' | 'thisWeek' | 'interviewing' | 'applied' | 'closed' | 'all';
 
 export interface PipelineView {
   filter: Filter;
@@ -27,6 +30,7 @@ export const DEFAULT_VIEW: PipelineView = { filter: 'toApply', sort: 'recent', q
 export const FILTER_LABEL: Record<Filter, string> = {
   toApply: 'To apply',
   followUp: 'Follow up',
+  thisWeek: 'This week',
   interviewing: 'Interviewing',
   applied: 'Applied',
   // #602: closed jobs collect here, where the person removes or keeps each one.
@@ -38,14 +42,31 @@ export const FILTER_LABEL: Record<Filter, string> = {
 export const VIEW_DESCRIPTION: Record<Filter, string> = {
   toApply: 'Saved and still open, closing soonest first.',
   followUp: 'A week since you applied or last followed up: time to check in.',
+  thisWeek: 'Interviews and closing dates in the next 7 days, soonest first.',
   interviewing: 'In interviews or holding an offer.',
   applied: 'Sent, waiting to hear back.',
   closed: 'Gone from the board or past the closing date. Remove or keep each one.',
   all: 'Every saved job, set-aside ones too.',
 };
 
-/** The five named views, in order; All jobs comes after them. */
-export const NAMED_VIEWS: Filter[] = ['toApply', 'followUp', 'interviewing', 'applied', 'closed'];
+/** The six named views, in order; All jobs comes after them. */
+export const NAMED_VIEWS: Filter[] = [
+  'toApply',
+  'followUp',
+  'thisWeek',
+  'interviewing',
+  'applied',
+  'closed',
+];
+
+/** This week's date for a job (#640): its soonest interview or event from today through the next
+ *  6 days, or its closing date in that window (a Saved job), whichever comes first; else null. */
+export function weekDateOf(j: Job, now: Date): string | null {
+  const dates = [upcomingEvents([j], now)[0]?.date, respondByJobs([j], now)[0]?.dueDate].filter(
+    (d): d is string => !!d,
+  );
+  return dates.length ? dates.sort()[0] : null;
+}
 export const VIEWS: Filter[] = [...NAMED_VIEWS, 'all'];
 
 function matchesFilter(j: Job, f: Filter, now: Date): boolean {
@@ -55,6 +76,7 @@ function matchesFilter(j: Job, f: Filter, now: Date): boolean {
   if (j.archived) return false;
   if (f === 'toApply') return s.status === 'Saved' && !isClosed(j, now);
   if (f === 'followUp') return s.followUp.due;
+  if (f === 'thisWeek') return weekDateOf(j, now) !== null;
   if (f === 'interviewing') return s.status === 'Interviewing' || s.status === 'Offer';
   return s.status === 'Applied';
 }
@@ -63,6 +85,12 @@ function matchesFilter(j: Job, f: Filter, now: Date): boolean {
  *  (newest by default). Stable, so ties keep the sort's order. */
 function closingFirst(jobs: Job[]): Job[] {
   const key = (j: Job) => localDay(j.deadline) ?? '\uffff';
+  return [...jobs].sort((a, b) => key(a).localeCompare(key(b)));
+}
+
+/** This week's order (#640): by its date, soonest first. Stable, so ties keep the sort's order. */
+function soonestFirst(jobs: Job[], now: Date): Job[] {
+  const key = (j: Job) => weekDateOf(j, now) ?? '\uffff';
   return [...jobs].sort((a, b) => key(a).localeCompare(key(b)));
 }
 
@@ -91,11 +119,15 @@ export function visibleJobs(jobs: Job[], view: PipelineView, now: Date = new Dat
       (f || '').toLowerCase().includes(needle),
     );
   const sorted = sortJobs(jobs, view.sort, now);
-  return (view.filter === 'toApply' ? closingFirst(sorted) : sorted).filter(
+  const ordered =
+    view.filter === 'toApply'
+      ? closingFirst(sorted)
+      : view.filter === 'thisWeek'
+        ? soonestFirst(sorted, now)
+        : sorted;
+  return ordered.filter(
     (j) =>
-      matchesFilter(j, view.filter, now) &&
-      textMatch(j) &&
-      (!view.remoteOnly || isRemoteJob(j)),
+      matchesFilter(j, view.filter, now) && textMatch(j) && (!view.remoteOnly || isRemoteJob(j)),
   );
 }
 

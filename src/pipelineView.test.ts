@@ -6,6 +6,7 @@ import {
   VIEW_DESCRIPTION,
   filterCounts,
   getPipelineView,
+  weekDateOf,
   resetPipelineView,
   setPipelineView,
   visibleJobs,
@@ -60,10 +61,11 @@ describe('pipelineView', () => {
     ).toEqual(['Gamma', 'Alpha welder', 'Beta fitter']); // pinned floats first;
   });
 
-  it('five named views, then All jobs, each with a label and a one-line description', () => {
+  it('six named views, then All jobs, each with a label and a one-line description', () => {
     expect(VIEWS.map((v) => FILTER_LABEL[v])).toEqual([
       'To apply',
       'Follow up',
+      'This week',
       'Interviewing',
       'Applied',
       'Recently closed',
@@ -76,11 +78,37 @@ describe('pipelineView', () => {
     expect(filterCounts(all)).toEqual({
       toApply: 1,
       followUp: 0,
+      thisWeek: 0,
       interviewing: 0,
       applied: 2,
       closed: 0,
       all: 4,
     });
+  });
+
+  it('This week lists interviews and closing dates in the next 7 days, soonest first (#640)', () => {
+    const now = new Date(2026, 10, 11);
+    const day = (n: number) => ymd(new Date(2026, 10, 11 + n));
+    const interview = job('https://w.example/1', {
+      label: 'Interview Thursday',
+      status: 'Interviewing',
+      events: [{ id: 'e1', kind: 'interview', date: day(2) }],
+    } as Partial<Job>);
+    const closing = job('https://w.example/2', { label: 'Closes tomorrow', deadline: day(1) });
+    const later = job('https://w.example/3', { label: 'Closes in 9 days', deadline: day(9) });
+    const past = job('https://w.example/4', {
+      label: 'Interview last week',
+      status: 'Interviewing',
+      events: [{ id: 'e2', kind: 'interview', date: day(-5) }],
+    } as Partial<Job>);
+    const plain = job('https://w.example/5', { label: 'Nothing dated' });
+    const jobs = [plain, later, past, interview, closing];
+    expect(
+      visibleJobs(jobs, { ...DEFAULT_VIEW, filter: 'thisWeek' }, now).map((j) => j.label),
+    ).toEqual(['Closes tomorrow', 'Interview Thursday']);
+    expect(filterCounts(jobs, now).thisWeek).toBe(2);
+    expect(weekDateOf(interview, now)).toBe(day(2));
+    expect(weekDateOf(plain, now)).toBeNull();
   });
 
   it('Follow up lists jobs whose follow-up is due; Interviewing holds offers too', () => {

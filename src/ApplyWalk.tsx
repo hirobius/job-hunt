@@ -1,6 +1,6 @@
 // The phone's walk control (#542, redesign phase 2, plan 5.6): one row of three named controls,
 // no box around it. Left, the view picker (the open view's name, bold, with a caret): an HDS Menu,
-// drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the five views and "All jobs and
+// drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the six views and "All jobs and
 // filters". Beside it a "N filters" chip, only while a filter is on (search, Remote only); it opens
 // the All jobs sheet. Right, the pager: it only steps (a sideways swipe on the job steps it too).
 // The view name truncates, never the pager. Below lg only: at lg the list sits beside the job.

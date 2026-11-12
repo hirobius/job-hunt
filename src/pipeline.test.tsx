@@ -400,7 +400,7 @@ describe('Pipeline filter (#129, #543)', () => {
     expect(within(filters).queryByRole('button', { name: /^Clear \d/ })).toBeNull();
   });
 
-  it('the five named views, then All jobs, replace the Status select (#541)', async () => {
+  it('the six named views, then All jobs, replace the Status select (#541)', async () => {
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('button', { name: /^Status:/ })).toBeNull();
@@ -410,6 +410,7 @@ describe('Pipeline filter (#129, #543)', () => {
     expect(names).toEqual([
       'To apply 1',
       'Follow up 1',
+      'This week 0',
       'Interviewing 0',
       'Applied 1',
       'Recently closed 0',
