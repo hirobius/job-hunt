@@ -1057,7 +1057,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
   for browser storage; an LRU capped at `CACHE_BUDGET_CHARS` ≈ 16 MB, and liveness reads pass
   `{ fresh: true }` to skip it), `toJob.ts` (Posting → saved Job fields), `watchlist.ts`, `html.ts`, `format.ts`.
   Domain words: a **Posting** is the live, unsaved opening; saving one makes a **Job** (CONTEXT.md).
-- **Sources** (`src/feed/sources/`): HN "Who is hiring?" via Algolia (latest 2 monthly threads),
+- **Sources** (`src/feed/sources/`): HN "Who is hiring?" via Algolia (latest 2 monthly threads; a post's yearly pay is read from its text, `hnPay.ts`, #580, and the card's pay line shows it, `payLabel` "$150k to $185k" / "€95k to €120k" / "CAD 150k", none when the post states none, #547),
   Remotive (its terms: link to the Remotive URL + credit it — the row's source label does — and
   **at most ~4 requests a day**: enforced per browser in localStorage, `rjb_feed_remotive`, 6h per-term
   cache, 4 calls per rolling 24h; over budget it says so), and
