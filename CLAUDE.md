@@ -377,6 +377,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   its `MetaCaption`); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
   card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock row` (one row, `data-layout="row"`):
   fixed at the bottom below lg, inline under the card at lg; the card collapses as it goes and both toast with Undo.
+  After a decision focus goes to the next card's title (h3), or Find's h1 once the deck is empty (`Deck`'s `decided`
+  mark; the card's elements stay, so `focusNextTitle`'s list-item walk does not apply).
   The card shows the posting's text at once (`usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
   Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More keeps Not this company; no
   disclosure. The Sort menu shows in the Deck too: the deck walks `listed` in the Sort's order, and a sort change

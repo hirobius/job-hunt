@@ -352,6 +352,35 @@ describe('Review new: Deck', () => {
 
   const deckTitle = () => screen.getByRole('article').getAttribute('aria-label');
 
+  it('after Skip or Save in the dock, focus goes to the next card title, then Find’s h1 (#545)', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result(BASIC.slice(0, 2)));
+    render(
+      <ToastProvider>
+        <main>
+          <ReviewView header={<h1>Find</h1>} />
+        </main>
+        <NoticeHost />
+      </ToastProvider>,
+    );
+    await list();
+    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    const first = deckTitle();
+    await user.click(screen.getByRole('button', { name: `Skip ${first}` }));
+    // The next card's title takes focus, not the dock key or <body>.
+    await waitFor(() => {
+      const h = within(screen.getByRole('article')).getByRole('heading', { level: 3 });
+      expect(h).toHaveFocus();
+      expect(deckTitle()).not.toBe(first);
+    });
+    resetAnswerGuard();
+    await user.click(screen.getByRole('button', { name: `Save ${deckTitle()}` }));
+    // The deck is empty: Find's h1 takes focus.
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toHaveFocus(),
+    );
+  });
+
   it('has no pager row: "1 of N" is in the caption under Find (#545)', async () => {
     const user = userEvent.setup();
     render(

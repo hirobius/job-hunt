@@ -879,6 +879,38 @@ function Deck({
   empty: string;
 }) {
   const cardRef = useRef<HTMLDivElement | null>(null);
+  // After Save, Skip or Not this company the decided card leaves: focus goes to the title of the
+  // card that takes its place, or to Find's h1 once the deck is empty (#545 follow-up), never left
+  // on the dock key or dropped to <body>. A decision that does not land (the double-tap guard, a
+  // double Save) lets the mark lapse.
+  const decided = useRef<{ fp: string; until: number } | null>(null);
+  const shown = rows[at]?.fingerprint ?? null;
+  useEffect(() => {
+    const mark = decided.current;
+    if (!mark || shown === mark.fp) return;
+    decided.current = null;
+    if (Date.now() > mark.until) return;
+    const title = cardRef.current?.querySelector<HTMLElement>('h3');
+    if (shown && title) focusAsHeading(title);
+    else focusNewHeading(null);
+  }, [shown]);
+  const mark = (row: FeedRow) => {
+    decided.current = { fp: row.fingerprint, until: Date.now() + 2000 };
+  };
+  const deckActions: RowActions = {
+    save: (row, from) => {
+      mark(row);
+      actions.save(row, from);
+    },
+    skip: (row, from) => {
+      mark(row);
+      actions.skip(row, from);
+    },
+    mute: (row, from) => {
+      mark(row);
+      actions.mute(row, from);
+    },
+  };
   if (!rows.length)
     return (
       <EmptySection>
@@ -913,15 +945,15 @@ function Deck({
           }}
         >
           <DeckBody>
-            <PostingCard r={r} now={now} actions={actions} decide={false}>
+            <PostingCard r={r} now={now} actions={deckActions} decide={false}>
               <DeckExcerpt r={r} />
             </PostingCard>
           </DeckBody>
         </Card>
       </SwipeArea>
       <ActionDock docked={docked} row label={`Actions for ${rowName(r)}`}>
-        <SkipKey r={r} actions={actions} from={from} />
-        <SaveKey r={r} actions={actions} from={from} />
+        <SkipKey r={r} actions={deckActions} from={from} />
+        <SaveKey r={r} actions={deckActions} from={from} />
       </ActionDock>
     </Stack>
   );

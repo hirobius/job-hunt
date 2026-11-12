@@ -209,8 +209,12 @@ for (const width of [390, 1440]) {
       if (left > 1) {
         await expect(page.getByRole('article')).toHaveCount(1);
         await expect(page.getByText('1 of 1', { exact: true })).toBeVisible();
+        // Focus goes to the next card's title, not the dock key (#545 follow-up).
+        await expect(page.getByRole('article').getByRole('heading', { level: 3 })).toBeFocused();
       }
     }
+    // The deck is empty: Find's h1 takes focus.
+    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeFocused();
     await expect(page.getByText('You’re all caught up')).toBeVisible();
 
     // Back on the Pipeline, the save is in To apply.
