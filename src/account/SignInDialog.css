@@ -153,7 +153,7 @@
   }
 }
 
-/* Continue with Google (on since 2026-11-12) gives way the same way: with the keyboard up the
+/* Continue with Google and Continue with LinkedIn (on since 2026-11-12) give way the same way: with the keyboard up the
    person is typing an email, and on a short screen the field and Send link must stay in view. It
    comes back as soon as the keyboard closes. */
 .rjb-signin-screen[data-keyboard='open'] .rjb-signin-google {

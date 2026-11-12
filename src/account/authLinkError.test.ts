@@ -5,6 +5,8 @@ import {
   FAILED_LINK_MSG,
   GOOGLE_CANCELLED_MSG,
   GOOGLE_FAILED_MSG,
+  LINKEDIN_CANCELLED_MSG,
+  LINKEDIN_FAILED_MSG,
 } from './authLinkError';
 
 describe('a sign-in link that comes back with an error', () => {
@@ -39,5 +41,15 @@ describe('a Google sign-in that comes back with an error (#482)', () => {
       EXPIRED_LINK_MSG,
     );
     expect(authLinkErrorMessage('#error=server_error', '')).toBe(FAILED_LINK_MSG);
+  });
+
+  it('a cancelled or refused LinkedIn return is worded for LinkedIn (the provider this browser started)', () => {
+    localStorage.setItem(
+      'rjb_oauth_request',
+      JSON.stringify({ v: 'x', at: Date.now(), p: 'linkedin_oidc' }),
+    );
+    expect(authLinkErrorMessage('', '?error=access_denied')).toBe(LINKEDIN_CANCELLED_MSG);
+    expect(authLinkErrorMessage('', '?error=server_error')).toBe(LINKEDIN_FAILED_MSG);
+    localStorage.removeItem('rjb_oauth_request');
   });
 });

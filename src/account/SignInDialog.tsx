@@ -25,6 +25,8 @@ import { emailProblem } from './signInErrors';
 import { useBackCloses } from '../useBackCloses';
 import { GoogleMark } from './GoogleMark';
 import { googleSignInEnabled } from './googleSignInFlag';
+import { LinkedInMark } from './LinkedInMark';
+import { linkedInSignInEnabled } from './linkedInSignInFlag';
 import { SignInShell } from './SignInShell';
 import { holdPage } from './holdPage';
 import { ExitButton } from '../hds-gaps/ExitButton';
@@ -32,7 +34,14 @@ import { ExitButton } from '../hds-gaps/ExitButton';
 export const RESEND_COOLDOWN_S = 30;
 
 export default function SignInDialog() {
-  const { signInOpen, setSignInOpen, sendLink, signInWithGoogle, accountTrigger } = useCloudSync();
+  const {
+    signInOpen,
+    setSignInOpen,
+    sendLink,
+    signInWithGoogle,
+    signInWithLinkedIn,
+    accountTrigger,
+  } = useCloudSync();
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -40,7 +49,7 @@ export default function SignInDialog() {
   const [resent, setResent] = useState(false);
   const [sending, setSending] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [leaving, setLeaving] = useState(false);
+  const [leaving, setLeaving] = useState<'google' | 'linkedin' | null>(null);
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,14 +99,15 @@ export default function SignInDialog() {
   };
 
   // The page leaves for Google; the button stays busy until it does. An error comes back here.
-  const google = async () => {
+  // LinkedIn the same way; one provider leaves at a time, and its error shows under the buttons.
+  const leave = async (start: () => Promise<string | null>, which: 'google' | 'linkedin') => {
     if (leaving) return;
-    setLeaving(true);
+    setLeaving(which);
     setGoogleError(null);
-    const err = await signInWithGoogle();
+    const err = await start();
     if (err) {
       setGoogleError(err);
-      setLeaving(false);
+      setLeaving(null);
     }
   };
 
@@ -113,7 +123,7 @@ export default function SignInDialog() {
       differentEmail();
       setFieldError(null);
       setGoogleError(null);
-      setLeaving(false);
+      setLeaving(null);
     }
   };
   // The browser's Back closes it and stays on the page (return paths).
@@ -180,23 +190,37 @@ export default function SignInDialog() {
                 </Text>
               </Stack>
             </Box>
-            {/* Behind googleSignInFlag.ts (on since the Google provider was turned on, 2026-11-12). */}
-            {googleSignInEnabled() && (
+            {/* Behind googleSignInFlag.ts / linkedInSignInFlag.ts (both on since 2026-11-12).
+                The buttons give way to the keyboard (SignInDialog.css); their error stays. */}
+            {(googleSignInEnabled() || linkedInSignInEnabled()) && (
               <Box className="rjb-signin-google">
                 <Stack gap="tight">
-                  <Button
-                    variant="secondary"
-                    className="sign-in-dialog__primary"
-                    iconLeft={<GoogleMark />}
-                    loading={leaving}
-                    onClick={() => void google()}
-                  >
-                    Continue with Google
-                  </Button>
-                  {googleError && <Alert tone="danger">{googleError}</Alert>}
+                  {googleSignInEnabled() && (
+                    <Button
+                      variant="secondary"
+                      className="sign-in-dialog__primary"
+                      iconLeft={<GoogleMark />}
+                      loading={leaving === 'google'}
+                      onClick={() => void leave(signInWithGoogle, 'google')}
+                    >
+                      Continue with Google
+                    </Button>
+                  )}
+                  {linkedInSignInEnabled() && (
+                    <Button
+                      variant="secondary"
+                      className="sign-in-dialog__primary"
+                      iconLeft={<LinkedInMark />}
+                      loading={leaving === 'linkedin'}
+                      onClick={() => void leave(signInWithLinkedIn, 'linkedin')}
+                    >
+                      Continue with LinkedIn
+                    </Button>
+                  )}
                 </Stack>
               </Box>
             )}
+            {googleError && <Alert tone="danger">{googleError}</Alert>}
             <Form noValidate onSubmit={(e) => void submit(e)}>
               <Stack gap="normal">
                 <Input

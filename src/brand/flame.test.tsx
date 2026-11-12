@@ -21,7 +21,8 @@ const SOURCE = 'src/brand/flame.svg';
 const GENERATED = 'public/favicon.svg';
 // Third-party marks a brand's own rules require as given (never the flame, never a UI icon: those
 // are HDS Icons). Google's "G" for Continue with Google (#482, Google's sign-in branding rules).
-const THIRD_PARTY_MARKS = ['src/account/google-g.svg'];
+// LinkedIn's "in" bug for Continue with LinkedIn (LinkedIn's brand guidelines).
+const THIRD_PARTY_MARKS = ['src/account/google-g.svg', 'src/account/linkedin-in.svg'];
 const paths = (svg: string) => [...svg.matchAll(/\sd="([^"]+)"/g)].map((m) => m[1]);
 
 function walk(dir: string): string[] {
