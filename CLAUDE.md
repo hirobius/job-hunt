@@ -459,11 +459,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   2 h ago", the Deck's "1 of N") and More go to the bar's right through `PageBar.tsx` `InPageBar`
   (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
-- **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/DisclosureRow.tsx` wraps HDS
+- **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/hds-gaps/DisclosureRow.tsx` (hds#1508) wraps HDS
   `Disclosure variant="row"` (Copy into the form's Why this company / Cover note / Custom answers, Daily
   picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
   body starts a height tween, so rows jumped; here the gap stays 0, the body pads itself and opens at once.
-  BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/FactLines.tsx`
+  BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/hds-gaps/FactLines.tsx` (hds#1509)
   (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
   (inline) in `DetailTitleBlock`, the posting cards and Daily picks. Both are in the HDS gap registry.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`

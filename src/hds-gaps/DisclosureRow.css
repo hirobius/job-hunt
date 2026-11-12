@@ -1,3 +1,4 @@
+/* hds-gap: hirobius/hds#1508 (Disclosure row opens without a jump) */
 /* HDS Disclosure variant="row", flat and steady (DisclosureRow.tsx; HDS gap registry in docs/hds-upstream-asks-0.9.md). */
 .rjb-disclosure-row > * {
   /* HDS sets the wrapper's gap inline, 0 closed and 8px open, in the frame the body starts to grow. */

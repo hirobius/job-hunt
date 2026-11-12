@@ -4,6 +4,7 @@
 // wrapper's gap snaps from 0 to 8px and the closed preview line is removed: two instant shifts under
 // one animated one. Here the gap stays 0, the body carries its own top padding, and it opens at once
 // (the chevron still turns). Upstream ask: docs/hds-upstream-asks-0.9.md "Disclosure row jump".
+// hds-gap: hirobius/hds#1508 (Disclosure row opens without a jump)
 import type { ComponentProps } from 'react';
 import { Box, Disclosure } from '@hirobius/design-system';
 import './DisclosureRow.css';

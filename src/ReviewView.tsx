@@ -80,7 +80,7 @@ import { collapseRow } from './feedback';
 import { usePostingText } from './feed/postingText';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
-import { FactLines } from './FactLines';
+import { FactLines } from './hds-gaps/FactLines';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;

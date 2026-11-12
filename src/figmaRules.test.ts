@@ -293,7 +293,9 @@ describe('FIGMA-RULES.md', () => {
     expect(review).toContain('{ icon: MapPin, label: placeOf(r) }');
     expect(review).toContain('{ icon: Briefcase, label: modeOf(r) }');
     // Icon on the first text line, never centred on a wrapped fact (2026-11-12).
-    expect(fs.readFileSync('src/FactLines.css', 'utf8')).toMatch(/align-items: flex-start/);
+    expect(fs.readFileSync('src/hds-gaps/FactLines.css', 'utf8')).toMatch(
+      /align-items: flex-start/,
+    );
     expect(fs.readFileSync('src/DailyPicks.tsx', 'utf8')).toContain('<FactLines');
   });
 

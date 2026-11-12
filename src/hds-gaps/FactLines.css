@@ -1,3 +1,4 @@
+/* hds-gap: hirobius/hds#1509 (Card.Facts stacked, one fact per line) */
 /* Facts one per line, icon on the first text line (FactLines.tsx). HDS tokens only. */
 .rjb-facts {
   display: flex;

@@ -16,14 +16,14 @@ import {
   Text,
   useToast,
 } from '@hirobius/design-system';
-import { DisclosureRow } from './DisclosureRow';
+import { DisclosureRow } from './hds-gaps/DisclosureRow';
 import { ItemList, ItemRow, Panel } from './PipelinePanel';
 import { addJobDetailed, useJobs } from './store';
 import { decided } from './decided';
 import { collapseRow } from './feedback';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { copyFilled } from './templateCopy';
-import { FactLines } from './FactLines';
+import { FactLines } from './hds-gaps/FactLines';
 import { loadPicks, openPicks, pickFacts, pickJobFields, shortDay, type DailyPick } from './picks';
 
 type OpenPick = ReturnType<typeof openPicks>[number];
