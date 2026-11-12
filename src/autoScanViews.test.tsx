@@ -1,5 +1,5 @@
-// The auto-scan's UI (#415): Scan now with the last scan's line, New companies with Follow /
-// Ignore (and Undo), and the scan that runs on its own when the app opens.
+// The auto-scan's UI (#415): Scan now with the last scan's line, the found companies (the
+// Companies dialog's Found list since #618) with Follow / Ignore (and Undo), and the scan that runs on its own when the app opens.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -234,7 +234,7 @@ describe('NewCompanies', () => {
     const user = userEvent.setup();
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
     renderViews();
-    const list = screen.getByRole('list', { name: 'New companies' });
+    const list = screen.getByRole('list', { name: 'Found companies' });
     // Acme: YC's one-liner, the website's domain, its count, the confirmed board, the website.
     expect(within(list).getByText('A design system studio')).toBeVisible();
     expect(within(list).getByText('acme.com')).toBeVisible();
@@ -261,7 +261,7 @@ describe('NewCompanies', () => {
     // Forward has no matching job: folded under one disclosure, its board not confirmed.
     expect(within(list).queryByText('Forward')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Show 1 with no matching jobs' }));
-    const empty = screen.getByRole('list', { name: 'New companies with no matching jobs' });
+    const empty = screen.getByRole('list', { name: 'Found companies with no matching jobs' });
     await waitFor(() => expect(within(empty).getByText('Forward')).toBeVisible());
     expect(within(empty).getByText(/Board not confirmed/)).toBeVisible();
   });

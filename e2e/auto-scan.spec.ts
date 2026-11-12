@@ -5,7 +5,7 @@ import { test, expect, type Page } from '@playwright/test';
 // sync every 15 minutes, and its scan on open is pinned in autoScanOnOpen.test.tsx). Scan now runs
 // it: it finds a YC company hiring now (Acme, acme.com), probes for its board, confirms it against
 // the website (#417), reads it with every feed and keeps its remote design-system role. Review new
-// shows that posting and Acme under New companies. Every host is synthetic: YC's mirror lists
+// shows that posting; Acme is in the Account menu's Companies dialog, under Found (#618). Every host is synthetic: YC's mirror lists
 // Acme, Acme's Greenhouse board has two roles, everything else answers empty or "no such board".
 const ACME_JOBS = {
   jobs: [
@@ -117,7 +117,13 @@ for (const width of [390, 1440]) {
     await expect(list.getByText('Senior Design Systems Engineer')).toBeVisible();
     // Remote only (Adrian 2026-10-28): Acme's on-site role is left out.
     await expect(list.getByText('Design Systems Lead')).toHaveCount(0);
-    const companies = page.getByRole('list', { name: 'New companies' });
+    // Found companies left Find (#618): they are the Companies dialog's Found list.
+    await expect(page.getByText('New companies')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Account' }).click();
+    await page.getByRole('menuitem', { name: 'Companies' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Companies' });
+    await dialog.getByRole('radio', { name: 'Found (1)' }).click();
+    const companies = dialog.getByRole('list', { name: 'Found companies' });
     await expect(companies.getByText('Acme', { exact: true })).toBeVisible();
     await expect(companies.getByText('acme.com', { exact: true })).toBeVisible();
     await expect(companies.getByText('1 matching job · from YC')).toBeVisible();
@@ -136,8 +142,9 @@ for (const width of [390, 1440]) {
     if (width === 390)
       for (const scheme of ['light', 'dark'] as const) {
         await page.emulateMedia({ colorScheme: scheme });
-        await page.screenshot({ path: `test-results/auto-scan-390-${scheme}.png`, fullPage: true });
+        await page.screenshot({ path: `test-results/auto-scan-390-${scheme}.png` });
       }
+    else await page.screenshot({ path: `test-results/auto-scan-${width}.png` });
   });
 }
 
@@ -153,22 +160,24 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await page.getByRole('button', { name: 'Scan now' }).click();
   await scanFinished(page, since);
 
-  await page.getByRole('button', { name: 'Follow Acme' }).click();
-  const notice = page.getByRole('region', { name: /^Notifications/ }).getByRole('listitem');
-  await expect(notice.getByText('Following Acme')).toBeVisible();
-  await expect(page.getByRole('list', { name: 'New companies' })).toHaveCount(0);
+  // Found companies are the Companies dialog's Found list (#618).
+  await page.getByRole('button', { name: 'Account' }).click();
+  await page.getByRole('menuitem', { name: 'Companies' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Companies' });
+  await dialog.getByRole('radio', { name: 'Found (1)' }).click();
+  await dialog.getByRole('button', { name: 'Follow Acme' }).click();
+  // The dialog says so, with Undo (the toast behind a modal can't be reached).
+  await expect(dialog.getByText('Following Acme')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Undo' })).toBeVisible();
+  // The last found company gone: the Found segment goes and Followed shows, with Acme in it.
+  await expect(dialog.getByRole('radio', { name: /^Found/ })).toHaveCount(0);
+  await expect(dialog.getByRole('list', { name: 'Followed' }).getByText(/^Acme/)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
   // Followed, its role still shows (now read as a followed board).
   await expect(
     page.getByRole('list', { name: 'New postings' }).getByText('Senior Design Systems Engineer'),
   ).toBeVisible();
-
-  // Followed, it is in the Account menu's Companies list.
-  await page.getByRole('button', { name: 'Account' }).click();
-  await page.getByRole('menuitem', { name: 'Companies' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Companies' });
-  await expect(dialog.getByRole('list', { name: 'Followed' }).getByText(/^Acme/)).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(dialog).toBeHidden();
 
   const again = await page.evaluate(() => Date.now());
   await page.getByRole('button', { name: 'Scan now' }).click();

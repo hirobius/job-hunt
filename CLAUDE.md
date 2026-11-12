@@ -343,11 +343,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review new**
   = `ReviewView` itself (`label="Review new" scanStatus`: it hosts the status; one panel holding sources that didn't
   answer as one quiet "N sources unavailable · details" disclosure, Browse | Deck, Sort as a menu, two filter chips
-  (New today, Remote) and the Browse list; a row's title selects the posting, Open posting beside it) and **New
-  companies** (`NewCompanies`, Follow / Ignore). **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
+  (New today, Remote) and the Browse list; a row's title selects the posting, Open posting beside it); **New companies
+  left Find (#618, Adrian 2026-11-12):** the scan's found companies (`NewCompanies`, Follow / Ignore with Undo) are
+  the Companies dialog's **Found** list. **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
   Find out (**below lg there is no posting page since 2026-11-08:** the card's title is plain text, an old
   `#/find/<fingerprint>` link scrolls to its card with the description open and drops the fingerprint, and after a
-  decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, status, Review new, New companies) beside
+  decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, status, Review new) beside
   `PostingDetail` (the old preview dialog's body: title as the page's h1, company, the card with its excerpt, Save /
   Skip / Not this company, Open posting; "Pick a posting" until one is picked); below lg the list is the tab and a
   selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
@@ -358,7 +359,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   only): Follow up is on the Apply list; `today.ts` and Resume applying are gone. Followed and Ignored
   companies are the Account menu's **Companies** item (`CompaniesDialog.tsx`, lazy; `companiesList.ts` reads the
   Feed's Sources: followed = boards + companies, A to Z, once by name; ignored = the muted Sources; one list at a
-  time, Ignore = `muteCompany`, Follow again = `unmuteCompany`, plus `followCompany` for one with no Source). Merges #426
+  time, Ignore = `muteCompany`, Follow again = `unmuteCompany`, plus `followCompany` for one with no Source; then Suggested (#576) and
+  Found (#618), each only while it has rows; it opens on the first list with rows). Merges #426
   (Jobs keep list, one-page job page, no fit badge); "Find more like this" left the job menu with the ATS search. Pinned in `todayHome.test.tsx`, `review.test.tsx`,
   `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
 - **Named views (#541, redesign phase 2):** the Status select is gone. `pipelineView.ts` `Filter` is a named view:
@@ -398,7 +400,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   metadata = badge row above the title: status, then Follow-up due, then the closing date (no fit chip, #538); `Card.Facts` with
   location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
   margins. **No cards within cards, ever (Adrian 2026-11-01, #449; replaced 2026-10-23's "lists are cards"):**
-  one card level max. A list inside a panel (New companies, the Account menu's Companies
+  one card level max. A list inside a panel (the Account menu's Companies
   list, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, Documents, the interview log,
   the job page's links) is `PipelinePanel` `ItemList` (`.rjb-items`, a hairline between rows) of `ItemRow` (a plain
   row, never an HDS `Card`); `JobListCard` is an `article` row with Card's Header/Facts/Footer parts, no Card root.
@@ -651,7 +653,9 @@ trailing`). The scan's line ("Updated N min ago" from the last `sync_log` run si
   (`ScanDetailsDialog.tsx`, lazy; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears
   Review new's status. Pinned in `autoScanViews.test.tsx`, `review.test.tsx`, `todayHome.test.tsx`,
   `e2e/find-signed-in.spec.ts`) and
-  `NewCompanies` (Follow → the board joins the Sources, Ignore → `muteCompany`, each with Undo), both on Today. With
+  `NewCompanies` (Follow → the board joins the Sources, Ignore → `muteCompany`, each with Undo), the Companies
+  dialog's **Found** list since #618 (`newCompanies(useScan().state)` names the segment "Found (N)", shown only while N > 0; its
+  Undo shows in the dialog's footer, `DialogNotice` + `noticeHost`). With
   no Search profile yet the scan searches the design-system titles (`searchDefaults.ts`). Pinned in `feed/autoScan.test.ts`, `feed/identity.test.ts`, `autoScanViews.test.tsx`,
   `review.test.tsx`; E2E `e2e/auto-scan.spec.ts` (signed out: no scan on open, Scan now finds the postings).
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems

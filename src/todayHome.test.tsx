@@ -1,8 +1,8 @@
 // The final shell (simplify 2/9 #383 + amendment 2, Q6; #471): two top tabs, Find and Apply. Find,
 // top to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"),
-// Review new as the Browse list (a title selects the posting: #/find/<fingerprint>) and New
-// companies (Follow / Ignore). At lg the selected posting is the right column ("Pick a posting"
-// until one is picked); below lg its own view with Back and a pager. Follow up and Apply moved to
+// Review new as the Browse list (a title selects the posting: #/find/<fingerprint>); the found
+// companies are the Companies dialog's Found list (#618). At lg the selected posting is the right
+// column ("Pick a posting" until one is picked); below lg its own view with Back and a pager. Follow up and Apply moved to
 // the Apply tab (#471 slice 3). Tested at the route seam through App and driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -112,7 +112,7 @@ describe('the shell: Today and Jobs', () => {
     },
   );
 
-  it('Find shows, in order: Review new, then New companies; Follow up and Apply are on Apply', async () => {
+  it('Find shows Review new only (found companies are in the Companies dialog, #618); Follow up and Apply are on Apply', async () => {
     seedFound();
     window.location.hash = '#/find';
     renderApp();
@@ -120,7 +120,8 @@ describe('the shell: Today and Jobs', () => {
     const names = within(screen.getByRole('main'))
       .getAllByRole('region')
       .map((r) => r.getAttribute('aria-label')?.replace(/ \(.*$/, ''));
-    expect(names).toEqual(['Review new', 'New companies']);
+    expect(names).toEqual(['Review new']);
+    expect(screen.queryByText('New companies')).toBeNull();
     expect(screen.queryByRole('button', { name: /Start applying|Resume applying/ })).toBeNull();
   });
 
@@ -253,18 +254,29 @@ describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
   });
 });
 
-describe('New companies', () => {
-  it('Follow and Ignore each say so with Undo; Ignore mutes the company', async () => {
+describe('Found companies: the Companies dialog (#618, Adrian 2026-11-12)', () => {
+  it('Follow and Ignore each say so with Undo in the dialog; Ignore mutes the company', async () => {
     const user = userEvent.setup();
     seedFound();
     window.location.hash = '#/find';
     renderApp();
-    const panel = section(/^New companies/);
+    await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Companies' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Companies' });
+    await user.click(within(dialog).getByRole('radio', { name: 'Found (1)' }));
     // No matching job yet: folded under one disclosure (Adrian 2026-11-08).
-    await user.click(within(panel).getByRole('button', { name: 'Show 1 with no matching jobs' }));
-    await user.click(within(panel).getByRole('button', { name: 'Ignore Forward' }));
-    expect(await screen.findByText('Ignored Forward')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Show 1 with no matching jobs' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Ignore Forward' }));
+    // The toast behind a modal can't be reached: the dialog's footer says it, with Undo.
+    expect(await within(dialog).findByText('Ignored Forward')).toBeInTheDocument();
     expect(getAllDecided().muted).toContain('Forward');
+    // The last found company gone: the Found segment goes, one option stays checked.
+    expect(within(dialog).queryByRole('radio', { name: /^Found/ })).toBeNull();
+    expect(within(dialog).getByRole('radio', { name: /^Ignored \(1\)/ })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Undo' }));
+    expect(getAllDecided().muted).not.toContain('Forward');
+    expect(within(dialog).getByRole('radio', { name: 'Found (1)' })).toBeInTheDocument();
   });
 });
 

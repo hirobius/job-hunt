@@ -53,8 +53,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Layout
 
-- **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings, Apply, Follow up
-  and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
+- **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings. The companies a
+  scan finds are the Account menu's Companies dialog, under **Found** (Follow / Ignore), never on Find
+  (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: a filter bar
   (Filters, Add job), the sticky walk control, then the job.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view

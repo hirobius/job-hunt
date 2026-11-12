@@ -1,6 +1,7 @@
-// The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
-// (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
-// says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
+// The auto-scan's UI (#415). On Find: signed out a compact "Scan now" beside Review new's heading
+// (signed in nothing: the server syncs). The companies the scan found (Follow / Ignore) are the
+// Account menu's Companies dialog's Found list (#618, Adrian 2026-11-12). Every action says so with
+// an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
 import { useState } from 'react';
 import {
   Box,
@@ -13,7 +14,7 @@ import {
   Tooltip as HdsTooltip,
 } from '@hirobius/design-system';
 import { ExternalLink, RefreshCw } from 'lucide-react';
-import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, ItemRow } from './PipelinePanel';
 import { httpUrl } from './httpUrl';
 import { showNotice } from './saveNotice';
 import {
@@ -83,11 +84,11 @@ function domainOf(url: string | undefined): string | null {
   }
 }
 
-/** The companies the scan found, not yet followed or ignored (Adrian 2026-11-08). Each row says who
- *  they are (the source's one-liner, the website's domain), what the scan read (matching jobs, a
- *  Preview of their titles, the job board once confirmed) and one action row: Follow, Ignore and
- *  Visit website. Companies with no matching job fold under one "Show N with no matching jobs".
- *  Renders nothing when there are none. */
+/** The companies the scan found, not yet followed or ignored (Adrian 2026-11-08): the Companies
+ *  dialog's Found list since #618. Each row says who they are (the source's one-liner, the
+ *  website's domain), what the scan read (matching jobs, a Preview of their titles, the job board
+ *  once confirmed) and one action row: Follow, Ignore and Visit website. Companies with no matching
+ *  job fold under one "Show N with no matching jobs". Renders nothing when there are none. */
 export function NewCompanies() {
   const { state } = useScan();
   const list = newCompanies(state);
@@ -116,28 +117,29 @@ export function NewCompanies() {
     <CompanyRow key={f.key} f={f} onFollow={() => follow(f)} onIgnore={() => ignore(f)} />
   );
   return (
-    <Panel
-      label="New companies"
-      title="New companies"
-      count={list.length}
-      countLabel={`${list.length} companies`}
-      description="Found by the scan. A confirmed board’s matching jobs are already in Review new."
-    >
-      {matching.length > 0 && <ItemList label="New companies">{matching.map(row)}</ItemList>}
-      {empty.length > 0 && (
-        <PanelBody>
-          <Disclosure
-            label={`${showEmpty ? 'Hide' : 'Show'} ${empty.length} with no matching jobs`}
-            open={showEmpty}
-            onOpenChange={setShowEmpty}
-          >
-            {showEmpty && (
-              <ItemList label="New companies with no matching jobs">{empty.map(row)}</ItemList>
-            )}
-          </Disclosure>
-        </PanelBody>
+    <Stack gap="tight">
+      <Text variant="caption" as="p" tone="secondary">
+        Found by the scan. A confirmed board’s matching jobs are already in Review new.
+      </Text>
+      {matching.length > 0 && (
+        <ItemList label="Found companies" inset="none">
+          {matching.map(row)}
+        </ItemList>
       )}
-    </Panel>
+      {empty.length > 0 && (
+        <Disclosure
+          label={`${showEmpty ? 'Hide' : 'Show'} ${empty.length} with no matching jobs`}
+          open={showEmpty}
+          onOpenChange={setShowEmpty}
+        >
+          {showEmpty && (
+            <ItemList label="Found companies with no matching jobs" inset="none">
+              {empty.map(row)}
+            </ItemList>
+          )}
+        </Disclosure>
+      )}
+    </Stack>
   );
 }
 

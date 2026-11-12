@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { seed, topTab, pressAllJobs } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
-// status with Scan now and Review new (the Browse list); New companies follow once a scan finds some
-// (auto-scan.spec.ts). At lg the selected posting is the right column, "Pick a posting" until one is
+// status with Scan now and Review new (the Browse list); the companies a scan finds are the
+// Companies dialog's Found list (#618, auto-scan.spec.ts). At lg the selected posting is the right column, "Pick a posting" until one is
 // picked. Follow up and Apply live on the Apply tab (#471 slice 3). At 390 (phone first) and 1440.
 for (const width of [390, 1440]) {
   test(`Find at ${width}: scan status and Review new; Follow up is on Apply`, async ({ page }) => {
