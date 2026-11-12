@@ -2,7 +2,7 @@
 // The companies the scan found (Follow / Ignore) are the Account menu's Companies dialog's Found list
 // (#618, Adrian 2026-11-12). Every action says so with an Undo. The scan's line is Scan details in
 // the Account menu's Search profile (ScanDetails.tsx).
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import {
   Box,
   Button,
@@ -13,19 +13,24 @@ import {
   Text,
   Tooltip as HdsTooltip,
 } from '@hirobius/design-system';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, RefreshCw } from 'lucide-react';
 import { ItemList, ItemRow } from './PipelinePanel';
 import { httpUrl } from './httpUrl';
 import { showNotice } from './saveNotice';
 import {
+  cancelScan,
   followFound,
   foundRoles,
   ignoreFound,
   newCompanies,
+  scanNow,
   useScan,
   type FoundCompany,
   type LeadSource,
 } from './feed/autoScan';
+import { useScanInput } from './feed/useAutoScan';
+import { CloudSyncContext } from './account/accountContext';
+import { openSearchProfile } from './jobDialogs';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -33,6 +38,41 @@ const VIA_LABEL: Record<LeadSource, string> = {
   github: 'GitHub',
   seed: 'the seed list',
 };
+
+/** Find's "No postings match yet" (#553): Scan now filled and Edit search profile grey (Scan
+ *  now is also in Find's More menu, #544). Signed in there is no Scan now (the
+ *  server syncs, Adrian 2026-11-08), so Edit search profile is the one, filled key. Stop scan
+ *  (quiet, as the heading's) while a scan runs. */
+export function NoResultsKeys() {
+  // Read the context directly: Review new also renders on its own (tests), outside the provider.
+  const user = useContext(CloudSyncContext)?.user;
+  const { running } = useScan();
+  const input = useScanInput();
+  return (
+    <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+      {!user &&
+        (running ? (
+          <Button variant="tertiary" onClick={cancelScan}>
+            Stop scan
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            iconLeft={<Icon icon={RefreshCw} />}
+            onClick={() => void scanNow(input, undefined, { force: true })}
+          >
+            Scan now
+          </Button>
+        ))}
+      <Button
+        variant={user ? 'primary' : 'secondary'}
+        onClick={(e) => openSearchProfile(e.currentTarget)}
+      >
+        Edit search profile
+      </Button>
+    </Stack>
+  );
+}
 
 /** "2 matching jobs · from YC", or why its board isn't read yet. */
 function companyLine(f: FoundCompany): string {

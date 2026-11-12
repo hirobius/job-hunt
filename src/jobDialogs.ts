@@ -25,3 +25,20 @@ const removedShown = createStore(false);
 export const useRecentlyRemovedOpen = removedShown.use;
 export const openRecentlyRemoved = () => removedShown.set(true);
 export const closeRecentlyRemoved = () => removedShown.set(false);
+
+// The Account menu's Search profile, also opened from Find's "No postings match yet" (#553): the
+// control that opened it from outside the menu takes focus back on close.
+const profileShown = createStore(false);
+let profileOpener: HTMLElement | null = null;
+export const useSearchProfileOpen = profileShown.use;
+export const setSearchProfileOpen = (open: boolean) => profileShown.set(open);
+export const openSearchProfile = (opener?: HTMLElement | null) => {
+  profileOpener = opener ?? null;
+  profileShown.set(true);
+};
+/** The opener outside the menu, taken once (null when the menu opened it). */
+export function takeSearchProfileOpener(): HTMLElement | null {
+  const el = profileOpener;
+  profileOpener = null;
+  return el?.isConnected ? el : null;
+}

@@ -19,6 +19,11 @@ import {
   SearchProfileDialog,
   useLoadedWhen,
 } from '../lazyDialogs';
+import {
+  setSearchProfileOpen as setProfile,
+  takeSearchProfileOpener,
+  useSearchProfileOpen,
+} from '../jobDialogs';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
@@ -44,7 +49,8 @@ export default function AccountMenu() {
     [accountTrigger],
   );
   // The Search profile (#388: Calibrate's and Manage track's place).
-  const [profile, setProfile] = useState(false);
+  // Shared (jobDialogs.ts): Find's empty state opens it too (#553).
+  const profile = useSearchProfileOpen();
   useBackCloses(profile, () => setProfile(false), 'search-profile');
   const profileReady = useLoadedWhen(SearchProfileDialog, profile, () => setProfile(false));
   // Data (#550): its own lazy dialog.
@@ -123,7 +129,12 @@ export default function AccountMenu() {
         {profile && profileReady && (
           <SearchProfileDialog
             onDone={() => setProfile(false)}
-            onCloseAutoFocus={refocusAccount(accountTrigger)}
+            onCloseAutoFocus={(e: Event) => {
+              const opener = takeSearchProfileOpener();
+              if (!opener) return refocusAccount(accountTrigger)();
+              e.preventDefault();
+              opener.focus();
+            }}
           />
         )}
       </Dialog>

@@ -25,7 +25,7 @@ import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { JobsList } from './TrackerView';
-import { setPipelineView } from './pipelineView';
+import { getPipelineView, setPipelineView } from './pipelineView';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 
 const SAVED = 'https://acme.example/jobs/1';
@@ -528,23 +528,17 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
 describe('Active empty action and Star Undo (#361)', () => {
   beforeEach(() => viewport(390));
 
-  it('the Active empty offers Show applied: it sets the filter to Applied and keeps focus in the sheet', async () => {
+  it('nothing to apply to is the done state (#554): All jobs opens the view, focus on its job', async () => {
     const user = userEvent.setup();
-    // Nothing is Active: both jobs are Applied and neither is starred.
+    // Nothing is to apply to: both jobs are Applied and neither is starred.
     markAppliedByUrl(SAVED, 'Design Engineer');
     updateJob(APPLIED, { priority: false });
     renderApp();
-    await openListOnPhone();
-    expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Show applied' }));
-    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(row('Design Engineer')).toBeInTheDocument();
-    expect(row('Zenith Product Designer')).toBeInTheDocument();
-    // The empty state unmounted, but focus stayed in the sheet — on the search.
-    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search saved jobs' }));
+    const done = await screen.findByRole('region', { name: 'That is the list' });
+    await user.click(within(done).getByRole('button', { name: 'All jobs' }));
+    expect(getPipelineView().filter).toBe('all');
+    const h1 = await screen.findByRole('heading', { level: 1, name: /Designer|Engineer/ });
+    await waitFor(() => expect(h1).toHaveFocus());
   });
 
   it('the job menu has no Star or Unstar (#534): the stored star stays in the data', async () => {

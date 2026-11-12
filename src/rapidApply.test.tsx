@@ -363,15 +363,15 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await user.click(screen.getByRole('button', { name: /^Not a fit/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(findJobByUrl(A)?.archived).toBe(true);
-    // No next job: the Apply tab opens on the first job there is (here the one just set aside,
-    // now Retired, with no dock), and its page heading takes focus, never <body>.
-    const h1 = await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    // No next job: the Apply tab is the done state (#554), and its page heading takes focus,
+    // never <body>.
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Apply' });
     await waitFor(() => expect(h1).toHaveFocus());
-    expect(screen.getByText('Retired')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'That is the list' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: /^Actions for / })).toBeNull();
   });
 
-  it('after the last job, the tab goes back to its first job, its heading focused', async () => {
+  it('after the last job, the tab is the done state (#554), its heading focused', async () => {
     const user = userEvent.setup();
     removeJob(B);
     removeJob(C);
@@ -381,9 +381,11 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
     await user.click(screen.getByRole('button', { name: /^Mark applied/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    // Nothing left to apply to: the tab shows the first job there is (Acme, now Applied).
-    const h1 = await screen.findByRole('heading', { level: 1, name: 'Acme Designer' });
+    // Nothing left to apply to: the done state, the week's line counts the one just applied to.
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Apply' });
     await waitFor(() => expect(h1).toHaveFocus());
+    const done = screen.getByRole('region', { name: 'That is the list' });
+    expect(within(done).getByText('You applied to 1 job this week.')).toBeInTheDocument();
   });
 
   it('a double tap on Not a fit sets aside one job, not the next one too', async () => {

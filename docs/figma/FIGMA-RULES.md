@@ -142,3 +142,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   "We email you a sign-in link. No password needed." (caption, secondary). Then the email field,
   Send link (filled) and Continue without an account (underlined exit). Top right: Pause
   animations, an icon key. The Account menu's signed-out item uses the same words.
+- **Empty, error and done states sit on the page background (#553):** centred icon tile, bold title,
+  one line, then one filled key and one grey key. Never a card around them, and a second choice is a
+  grey key, never a text button. Apply empty: "Track your first job" (Add job | Try with sample
+  data). Find with no results: Scan now | Edit search profile. Not found is unchanged.
+- **Done (#554):** when To apply is finished, the Apply tab shows the live flame (still under reduced
+  motion), "That is the list", one caption line for the week ("You applied to 3 jobs this week."),
+  then the next step as the filled key (Follow up (N) while some are due, else Find more jobs) and
+  All jobs as the grey key.

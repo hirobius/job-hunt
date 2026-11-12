@@ -241,14 +241,14 @@ export default function DocumentsLibrary({
       <Stack gap="spacious">
         {head}
         <EmptyState
-          framed
+          onPage
           icon={FileText}
           title="No documents yet"
           description="Keep your résumé, cover letters, notes and messages here, and fill them for each job."
           action={
             <Stack direction="row" gap="tight" wrap="wrap" justify="center">
               <AddStarterMessages variant="primary" />
-              <Button variant="tertiary" onClick={() => setFromScratch(true)}>
+              <Button variant="secondary" onClick={() => setFromScratch(true)}>
                 Start from scratch
               </Button>
             </Stack>
