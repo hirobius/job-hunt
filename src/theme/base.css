@@ -857,7 +857,7 @@ p {
   margin-inline-start: auto;
 }
 .rjb-view-segs {
-  padding: var(--primitive-space-px2);
+  padding: 0;
   border-radius: var(--role-radius);
   background: var(--semantic-color-surface-muted);
 }
