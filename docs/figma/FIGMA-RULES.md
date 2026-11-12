@@ -94,8 +94,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
-- **The Account menu (#549): 9 items in 4 groups.** Who you are: signed out "On this device only" and
-  "Sign in to see your jobs on any device", then Sign in as a grey key (signed in: the email, the sync
+- **The Account menu (#549): 9 items in 4 groups.** Who you are: signed out "On this device only", then
+  "Sign in to see your jobs on any device" as a grey key (#555's words) (signed in: the email, the sync
   line, Sign out). Then Documents, Search profile, Companies, Data. Then Dark theme and Pause
   animations as toggles with a switch on the right that shows the state. Then Send feedback, Privacy and
   terms. Every row has a 16 px icon; rows are 44 px on a phone (a bottom sheet), 38 px at 1440. Scan
@@ -137,3 +137,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - Design 390 and 1440, light and dark. Use sample data, never real names.
 - Placeholders are the field's own name ("Job title", "Company"). No "e.g.".
 - Empty states teach: what this holds, one primary action, one way to see it work.
+- **Sign-in (#555, #556):** the stacked flame and name, centred by the flame's mass (not its box),
+  then two lines, the benefit leading: "Sign in to see your jobs on any device." (body, primary) and
+  "We email you a sign-in link. No password needed." (caption, secondary). Then the email field,
+  Send link (filled) and Continue without an account (underlined exit). Top right: Pause
+  animations, an icon key. The Account menu's signed-out item uses the same words.

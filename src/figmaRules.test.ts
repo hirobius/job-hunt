@@ -28,6 +28,19 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(claude);
   });
 
+  it('keeps the sign-in words as the code says them (#555)', () => {
+    const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');
+    for (const line of [
+      'Sign in to see your jobs on any device.',
+      'We email you a sign-in link. No password needed.',
+    ]) {
+      expect(RULES).toContain(line);
+      expect(CLAUDE).toContain(line);
+      expect(COPY).toContain(line);
+    }
+    expect(RULES).toMatch(/centred by the flame's mass/);
+  });
+
   it('names the views as CLAUDE.md and pipelineView.ts do (#541)', () => {
     const VIEW = fs.readFileSync('src/pipelineView.ts', 'utf8');
     for (const name of ['To apply', 'Follow up', 'Interviewing', 'Applied', 'Recently closed']) {
@@ -80,7 +93,7 @@ describe('FIGMA-RULES.md', () => {
     const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
     for (const name of [
       'On this device only',
-      'Sign in to see your jobs on any device',
+      'SIGN_IN_ITEM',
       'Dark theme',
     ])
       expect(menu).toContain(name);

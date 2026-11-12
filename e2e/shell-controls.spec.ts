@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, listScope, pressAllJobs, topTab } from './routes';
+import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
 // segmented control but still a nav of links (routing, Back, deep links); Browse / Deck as two

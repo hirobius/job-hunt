@@ -245,3 +245,30 @@ test('the logo links home to Find (#620)', async ({ page }) => {
     page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]'),
   ).toHaveText(/^Find/);
 });
+
+// #556: the stacked flame (sign-in) is centred by mass. RoleFlame.tsx's nudge assumes the name's
+// ink centre sits NAME_INK_OFFSET_EM (0.011em) right of its box centre in Sora 800: measure it in
+// the browser, and check the nudge is on the stacked flame and not on the app bar's row.
+test('the sign-in flame takes its mass nudge; the app bar row takes none', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/apply');
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: /^Sign in/ }).click();
+  const stacked = page.locator('.rjb-signin-screen__brand .rjb-rf[data-layout="stacked"] > svg');
+  await expect(stacked).toBeVisible();
+  expect(await stacked.evaluate((el) => (el as SVGElement).style.transform)).toBe(
+    'translateX(0.0044em)',
+  );
+  const ink = await page.evaluate(async () => {
+    await document.fonts.load('800 40px "Roleflame Sora"');
+    const c = document.createElement('canvas').getContext('2d')!;
+    c.font = '800 40px "Roleflame Sora"';
+    const m = c.measureText('Roleflame');
+    return ((m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 - m.width / 2) / 40;
+  });
+  expect(Math.abs(ink - 0.011)).toBeLessThan(0.003);
+  await page.keyboard.press('Escape');
+  const row = page.locator('header .rjb-rf[data-layout="inline"] > svg');
+  await expect(row).toBeVisible();
+  expect(await row.evaluate((el) => (el as SVGElement).style.transform)).toBe('');
+});

@@ -23,6 +23,7 @@ import { useColorMode } from '../ColorMode';
 import { openDocuments, openLegal } from '../route';
 import { motionPaused, setMotionPaused } from '../motionPref';
 import { useCloudSync } from './accountContext';
+import { SIGN_IN_ITEM } from './signInCopy';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -63,15 +64,11 @@ export default function AccountMenuRows({
       ) : (
         <>
           <Menu.Label data-account-line>On this device only</Menu.Label>
-          <Menu.Label data-account-line>
-            <Text variant="caption" as="span" tone="secondary">
-              Sign in to see your jobs on any device
-            </Text>
-          </Menu.Label>
-          {/* The grey key (redesign §3): an HDS secondary Button as the menu item. */}
+          {/* The grey key (redesign §3): an HDS secondary Button as the menu item. Its words are the
+              sign-in screen's benefit line (#555, signInCopy.ts). */}
           <Menu.Item asChild onSelect={opensDialog(() => sync.setSignInOpen(true))}>
             <Button variant="secondary" size="sm" className="rjb-menu-key">
-              Sign in
+              {SIGN_IN_ITEM}
             </Button>
           </Menu.Item>
         </>

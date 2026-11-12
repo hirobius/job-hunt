@@ -53,7 +53,7 @@ copy, max 4 s.
 **Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (flameEngine's flame + the flickering name, kept as
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
-(`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
+(`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523; **mass-centred, #556:** the stacked flame moves right by `STACKED_FLAME_NUDGE_EM`, the name's ink offset (`NAME_INK_OFFSET_EM`, measured again in `e2e/brand.spec.ts`) less the flame's mean mass offset (`FLAME_MASS`, measured again over 300 frames in `flameEngine.test.ts`, which fails on a tuning that moves it); the app bar row takes no nudge). **Sign-in copy (redesign §5.8, #555):** under the wordmark, two lines, the benefit leading: "Sign in to see your jobs on any device." (body, primary) and "We email you a sign-in link. No password needed." (caption, secondary), which describe the form step (`account/signInCopy.ts`); the Account menu's signed-out item says the same words ("Sign in to see your jobs on any device"); the top right control is Pause animations with its icon; Continue without an account stays the underlined exit. Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: the HDS variable Sora covers 400–700 and the logo keeps its own Sora 800; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
 inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** toggle (WCAG 2.2.2;
@@ -285,8 +285,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
-  (**9 items in 4 groups, redesign §5.9, #549**: who | things | display | about. Signed out: "On this device only" + "Sign
-  in to see your jobs on any device" as non-item labels and **Sign in as a grey key** (HDS secondary `Button` as the
+  (**9 items in 4 groups, redesign §5.9, #549**: who | things | display | about. Signed out: "On this device only" as a label and **"Sign
+  in to see your jobs on any device" as a grey key** (#555's words, `signInCopy.ts` `SIGN_IN_ITEM`; HDS secondary `Button` as the
   `Menu.Item`, `.rjb-menu-key`); signed in: "Signed in as <email>" + sync line as labels, Retry sync when it failed, and
   Sign out. Things = Documents, Search profile, Companies, Data. Display = **Dark theme** and **Pause animations**,
   toggles that show their state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role

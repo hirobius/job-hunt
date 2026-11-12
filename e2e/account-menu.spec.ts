@@ -121,7 +121,10 @@ for (const [width, height, row] of [
       expect([Math.round(icon.width), Math.round(icon.height)]).toEqual([16, 16]);
     }
     // The grey key: HDS secondary, a real fill, 44px tall on a phone.
-    const key = menu.getByRole('menuitem', { name: 'Sign in', exact: true });
+    const key = menu.getByRole('menuitem', {
+      name: 'Sign in to see your jobs on any device',
+      exact: true,
+    });
     const bg = await key.evaluate((n) => getComputedStyle(n).backgroundColor);
     expect(bg).not.toBe('rgba(0, 0, 0, 0)');
     if (width === 390) expect((await key.boundingBox())!.height).toBeGreaterThanOrEqual(44);

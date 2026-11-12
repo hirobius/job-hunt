@@ -134,3 +134,14 @@
   width: 100%;
   height: 100%;
 }
+
+/* The two lines under the wordmark (#555) give their room to the field and Send link while the
+   keyboard is up, and on a screen too short for both: they still describe the screen (aria). */
+.rjb-signin-screen[data-keyboard='open'] #rjb-signin-copy {
+  display: none;
+}
+@media (max-height: 480px) {
+  #rjb-signin-copy {
+    display: none;
+  }
+}
