@@ -25,6 +25,7 @@ import {
   renderAccount,
   openAccount,
   chooseAccountItem,
+  chooseDataAction,
   addDeviceDataIfAsked,
 } from '../test/renderAccount';
 import CloudSyncProvider from './CloudSyncProvider';
@@ -191,7 +192,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await addDeviceDataIfAsked();
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     fake().failNext('groups', 'delete');
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     expect(await screen.findByText(/Deleted 3 of 4 — couldn't delete groups/)).toBeInTheDocument();
     const toast = screen.getByText('Delete incomplete').closest('li')!;
     expect(within(toast).getByRole('button', { name: /^Reload/ })).toBeInTheDocument();
@@ -214,7 +215,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
       ];
     // The one call does it all: a per-table delete is never sent.
     fake().failNext('groups', 'delete');
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     for (const t of ['watched_companies', 'postings', 'skips', 'sync_log'])
       expect(
@@ -244,7 +245,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect((await fake().client.rpc('delete_my_data')).error?.code).toBe('42501');
     expect(fake().tables.postings).toHaveLength(2);
     const rpc = vi.spyOn(fake().client, 'rpc');
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     expect(rpc).toHaveBeenCalledWith('delete_my_data', { p_user: 'u1' });
     expect(fake().tables.postings.map((p) => p.user_id)).toEqual(['u2']);
@@ -259,7 +260,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     fake().installRpc('delete_my_data');
     fake().failNext('delete_my_data', 'rpc', '42P01'); // relation "public.skips" does not exist
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     expect(screen.queryByText('Delete incomplete')).toBeNull();
   });
@@ -273,7 +274,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     fake().installRpc('delete_my_data');
     fake().failNext('delete_my_data', 'rpc');
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     expect(await screen.findByText('Delete incomplete')).toBeInTheDocument();
     expect(fake().tables.tracker).toHaveLength(1);
     expect(getAllJobs()).toHaveLength(1);
@@ -295,7 +296,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     // An edit after that push went out: its debounce timer is still running.
     addJob('https://acme.example/jobs/3', 'Third job');
     const releaseDelete = fake().holdNext('tiles', 'delete');
-    await chooseAccountItem('Delete my data');
+    await chooseDataAction('Delete my data');
     await new Promise((r) => setTimeout(r, 50));
     // No delete is sent while the push is out (it could land after the row's delete).
     expect(fake().holding('tiles', 'delete')).toBe(true);

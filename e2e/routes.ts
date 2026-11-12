@@ -114,6 +114,15 @@ export async function openFilters(page: Page) {
   if ((await filters.getAttribute('aria-expanded')) !== 'true') await filters.click();
 }
 
+/** Open the Account menu's Data dialog (#550) and return it. */
+export async function openData(page: Page) {
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: 'Data', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Data' });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
 /** The shell's top tabs are links in a nav (top tabs PR): one by name, or the open one. The name is
  *  the label, then the tab's count when it shows one ("Apply 12", #548). */
 export const topTab = (page: Page, name: string) =>

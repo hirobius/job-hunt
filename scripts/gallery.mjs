@@ -152,6 +152,15 @@ const OVERLAYS = [
       ['button', /^Cover letter/],
     ],
   ],
+  // The Data dialog (#550), from the Account menu.
+  [
+    /^(Pipeline|Tracker)$/,
+    'data-dialog',
+    [
+      ['button', /^Account/],
+      ['menuitem', /^Data$/],
+    ],
+  ],
   // The Search profile (#388), from the Account menu.
   [
     /^(Pipeline|Tracker)$/,
@@ -170,7 +179,9 @@ const OVERLAYS = [
     'recently-removed',
     [
       ['button', /^More actions/],
-      ['menuitem', /^Remove$/],
+      ['menuitem', /^Remove( from Apply)?$/],
+      ['button', /^Account/],
+      ['menuitem', /^Data$/],
       ['button', /^Recently removed/],
     ],
   ],

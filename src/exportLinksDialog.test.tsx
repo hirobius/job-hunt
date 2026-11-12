@@ -96,7 +96,9 @@ const preview = () => screen.getByRole('textbox', { name: 'Preview' }) as HTMLTe
 async function openOnThisView(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: /^Account/ }));
   const menu = await screen.findByRole('menu');
-  await user.click(within(menu).getByRole('menuitem', { name: 'Export links' }));
+  await user.click(within(menu).getByRole('menuitem', { name: 'Data' }));
+  const data = await screen.findByRole('dialog', { name: 'Data' });
+  await user.click(within(data).getByRole('button', { name: 'Export links' }));
   const dialog = await screen.findByRole('dialog', { name: 'Export links' });
   await user.click(within(dialog).getByRole('radio', { name: /^This view/ }));
   return dialog;
@@ -193,7 +195,9 @@ describe('Export links', () => {
     renderApp();
     await user.click(screen.getByRole('button', { name: /^Account/ }));
     const menu = await screen.findByRole('menu');
-    await user.click(within(menu).getByRole('menuitem', { name: 'Export links' }));
+    await user.click(within(menu).getByRole('menuitem', { name: 'Data' }));
+    const data = await screen.findByRole('dialog', { name: 'Data' });
+    await user.click(within(data).getByRole('button', { name: 'Export links' }));
     const dialog = await screen.findByRole('dialog', { name: 'Export links' });
     expect(within(dialog).getByRole('radio', { name: 'All saved jobs (2)' })).toBeChecked();
     const results = await axe(dialog, {
