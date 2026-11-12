@@ -51,7 +51,7 @@ beforeEach(resetHistoryRecord);
 beforeEach(resetTabAccount);
 // Mark applied / Not a fit ignore a second answer within 700 ms (a double tap): start each test fresh.
 beforeEach(resetAnswerGuard);
-// The Google button ships hidden (googleSignInFlag.ts); its suites turn it on.
+// The Google button follows its shipped default (googleSignInFlag.ts, on); the hidden-state test turns it off.
 beforeEach(resetGoogleSignIn);
 
 // HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
