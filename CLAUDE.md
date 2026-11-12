@@ -393,7 +393,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   over 99 reads "99+"; a Badge's chrome made the row too wide at 390): Find the new postings Review new last
   read (`scanDetails.newToday`), Apply the jobs its list shows now (`visibleJobs`: open view + Remote only, the status
   line's number); none while 0 or not known; the link's name is "Apply 12" (`test/topTabs.ts` matches label then
-  count). **The logo is the home link (#620):** `.rjb-logo-link`, named "roleflame, Find", 44px, never a heading;
+  count). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
   a tab tap, which reopens where the tab was left. Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
   `aria-pressed` in a `role="group"` "Review view", each with an HDS Tooltip. Apply's **Remote only** HDS `Toggle`

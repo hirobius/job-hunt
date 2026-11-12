@@ -388,8 +388,7 @@ p {
     padding-inline: var(--primitive-space-px6);
   }
 }
-[data-hds] .rjb-seg:focus-visible,
-[data-hds] .rjb-logo-link:focus-visible {
+[data-hds] .rjb-seg:focus-visible {
   outline: var(--semantic-focus-ring-width) solid var(--semantic-focus-ring-color);
   outline-offset: var(--semantic-focus-gap-width);
 }
@@ -694,20 +693,15 @@ p {
    file without those classes keeps its own fills. Wordmark: the HDS display family at 700. */
 .rjb-logo {
   --rjb-logo-size: 19px; /* hds-allow: brand logo size, not UI type */
-  display: inline-flex;
+  /* Block flex in the home link (a flex item): an inline box there added a line's descender. */
+  display: flex;
   align-items: center;
-  /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it loads. */
-  min-height: calc(var(--rjb-logo-size) * 1.95);
+  /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it
+   * loads; and the home link's 44px target (#620), which this box is: the link around it is inline.
+   * Its colour is the page's, not a link's. */
+  min-height: max(calc(var(--rjb-logo-size) * 1.95), var(--rjb-touch));
+  color: var(--semantic-color-content-primary);
   gap: calc(var(--rjb-logo-size) * 0.3);
-}
-/* The logo is the home link (#620): a 44px target, the lockup unchanged inside it. */
-.rjb-logo-link {
-  display: inline-flex;
-  align-items: center;
-  flex: none;
-  min-height: var(--rjb-touch);
-  border-radius: var(--role-radius);
-  color: inherit;
 }
 .rjb-flame {
   --rjb-flame-1: var(--primitive-color-blue-500);
