@@ -55,6 +55,31 @@ async function feed(page: Page) {
   });
 }
 
+/** The detail template's shape (#546): one h1 in a title block, then one action row, then the
+ *  content, at the same type and spacing on Find and Apply. */
+async function templateOf(page: Page) {
+  return page.evaluate(() => {
+    const block = [...document.querySelectorAll('main [data-rjb-title-block]')].find(
+      (el) => el.getBoundingClientRect().width > 0,
+    ) as HTMLElement;
+    const h1 = block.querySelector('h1') as HTMLElement;
+    const keys = block.closest('header')?.querySelector('[data-rjb-actions]') as HTMLElement;
+    const content = block.closest('header')?.nextElementSibling as HTMLElement;
+    const b = block.getBoundingClientRect();
+    const k = keys.getBoundingClientRect();
+    const c = content.getBoundingClientRect();
+    const key = keys.querySelector('button, a') as HTMLElement;
+    return {
+      ordered: b.bottom <= k.top && k.bottom <= c.top,
+      h1: getComputedStyle(h1).fontSize,
+      keysAfterBlock: Math.round(k.top - b.bottom),
+      contentAfterKeys: Math.round(c.top - k.bottom),
+      keyHeight: Math.round(key.getBoundingClientRect().height),
+      firstKey: key.getAttribute('data-variant'),
+    };
+  });
+}
+
 async function setUp(page: Page) {
   await feed(page);
   await page.goto('/#/find');
@@ -88,6 +113,18 @@ async function scanFinished(page: Page, since: number, timeout = 60_000) {
 for (const width of [390, 1440]) {
   test(`browse, skip one posting, save one, then the deck (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
+    let postingTemplate: Awaited<ReturnType<typeof templateOf>> | null = null;
+    // At 1440 a posting is decided in the detail column (#546): its title selects it first.
+    const wide = width >= 1024;
+    const decideOn = async (title: string, action: 'Save' | 'Skip', company: string) => {
+      const name = `${action} ${title} at ${company}`;
+      if (!wide) return list.getByRole('button', { name });
+      await list.getByRole('link', { name: title, exact: true }).click();
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+      return page.locator('section[aria-labelledby="rjb-posting-title"]').getByRole('button', {
+        name,
+      });
+    };
     await setUp(page);
     await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
     // No status text above Browse / Deck (Adrian 2026-11-08): no scan line, counts or progress.
@@ -125,6 +162,11 @@ for (const width of [390, 1440]) {
       // Its action row has the posting's own Open posting icon link (Adrian 2026-11-08).
       const detail = page.locator('section[aria-labelledby="rjb-posting-title"]');
       await expect(detail.getByRole('link', { name: /^Open posting for / })).toBeVisible();
+      // #546: list cards carry no keys at 1440; the detail column has them, in the job's template.
+      await expect(list.getByRole('button', { name: /^(Save|Skip) / })).toHaveCount(0);
+      await expect(detail.getByText('Hacker News', { exact: true })).toBeVisible();
+      postingTemplate = await templateOf(page);
+      expect(postingTemplate).toMatchObject({ ordered: true, firstKey: 'primary' });
       // The selected card is a stronger fill, never a ring or edge (#603, #546).
       const selected = list.locator('.rjb-selected');
       await expect(selected).toHaveAttribute('aria-current', 'true');
@@ -147,7 +189,7 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
 
     // Skip hides only that posting: Orbit's other one stays.
-    await list.getByRole('button', { name: 'Skip Design Systems Engineer at Orbit' }).click();
+    await (await decideOn('Design Systems Engineer', 'Skip', 'Orbit')).click();
     await expect(list.getByRole('listitem')).toHaveCount(3);
     await expect(
       list.getByRole('heading', { name: 'Design Systems Designer', exact: true }),
@@ -159,7 +201,7 @@ for (const width of [390, 1440]) {
     await expect(
       page.getByRole('region', { name: /^Notifications/ }).getByRole('button', { name: 'Undo' }),
     ).toBeVisible();
-    const save = list.getByRole('button', { name: 'Save Design Systems Lead at Lumen' });
+    const save = await decideOn('Design Systems Lead', 'Save', 'Lumen');
     await expect(save).toHaveAttribute('data-variant', 'primary');
     await expect(save.locator('svg')).toHaveCount(1);
     // A double Save saves once, with one toast (#534).
@@ -194,5 +236,12 @@ for (const width of [390, 1440]) {
     // Back on the Pipeline, the save is in To apply.
     await page.goto('/#/apply');
     await expect(page.getByText('Design Systems Lead').first()).toBeVisible();
+    if (postingTemplate) {
+      // At 1440 the Apply tab opens on the saved job: the same template as the posting (#546).
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Design Systems Lead' }),
+      ).toBeVisible();
+      expect(await templateOf(page)).toEqual(postingTemplate);
+    }
   });
 }

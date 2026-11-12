@@ -28,6 +28,7 @@ import {
   VisuallyHidden,
 } from '@hirobius/design-system';
 import {
+  Banknote,
   Briefcase,
   Calendar,
   ChevronDown,
@@ -75,6 +76,7 @@ import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
 import { usePostingText } from './feed/postingText';
 import { httpUrl } from './httpUrl';
+import { DetailHeader, DetailTitleBlock } from './DetailHeader';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -541,6 +543,7 @@ function RowList({
                   r={r}
                   now={now}
                   onOpen={onOpen}
+                  keys={!onOpen}
                   describe={!onOpen}
                   describeOpen={r.fingerprint === linked}
                   actions={actions}
@@ -595,75 +598,90 @@ const placeOf = (r: FeedRow) => {
 
 const rowName = (r: FeedRow) => `${r.title}${r.company ? ` at ${r.company}` : ''}`;
 
-/** A posting's one action row (Adrian 2026-11-08): left-aligned, one HDS size, Save primary, Skip
- *  secondary, Open posting as an icon button, and More (…) holding Not this company. The same row
- *  on a Browse card, the Deck and the selected posting. */
+/** A posting's keys (Adrian 2026-11-08): one HDS size, Save primary, Skip secondary, Open
+ *  posting as an icon button. The same keys on a Browse card, the Deck and the selected posting. */
+function postingKeys(r: FeedRow, actions: RowActions): ReactNode[] {
+  return [
+    <Button
+      key="save"
+      size="md"
+      variant="primary"
+      aria-label={`Save ${rowName(r)}`}
+      onClick={(e) => actions.save(r, e.currentTarget)}
+    >
+      <Icon icon={Plus} />
+      Save
+    </Button>,
+    <Button
+      key="skip"
+      size="md"
+      variant="secondary"
+      aria-label={`Skip ${rowName(r)}`}
+      onClick={(e) => actions.skip(r, e.currentTarget)}
+    >
+      Skip
+    </Button>,
+    httpUrl(r.url) && (
+      <HdsTooltip key="open">
+        <HdsTooltip.Trigger asChild>
+          <Button
+            size="md"
+            variant="secondary"
+            iconOnly
+            label={`Open posting for ${rowName(r)}`}
+            asChild
+          >
+            <a
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open posting for ${rowName(r)}`}
+            >
+              <Icon icon={ExternalLink} />
+            </a>
+          </Button>
+        </HdsTooltip.Trigger>
+        <HdsTooltip.Content>Open posting</HdsTooltip.Content>
+      </HdsTooltip>
+    ),
+  ].filter(Boolean);
+}
+
+/** A card's one action row: left-aligned, the keys, then More (…) holding Not this company. */
 function PostingActions({ r, actions }: { r: FeedRow; actions: RowActions }) {
-  // Not this company is picked in the menu (a portal): its feedback anchors on the row's trigger.
-  const more = useRef<HTMLButtonElement>(null);
-  const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      <Button
-        size="md"
-        variant="primary"
-        aria-label={`Save ${rowName(r)}`}
-        onClick={(e) => actions.save(r, e.currentTarget)}
-      >
-        <Icon icon={Plus} />
-        Save
-      </Button>
-      <Button
-        size="md"
-        variant="secondary"
-        aria-label={`Skip ${rowName(r)}`}
-        onClick={(e) => actions.skip(r, e.currentTarget)}
-      >
-        Skip
-      </Button>
-      {httpUrl(r.url) && (
-        <HdsTooltip>
-          <HdsTooltip.Trigger asChild>
-            <Button
-              size="md"
-              variant="secondary"
-              iconOnly
-              label={`Open posting for ${rowName(r)}`}
-              asChild
-            >
-              <a
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Open posting for ${rowName(r)}`}
-              >
-                <Icon icon={ExternalLink} />
-              </a>
-            </Button>
-          </HdsTooltip.Trigger>
-          <HdsTooltip.Content>Open posting</HdsTooltip.Content>
-        </HdsTooltip>
-      )}
-      {r.company.trim() && (
-        <Menu modal={false} {...sheet}>
-          <Menu.Trigger asChild>
-            <Button
-              ref={more}
-              size="md"
-              variant="secondary"
-              iconOnly
-              iconLeft={<Icon icon={Ellipsis} />}
-              label={`More actions: ${rowName(r)}`}
-            />
-          </Menu.Trigger>
-          <Menu.Content align="start">
-            <Menu.Item onSelect={() => actions.mute(r, more.current)}>
-              {`Not this company: ${r.company}`}
-            </Menu.Item>
-          </Menu.Content>
-        </Menu>
-      )}
+      {postingKeys(r, actions)}
+      <PostingMenu r={r} actions={actions} />
     </Stack>
+  );
+}
+
+/** More (…): Not this company. On a card it ends the action row; in the detail it sits beside
+ *  the title block, as a job's More does (one detail template, #546). */
+function PostingMenu({ r, actions }: { r: FeedRow; actions: RowActions }) {
+  // Not this company is picked in the menu (a portal): its feedback anchors on the trigger.
+  const more = useRef<HTMLButtonElement>(null);
+  const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
+  if (!r.company.trim()) return null;
+  return (
+    <Menu modal={false} {...sheet}>
+      <Menu.Trigger asChild>
+        <Button
+          ref={more}
+          size="md"
+          variant="secondary"
+          iconOnly
+          iconLeft={<Icon icon={Ellipsis} />}
+          label={`More actions: ${rowName(r)}`}
+        />
+      </Menu.Trigger>
+      <Menu.Content align="start">
+        <Menu.Item onSelect={() => actions.mute(r, more.current)}>
+          {`Not this company: ${r.company}`}
+        </Menu.Item>
+      </Menu.Content>
+    </Menu>
   );
 }
 
@@ -712,7 +730,7 @@ function PostingCard({
   r,
   now,
   onOpen,
-  noTitle = false,
+  keys = true,
   describe = false,
   describeOpen = false,
   actions,
@@ -726,8 +744,8 @@ function PostingCard({
   describe?: boolean;
   /** Opened by an old #/find/<fingerprint> link on a phone. */
   describeOpen?: boolean;
-  /** The selected posting's view names it in its own header. */
-  noTitle?: boolean;
+  /** At lg a list card carries no keys: the detail column has them (#546). */
+  keys?: boolean;
   actions: RowActions;
   /** Extra content above the footer (the Deck's snippet). */
   children?: ReactNode;
@@ -750,7 +768,7 @@ function PostingCard({
           <Badge>{SOURCE_LABEL[r.source]}</Badge>
           {r.isNew && <Badge tone="info">New</Badge>}
         </Stack>
-        {noTitle ? null : onOpen ? (
+        {onOpen ? (
           <Text variant="title" as="h3" weight="bold" className="rjb-card-title" tabIndex={-1}>
             <Button variant="tertiary" size="sm" className="rjb-preview-title" asChild>
               <a href={findHash(r.fingerprint)} onClick={inPlaceClick(() => onOpen(r))}>
@@ -764,7 +782,7 @@ function PostingCard({
             {r.title}
           </Text>
         )}
-        {r.company && !noTitle && (
+        {r.company && (
           <Text variant="ui" as="p">
             {r.company}
           </Text>
@@ -785,9 +803,11 @@ function PostingCard({
         )}
         {children}
         {describe && <CardDescription r={r} initialOpen={describeOpen} />}
-        <Box sx={{ pt: 'xs' }}>
-          <PostingActions r={r} actions={actions} />
-        </Box>
+        {keys && (
+          <Box sx={{ pt: 'xs' }}>
+            <PostingActions r={r} actions={actions} />
+          </Box>
+        )}
       </Stack>
     </Box>
   );
@@ -901,8 +921,6 @@ function PostingDetail({
   actions: RowActions;
 }) {
   usePageTitle(r ? r.title : wide ? 'Find' : null);
-  // Fetched on open when the list was read without it (a phone, or the server's rows).
-  const { text, loading } = usePostingText(r);
   if (!r)
     return (
       <Stack gap="normal">
@@ -930,31 +948,47 @@ function PostingDetail({
         )}
       </Stack>
     );
+  const pay = payLabel(r);
+  const posted = postedAgo(r.postedAt, now);
+  const place = placeOf(r);
+  const modeText = !r.remoteUnstated && r.mode && r.location ? modeLabel(r.mode) : '';
+  const facts = [
+    { icon: MapPin, label: place },
+    // The mode only when the place line doesn't already say it.
+    ...(modeText && !place.toLowerCase().includes(modeText.toLowerCase())
+      ? [{ icon: Briefcase, label: modeText }]
+      : []),
+    // As on a job's page: a missing pay says so, you need it to decide.
+    { icon: Banknote, label: pay || 'Pay not stated' },
+    ...(posted
+      ? [{ icon: Calendar, label: posted === 'today' ? 'Posted today' : `Posted ${posted}` }]
+      : []),
+  ];
+  // One detail template (#546): the job page's header, then the content.
   return (
     <Box as="section" aria-labelledby="rjb-posting-title" sx={{ minWidth: 0 }}>
-      <Stack gap="normal">
-        <Stack gap="px4">
-          <Text as="h1" variant="title" id="rjb-posting-title">
-            {r.title}
-          </Text>
-          <Text variant="ui" as="p" tone="secondary">
-            {r.company || SOURCE_LABEL[r.source]}
-          </Text>
-        </Stack>
-        <Card as="article" padding="none" aria-label={rowName(r)}>
-          <DeckBody>
-            <PostingCard r={r} now={now} noTitle actions={actions}>
-              {text.trim() ? (
-                <Text variant="body" as="p" tone="secondary">
-                  {excerpt(text)}
-                </Text>
-              ) : loading ? (
-                <Skeleton variant="text" width="80%" />
-              ) : null}
-            </PostingCard>
-          </DeckBody>
-        </Card>
-      </Stack>
+      <DetailHeader
+        titleBlock={
+          <DetailTitleBlock
+            title={r.title}
+            titleId="rjb-posting-title"
+            company={r.company}
+            noCompany="Company not stated"
+            facts={facts}
+            // The source shows here (neutral, as a job's status does).
+            badges={<Badge tone="neutral">{SOURCE_LABEL[r.source]}</Badge>}
+          />
+        }
+        more={<PostingMenu r={r} actions={actions} />}
+        docked={!wide}
+        label={`Actions for ${rowName(r)}`}
+        keys={postingKeys(r, actions)}
+      />
+      <Panel label="Description" title="Description">
+        <PanelBody>
+          <DescriptionText r={r} />
+        </PanelBody>
+      </Panel>
     </Box>
   );
 }
