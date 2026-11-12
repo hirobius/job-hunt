@@ -3,6 +3,7 @@
 // the search term as a PHRASE (not loose words — "system design" is not "design system"), survive
 // the location/work-mode filter, and is then scored so the openings worth acting on float up.
 import type { WorkMode } from '../jobsData';
+import { ownString } from './ownString';
 import { dedupKey } from '../store';
 import type { Posting, RankedPosting, Signal, SignalId } from './types';
 
@@ -66,7 +67,9 @@ export function snippetAround(text: string, term: string, max = 200): string {
   if (m) start = Math.max(0, Math.round(m.index + m[0].length / 2 - max / 2));
   const end = Math.min(flat.length, start + max);
   start = Math.max(0, end - max);
-  return (start > 0 ? '…' : '') + flat.slice(start, end).trim() + (end < flat.length ? '…' : '');
+  return ownString(
+    (start > 0 ? '…' : '') + flat.slice(start, end).trim() + (end < flat.length ? '…' : ''),
+  );
 }
 
 // ---- ranking ----

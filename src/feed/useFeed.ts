@@ -20,6 +20,8 @@ import {
   type FeedView,
 } from './feed';
 import { browserReader, type PostingReader } from './reader';
+import { passesInclude } from './include';
+import type { IncludeRule } from './mustInclude';
 import { scanReader, useScan } from './autoScan';
 import type { FeedProgress, FeedResult } from './fetchFeed';
 import { repaintScheduler } from './repaint';
@@ -38,6 +40,9 @@ interface Read {
   /** What this read asked for, so a source or title added later is read on its own. */
   terms: string[];
   boardUrls: string[];
+  /** The inclusion rule the read was slimmed for (slimRead): a read for another rule is not
+   *  folded into, since postings it dropped the text of may pass the new one. */
+  rule?: string;
   attempt: number;
   at: number;
   result?: FeedResult;
@@ -112,7 +117,9 @@ export function useFeed(given?: PostingReader): FeedState {
     .filter((f) => f.status !== 'new')
     .map((f) => `${f.key}=${f.status}`)
     .join(',')}`;
-  const key = `${signedIn ? 'server' : 'browser'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}`;
+  // The inclusion rule is in the key: a read keeps no text for what the rule leaves out (slimRead).
+  const rule = JSON.stringify(profile.include);
+  const key = `${signedIn ? 'server' : 'browser'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}|${rule}`;
   const [read, setRead] = useRemembered<Read | null>('review:read', storedRead);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
 
@@ -127,7 +134,12 @@ export function useFeed(given?: PostingReader): FeedState {
     // A company or title added since the last full read (Adrian 2026-10-28: a new company's jobs
     // show straight away): read only what was added and fold it into the rows already up.
     const base =
-      read?.result && !read.stored && !read.progress && !read.error && read.attempt === attempt
+      read?.result &&
+      !read.stored &&
+      !read.progress &&
+      !read.error &&
+      read.attempt === attempt &&
+      read.rule === rule
         ? read
         : null;
     const added = base && {
@@ -142,11 +154,13 @@ export function useFeed(given?: PostingReader): FeedState {
     const ask = onlyAdded && added ? added : req;
     const fold = (r: FeedResult): FeedResult =>
       onlyAdded && base?.result ? mergeReads(base.result, r) : r;
-    const done = (result: FeedResult, at: number, progress?: Read['progress']) =>
+    const done = (full: FeedResult, at: number, progress?: Read['progress']) => {
+      const result = slimRead(full, profile.include);
       setRead({
         key,
         terms: req.terms,
         boardUrls: req.boardUrls,
+        rule,
         attempt,
         at,
         result,
@@ -154,6 +168,7 @@ export function useFeed(given?: PostingReader): FeedState {
           ? { progress, seen: seenBefore }
           : { seen: noteSeen(fingerprintsOf(result), at) }),
       });
+    };
     // Signed in, a company or title added since the last read is read in the browser: the server
     // has not read it yet (its sync runs every 15 minutes), and its jobs show at once.
     const by = onlyAdded && signedIn ? browserFirst : reader;
@@ -237,6 +252,21 @@ export function useFeed(given?: PostingReader): FeedState {
 
 const liveReader = browserReader();
 const browserFirst = scanReader(liveReader);
+
+/** The read as it is kept: a posting the inclusion check leaves out keeps no description.
+ *  Sign-in memory (2026-11-12): every board's postings were held with their full text (a
+ *  Greenhouse description is ~10-25 kB), and while the signed-in read ran the signed-out one stayed
+ *  up beside it: over 1 GB of heap at the peak. Only what the rule lets in is listed, and taking
+ *  text away can only make a posting fail the check, so the view is the same. */
+export function slimRead(read: FeedResult, include: IncludeRule): FeedResult {
+  let changed = false;
+  const postings = read.postings.map((p) => {
+    if (!p.text || passesInclude(include, p.title, p.text)) return p;
+    changed = true;
+    return { ...p, text: '' };
+  });
+  return changed ? { ...read, postings } : read;
+}
 
 /** A read of only what was added, folded into the one before it: its postings after the old
  *  ones (a posting read twice kept once), its sources' statuses added. */
