@@ -50,11 +50,15 @@ for (const width of [390, 1440]) {
         name: /^Apply/,
       });
       await expect(apply).toHaveAccessibleName(/^Apply \d+$/);
-      const status = await page
+      // Below lg the list's status line is the All jobs sheet's description (#543).
+      const scope = (page.viewportSize()?.width ?? 0) < 1024 ? await listScope(page) : page;
+      const status = await scope
         .getByText(/^To apply · \d+ jobs?/)
         .first()
         .textContent();
       const n = status!.match(/(\d+) jobs?/)![1];
+      // The sheet is modal: close it so the app bar is reachable again.
+      if (scope !== page) await page.keyboard.press('Escape');
       await expect(apply).toHaveAccessibleName(`Apply ${n}`);
     });
 

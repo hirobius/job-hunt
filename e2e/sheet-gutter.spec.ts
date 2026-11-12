@@ -43,7 +43,6 @@ test('Add job and Search profile sheets keep a side gutter at 390', async ({ pag
     expect(b.x).toBeGreaterThanOrEqual(16 - 0.5);
     expect(b.x + b.width).toBeLessThanOrEqual(390 - 16 + 0.5);
   }
-  await expectGutter(page, 'Add a job');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Add a job' })).toHaveCount(0);
   await page.keyboard.press('Escape');

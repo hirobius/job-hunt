@@ -28,8 +28,9 @@ async function expectExit(exit: Locator) {
   expect(s.color).toBe(s.primary);
   expect(s.bg).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
   expect(s.shadow).toBe('none');
-  expect(s.h).toBeGreaterThanOrEqual(44);
-  expect(s.w).toBeGreaterThanOrEqual(44);
+  // 44px, give or take layout's subpixel rounding (43.99998 at 1440 in the batch-1 shell).
+  expect(s.h).toBeGreaterThanOrEqual(44 - 0.01);
+  expect(s.w).toBeGreaterThanOrEqual(44 - 0.01);
 }
 
 async function openSignIn(page: Page) {
@@ -62,6 +63,12 @@ for (const width of [390, 1440]) {
       await expect(add.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
       await add.getByRole('button', { name: 'Close' }).click();
       await expect(add).toBeHidden();
+      // Below lg the All jobs sheet it opened from is still up: close it too (#543).
+      const sheet = page.getByRole('dialog', { name: 'All jobs' });
+      if (await sheet.isVisible()) {
+        await page.keyboard.press('Escape');
+        await expect(sheet).toBeHidden();
+      }
       // A form dialog's Cancel is an exit (Search profile).
       await page.getByRole('button', { name: /^Account/ }).click();
       await page.getByRole('menuitem', { name: 'Search profile' }).click();
