@@ -402,7 +402,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the sort and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
   (was "Review new", #615: no count on the heading since #660; labels only)
   = `ReviewView` itself (`label="New postings" scanStatus`; **no visible heading since 2026-11-12**: an sr-only h2
-  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left, then at the right Browse | Deck
+  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (count Badges capped at "99+" by `CountBadge.tsx`, shared with the top tabs; the chip's name keeps the full count, "New 140"), then at the right Browse | Deck
   (`.rjb-view-segs`, a compact two-icon group, `aria-pressed`) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
   ArrowUpDown named "Sort: Newest" / "Sort: Best match" / "Sort: Company", Tooltip "Sort", a Menu of radio items; only
   while there is a list to sort), one line at 390 with two-digit counts, the tools wrapping under the chips at 375 and below (Adrian 2026-11-12: its keys 32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
