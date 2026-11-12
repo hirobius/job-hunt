@@ -3,8 +3,8 @@
 // safe-area inset. It hides while a field has focus or the keyboard is up, and comes back on
 // blur (hds.motion.spatial; reduced motion uses opacity). Hidden, it is inert. From lg the same
 // keys sit inline under the title block. Lives in the JobPage chunk (its CSS is not in base.css).
-// The dock follows the visual viewport (`--rjb-vv-bottom` from `useVisualViewportVars`), so it
-// stays above an on-screen keyboard even when no field has focus (#593), and it reserves one row
+// The dock is fixed at bottom 0 and never moves on scroll or overscroll; it lifts above an
+// on-screen keyboard only while one is open and a field has focus (`useDockLift`), and it reserves one row
 // for one key and two for more (`data-rows`). When a key with focus leaves (the job's state
 // changed, e.g. a sync from another device), focus goes to the new filled key, or to `onKeysGone`
 // when no key is left (#540 contract, #593); a key that stays keeps its focus. `row` puts every key
@@ -14,7 +14,7 @@
 import { Children, useCallback, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Box } from '@hirobius/design-system';
-import { useVisualViewportVars } from './useVisualViewportVars';
+import { useDockLift } from './useDockLift';
 import { useFieldFocused } from './fieldFocus';
 import './ActionDock.css';
 
@@ -39,7 +39,7 @@ export function ActionDock({
   children: ReactNode;
 }) {
   const typing = useFieldFocused();
-  const vvRef = useVisualViewportVars<HTMLDivElement>();
+  const vvRef = useDockLift<HTMLDivElement>(typing);
   const box = useRef<HTMLDivElement | null>(null);
   // The key that has focus, kept until focus leaves it for somewhere still on the page.
   const focused = useRef<HTMLElement | null>(null);

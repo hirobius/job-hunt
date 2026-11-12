@@ -123,8 +123,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Mark applied / Not a fit / Close out the next job in the list opens (`applyNext.ts` `openNextAfter`, from any
   origin) and its title takes focus; with no next job the tab goes back to its list and that page's h1 takes focus.
   When the keys change under a focused key (a sync from another device), focus goes to the new filled key, or the
-  title when none is left. The dock sits above an on-screen keyboard (`--rjb-vv-bottom` from
-  `useVisualViewportVars`) and reserves one row for one key (`data-rows`) (#593).
+  title when none is left. The dock is `position: fixed; bottom: 0` on body and never moves on scroll or overscroll (iOS rubber-band and the home-screen web app raised it half-way up, fix/dock-ios-scroll): `useDockLift` writes `--rjb-dock-lift` on visualViewport resize only, non-zero only while a keyboard is open (`keyboardOpen`) and a field has focus (`dockLift`); `html:has(.rjb-dock)` sets `overscroll-behavior-y: none` (no pull-to-refresh on dock pages only). It reserves one row for one key (`data-rows`) (#593). Pinned in `e2e/dock-ios-scroll.spec.ts` (Chromium iPhone 13 emulation).
   Pinned in `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `jobPage.test.tsx`, `e2e/action-dock.spec.ts`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then

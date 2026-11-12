@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keyboardOpen, visibleBottomGap } from './useVisualViewportVars';
+import { dockLift, keyboardOpen, visibleBottomGap } from './useVisualViewportVars';
 
 // Two states, not a live size (2026-11-09): open when the visible height is under 80% of innerHeight.
 describe('keyboardOpen', () => {
@@ -24,5 +24,17 @@ describe('visibleBottomGap', () => {
   });
   it('is never below 0 (an overscroll bounce)', () => {
     expect(visibleBottomGap({ offsetTop: 40, height: 844 }, 844)).toBe(0);
+  });
+});
+
+// iOS scroll / overscroll moved the dock up (fix/dock-ios-scroll): it lifts only for a keyboard.
+describe('dockLift', () => {
+  it('is 0 while scrolling or bouncing with no field focused', () => {
+    expect(dockLift({ offsetTop: 0, height: 500 }, 844, false)).toBe(0);
+    expect(dockLift({ offsetTop: -60, height: 784 }, 844, true)).toBe(0);
+    expect(dockLift({ offsetTop: 200, height: 760 }, 844, true)).toBe(0);
+  });
+  it('is the keyboard height while a field has focus and a keyboard is open', () => {
+    expect(dockLift({ offsetTop: 0, height: 500 }, 844, true)).toBe(344);
   });
 });

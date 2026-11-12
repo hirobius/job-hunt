@@ -30,6 +30,19 @@ export function visibleBottomGap(
   return Math.max(0, Math.round(innerHeight - vv.offsetTop - vv.height));
 }
 
+/** The action dock's lift (px): the keyboard's height, only while an on-screen keyboard is truly
+ *  open (visible height under 80% of innerHeight) and a text field has focus; else 0. Scroll,
+ *  rubber-band overscroll and the toolbar collapsing move visualViewport too (offsetTop / height),
+ *  and lifting the dock on those made it ride up over the content on iOS (#dock-ios-scroll). */
+export function dockLift(
+  vv: { offsetTop: number; height: number },
+  innerHeight: number,
+  typing: boolean,
+): number {
+  if (!typing || !keyboardOpen(vv.height, innerHeight)) return 0;
+  return visibleBottomGap(vv, innerHeight);
+}
+
 export function useVisualViewportVars<T extends HTMLElement>(): (el: T | null) => void {
   const elRef = useRef<T | null>(null);
 
