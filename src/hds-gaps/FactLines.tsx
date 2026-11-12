@@ -3,6 +3,7 @@
 // wrapped place never pulls its icon down to the middle. HDS Card.Facts runs the facts inline after
 // each other; this stands in for it in the title block (DetailHeader), the posting cards and Daily
 // picks until HDS offers a stacked layout (docs/hds-upstream-asks-0.9.md "Card.Facts stacked").
+// hds-gap: hirobius/hds#1509 (Card.Facts stacked, one fact per line)
 import type { LucideIcon } from 'lucide-react';
 import { Box, Icon, Text } from '@hirobius/design-system';
 import './FactLines.css';

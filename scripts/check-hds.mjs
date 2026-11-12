@@ -33,6 +33,8 @@ export const EXCEPTIONS = {
 export const GAP_ISSUES = [
   ...range(1425, 1430), // known gaps
   ...range(1432, 1442), // redesign gaps G1-G11
+  1508, // Disclosure row jump (job-hunt#681)
+  1509, // Card.Facts stacked (job-hunt#681)
 ];
 function range(a, b) {
   return Array.from({ length: b - a + 1 }, (_, i) => a + i);

@@ -16,7 +16,7 @@ import {
   VisuallyHidden,
   useToast,
 } from '@hirobius/design-system';
-import { DisclosureRow } from './DisclosureRow';
+import { DisclosureRow } from './hds-gaps/DisclosureRow';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { ExitButton } from './hds-gaps/ExitButton';
 import BlankText from './BlankText';

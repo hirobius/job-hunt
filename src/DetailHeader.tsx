@@ -6,7 +6,7 @@
 // description). Lives in the lazy route chunks only (JobPage and Today share it).
 import type { ReactNode } from 'react';
 import { Box, Stack, Text } from '@hirobius/design-system';
-import { FactLines, type FactItem } from './FactLines';
+import { FactLines, type FactItem } from './hds-gaps/FactLines';
 import { ActionDock } from './hds-gaps/ActionDock';
 
 type Facts = FactItem[];
