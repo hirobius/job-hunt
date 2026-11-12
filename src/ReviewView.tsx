@@ -857,12 +857,8 @@ function PostingCard({
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px8">
-        {!compact && (
-          <Stack direction="row" wrap="wrap" gap="px8" align="center">
-            <Badge>{SOURCE_LABEL[r.source]}</Badge>
-            {r.isNew && <Badge tone="info">New</Badge>}
-          </Stack>
-        )}
+        {/* No source or New badge on any card (#557 cuts): the detail's title block keeps the
+            source as a neutral badge; "N new" is Find's caption. */}
         {compact ? (
           // Takes focus after a decision on the card before it (no ring: focusAsHeading).
           <Text variant="body" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>

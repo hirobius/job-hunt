@@ -574,9 +574,8 @@ describe('Review new: Deck card anatomy (#458)', () => {
   const before = (a: Node, b: Node) =>
     Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  it('stacks source pill, title, company, meta lines, pay, the excerpt, then More; Skip and Save in the dock (#545)', async () => {
+  it('stacks title, company, meta lines, pay, the excerpt, then More; Skip and Save in the dock (#545)', async () => {
     const card = await openDeck(ONE);
-    const source = within(card).getByText('Hacker News');
     const title = within(card).getByRole('heading', { level: 3 });
     const company = within(card).getByText('Acme');
     const place = within(card).getByText('Lisbon');
@@ -592,7 +591,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
     const more = within(card).getByRole('button', {
       name: 'More actions: Design Systems Designer at Acme',
     });
-    const order = [source, title, company, place, mode, posted, pay, text, full, more];
+    const order = [title, company, place, mode, posted, pay, text, full, more];
     order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
     // Save and Skip left the card for the dock: Skip (grey) first, Save (filled) on the right.
     expect(within(card).queryByRole('button', { name: /^(Save|Skip) / })).toBeNull();
@@ -626,16 +625,21 @@ describe('Review new: Deck card anatomy (#458)', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows New only when the posting is new', async () => {
+  it('shows no source or New badge, new or seen (#557 cuts); the kept facts stay', async () => {
     const card = await openDeck(ONE);
-    expect(within(card).getByText('New')).toBeInTheDocument();
+    expect(within(card).queryByText('Hacker News')).toBeNull();
+    expect(within(card).queryByText('New')).toBeNull();
+    expect(card.querySelector('[data-tone="info"]')).toBeNull();
+    // Kept (#557 "Do not cut"): the pay when stated and the company.
+    expect(within(card).getByText('$95k to $120k')).toBeInTheDocument();
+    expect(within(card).getByText('Acme')).toBeInTheDocument();
     cleanup();
     localStorage.setItem(SEEN_KEY, JSON.stringify({ [postingFingerprint(ONE)]: '2020-01-01' }));
     resetViewMemory();
     resetScan();
     const seen = await openDeck(ONE);
+    expect(within(seen).queryByText('Hacker News')).toBeNull();
     expect(within(seen).queryByText('New')).toBeNull();
-    expect(within(seen).getByText('Hacker News')).toBeInTheDocument();
   });
 
   it('the selected posting uses the job page’s template (#546); a decision on the last one clears it', async () => {

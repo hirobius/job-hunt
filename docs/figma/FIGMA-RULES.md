@@ -40,7 +40,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   groups ordered by use (Messages, Cover letters, Résumés, then Notes), each a heading with a count
   over hairline rows. One New key with a menu: Message, Cover letter, Résumé, Note. An empty group is
   one row, "No résumés yet.", with its own Add. A row's blanks are a count ("5 blanks"), never chips.
-- **Find Deck (#545, #617).** The same posting card as Browse, one at a time. No pager row: "1 of 4"
+- **Find Deck (#545, #617).** The same posting card as Browse, one at a time, with no source or New
+  badge (#557). No pager row: "1 of 4"
   sits in the caption under Find, and a sideways swipe steps it. Skip (grey, left) and Save (filled,
   right) sit in the action dock, in one row; both show a toast with Undo. The card shows the
   posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More on the
