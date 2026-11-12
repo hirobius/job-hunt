@@ -16,6 +16,57 @@
   min-width: 16rem;
 }
 
+/* Rows (redesign §5.9, #549): 44px on a phone (HDS's hds-touch-row), 38px from sm. Each row's 16px
+ * icon sits in the secondary colour, the label in the primary. */
+@media (min-width: 640px) {
+  .rjb-account-menu [role^='menuitem']:not(.rjb-menu-key) {
+    min-height: 2.375rem;
+  }
+}
+.rjb-account-menu [role^='menuitem'] > svg {
+  flex: none;
+  color: var(--semantic-color-content-secondary);
+}
+
+/* The signed-out identity row's Sign in: an HDS secondary Button as the menu item (the grey key).
+ * Its own padding and fill, not the menu row's; set in from the row's edge like the labels. */
+[data-hds] .rjb-account-menu .rjb-menu-key {
+  margin: var(--primitive-space-1) var(--primitive-space-2) var(--primitive-space-2);
+  justify-content: center;
+}
+
+/* A toggle row's switch (MenuToggleItem, G9 hds#1440): HDS Toggle's track and thumb, in its
+ * colours, at the end of the row. Decorative: the row is the menuitemcheckbox. */
+.rjb-menu-toggle-label {
+  flex: 1 1 auto;
+}
+.rjb-menu-switch {
+  flex: none;
+  box-sizing: border-box;
+  width: calc(var(--primitive-size-20) * 1.8);
+  height: var(--primitive-size-20);
+  padding: var(--primitive-space-px2);
+  border: var(--primitive-borderWidth-sm) solid var(--semantic-color-content-secondary);
+  border-radius: var(--primitive-radius-full, 999px);
+  display: inline-flex;
+}
+.rjb-menu-switch::after {
+  content: '';
+  height: 100%;
+  aspect-ratio: 1;
+  border-radius: inherit;
+  background: var(--semantic-color-content-secondary);
+  transition: translate var(--hds-motion-productive-duration) var(--hds-motion-productive-easing);
+}
+.rjb-menu-switch[data-state='on'] {
+  background: var(--semantic-color-surface-accent);
+  border-color: var(--semantic-color-border-accent);
+}
+.rjb-menu-switch[data-state='on']::after {
+  background: var(--semantic-color-surface-page);
+  translate: calc(var(--primitive-size-20) * 0.8) 0;
+}
+
 .rjb-account-menu [role='separator'] {
   background: var(--semantic-color-border-subtle);
 }

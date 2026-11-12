@@ -206,7 +206,12 @@ test('Pause animations stops the app bar flame and is kept after a reload', asyn
   const path = page.locator('header .rjb-rf > svg path').first();
   await expect(path).toBeAttached();
   await page.getByRole('button', { name: 'Account' }).click();
-  await page.getByRole('menuitem', { name: 'Pause animations' }).click();
+  const toggle = page.getByRole('menuitemcheckbox', { name: 'Pause animations' });
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await toggle.click();
+  // A toggle (#549): the menu stays open and the switch shows the new state.
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Escape');
   const still = await path.getAttribute('d');
   await page.waitForTimeout(800);
   expect(await path.getAttribute('d')).toBe(still);
@@ -216,5 +221,54 @@ test('Pause animations stops the app bar flame and is kept after a reload', asyn
   await page.waitForTimeout(800);
   expect(await path.getAttribute('d')).toBe(after);
   await page.getByRole('button', { name: 'Account' }).click();
-  await expect(page.getByRole('menuitem', { name: 'Play animations' })).toBeVisible();
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Pause animations' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+});
+
+// The logo is the home link (#620): named for the product and Find, a 44px target on a phone, and a
+// tap opens Find at its root from anywhere; the animated logo stays inside it.
+test('the logo links home to Find (#620)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+  await page.goto('/#/apply');
+  const home = page.getByRole('banner').getByRole('link', { name: 'roleflame, Find' });
+  await expect(home.locator('.rjb-rf > svg')).toBeVisible();
+  const box = await home.boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+  expect(box!.width).toBeGreaterThanOrEqual(44);
+  await home.click();
+  await expect(page).toHaveURL(/#\/find$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]'),
+  ).toHaveText(/^Find/);
+});
+
+// #556: the stacked flame (sign-in) is centred by mass. RoleFlame.tsx's nudge assumes the name's
+// ink centre sits NAME_INK_OFFSET_EM (0.011em) right of its box centre in Sora 800: measure it in
+// the browser, and check the nudge is on the stacked flame and not on the app bar's row.
+test('the sign-in flame takes its mass nudge; the app bar row takes none', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/apply');
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: /^Sign in/ }).click();
+  const stacked = page.locator('.rjb-signin-screen__brand .rjb-rf[data-layout="stacked"] > svg');
+  await expect(stacked).toBeVisible();
+  expect(await stacked.evaluate((el) => (el as SVGElement).style.transform)).toBe(
+    'translateX(0.0044em)',
+  );
+  const ink = await page.evaluate(async () => {
+    await document.fonts.load('800 40px "Roleflame Sora"');
+    const c = document.createElement('canvas').getContext('2d')!;
+    c.font = '800 40px "Roleflame Sora"';
+    const m = c.measureText('Roleflame');
+    return ((m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 - m.width / 2) / 40;
+  });
+  expect(Math.abs(ink - 0.011)).toBeLessThan(0.003);
+  await page.keyboard.press('Escape');
+  const row = page.locator('header .rjb-rf[data-layout="inline"] > svg');
+  await expect(row).toBeVisible();
+  expect(await row.evaluate((el) => (el as SVGElement).style.transform)).toBe('');
 });

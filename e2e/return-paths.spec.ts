@@ -24,8 +24,11 @@ async function expectScroll(page: Page, y: number) {
 }
 /** Below lg the Apply tab is one job (Proposal A, Adrian 2026-11-08): the All jobs sheet is its
  *  list. Opens it and returns its Jobs panel. */
+/** The All jobs sheet's rows, on its All jobs view (the sheet lists one view, #543). */
 async function allJobs(page: Page) {
-  return (await openAllJobs(page)).getByRole('region', { name: 'Jobs' });
+  const sheet = await openAllJobs(page);
+  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
+  return sheet.getByRole('navigation', { name: 'Jobs' });
 }
 const h1 = (page: Page) => page.getByRole('heading', { level: 1 }).first();
 /** Step the "‹ k of N ›" pager one job (on, else back from the last); returns the new "k of N". */
@@ -143,13 +146,16 @@ for (const width of [390, 800] as const) {
       await go(page, '#/find');
       await go(page, '#/apply');
       const queue = /#\/apply$/;
-      await page.getByRole('button', { name: 'Add job' }).click();
+      // Add job is the All jobs sheet's (#543): Back closes the dialog, then the sheet.
+      const all = await openAllJobs(page);
+      await all.getByRole('button', { name: 'Add job' }).click();
       await page.getByLabel('Job link').fill('https://example.com/jobs/typed');
-      await closesOnBack(page.getByRole('dialog'), queue);
+      await closesOnBack(page.getByRole('dialog', { name: 'Add a job' }), queue);
+      await closesOnBack(all, queue);
 
       // Sign in, picked from the Account menu (whose own entry is popped as it closes), typed in.
       await page.getByRole('button', { name: /^Account/ }).click();
-      await page.getByRole('menuitem', { name: 'Sign in to sync…' }).click();
+      await page.getByRole('menuitem', { name: 'Sign in to see your jobs on any device' }).click();
       const signIn = page.getByRole('dialog', { name: 'Sign in' });
       await signIn.getByLabel('Email').fill('typed@example.com');
       await closesOnBack(signIn, queue);
@@ -163,9 +169,11 @@ for (const width of [390, 800] as const) {
       const more = page.getByRole('button', { name: `More actions: ${title}` }).first();
       await more.click();
       await closesOnBack(page.getByRole('menu'), queue);
-      await openFilters(page);
-      await page.getByRole('button', { name: /^Sort:/ }).click();
+      // Sort is the sheet's too (#543): Back closes its menu, then the sheet.
+      const filters = await openFilters(page);
+      await filters.getByRole('button', { name: /^Sort:/ }).click();
       await closesOnBack(page.getByRole('menu'), queue);
+      await closesOnBack(filters, queue);
       await more.click();
       await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
       // Recently removed is in the Account menu's Data dialog (#416, #550).
@@ -243,7 +251,7 @@ for (const width of [390, 800] as const) {
       await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const library = await page.evaluate(() => location.hash);
-      const outreach = page.getByRole('region', { name: 'Outreach messages' });
+      const outreach = page.getByRole('region', { name: 'Messages' });
       await outreach.locator('button[aria-expanded]').first().click();
       await outreach
         .getByRole('button', { name: /^Open / })
@@ -315,7 +323,9 @@ for (const width of [390, 800] as const) {
       const count = () =>
         page.evaluate(() => JSON.parse(localStorage.getItem('rjb_documents') || '[]').length);
       const docs = await count();
-      await page.getByRole('button', { name: 'New résumé' }).click();
+      // The library's one New key (#552): its menu, then the kind.
+      await page.getByRole('button', { name: 'New document' }).click();
+      await page.getByRole('menuitem', { name: 'Résumé' }).click();
       await page.getByRole('textbox', { name: 'Text' }).fill('Ten years of welding.');
       await page.getByRole('button', { name: 'Save', exact: true }).dblclick();
       await expect.poll(hash).toBe(apply);
@@ -404,7 +414,7 @@ test.describe('return paths at 1440', () => {
     // It opens on the first job to apply to.
     await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
     for (const i of [1, 2]) {
-      const title = (await rows(page).nth(i).locator('.rjb-semibold').textContent())!.trim();
+      const title = (await rows(page).nth(i).textContent())!.trim();
       await rows(page).nth(i).click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     }
@@ -417,7 +427,7 @@ test.describe('return paths at 1440', () => {
   }) => {
     await go(page, '#/find');
     await topTab(page, 'Apply').click();
-    const title = (await rows(page).nth(1).locator('.rjb-semibold').textContent())!.trim();
+    const title = (await rows(page).nth(1).textContent())!.trim();
     await rows(page).nth(1).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await topTab(page, 'Find').click();
@@ -431,8 +441,13 @@ test.describe('return paths at 1440', () => {
 
   test('a job and its Company page each name the other on their Back', async ({ page }) => {
     await go(page, '#/apply');
-    const row = rows(page).filter({ hasText: 'Larkspur Analytics' }).first();
-    const title = (await row.locator('.rjb-semibold').textContent())!.trim();
+    // The row's link holds the title; the company is on the row beside it (#543).
+    const row = rail(page)
+      .getByRole('listitem')
+      .filter({ hasText: 'Larkspur Analytics' })
+      .first()
+      .locator(JOB_LINK);
+    const title = (await row.textContent())!.trim();
     await row.click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await page

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { JOB_LINK, openAllJobs, openJob, seed, topTab } from './routes';
+import { JOB_LINK, listScope, openJob, seed, topTab } from './routes';
 
 // #593 item 8 (Adrian 2026-11-11): every Undo puts the item back and leaves the person on the page
 // they are on. Remove a job from its page, go to Find, press the toast's Undo: still on Find, and
@@ -31,7 +31,7 @@ for (const width of [390, 1440] as const) {
       // Undo never navigates: still on Find, focus not dropped to <body>.
       await page.waitForTimeout(600);
       await expect(page).toHaveURL(/#\/find$/);
-      await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+      await expect(page.getByRole('region', { name: /^Review\b/ })).toBeVisible();
       await expect
         .poll(() => page.evaluate(() => document.activeElement !== document.body))
         .toBe(true);
@@ -39,10 +39,7 @@ for (const width of [390, 1440] as const) {
       // The job is back in Apply.
       await topTab(page, 'Apply').click();
       await expect(page).toHaveURL(/#\/apply/);
-      const list =
-        width < 1024
-          ? (await openAllJobs(page)).getByRole('region', { name: /^Jobs/ })
-          : page.getByRole('navigation', { name: 'Jobs' });
+      const list = (await listScope(page)).getByRole('navigation', { name: 'Jobs' });
       await expect(list.locator(JOB_LINK).filter({ hasText: title }).first()).toBeVisible();
     });
   });

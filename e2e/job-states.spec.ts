@@ -14,16 +14,13 @@ async function openTitled(page: Page, title: string, width: number) {
   await page.getByRole('heading', { level: 1 }).first().waitFor();
   // Below lg the All jobs sheet (through the view picker); from lg the rail, on its All jobs
   // view: the default view is To apply, which no longer lists an applied job (#611 named views).
+  // The sheet lists one view too since #543 (its Follow up section left): pick All jobs in both.
   if (width < 1024) await pressAllJobs(page);
-  else
-    await page
-      .getByRole('group', { name: 'Views' })
-      .getByRole('button', { name: /^All jobs \d/ })
-      .click();
-  const scope =
-    width < 1024
-      ? page.getByRole('dialog', { name: 'All jobs' })
-      : page.getByRole('navigation', { name: 'Jobs' });
+  await page
+    .getByRole('group', { name: 'Views' })
+    .getByRole('button', { name: /^All jobs \d/ })
+    .click();
+  const scope = page.getByRole('navigation', { name: 'Jobs' });
   await scope.locator('a[href^="#/apply/"]', { hasText: title }).first().click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 }

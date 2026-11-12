@@ -1,6 +1,7 @@
 // Phase 1 of the redesign (#115): the app shell. Rendered through App at the route seam and
 // driven by role + name — slim header, top tabs, one account menu for every data control, a
 // one-time sync nudge, and the old routes / quick-add links still landing where they did.
+import { SIGN_IN_ITEM } from './account/signInCopy';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -45,12 +46,15 @@ const renderApp = () =>
 // The open menu top to bottom: header lines (labels, not focusable), items and separators.
 const menuOutline = (menu: HTMLElement) =>
   Array.from(
-    menu.querySelectorAll('[role="menuitem"], [role="separator"], [data-account-line]'),
-  ).map((el) =>
-    el.getAttribute('role') === 'separator'
-      ? '---'
-      : `${el.getAttribute('role') === 'menuitem' ? 'item' : 'label'}:${el.textContent?.trim()}`,
-  );
+    menu.querySelectorAll(
+      '[role="menuitem"], [role="menuitemcheckbox"], [role="separator"], [data-account-line]',
+    ),
+  ).map((el) => {
+    const role = el.getAttribute('role');
+    if (role === 'separator') return '---';
+    if (role === 'menuitemcheckbox') return `toggle:${el.textContent?.trim()}`;
+    return `${role === 'menuitem' ? 'item' : 'label'}:${el.textContent?.trim()}`;
+  });
 
 /** The Account menu's Data dialog (#550). */
 const openData = async () => {
@@ -124,6 +128,54 @@ describe('app shell (#115 Phase 1)', () => {
     ).toBeInTheDocument();
   });
 
+  // The logo is the home link (#620): named for the product and Find, never a heading, and it
+  // opens Find at its root from anywhere (a tab tap reopens where the tab was left; the logo never).
+  it('the logo is a link home to Find, out of the heading outline (#620)', () => {
+    window.location.hash = '#/apply';
+    renderApp();
+    const banner = screen.getAllByRole('banner').find((el) => !el.closest('main'))!;
+    const home = within(banner).getByRole('link', { name: `${BRAND.name}, Find` });
+    expect(home).toHaveAttribute('href', '#/find');
+    expect(home).toHaveClass('rjb-logo-link');
+    // The lockup inside it is unchanged: the image named for the product.
+    expect(within(home).getByRole('img', { name: BRAND.name })).toBeInTheDocument();
+    expect(home.closest('h1, h2, h3, [role="heading"]')).toBeNull();
+    expect(home.closest('nav')).toBeNull();
+  });
+
+  it('the logo opens Find at its root, not where Find was left (#620)', async () => {
+    window.location.hash = '#/find/some-posting';
+    renderApp();
+    await userEvent.click(topTab('Apply'));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    await userEvent.click(screen.getByRole('link', { name: `${BRAND.name}, Find` }));
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    expect(currentTab('Find')).toBeInTheDocument();
+  });
+
+  it("on a Find posting the logo goes back to Find's root; at the root it scrolls to the top (#620)", async () => {
+    window.location.hash = '#/find';
+    renderApp();
+    window.location.hash = '#/find/some-posting';
+    await waitFor(() => expect(window.location.hash).toBe('#/find/some-posting'));
+    const home = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    await userEvent.click(home);
+    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    await userEvent.click(home);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    expect(window.location.hash).toBe('#/find');
+  });
+
+  it("a modified click on the logo keeps the browser's own way (new tab)", () => {
+    window.location.hash = '#/apply';
+    renderApp();
+    const home = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true });
+    home.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(false);
+  });
+
   // The animated logo (src/brand/RoleFlame.tsx) loads lazily behind the still wordmark.
   const animatedLogo = async () => {
     await waitFor(() => expect(document.querySelector('header .rjb-rf')).not.toBeNull());
@@ -151,26 +203,34 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.lastElementChild).toHaveTextContent(BRAND.name);
   });
 
-  it('signed out, the account menu reads: device-only line, sign in | data | display', async () => {
+  it('signed out, the account menu is 9 items in 4 groups: who | things | display | about (#549)', async () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
-      'label:Saved on this device only',
-      'item:Sign in to sync…',
+      'label:On this device only',
+      'item:Sign in to see your jobs on any device',
       '---',
       'item:Documents',
       'item:Search profile',
       'item:Companies',
-      'item:Scan details',
-      // Data (#550): back up, restore, export and the repairs moved into one lazy dialog.
+      // Data (#550): back up, restore, export and the repairs, in one lazy dialog.
       'item:Data',
       '---',
-      expect.stringMatching(/^item:(Dark|Light) theme$/),
+      'toggle:Dark theme',
       // WCAG 2.2.2 (#516): the app bar's flame loops on; this stops it.
-      expect.stringMatching(/^item:(Pause|Play) animations$/),
+      'toggle:Pause animations',
+      '---',
       'item:Send feedback',
       'item:Privacy and terms',
     ]);
+    // Sign in is the grey key (HDS secondary); every other row has a 16px icon.
+    expect(
+      within(menu).getByRole('menuitem', { name: 'Sign in to see your jobs on any device' }),
+    ).toHaveClass('rjb-menu-key');
+    for (const row of menu.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]'))
+      if (row.textContent !== SIGN_IN_ITEM) expect(row.querySelector(':scope > svg')).not.toBeNull();
+    // Scan details is in the Search profile now (#549), not a menu row.
+    expect(within(menu).queryByRole('menuitem', { name: 'Scan details' })).toBeNull();
   });
 
   it('Reset local data asks first and says what goes; Cancel keeps everything (rev-3 O)', async () => {
@@ -217,7 +277,9 @@ describe('app shell (#115 Phase 1)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Data' })).toBeNull());
     await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
     const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign in to sync…' }));
+    await userEvent.click(
+      within(menu).getByRole('menuitem', { name: 'Sign in to see your jobs on any device' }),
+    );
     await screen.findByRole('dialog', { name: 'Sign in' });
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
@@ -238,35 +300,48 @@ describe('app shell (#115 Phase 1)', () => {
       expect(within(panel).queryByRole('button', { name })).toBeNull();
   });
 
-  it('Pause animations (WCAG 2.2.2) is kept on this device and the item says Play after', async () => {
+  it('Pause animations (WCAG 2.2.2) is a toggle kept on this device; the menu stays open', async () => {
     localStorage.removeItem('rjb_ui_pause_motion');
     renderApp();
-    let menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Pause animations' }));
+    const menu = await openAccount();
+    const pause = within(menu).getByRole('menuitemcheckbox', { name: 'Pause animations' });
+    expect(pause).toHaveAttribute('aria-checked', 'false');
+    await userEvent.click(pause);
     expect(localStorage.getItem('rjb_ui_pause_motion')).toBe('1');
-    menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Play animations' }));
+    // The switch moves in place: same label, the state flips, the menu is still open.
+    expect(pause).toHaveAttribute('aria-checked', 'true');
+    expect(pause.querySelector('.rjb-menu-switch')).toHaveAttribute('data-state', 'on');
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    await userEvent.click(pause);
     expect(localStorage.getItem('rjb_ui_pause_motion')).toBe('0');
+    expect(pause).toHaveAttribute('aria-checked', 'false');
   });
 
-  it('the Pause/Play label follows a choice made in another tab (read as the menu opens)', async () => {
+  it('the Pause animations state follows a choice made in another tab (read as the menu opens)', async () => {
     localStorage.removeItem('rjb_ui_pause_motion');
     renderApp();
     let menu = await openAccount();
-    expect(within(menu).getByRole('menuitem', { name: 'Pause animations' })).toBeInTheDocument();
+    expect(
+      within(menu).getByRole('menuitemcheckbox', { name: 'Pause animations' }),
+    ).toHaveAttribute('aria-checked', 'false');
     await userEvent.keyboard('{Escape}');
     // Another tab paused them.
     localStorage.setItem('rjb_ui_pause_motion', '1');
     menu = await openAccount();
-    expect(within(menu).getByRole('menuitem', { name: 'Play animations' })).toBeInTheDocument();
+    expect(
+      within(menu).getByRole('menuitemcheckbox', { name: 'Pause animations' }),
+    ).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('the theme item flips the colour mode', async () => {
+  it('Dark theme is a toggle that flips the colour mode and shows it', async () => {
     renderApp();
     const before = document.documentElement.dataset.theme;
     const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: /theme$/ }));
+    const dark = within(menu).getByRole('menuitemcheckbox', { name: 'Dark theme' });
+    expect(dark).toHaveAttribute('aria-checked', String(before === 'dark'));
+    await userEvent.click(dark);
     expect(document.documentElement.dataset.theme).not.toBe(before);
+    expect(dark).toHaveAttribute('aria-checked', String(before !== 'dark'));
   });
 
   it('Back up in the menu downloads a backup file', async () => {
@@ -331,10 +406,12 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     expect(screen.queryByRole('button', { name: 'Account, not synced' })).toBeNull();
   });
 
-  it('Sign in to sync in the menu opens a dialog with the email field', async () => {
+  it('Sign in in the menu opens a dialog with the email field', async () => {
     renderApp();
     const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign in to sync…' }));
+    await userEvent.click(
+      within(menu).getByRole('menuitem', { name: 'Sign in to see your jobs on any device' }),
+    );
     const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
     expect(within(dialog).getByRole('textbox', { name: /email/i })).toBeInTheDocument();
   });
@@ -350,21 +427,18 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     expect(menuOutline(menu)).toEqual([
       'label:Signed in as u1@example.test',
       'label:Synced',
+      'item:Sign out',
       '---',
       'item:Documents',
       'item:Search profile',
       'item:Companies',
-      'item:Scan details',
-      // Data (#550): back up, restore, export and the repairs moved into one lazy dialog.
       'item:Data',
       '---',
-      expect.stringMatching(/^item:(Dark|Light) theme$/),
-      // WCAG 2.2.2 (#516): the app bar's flame loops on; this stops it.
-      expect.stringMatching(/^item:(Pause|Play) animations$/),
+      'toggle:Dark theme',
+      'toggle:Pause animations',
+      '---',
       'item:Send feedback',
       'item:Privacy and terms',
-      '---',
-      'item:Sign out',
     ]);
     // The email is plain text: not a link, not a menu item, not focusable.
     expect(within(menu).queryAllByRole('link')).toEqual([]);
@@ -393,7 +467,7 @@ describe('routes keep working (#115 Phase 1)', () => {
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
-    expect(currentTab()).toHaveAccessibleName(tab);
+    expect(currentTab(tab)).toBeInTheDocument();
   });
 
   it('#/copy-deck opens the Documents dialog over Find, its tab selected (#240, #227, #471)', async () => {
@@ -401,7 +475,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Templates', hidden: true })).toBeNull();
-    expect(currentTab(undefined, { hidden: true })).toHaveAccessibleName('Find');
+    expect(currentTab('Find', { hidden: true })).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
   });
 
@@ -476,7 +550,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/apply');
-    expect(currentTab()).toHaveAccessibleName('Apply');
+    expect(currentTab('Apply')).toBeInTheDocument();
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 
@@ -588,7 +662,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(window.location.hash).toBe('#/find');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(currentTab()).toHaveAccessibleName('Find');
+    expect(currentTab('Find')).toBeInTheDocument();
   });
 
   it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {

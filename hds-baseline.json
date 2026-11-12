@@ -27,22 +27,6 @@
     },
     {
       "rule": "gap",
-      "file": "src/hds-gaps/NavListActionItem.css",
-      "match": "stand-in has no hds-gap tag",
-      "count": 1,
-      "issue": "job-hunt#543",
-      "why": "the All jobs sheet replaces the job rail and its posting link"
-    },
-    {
-      "rule": "gap",
-      "file": "src/hds-gaps/NavListActionItem.tsx",
-      "match": "stand-in has no hds-gap tag",
-      "count": 1,
-      "issue": "job-hunt#543",
-      "why": "the All jobs sheet replaces the job rail and its posting link"
-    },
-    {
-      "rule": "gap",
       "file": "src/hds-gaps/PageShell.css",
       "match": "stand-in has no hds-gap tag",
       "count": 1,
@@ -100,14 +84,6 @@
     {
       "rule": "px",
       "file": "src/theme/base.css",
-      "match": "border-radius: 4px",
-      "count": 1,
-      "issue": "job-hunt#548",
-      "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"
-    },
-    {
-      "rule": "px",
-      "file": "src/theme/base.css",
       "match": "border-radius: 6px",
       "count": 1,
       "issue": "job-hunt#564",
@@ -124,23 +100,7 @@
     {
       "rule": "px",
       "file": "src/theme/base.css",
-      "match": "max-width: 480px",
-      "count": 1,
-      "issue": "job-hunt#551",
-      "why": "Add job becomes an HDS sheet"
-    },
-    {
-      "rule": "px",
-      "file": "src/theme/base.css",
       "match": "min-height: 30px",
-      "count": 1,
-      "issue": "job-hunt#548",
-      "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"
-    },
-    {
-      "rule": "px",
-      "file": "src/theme/base.css",
-      "match": "padding: 4px",
       "count": 1,
       "issue": "job-hunt#548",
       "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"

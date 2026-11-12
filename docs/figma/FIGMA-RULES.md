@@ -36,17 +36,26 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   focus. At 1440 the same keys sit in one row under the title block. Not a fit is the dock's exit,
   never inside More; it acts at once with "Marked not a fit: <title> · Undo". A job with no link
   never shows Open application: its keys are Mark applied (filled), Add link (grey), Not a fit.
+- **Documents (#552): grouped lists, one New menu, a blanks count.** The dialog is the one surface:
+  groups ordered by use (Messages, Cover letters, Résumés, then Notes), each a heading with a count
+  over hairline rows. One New key with a menu: Message, Cover letter, Résumé, Note. An empty group is
+  one row, "No résumés yet.", with its own Add. A row's blanks are a count ("5 blanks"), never chips.
 - **Find Deck (#545, #617).** The same posting card as Browse, one at a time. No pager row: "1 of 4"
   sits in the caption under Find, and a sideways swipe steps it. Skip (grey, left) and Save (filled,
   right) sit in the action dock, in one row; both show a toast with Undo. The card shows the
   posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More on the
-  card keeps Not this company. The Sort menu shows in the Deck too: the deck's order and its
+  card keeps Not this company. Sort (Find's More menu) works in the Deck too: the deck's order and its
   "1 of N" follow the sort, and the card on screen stays when the sort changes.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 
 ## Surfaces
 
+- **The compact Find card (#544).** Title (bold body, 3 lines at most; it opens the posting), company,
+  the facts, the pay when stated, then Save (filled, plus), Skip (grey) and More (icon). No source
+  badge, no New badge, no Show description row, no Open posting key. Radius 12 until HDS G5.
+- **A posting's facts, one per line (#616).** Icon + one fact per line, in one order on every card:
+  place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.
@@ -59,10 +68,13 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 
 ## Layout
 
-- **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings, Apply, Follow up
-  and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
-  list on the left, the selected job on the right. Below that, one job at a time: a filter bar
-  (Filters, Add job), the sticky walk control, then the job.
+- **Two screens: Find and Apply** (the two top tabs). **Find** is home: the Review list of postings (chips New and Remote; "New" = first seen today).
+  The companies a scan finds are the Account menu's Companies dialog, under **Found** (Follow / Ignore), never on Find
+  (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
+  list on the left, the selected job on the right. Below that, one job at a time: the sticky walk
+  control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
+- **Find's short header (#544).** "Find" and one caption, "4 new · scanned 2 h ago", with one More
+  menu on its row holding Sort, Scan now and Search profile. No date line, no Sort or Scan now key.
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the five views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
@@ -82,11 +94,28 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
+- **The Account menu (#549): 9 items in 4 groups.** Who you are: signed out "On this device only", then
+  "Sign in to see your jobs on any device" as a grey key (#555's words) (signed in: the email, the sync
+  line, Sign out). Then Documents, Search profile, Companies, Data. Then Dark theme and Pause
+  animations as toggles with a switch on the right that shows the state. Then Send feedback, Privacy and
+  terms. Every row has a 16 px icon; rows are 44 px on a phone (a bottom sheet), 38 px at 1440. Scan
+  details lives in the Search profile, as a closed row at its end.
 - **The Data dialog (#550).** The Account menu has one Data item. It opens one dialog (a bottom sheet
   on a phone, centred at 1440) with two hairline lists, no cards: **Your data** (Back up, Restore,
   Export CSV, Export links, Recently removed) and **This device** (Try with sample data, Reload app,
   Reset local data, Delete my data). Each row is a quiet key with a 16 px icon and one caption line on
   what it does. Reset and Delete are the danger tone and ask first.
+- **Add job (#551): one field and one filled key.** The Job link field with the helper "The title
+  fills in from the link. You can edit it after.", then Add job (filled) and "Type a company or title
+  instead" (grey). No Cancel key: Close (the X) and the scrim cancel. At 390 a bottom sheet with a
+  grab handle, Add job at full width over the grey key. At 1440 a centred dialog, Add job at the
+  right.
+- **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
+  search, the filter chips (Remote only), a Sort chip, and "Clear N" while N filters are on; then
+  the jobs. **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
+  each row is the badge row, the title (two lines at most), the company, the place and one date.
+  The open job takes the selected fill, never an outline ring. No key on a row and no posting icon:
+  the job's own page has its next step and Open posting.
 - **One detail template at 1440 (#546).** Find is two columns too: postings left, the selected
   posting right. A posting and a job use one detail template: the title block (title, company,
   one facts line, then the badges; a posting's source is a neutral badge there), More beside it,
@@ -96,6 +125,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   one opens; with none left, the list shows the caught-up state alone. Below 1024 each Find card
   keeps its own keys and nothing is selected.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
+- **One app-bar row (#548).** At every width: the logo, then Find / Apply as a segmented control, then
+  the Account avatar. No second row on a phone. Each tab shows its count as plain text after its
+  label ("Find 12", "Apply 4"; over 99 is "99+"): Find the new postings, Apply the jobs its list
+  shows. No count when it is 0. Segment corners are concentric: the
+  inner radius is the rail's radius less its 4 px padding and 1 px.
+- **The logo is the home link (#620).** A tap on the logo opens Find at its root. Its target is 44 px.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
 - Touch targets are at least 44 px on a phone. Text contrast is AA (4.5) in light and dark.
 
@@ -104,3 +139,16 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - Design 390 and 1440, light and dark. Use sample data, never real names.
 - Placeholders are the field's own name ("Job title", "Company"). No "e.g.".
 - Empty states teach: what this holds, one primary action, one way to see it work.
+- **Sign-in (#555, #556):** the stacked flame and name, centred by the flame's mass (not its box),
+  then two lines, the benefit leading: "Sign in to see your jobs on any device." (body, primary) and
+  "We email you a sign-in link. No password needed." (caption, secondary). Then the email field,
+  Send link (filled) and Continue without an account (underlined exit). Top right: Pause
+  animations, an icon key. The Account menu's signed-out item uses the same words.
+- **Empty, error and done states sit on the page background (#553):** centred icon tile, bold title,
+  one line, then one filled key and one grey key. Never a card around them, and a second choice is a
+  grey key, never a text button. Apply empty: "Track your first job" (Add job | Try with sample
+  data). Find with no results: Scan now | Edit search profile. Not found is unchanged.
+- **Done (#554):** when To apply is finished, the Apply tab shows the live flame (still under reduced
+  motion), "That is the list", one caption line for the week ("You applied to 3 jobs this week."),
+  then the next step as the filled key (Follow up (N) while some are due, else Find more jobs) and
+  All jobs as the grey key.

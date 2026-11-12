@@ -1,8 +1,9 @@
 // Find shows no status text above Browse / Deck (Adrian 2026-11-08). Signed in, the server syncs
-// every 15 minutes: no Scan now; "Updated N min ago" from the last sync_log run is in the Account
-// menu's Scan details. Signed out, one compact Scan now beside the Review new heading. Supabase is faked at the network:
+// every 15 minutes: no Scan now; "Updated N min ago" from the last sync_log run is in Scan details
+// (the Account menu's Search profile, #549). Signed out, one compact Scan now beside the Review new heading. Supabase is faked at the network:
 // a stored session, an empty cloud copy and a sync_log run 4 minutes ago.
 import { test, expect, type Page } from '@playwright/test';
+import { findMore, openScanDetails } from './routes';
 
 const PROJECT = 'nelrcmbkimjjmfmgnixj';
 const USER = { id: '00000000-0000-4000-8000-000000000001', email: 'find@example.test' }; // pii-allow: fake test address
@@ -60,24 +61,37 @@ for (const width of [390, 1440]) {
         /^Updated |^Not scanned|^Read \d+ of \d+ boards$|unavailable · details|^Not shown/,
       ),
     ).toHaveCount(0);
-    await page.getByRole('button', { name: 'Account' }).click();
-    await page.getByRole('menuitem', { name: 'Scan details' }).click();
-    const details = page.getByRole('dialog', { name: 'Scan details' });
+    // The header's one caption says when the server last read the sources (#544).
+    await expect(page.getByText('scanned 4 min ago')).toBeVisible();
+    // Its More menu holds no Scan now signed in (the server syncs every 15 minutes).
+    await findMore(page).click();
+    await expect(page.getByRole('menuitem', { name: 'Search profile' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    const details = await openScanDetails(page);
     await expect(details.getByText('Updated 4 min ago')).toBeVisible();
   });
 }
 
-test('signed out: one compact Scan now beside the Review new heading (390)', async ({ page }) => {
+// #544: one short header, "Find" and one caption, with one More menu on the h1's row holding Sort,
+// Scan now and Search profile. No Scan now key on the page.
+test('signed out: Scan now is in the header’s More menu, beside the h1 (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/find');
-  const review = page.getByRole('region', { name: /^Review new/ });
-  await expect(review.getByRole('button', { name: 'Scan now' })).toHaveCount(1);
-  await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(1);
-  const heading = await review.getByRole('heading', { name: 'Review new' }).boundingBox();
-  const button = await review.getByRole('button', { name: 'Scan now' }).boundingBox();
-  // On the heading's row.
-  expect(
-    Math.abs(heading!.y + heading!.height / 2 - (button!.y + button!.height / 2)),
-  ).toBeLessThan(8);
+  const review = page.getByRole('region', { name: /^Review\b/ });
+  await expect(review.getByRole('button', { name: 'Browse' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(0);
+  const h1 = await page.getByRole('heading', { level: 1, name: 'Find' }).boundingBox();
+  const more = await findMore(page).boundingBox();
+  // On the h1's row, at the right, a 44px target.
+  expect(Math.abs(h1!.y - more!.y)).toBeLessThan(12);
+  expect(more!.x).toBeGreaterThan(h1!.x + h1!.width);
+  expect(more!.width).toBeGreaterThanOrEqual(44);
+  expect(more!.height).toBeGreaterThanOrEqual(44);
+  await findMore(page).click();
+  await expect(page.getByRole('menuitem', { name: 'Scan now' })).toBeVisible();
+  // (Sort joins them once there is a list to sort: review.spec.ts.)
+  await expect(page.getByRole('menuitem', { name: 'Search profile' })).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.getByText(/^Updated |^Not scanned|^Sign in for automatic/)).toHaveCount(0);
 });

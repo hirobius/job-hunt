@@ -12,6 +12,7 @@ import SignInDialog, { RESEND_COOLDOWN_S } from './SignInDialog';
 import { SIGN_IN_ERRORS } from './signInErrors';
 import { BRAND } from '../brand';
 import { googleSignInEnabled, setGoogleSignIn } from './googleSignInFlag';
+import { SIGN_IN_BENEFIT, SIGN_IN_HOW } from './signInCopy';
 
 function Harness({
   sendLink,
@@ -65,6 +66,8 @@ const brandOf = (dialog: HTMLElement) => {
   return { flame, word };
 };
 
+const COPY = `${SIGN_IN_BENEFIT}${SIGN_IN_HOW}`;
+
 describe('SignInDialog', () => {
   it('is a full screen with the flame and the wordmark (not a heading) above the title', () => {
     const { dialog } = setup();
@@ -92,7 +95,7 @@ describe('SignInDialog', () => {
         .map((b) => b.textContent),
     ).toEqual(['Send link', 'Continue without an account', '']);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign inEmailSend linkContinue without an account`,
+      `${BRAND.name}Sign in${COPY}EmailSend linkContinue without an account`,
     );
     // The magic link still signs in.
     expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument();
@@ -101,8 +104,12 @@ describe('SignInDialog', () => {
   it('with the flag on: the flame, the wordmark, Continue with Google, Email, Send link and Continue without an account', () => {
     setGoogleSignIn(true);
     const { dialog } = setup();
-    // No paragraphs (Adrian 2026-10-29): the title is for screen readers only.
-    expect(dialog.querySelectorAll('p:not(.rjb-logo-word)')).toHaveLength(0);
+    // Two paragraphs, the benefit first (#555; was none, 2026-10-29): the title is for screen
+    // readers only, and the two lines describe the screen.
+    expect([...dialog.querySelectorAll('p:not(.rjb-logo-word)')].map((p) => p.textContent)).toEqual(
+      [SIGN_IN_BENEFIT, SIGN_IN_HOW],
+    );
+    expect(dialog).toHaveAccessibleDescription(`${SIGN_IN_BENEFIT} ${SIGN_IN_HOW}`);
     expect(
       within(dialog).getByRole('heading', { name: 'Sign in' }).closest('.sr-only'),
     ).not.toBeNull();
@@ -112,7 +119,7 @@ describe('SignInDialog', () => {
         .map((b) => b.textContent),
     ).toEqual(['Continue with Google', 'Send link', 'Continue without an account', '']);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign inContinue with GoogleEmailSend linkContinue without an account`,
+      `${BRAND.name}Sign in${COPY}Continue with GoogleEmailSend linkContinue without an account`,
     );
   });
 

@@ -1,0 +1,30 @@
+/* A bottom sheet on a phone (the All jobs list, Proposal A; Companies, #619; Add job, #551): HDS Dialog anchored to
+ * the bottom edge below sm, full width, top corners rounded, a grab handle (hidden from sm by
+ * base.css). From sm up it stays HDS's centred dialog. Imported by each sheet's own lazy chunk, off
+ * the first-load CSS. Upstream: HDS Sheet does this (hds#690), but it costs the startup chunk
+ * ~0.7 kB, which is at its budget. */
+/* hds-gap: hirobius/hds#1433 (G2) */
+@media (max-width: 639.98px) {
+  [data-hds] .rjb-bottom-sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    translate: 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: 85dvh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    /* The home indicator never sits on the footer (Companies' Done, #619). */
+    padding-bottom: max(var(--primitive-space-4), env(safe-area-inset-bottom));
+  }
+  [data-hds] .rjb-bottom-sheet .rjb-sheet-handle {
+    display: block;
+    align-self: center;
+    margin-bottom: var(--primitive-space-2);
+    width: var(--primitive-space-10);
+    height: var(--primitive-space-1);
+    border-radius: var(--primitive-radius-full, 999px);
+    background: var(--semantic-color-border-default);
+  }
+}

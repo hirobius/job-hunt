@@ -28,10 +28,10 @@ async function seed(page: Page) {
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await go(page, '#/find?documents=');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/find');
-  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: /^Review\b/ })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {

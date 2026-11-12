@@ -43,7 +43,7 @@ const renderApp = async () => {
   await waitFor(() => expect(screen.queryByLabelText('Loading')).toBeNull());
   return r;
 };
-const outreach = () => screen.getByRole('region', { name: 'Outreach messages' });
+const outreach = () => screen.getByRole('region', { name: 'Messages' });
 const covers = () => screen.getByRole('region', { name: 'Cover letters' });
 const ids = () => getAllDocuments().map((d) => d.id);
 
@@ -142,7 +142,7 @@ describe('the Documents page', () => {
     window.location.hash = '#/copy-deck/nope';
     await renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
-    expect(screen.getByRole('region', { name: 'Outreach messages' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Messages' })).toBeInTheDocument();
   });
 
   it('a deleted starter stays deleted; Restore brings it back under its own kind', async () => {
@@ -156,7 +156,7 @@ describe('the Documents page', () => {
     // A reload runs the startup move again: the snippet was moved once, so nothing comes back.
     r.unmount();
     await renderApp();
-    await screen.findByRole('region', { name: 'Outreach messages' });
+    await screen.findByRole('region', { name: 'Messages' });
     expect(ids()).not.toContain('snippet-tpl-cover');
     // The starter cover letter is a Cover letter (#260): it is offered back there, not under messages.
     expect(
@@ -331,7 +331,7 @@ describe('the Company page (#230)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
-    expect(currentTab()).toHaveAccessibleName('Apply');
+    expect(currentTab('Apply')).toBeInTheDocument();
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',

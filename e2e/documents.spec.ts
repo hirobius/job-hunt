@@ -32,7 +32,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await expect(docs).toBeVisible();
   await expect(page.getByText('No documents yet')).toBeVisible();
   await page.getByRole('button', { name: 'Add starter messages' }).click();
-  const outreach = page.getByRole('region', { name: 'Outreach messages' });
+  const outreach = page.getByRole('region', { name: 'Messages' });
   // The row expands in place (rev-3 M); Open goes to the editor.
   await outreach.getByRole('button', { name: 'Follow-up after applying' }).click();
   await outreach.getByRole('button', { name: 'Open Follow-up after applying' }).click();
@@ -62,7 +62,11 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await expect(page).toHaveURL(/#\/apply\/company\/acme-metals\?from=%2Fapply%2F/);
   await expect(page.getByRole('heading', { level: 1, name: 'Acme Metals' })).toBeVisible();
   await expect(currentTab(page).filter({ hasText: 'Apply' })).toBeVisible();
-  await page.getByRole('link', { name: 'Fabricator', exact: true }).click();
+  // The Company page's own list (the list column beside it names the same job, #543).
+  await page
+    .getByRole('list', { name: /^Jobs at / })
+    .getByRole('link', { name: 'Fabricator', exact: true })
+    .click();
   await expect(page).toHaveURL(/#\/apply\//);
 });
 
@@ -73,7 +77,7 @@ test('Restore starter messages toasts and shows the first restored row (390)', a
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/find?documents=');
   await page.getByRole('button', { name: 'Start from scratch' }).click();
-  const outreach = page.getByRole('region', { name: 'Outreach messages' });
+  const outreach = page.getByRole('region', { name: 'Messages' });
   await outreach.getByRole('button', { name: 'Restore starter messages' }).click();
   // The toast, not its copy in the screen-reader announcer (#365), which holds the same words for 1 s.
   const toast = page.getByText('Added 4 starter messages', { exact: true });
@@ -82,3 +86,42 @@ test('Restore starter messages toasts and shows the first restored row (390)', a
   await expect(first).toHaveAttribute('data-motion', 'flash');
   await expect(first).toBeInViewport();
 });
+
+// #552: grouped lists on the dialog's one surface, by use, with one New key and a blanks count.
+for (const width of [390, 1440]) {
+  test(`Documents: groups by use, one New menu, an empty group's Add, blanks as a count (${width})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await page.goto('/#/find?documents=');
+    await page.getByRole('button', { name: 'Add starter messages' }).click();
+    const docs = page.getByRole('dialog', { name: 'Documents' });
+    const groups = docs.getByRole('region');
+    await expect(groups).toHaveCount(4);
+    expect(await groups.evaluateAll((g) => g.map((r) => r.getAttribute('aria-label')))).toEqual([
+      'Messages',
+      'Cover letters',
+      'Résumés',
+      'Notes',
+    ]);
+    // One New key, never one per group.
+    await expect(docs.getByRole('button', { name: /^New/ })).toHaveCount(1);
+    // A message's blanks are a count, not a row of chips.
+    const messages = docs.getByRole('region', { name: 'Messages' });
+    await expect(messages.getByRole('listitem').first()).toContainText(/\d+ blanks?/);
+    await expect(messages.getByRole('listitem').first().locator('.rjb-chip')).toHaveCount(0);
+    // An empty group is one row with its own Add.
+    const resumes = docs.getByRole('region', { name: 'Résumés' });
+    await expect(resumes.getByText('No résumés yet.')).toBeVisible();
+    const add = resumes.getByRole('button', { name: 'Add résumé' });
+    const box = (await add.boundingBox())!;
+    if (width === 390) expect(box.height).toBeGreaterThanOrEqual(44);
+    // The New menu lists the kinds in the same order and opens a new one.
+    await docs.getByRole('button', { name: 'New document' }).click();
+    const items = page.getByRole('menuitem');
+    await expect(items).toHaveText(['Message', 'Cover letter', 'Résumé', 'Note']);
+    await page.getByRole('menuitem', { name: 'Note' }).click();
+    await expect(docs.getByRole('heading', { level: 2, name: 'New note' })).toBeVisible();
+  });
+}

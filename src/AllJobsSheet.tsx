@@ -1,30 +1,37 @@
-// "All jobs" (Proposal A, Adrian 2026-11-08): on a phone the Apply screen shows one job; this
-// bottom sheet holds the Apply list (TrackerView JobsList: Follow up, Next 7 days, then every job
-// with search, Status and Sort, each its own card) to jump to any job. A jump moves in place (Back
-// leaves the tab, as the pager does) and closes the sheet.
+// "All jobs" (Proposal A, Adrian 2026-11-08; #543): on a phone the Apply screen shows one job; this
+// bottom sheet holds the Apply list (TrackerView JobsList: Add job, the views, search, the filter
+// chips, Sort and "Clear N", then the shared rows, the open job filled) to jump to any job. A jump
+// moves in place (Back leaves the tab, as the pager does) and closes the sheet.
 // A Dialog set as a bottom sheet in place of HDS Sheet (G2: a Sheet build that fits the entry).
 // hds-gap: hirobius/hds#1433 (G2)
 import { useEffect } from 'react';
 import { Box, Dialog } from '@hirobius/design-system';
 import { DialogNotice } from './NoticeHost';
+import './hds-gaps/BottomSheet.css';
 import { noticeHost } from './saveNotice';
 import { JobsList } from './TrackerView';
-import { FILTER_LABEL, usePipelineView, visibleJobs } from './pipelineView';
+import { FILTER_LABEL, remoteFiltered, usePipelineView, visibleJobs } from './pipelineView';
+import { useClosedOnBoard } from './useClosedOnBoard';
 import { afterBack, openJob, popSheet } from './route';
 import { jobIdOf } from './store';
 import type { Job } from './types';
 
 export default function AllJobsSheet({
   jobs,
+  openId,
   open,
   onOpenChange,
 }: {
   jobs: Job[];
+  /** The job the page shows: its row is marked. */
+  openId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const view = usePipelineView();
   const shown = visibleJobs(jobs, view);
+  // The one quiet place for closed jobs (#601) on a phone: the sheet's status line, as the lg column's.
+  const closedTail = useClosedOnBoard(remoteFiltered(jobs, view.remoteOnly));
   // Star, Mark applied, Remove… raised in the sheet show their Undo in its footer.
   useEffect(() => {
     if (!open) return;
@@ -46,10 +53,10 @@ export default function AllJobsSheet({
           <span className="rjb-sheet-handle" aria-hidden="true" />
           <Dialog.Title>All jobs</Dialog.Title>
           <Dialog.Description>
-            {`${FILTER_LABEL[view.filter]} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}`}
+            {`${FILTER_LABEL[view.filter]} · ${shown.length} ${shown.length === 1 ? 'job' : 'jobs'}${closedTail}`}
           </Dialog.Description>
         </Dialog.Header>
-        <Box className="rjb-dialog-body">{open && <JobsList onOpen={jump} />}</Box>
+        <Box className="rjb-dialog-body">{open && <JobsList onOpen={jump} openId={openId} />}</Box>
         <Dialog.Footer>
           <DialogNotice />
         </Dialog.Footer>

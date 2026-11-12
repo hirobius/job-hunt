@@ -67,13 +67,14 @@ describe('Pipeline filtered to nothing', () => {
     expect(screen.queryByText(/No jobs match/)).toBeNull();
   });
 
-  it('nothing left to apply to: a short title and where to look', async () => {
+  it('nothing left to apply to: the done state, the week and two keys (#554)', async () => {
     setStatusByUrl('https://acme.example/jobs/1', 'Applied', 'Design Engineer');
     window.location.hash = '#/apply';
     renderApp();
-    await openAllJobs();
-    expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
-    expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
+    const done = await screen.findByRole('region', { name: 'That is the list' });
+    expect(within(done).getByText(/this week/)).toBeInTheDocument();
+    expect(within(done).getByRole('button', { name: 'Find more jobs' })).toBeInTheDocument();
+    expect(within(done).getByRole('button', { name: 'All jobs' })).toBeInTheDocument();
   });
 });
 
@@ -84,7 +85,7 @@ describe('a clean first run', () => {
     renderApp();
     expect(await screen.findByText('No documents yet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Outreach messages' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Messages' })).toBeNull();
     expect(getAllDocuments()).toEqual([]);
     expect(getSnippets()).toEqual([]);
   });

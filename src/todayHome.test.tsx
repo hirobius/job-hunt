@@ -1,8 +1,8 @@
 // The final shell (simplify 2/9 #383 + amendment 2, Q6; #471): two top tabs, Find and Apply. Find,
 // top to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"),
-// Review new as the Browse list (a title selects the posting: #/find/<fingerprint>) and New
-// companies (Follow / Ignore). At lg the selected posting is the right column (the first posting
-// when the tab opens, #546); below lg its own view with Back and a pager. Follow up and Apply moved to
+// Review new as the Browse list (a title selects the posting: #/find/<fingerprint>); the found
+// companies are the Companies dialog's Found list (#618). At lg the selected posting is the right
+// column (the first posting when the tab opens, #546); below lg its own view with Back and a pager. Follow up and Apply moved to
 // the Apply tab (#471 slice 3). Tested at the route seam through App and driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -96,7 +96,7 @@ describe('the shell: Today and Jobs', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
     expect(topTabs().map((t) => t.textContent)).toEqual(['Find', 'Apply']);
-    expect(currentTab()).toHaveAccessibleName('Find');
+    expect(currentTab('Find')).toBeInTheDocument();
     expect(document.title).toMatch(/^Find/);
   });
 
@@ -107,20 +107,21 @@ describe('the shell: Today and Jobs', () => {
       const before = window.history.length;
       renderApp();
       await waitFor(() => expect(window.location.hash).toBe('#/find'));
-      expect(currentTab()).toHaveAccessibleName('Find');
+      expect(currentTab('Find')).toBeInTheDocument();
       expect(window.history.length).toBe(before);
     },
   );
 
-  it('Find shows, in order: Review new, then New companies; Follow up and Apply are on Apply', async () => {
+  it('Find shows Review new only (found companies are in the Companies dialog, #618); Follow up and Apply are on Apply', async () => {
     seedFound();
     window.location.hash = '#/find';
     renderApp();
-    await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
     const names = within(screen.getByRole('main'))
       .getAllByRole('region')
       .map((r) => r.getAttribute('aria-label')?.replace(/ \(.*$/, ''));
-    expect(names).toEqual(['Review new', 'New companies']);
+    expect(names).toEqual(['Review']);
+    expect(screen.queryByText('New companies')).toBeNull();
     expect(screen.queryByRole('button', { name: /Start applying|Resume applying/ })).toBeNull();
   });
 
@@ -129,7 +130,7 @@ describe('the shell: Today and Jobs', () => {
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
     await waitFor(() => expect(getProfile()).not.toBeNull());
-    expect(await screen.findByRole('region', { name: /^Review new/ })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: /^Review\b/ })).toBeInTheDocument();
     expect(screen.queryByText('Set up your search')).toBeNull();
   });
 
@@ -143,13 +144,23 @@ describe('the shell: Today and Jobs', () => {
 });
 
 describe('the auto-scan', () => {
-  it('signed out: one compact Scan now beside the Review new heading, and no status text', async () => {
-    seedScan({ finishedAt: Date.now(), newCount: 4, sourceCount: 9, found: [] });
+  // #544: Find's short header is "Find" and one caption ("4 new · scanned 2 h ago"); Sort, Scan now
+  // and Search profile are its one More menu.
+  it('signed out: Scan now is in the header’s More menu, and one caption, no status text', async () => {
+    const user = userEvent.setup();
+    seedScan({ finishedAt: Date.now() - 2 * 3600_000, newCount: 4, sourceCount: 9, found: [] });
     window.location.hash = '#/find';
     renderApp();
-    const review = await screen.findByRole('region', { name: /^Review new/ });
-    expect(within(review).getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
+    const review = await screen.findByRole('region', { name: /^Review\b/ });
     await within(review).findByRole('button', { name: 'Browse' });
+    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
+    // No date line: the caption says what is new and when the sources were scanned.
+    expect(screen.getByText('scanned 2 h ago')).toBeInTheDocument();
+    expect(screen.getByText(/^(\d+ new|Nothing new)$/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'More: sort, scan and search profile' }));
+    expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
     // Adrian 2026-11-08: the scan's line, the sources unavailable and the "not shown" counts are the
     // Account menu's Scan details.
     expect(
@@ -169,27 +180,26 @@ describe('Review new on Today', () => {
     );
     window.location.hash = '#/find';
     renderApp();
-    const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    const ul = await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
     const titles = within(ul)
       .getAllByRole('heading', { level: 3 })
-      .map((h) => h.textContent);
+      .map((h) => h.textContent?.replace(/\u2060/g, '').replace(/\s*\(opens in new tab\)$/, ''));
     expect(titles).toEqual(['Design Systems Engineer', 'Design Systems Designer']);
   });
 
-  it('below lg there is no posting page: the title is no link, the card shows its description', async () => {
-    const user = userEvent.setup();
+  it('below lg there is no posting page: the title is the link out to the posting', async () => {
     window.location.hash = '#/find';
     renderApp();
-    const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    const ul = await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
     const card = within(ul)
       .getAllByRole('article')
       .find((a) => within(a).queryByText('Beta'))!;
-    expect(within(card).queryByRole('link', { name: 'Design Systems Engineer' })).toBeNull();
-    expect(
-      within(card).getByRole('link', { name: 'Open posting for Design Systems Engineer at Beta' }),
-    ).toHaveAttribute('href', 'https://news.ycombinator.com/item?id=hn2');
-    await user.click(within(card).getByRole('button', { name: 'Show description' }));
-    expect(within(card).getByRole('button', { name: 'Hide description' })).toBeInTheDocument();
+    const link = within(card.querySelector('h3')!).getByRole('link', {
+      name: /^Design Systems Engineer/,
+    });
+    expect(link).toHaveAttribute('href', 'https://news.ycombinator.com/item?id=hn2');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(within(card).queryByRole('button', { name: /description/ })).toBeNull();
     expect(window.location.hash).toBe('#/find');
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
@@ -200,7 +210,7 @@ describe('Review new on Today', () => {
     window.location.hash = '#/find';
     const steps = window.history.length;
     renderApp();
-    const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    const ul = await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
     // Like Apply's first job (Adrian 2026-11-12): the first posting, its title the page's h1, in
     // place (no history step).
     const first = within(ul).getAllByRole('heading', { level: 3 })[0].textContent!;
@@ -265,28 +275,39 @@ describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
     updateJob('https://acme.example.com/jobs/1', { applied: ymd(daysAgo(9)), company: 'Acme' });
     window.location.hash = '#/find';
     renderApp();
-    await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Apply/ })).toBeNull();
     await userEvent.click(topTab('Apply'));
-    // On a phone, in the Apply list (the All jobs sheet, Proposal A).
-    await openAllJobs();
-    expect(await screen.findByRole('region', { name: /^Follow up/ })).toBeInTheDocument();
+    // On a phone, in the Apply list (the All jobs sheet, Proposal A): its Follow up view (#543).
+    const sheet = await openAllJobs();
+    expect(await within(sheet).findByRole('button', { name: 'Follow up 1' })).toBeInTheDocument();
   });
 });
 
-describe('New companies', () => {
-  it('Follow and Ignore each say so with Undo; Ignore mutes the company', async () => {
+describe('Found companies: the Companies dialog (#618, Adrian 2026-11-12)', () => {
+  it('Follow and Ignore each say so with Undo in the dialog; Ignore mutes the company', async () => {
     const user = userEvent.setup();
     seedFound();
     window.location.hash = '#/find';
     renderApp();
-    const panel = section(/^New companies/);
+    await within(section(/^Review\b/)).findByRole('list', { name: 'New postings' });
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Companies' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Companies' });
+    await user.click(within(dialog).getByRole('radio', { name: 'Found (1)' }));
     // No matching job yet: folded under one disclosure (Adrian 2026-11-08).
-    await user.click(within(panel).getByRole('button', { name: 'Show 1 with no matching jobs' }));
-    await user.click(within(panel).getByRole('button', { name: 'Ignore Forward' }));
-    expect(await screen.findByText('Ignored Forward')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Show 1 with no matching jobs' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Ignore Forward' }));
+    // The toast behind a modal can't be reached: the dialog's footer says it, with Undo.
+    expect(await within(dialog).findByText('Ignored Forward')).toBeInTheDocument();
     expect(getAllDecided().muted).toContain('Forward');
+    // The last found company gone: the Found segment goes, one option stays checked.
+    expect(within(dialog).queryByRole('radio', { name: /^Found/ })).toBeNull();
+    expect(within(dialog).getByRole('radio', { name: /^Ignored \(1\)/ })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Undo' }));
+    expect(getAllDecided().muted).not.toContain('Forward');
+    expect(within(dialog).getByRole('radio', { name: 'Found (1)' })).toBeInTheDocument();
   });
 });
 

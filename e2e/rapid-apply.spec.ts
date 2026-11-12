@@ -70,7 +70,9 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
 
   // Below lg the tab is one job (Proposal A); its list is the All jobs sheet.
   await pressAllJobs(page);
-  const jobs = page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Jobs' });
+  const jobs = page
+    .getByRole('dialog', { name: 'All jobs' })
+    .getByRole('navigation', { name: 'Jobs' });
   await expect(jobs.locator('a[href^="#/apply/"]')).toHaveCount(3);
   await jobs.locator('a[href^="#/apply/"]').first().click();
   await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeHidden();
@@ -97,10 +99,18 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
     await page.waitForTimeout(800);
   }
 
-  // Nothing left to apply to: the tab still shows a job, and All jobs has Follow up (3).
+  // Nothing left to apply to: the done state (#554), the flame, the week, then two keys. All jobs
+  // opens the view's first job, and All jobs counts the 3 under Applied (the view chip, #543).
+  const done = page.getByRole('region', { name: 'That is the list' });
+  await expect(done).toBeVisible();
+  await expect(done.locator('.rjb-flame svg')).toBeVisible();
+  await expect(done.getByText('You applied to 3 jobs this week.')).toBeVisible();
+  await expect(done.getByRole('button', { name: 'Find more jobs' })).toBeVisible();
+  await done.getByRole('button', { name: 'All jobs' }).click();
+  await expect(done).toBeHidden();
   await pressAllJobs(page);
   await expect(
-    page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Follow up (3)' }),
+    page.getByRole('dialog', { name: 'All jobs' }).getByRole('button', { name: 'Applied 3' }),
   ).toBeVisible();
 });
 

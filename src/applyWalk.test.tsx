@@ -106,21 +106,28 @@ describe('the walk row on a phone', () => {
     expect(await screen.findByRole('dialog', { name: 'All jobs' })).toBeInTheDocument();
   });
 
-  it('the views left Filters: the filter bar has search and Sort only', async () => {
+  it('the job page has no filter bar (#543): search and Sort are in the All jobs sheet', async () => {
     const user = userEvent.setup();
     renderApp();
-    await user.click(await screen.findByRole('button', { name: 'Filters' }));
-    const bar = screen.getByRole('region', { name: 'Filter jobs' });
-    expect(within(bar).queryByRole('group', { name: 'Views' })).toBeNull();
-    expect(within(bar).getByRole('button', { name: /^Sort:/ })).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'View: To apply' });
+    expect(screen.queryByRole('region', { name: 'Filter jobs' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Sort:/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'View: To apply' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'All jobs and filters' }));
+    const sheet = await screen.findByRole('dialog', { name: 'All jobs' });
+    expect(within(sheet).getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: /^Sort:/ })).toBeInTheDocument();
   });
 
   it('the pager only steps', async () => {
     renderApp();
     const pager = await screen.findByRole('navigation', { name: 'Jobs in the list' });
     expect(within(pager).queryByRole('menu')).toBeNull();
-    expect(within(pager).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(
-      expect.arrayContaining(['Previous page', 'Next page']),
-    );
+    expect(
+      within(pager)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(expect.arrayContaining(['Previous page', 'Next page']));
   });
 });

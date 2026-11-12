@@ -28,6 +28,32 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(claude);
   });
 
+  it('keeps the sign-in words as the code says them (#555)', () => {
+    const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');
+    for (const line of [
+      'Sign in to see your jobs on any device.',
+      'We email you a sign-in link. No password needed.',
+    ]) {
+      expect(RULES).toContain(line);
+      expect(CLAUDE).toContain(line);
+      expect(COPY).toContain(line);
+    }
+    expect(RULES).toMatch(/centred by the flame's mass/);
+  });
+
+  it('keeps the states on the page background, and the done state, as the code does (#553, #554)', () => {
+    const EMPTY = fs.readFileSync('src/hds-gaps/EmptyState.tsx', 'utf8');
+    const DONE =
+      fs.readFileSync('src/ApplyDone.tsx', 'utf8') + fs.readFileSync('src/applyDone.ts', 'utf8');
+    expect(RULES).toMatch(/states sit on the page background/);
+    expect(CLAUDE).toMatch(/states sit on the page background/);
+    expect(EMPTY).toContain('onPage');
+    for (const words of ['That is the list', 'Find more jobs', 'All jobs']) {
+      expect(RULES).toContain(words);
+      expect(DONE).toContain(words);
+    }
+  });
+
   it('names the views as CLAUDE.md and pipelineView.ts do (#541)', () => {
     const VIEW = fs.readFileSync('src/pipelineView.ts', 'utf8');
     for (const name of ['To apply', 'Follow up', 'Interviewing', 'Applied', 'Recently closed']) {
@@ -48,6 +74,20 @@ describe('FIGMA-RULES.md', () => {
     expect(walk).toContain('rjb-menu-sheet');
   });
 
+  it('pins Documents (#552): groups by use, one New menu, a blanks count', () => {
+    expect(RULES).toMatch(
+      /\*\*Documents \(#552\): grouped lists, one New menu, a blanks count\.\*\*/,
+    );
+    expect(CLAUDE).toMatch(
+      /\*\*Grouped lists, one New menu, a blanks count \(redesign §5\.10, #552\):\*\*/,
+    );
+    const lib = fs.readFileSync('src/DocumentsLibrary.tsx', 'utf8');
+    expect(lib).toContain("['outreach', 'cover', 'resume', 'note']");
+    expect(lib).toContain('label="New document"');
+    expect(lib).not.toContain('className="rjb-chip"');
+    expect(fs.readFileSync('src/theme/base.css', 'utf8')).not.toContain('.rjb-docs-');
+  });
+
   it('names the two screens as CLAUDE.md does', () => {
     // The top tabs, as CLAUDE.md states them (#471, #475).
     expect(CLAUDE).toMatch(/Two screens: Find and Apply/);
@@ -58,6 +98,26 @@ describe('FIGMA-RULES.md', () => {
     // CLAUDE.md keeps "Today · Jobs" only in the one history note that says it was renamed.
     const old = CLAUDE.split('\n').filter((l) => /Today · Jobs/.test(l));
     expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
+  });
+
+  it('pins the Account menu (#549): 9 items in 4 groups, toggles that show their state', () => {
+    expect(RULES).toMatch(/\*\*The Account menu \(#549\): 9 items in 4 groups\.\*\*/);
+    expect(CLAUDE).toMatch(/9 items in 4 groups, redesign §5\.9, #549/);
+    const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
+    for (const name of [
+      'On this device only',
+      'SIGN_IN_ITEM',
+      'Dark theme',
+    ])
+      expect(menu).toContain(name);
+    expect(menu).toContain('<MenuToggleItem');
+    expect(menu).not.toMatch(/>\s*Scan details\s*</);
+    expect(fs.readFileSync('src/hds-gaps/MenuToggleItem.tsx', 'utf8')).toContain(
+      'role="menuitemcheckbox"',
+    );
+    expect(fs.readFileSync('src/SearchProfileDialog.tsx', 'utf8')).toContain(
+      'label="Scan details"',
+    );
   });
 
   it('pins the Data dialog (#550): one lazy dialog for the data actions', () => {
@@ -155,6 +215,13 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).not.toContain('StarButton');
   });
 
+  it('pins found companies in the Companies dialog, not on Find (#618)', () => {
+    expect(RULES).toContain('under **Found** (Follow / Ignore), never on Find');
+    expect(CLAUDE).toContain('New companies\n  left Find (#618');
+    expect(fs.readFileSync('src/Today.tsx', 'utf8')).not.toContain('NewCompanies');
+    expect(fs.readFileSync('src/CompaniesDialog.tsx', 'utf8')).toContain('<NewCompanies />');
+  });
+
   it('pins the page gutter: one value in the code, CLAUDE.md and the rules', () => {
     const css = fs.readFileSync('src/hds-gaps/PageShell.css', 'utf8');
     expect(css).toContain('--rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);');
@@ -162,6 +229,23 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(/20 on a phone/);
     expect(CLAUDE).not.toMatch(/gutter is 16/i);
     expect(RULES).toMatch(/Page gutter 20 on a phone/);
+  });
+
+  it('pins the All jobs sheet and the one job list (#543)', () => {
+    expect(RULES).toContain('**The All jobs sheet (#543).**');
+    expect(RULES).toMatch(/One job list, sheet and 1440 column alike/);
+    expect(CLAUDE).toMatch(/One job list, sheet and lg column alike/);
+    const list = fs.readFileSync('src/TrackerView.tsx', 'utf8');
+    expect(list).toContain('<PipelineMenus chip />');
+    expect(list).toContain('<JobRowList');
+    expect(list).not.toContain('<Card');
+    const rail = fs.readFileSync('src/JobRail.tsx', 'utf8');
+    expect(rail).toContain('<JobRowList');
+    expect(rail).not.toContain('JobPostingLink');
+    const page = fs.readFileSync('src/JobPage.tsx', 'utf8');
+    expect(page).not.toMatch(/ApplyFilterBar|RemoteOnlySwitch|AddJobButton|SampleBanner/);
+    for (const gone of ['ApplyFilterBar', 'ApplyQueueSummary', 'JobListCard'])
+      expect(fs.existsSync(`src/${gone}.tsx`)).toBe(false);
   });
 
   it('pins the lg Apply list header (#614) and the automatic liveness check (#602)', () => {
@@ -173,5 +257,47 @@ describe('FIGMA-RULES.md', () => {
     expect(rail).toContain('<PipelineMenus size="sm" compact />');
     expect(rail).not.toContain('LivenessCheck');
     expect(rail).not.toContain('Not in this filter');
+  });
+
+  it('pins Add job (#551): one filled key, a grey key, no Cancel', () => {
+    expect(RULES).toMatch(/\*\*Add job \(#551\): one field and one filled key\.\*\*/);
+    expect(CLAUDE).toMatch(/\*\*Add job \(redesign §5\.10, #551\)/);
+    const dialog = fs.readFileSync('src/AddJobDialog.tsx', 'utf8');
+    expect(dialog).toContain("'Type a company or title instead'");
+    expect(dialog).toContain('rjb-bottom-sheet');
+    expect(dialog).not.toMatch(/>\s*Cancel\s*</);
+  });
+
+  it("pins a posting's facts, one per line (#616)", () => {
+    expect(RULES).toMatch(/A posting's facts, one per line \(#616\)/);
+    expect(CLAUDE).toMatch(/\*\*one fact per line\*\* \(#616/);
+    const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
+    expect(review).toContain('<Fact icon={MapPin} text={placeOf(r)} truncate />');
+    expect(review).toContain('<Fact icon={Briefcase} text={modeOf(r)} />');
+  });
+
+  it('pins the compact Find card and the short header (#544)', () => {
+    expect(RULES).toMatch(/\*\*The compact Find card \(#544\)\.\*\*/);
+    expect(RULES).toMatch(/\*\*Find's short header \(#544\)\.\*\*/);
+    expect(CLAUDE).toMatch(/A Browse card is compact \(#544/);
+    const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
+    expect(review).toContain('lineClamp={3}');
+    expect(review).toContain('openKey={!compact}');
+    const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
+    expect(head).toContain('More: sort, scan and search profile');
+  });
+
+  it('pins the one-row app bar (#548) and the logo home link (#620)', () => {
+    expect(RULES).toMatch(/\*\*One app-bar row \(#548\)\.\*\*/);
+    expect(RULES).toMatch(/\*\*The logo is the home link \(#620\)\.\*\*/);
+    expect(CLAUDE).toMatch(/one app-bar row at every width \(#548\)/);
+    expect(CLAUDE).toMatch(/The logo is the home link \(#620\)/);
+    const app = fs.readFileSync('src/App.tsx', 'utf8');
+    expect(app).toContain('className="rjb-segs"');
+    expect(app).not.toContain('rjb-segs-full');
+    expect(app).toContain('rjb-logo-link');
+    const base = fs.readFileSync('src/theme/base.css', 'utf8');
+    expect(base).toContain('border-radius: var(--seg-inner-radius);');
+    expect(base).toContain('padding: var(--seg-rail-pad);');
   });
 });

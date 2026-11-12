@@ -4,7 +4,7 @@
 // walkthroughs of the new flows. Local only (no Actions): `npm run test:e2e`.
 import { test, expect, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
-import { topTab, currentTab, pressAllJobs } from './routes';
+import { topTab, currentTab, pressAllJobs, listScope } from './routes';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
@@ -15,10 +15,10 @@ async function seed(page: Page) {
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await go(page, '#/find?documents=');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/find');
-  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: /^Review\b/ })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {
@@ -121,15 +121,18 @@ for (const theme of ['light', 'dark'] as const) {
         bad.push(...(await axe(page, 'outreach editor')));
 
         await go(page, '#/apply');
-        await page.getByRole('button', { name: 'Add job' }).first().click();
-        await expect(page.getByRole('dialog')).toBeVisible();
+        // Add job is the list's (#543): the column from lg, the All jobs sheet below it.
+        const rail = page.getByRole('navigation', { name: 'Jobs', exact: true });
+        const wide = (await rail.count()) > 0;
+        const list = await listScope(page);
+        await list.getByRole('button', { name: 'Add job' }).click();
+        await expect(page.getByRole('dialog', { name: 'Add a job' })).toBeVisible();
         bad.push(...(await axe(page, 'add job')));
         await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog', { name: 'Add a job' })).toHaveCount(0);
 
         // Below lg the tab is one job (Proposal A): axe the All jobs sheet open.
-        const rail = page.getByRole('navigation', { name: 'Jobs', exact: true });
-        if (!(await rail.count())) {
-          await pressAllJobs(page);
+        if (!wide) {
           await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeVisible();
           await page.waitForTimeout(300);
           bad.push(...(await axe(page, 'all jobs sheet')));
@@ -201,14 +204,18 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
         ? `${e.tagName} ${e.textContent?.trim()}`
         : 'none';
     });
+  // The top tabs' names end in their count when they show one ("Apply 12", #548).
   for (const [role, name] of [
     ['button', 'Deck'],
     ['button', 'Browse'],
     ['link', 'Apply'],
     ['link', 'Find'],
-    ['button', 'Scan now'],
+    // Scan now left the page for Find's More menu (#544): a menu moves focus into itself, as the
+    // Account menu does, so it is not in this list.
   ] as const) {
-    await page.getByRole(role, { name, exact: true }).first().click();
+    const target =
+      role === 'link' ? topTab(page, name) : page.getByRole(role, { name, exact: true }).first();
+    await target.click();
     await page.waitForTimeout(200);
     expect(await ring(), `${role} ${name}`).toBe('none');
   }
@@ -318,13 +325,10 @@ for (const width of [390, 1440] as const) {
       // the second row. Below lg the list is the All jobs sheet (Proposal A): a pick closes it.
       const wide = width > 1000;
       if (!wide) await pressAllJobs(page);
-      const scope = wide
-        ? page.getByRole('navigation', { name: 'Jobs' })
-        : page.getByRole('dialog', { name: 'All jobs' }).getByRole('region', { name: 'Jobs' });
+      // One job list in both (#543): the rows' links hold the title alone.
+      const scope = page.getByRole('navigation', { name: 'Jobs' });
       const link = scope.locator('a[href^="#/apply/"]:not([aria-current])').nth(wide ? 0 : 1);
-      const title = wide
-        ? (await link.locator('.rjb-semibold').textContent())!.trim()
-        : (await link.textContent())!.trim();
+      const title = (await link.textContent())!.trim();
       await link.focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/apply\/./);
@@ -357,11 +361,14 @@ for (const width of [390, 1440] as const) {
       await page.goto('/#/apply');
       await page.getByRole('button', { name: 'Try with sample data' }).focus();
       await page.keyboard.press('Enter');
-      await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Try with sample data' })).toHaveCount(0);
       await page.waitForTimeout(300);
       // The Apply tab turns into the first job (#471, Proposal A): its title is the h1.
       await expect.poll(() => focused(page)).toMatch(/^H1 /);
-      await page.getByRole('button', { name: 'Clear sample data' }).focus();
+      // The sample line is the list's (#543): the All jobs sheet below lg.
+      const list = await listScope(page);
+      await expect(list.getByRole('status', { name: 'Sample data' })).toBeVisible();
+      await list.getByRole('button', { name: 'Clear sample data' }).focus();
       await page.keyboard.press('Enter');
       await expect(page.getByRole('status', { name: 'Sample data' })).toHaveCount(0);
       await page.waitForTimeout(300);

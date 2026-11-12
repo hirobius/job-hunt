@@ -6,6 +6,12 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { FLAME, createFire, endlessFrames, flameViewBox, stillFrame } from './flameEngine';
+import {
+  FLAME_MASS,
+  NAME_INK_OFFSET_EM,
+  STACKED_FLAME_EM,
+  STACKED_FLAME_NUDGE_EM,
+} from './RoleFlame';
 
 const numbers = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
 const PATH = /^(M[-\d.,LQ ]+Z)+$/;
@@ -124,5 +130,110 @@ describe('one engine', () => {
     const src = readFileSync('src/brand/RoleFlame.tsx', 'utf8');
     expect(src).toMatch(/from '\.\/flameEngine'/);
     expect(src).not.toMatch(/function (rng|toD|body|drop|contours)\b/);
+  });
+});
+
+// #556: the eye centres the flame by its mass, not its box. The mean mass centre over a few hundred
+// frames is measured here (each layer filled even-odd, the layers' union, by scanlines), so a new
+// tuning that moves it fails, and the stacked nudge in RoleFlame.tsx is set again from it.
+describe('the flame’s mass centre (#556)', () => {
+  type Pt = [number, number];
+  /** A path's closed loops, its curves flattened (each Q in 8 steps). */
+  const loops = (d: string): Pt[][] => {
+    const out: Pt[][] = [];
+    let cur: Pt[] = [];
+    let at: Pt = [0, 0];
+    for (const [, cmd, args] of d.matchAll(/([MLQZ])([^MLQZ]*)/g)) {
+      const n = numbers(args);
+      if (cmd === 'M') cur = [(at = [n[0], n[1]])];
+      else if (cmd === 'L') cur.push((at = [n[0], n[1]]));
+      else if (cmd === 'Q') {
+        for (let k = 1; k <= 8; k++) {
+          const t = k / 8,
+            a = (1 - t) ** 2,
+            b = 2 * (1 - t) * t,
+            c = t * t;
+          cur.push([a * at[0] + b * n[0] + c * n[2], a * at[1] + b * n[1] + c * n[3]]);
+        }
+        at = [n[2], n[3]];
+      } else out.push(cur);
+    }
+    return out;
+  };
+  /** Even-odd spans of one layer on the line y. */
+  const spans = (ls: Pt[][], y: number): [number, number][] => {
+    const xs: number[] = [];
+    for (const p of ls)
+      for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+        const [x1, y1] = p[j],
+          [x2, y2] = p[i];
+        if (y1 > y !== y2 > y) xs.push(x1 + ((y - y1) * (x2 - x1)) / (y2 - y1));
+      }
+    xs.sort((a, b) => a - b);
+    const out: [number, number][] = [];
+    for (let i = 0; i + 1 < xs.length; i += 2) out.push([xs[i], xs[i + 1]]);
+    return out;
+  };
+  /** The union of spans, merged. */
+  const union = (all: [number, number][]) => {
+    const s = [...all].sort((a, b) => a[0] - b[0]);
+    const out: [number, number][] = [];
+    for (const [a, b] of s) {
+      const last = out[out.length - 1];
+      if (last && a <= last[1]) last[1] = Math.max(last[1], b);
+      else out.push([a, b]);
+    }
+    return out;
+  };
+  const massOf = (frame: string[]) => {
+    const layers = frame.filter(Boolean).map(loops);
+    let area = 0,
+      mx = 0,
+      my = 0;
+    for (let y = -80.25; y < 160; y += 0.5) {
+      for (const [a, b] of union(layers.flatMap((l) => spans(l, y)))) {
+        const w = (b - a) * 0.5;
+        area += w;
+        mx += w * (a + b) * 0.5;
+        my += w * y;
+      }
+    }
+    return { x: mx / area, y: my / area };
+  };
+  const mean = (() => {
+    let x = 0,
+      y = 0,
+      n = 0;
+    for (const seed of [1, 2, 3]) {
+      const next = endlessFrames(FLAME, seed);
+      for (let i = 0; i < 100; i++) {
+        const m = massOf(next());
+        x += m.x;
+        y += m.y;
+        n++;
+      }
+    }
+    return { x: x / n, y: y / n };
+  })();
+
+  it('sits where RoleFlame.tsx says (else measure it again and set the nudge from it)', () => {
+    expect(Math.abs(mean.x - FLAME_MASS.x)).toBeLessThan(0.15);
+    expect(Math.abs(mean.y - FLAME_MASS.y)).toBeLessThan(0.5);
+  });
+
+  it('the stacked nudge puts the flame’s mass over the name’s ink centre', () => {
+    const flameOffsetEm = ((mean.x - FLAME.cx) * STACKED_FLAME_EM) / 146;
+    expect(Math.abs(STACKED_FLAME_NUDGE_EM - (NAME_INK_OFFSET_EM - flameOffsetEm))).toBeLessThan(
+      0.002,
+    );
+    // Within a quarter pixel at the sign-in screen's 40px.
+    expect(
+      Math.abs(STACKED_FLAME_NUDGE_EM - (NAME_INK_OFFSET_EM - flameOffsetEm)) * 40,
+    ).toBeLessThan(0.25);
+  });
+
+  it('the row layout (app bar) takes no nudge', () => {
+    const src = readFileSync('src/brand/RoleFlame.tsx', 'utf8');
+    expect(src).toMatch(/layout === 'stacked' \? nudgeStyle\(STACKED_FLAME_NUDGE_EM\) : undefined/);
   });
 });

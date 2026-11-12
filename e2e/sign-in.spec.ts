@@ -267,7 +267,7 @@ test('focusing the email field at 390px: no layout shift at the top', async ({ p
   expect(cls).toBeLessThan(0.001);
 });
 
-// Review of #520: the sign-in screen opens over a page with unsaved work ("Sign in to sync…" from
+// Review of #520: the sign-in screen opens over a page with unsaved work ("Sign in to see your jobs on any device" from
 // the header). The page stays mounted, inert and hidden under it, so the work is still there after
 // Continue without an account.
 test('unsaved work under the sign-in screen survives opening and closing it', async ({ page }) => {
@@ -290,4 +290,48 @@ test('unsaved work under the sign-in screen survives opening and closing it', as
   await expect(dialog).toBeHidden();
   await expect(page.locator('main')).not.toHaveAttribute('aria-hidden', 'true');
   await expect(url).toHaveValue('unsaved note');
+});
+
+// Redesign §5.8 (#555): two lines under the wordmark, the benefit first; the Account menu says the
+// same words; the top right control is Pause animations with its icon; the exit stays underlined.
+for (const width of [390, 1440])
+  test(`the sign-in copy: two lines, benefit first, at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/#/apply');
+    await page.getByRole('button', { name: /^Account/ }).click();
+    const item = page.getByRole('menuitem', { name: 'Sign in to see your jobs on any device' });
+    await expect(item).toBeVisible();
+    await item.click();
+    const dialog = page.getByRole('dialog', { name: 'Sign in' });
+    const first = dialog.getByText('Sign in to see your jobs on any device.', { exact: true });
+    const second = dialog.getByText('We email you a sign-in link. No password needed.', {
+      exact: true,
+    });
+    await expect(first).toBeVisible();
+    await expect(second).toBeVisible();
+    // The dialog is described by them, and the first line is the larger one, above the second.
+    await expect(dialog).toHaveAccessibleDescription(/^Sign in to see your jobs on any device\./);
+    const [a, b] = [(await first.boundingBox())!, (await second.boundingBox())!];
+    expect(a.y + a.height).toBeLessThanOrEqual(b.y + 1);
+    const size = (l: typeof first) => l.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(await size(first)).toBeGreaterThan(await size(second));
+    // Both lines centred under the brand.
+    const brand = (await dialog.locator('.rjb-signin-screen__brand .rjb-rf').boundingBox())!;
+    for (const box of [a, b])
+      expect(Math.abs(box.x + box.width / 2 - (brand.x + brand.width / 2))).toBeLessThan(2);
+    const pause = dialog.getByRole('button', { name: 'Pause animations' });
+    await expect(pause).toBeVisible();
+    await expect(pause.locator('svg')).toHaveCount(1);
+    await expect(
+      dialog.getByRole('button', { name: 'Continue without an account' }),
+    ).toHaveAttribute('data-variant', 'link');
+  });
+
+// #555: on a screen too short for them (or with the keyboard up), the two lines give way to the
+// field and Send link, and still describe the screen.
+test('the sign-in copy gives way on a short screen, and still describes it', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 400 });
+  const dialog = await openSignIn(page);
+  await expect(dialog.getByText('Sign in to see your jobs on any device.')).toBeHidden();
+  await expect(dialog).toHaveAccessibleDescription(/^Sign in to see your jobs on any device\./);
 });

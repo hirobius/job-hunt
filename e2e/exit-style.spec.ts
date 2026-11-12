@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { seed } from './routes';
+import { listScope, seed } from './routes';
 
 // The exit (#537, redesign §3): every way out is HDS Button variant="link": underlined, the
 // primary text colour, no fill, no ledge, and a 44px hit area at every width. Never blue.
@@ -28,8 +28,9 @@ async function expectExit(exit: Locator) {
   expect(s.color).toBe(s.primary);
   expect(s.bg).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
   expect(s.shadow).toBe('none');
-  expect(s.h).toBeGreaterThanOrEqual(44);
-  expect(s.w).toBeGreaterThanOrEqual(44);
+  // 44px, give or take layout's subpixel rounding (43.99998 at 1440 in the batch-1 shell).
+  expect(s.h).toBeGreaterThanOrEqual(44 - 0.01);
+  expect(s.w).toBeGreaterThanOrEqual(44 - 0.01);
 }
 
 async function openSignIn(page: Page) {
@@ -54,9 +55,25 @@ for (const width of [390, 1440]) {
       await seed(page);
       await page.goto('/#/apply');
       await expectExit(page.getByRole('button', { name: /^Not a fit: / }).first());
-      await page.getByRole('button', { name: 'Add job' }).first().click();
+      // Add job is the list's (#543): the All jobs sheet below lg. No Cancel key (#551): Close and
+      // the scrim cancel it.
+      await (await listScope(page)).getByRole('button', { name: 'Add job' }).click();
       const add = page.getByRole('dialog', { name: 'Add a job' });
-      await expectExit(add.getByRole('button', { name: 'Cancel' }));
+      await expect(add).toBeVisible();
+      await expect(add.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+      await add.getByRole('button', { name: 'Close' }).click();
+      await expect(add).toBeHidden();
+      // Below lg the All jobs sheet it opened from is still up: close it too (#543).
+      const sheet = page.getByRole('dialog', { name: 'All jobs' });
+      if (await sheet.isVisible()) {
+        await page.keyboard.press('Escape');
+        await expect(sheet).toBeHidden();
+      }
+      // A form dialog's Cancel is an exit (Search profile).
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await page.getByRole('menuitem', { name: 'Search profile' }).click();
+      const profile = page.getByRole('dialog', { name: 'Search profile' });
+      await expectExit(profile.getByRole('button', { name: 'Cancel' }));
     });
   });
 }

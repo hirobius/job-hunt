@@ -339,14 +339,16 @@ p {
  * aria-current="page": HDS SegmentedControl is a radio group (docs/hds-upstream-asks/segmented-nav.md). */
 .rjb-segs {
   --rjb-seg-ledge: 3px;
+  /* Concentric corners (hds#1470): the inner radius is the rail's less its padding and the 1px gap;
+   * --seg-rail-pad must stay the real padding. */
+  --seg-rail-radius: calc(var(--role-radius) + min(var(--role-radius), var(--primitive-space-1)));
+  --seg-rail-pad: var(--primitive-space-1); /* 4px */
+  --seg-inner-radius: max(0px, calc(var(--seg-rail-radius) - var(--seg-rail-pad) - 1px));
   display: flex;
   gap: var(--semantic-space-subgrid-gap);
-  padding: 4px;
-  border-radius: calc(var(--role-radius) + min(var(--role-radius), 4px));
+  padding: var(--seg-rail-pad);
+  border-radius: var(--seg-rail-radius);
   background: var(--semantic-color-surface-muted);
-}
-.rjb-segs-full .rjb-seg {
-  flex: 1;
 }
 .rjb-seg {
   display: flex;
@@ -356,7 +358,7 @@ p {
   /* Centred the way HDS SegmentedControl (sm) is, hds#1461: flex centring, line-height 1 and
    * symmetric padding. The ui ramp's taller line box put the ink about 2px low (seg-centering.spec). */
   padding: 0 var(--semantic-space-layout-gap);
-  border-radius: var(--role-radius);
+  border-radius: var(--seg-inner-radius);
   font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-ui-font-size) / 1
     var(--semantic-typography-ui-font-family);
   color: var(--semantic-color-content-secondary);
@@ -378,9 +380,12 @@ p {
    * as bottom padding moves it up by half the ledge (seg-centering.spec). */
   padding-bottom: var(--rjb-seg-ledge);
 }
+/* One app-bar row on a phone (#548): narrower sides, so the logo, Find, Apply and Account fit at 390,
+ * counts and all (the row wraps only where it cannot fit). */
 @media (max-width: 639px) {
   .rjb-seg {
     min-height: var(--rjb-touch);
+    padding-inline: var(--primitive-space-px6);
   }
 }
 [data-hds] .rjb-seg:focus-visible {
@@ -440,8 +445,7 @@ p {
  * out of the title's row, and its target overflows the title's line (centred) instead of
  * stretching it, so a card or row keeps its rev-3 rhythm. Only text sits in that overflow, and the
  * link is stacked above it, so every point of the target takes the tap (QA 2026-10-22: the caption
- * under it took up to 11px). Where rows are only as tall as a line and each ends in a posting link,
- * the rows grow to the target instead (.rjb-posting-rows), so two targets never overlap. On a
+ * under it took up to 11px). On a
  * phone it is the app's 40x40 target: HDS's touch rule would lift the sm icon-only button to 44
  * wide there, off the row's centre line (as with .rjb-icon-40). */
 [data-hds] .rjb-posting-link {
@@ -469,28 +473,6 @@ p {
  * so the pair shrinks there too: a long unbroken title wraps instead of pushing the link out. */
 [data-hds] .rjb-posting-title {
   min-width: 0;
-}
-
-/* A list of one-line rows that each end in a posting link (the closed-on-the-board list): each row
- * is as tall as the link's target, a subgrid gap apart (NavList's), so neighbouring targets never
- * overlap or share an edge, and the first never reaches the control above the list (QA
- * 2026-10-22). */
-[data-hds] .rjb-posting-rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--semantic-space-subgrid-gap);
-}
-
-[data-hds] .rjb-posting-rows > li {
-  display: flex;
-  align-items: center;
-  min-height: var(--primitive-space-8);
-}
-
-@media (max-width: 639px) {
-  [data-hds] .rjb-posting-rows > li {
-    min-height: var(--rjb-touch);
-  }
 }
 
 /* A chip with a leading icon (the sweep's matched title on an opening row, rev-3 K). */
@@ -554,14 +536,6 @@ p {
   font-weight: var(--primitive-typography-weight-semibold);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-/* Form sheets (Add job, Add a company; rev-3 s-add-company): HDS Dialog's panel at full width up
- * to 480, less the page's 16px phone gutter each side, so on a phone it never touches the screen
- * edge (round-2 review) and its footer stacks Add over Cancel. */
-[data-hds] .rjb-form-sheet {
-  width: calc(100% - 2 * var(--semantic-space-fixed-sm));
-  max-width: 480px;
 }
 
 /* Message dialogs (Follow up, Use template; rev-3 A): one chrome for both. HDS Dialog.Content has
@@ -688,10 +662,14 @@ p {
    file without those classes keeps its own fills. Wordmark: the HDS display family at 700. */
 .rjb-logo {
   --rjb-logo-size: 19px; /* hds-allow: brand logo size, not UI type */
-  display: inline-flex;
+  /* Block flex in the home link (a flex item): an inline box there added a line's descender. */
+  display: flex;
   align-items: center;
-  /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it loads. */
-  min-height: calc(var(--rjb-logo-size) * 1.95);
+  /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it
+   * loads; and the home link's 44px target (#620), which this box is: the link around it is inline.
+   * Its colour is the page's, not a link's. */
+  min-height: max(calc(var(--rjb-logo-size) * 1.95), var(--rjb-touch));
+  color: var(--semantic-color-content-primary);
   gap: calc(var(--rjb-logo-size) * 0.3);
 }
 .rjb-flame {
@@ -772,24 +750,6 @@ p {
   }
 }
 
-/* Review new: a posting's title selects it (#386; #471 slice 3: the right column). An HDS tertiary Button set as
- * the card's title: no padding, left-aligned, wrapping, in the title's own type; still 40px tall
- * on a phone for the tap. */
-.rjb-card-title .rjb-preview-title {
-  padding-inline: 0;
-  height: auto;
-  min-height: var(--primitive-space-10);
-  justify-content: flex-start;
-  text-align: left;
-  white-space: normal;
-  font: inherit;
-  color: var(--semantic-color-content-primary);
-}
-
-.rjb-card-title .rjb-preview-title:hover {
-  text-decoration: underline;
-}
-
 /* Find at lg: the selected posting stays in view beside a long list (its own scroll when taller
  * than the window). */
 .rjb-find-detail {
@@ -839,31 +799,6 @@ p {
   transform-origin: 50% 100%;
 }
 
-/* The Documents dialog at lg (#471 slice 4): the library on the left, the open document's editor on
- * the right, each scrolling on its own inside the dialog's body. */
-/* The Documents dialog at lg (#471 slice 4): the dialog takes the screen's height, and the library
- * and the editor each scroll on their own, so the list stays put while a long document scrolls (and
- * a focus trap's wrap, which does not scroll, never lands off screen). */
-[data-hds] .rjb-docs-dialog:has(.rjb-docs-body) {
-  height: calc(100dvh - 2 * var(--semantic-space-fixed-sm));
-}
-.rjb-docs-body {
-  display: flex;
-  overflow: hidden;
-}
-.rjb-docs-columns {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: var(--semantic-space-fixed-md);
-}
-.rjb-docs-columns > * {
-  min-height: 0;
-  overflow-y: auto;
-  padding: calc(var(--primitive-space-1) / 2);
-}
-
 /* The Apply screen's pager on a phone (Proposal A, Adrian 2026-11-08): it stays at the top while
  * the job scrolls under it, on the page's own surface. */
 .rjb-apply-pager {
@@ -874,34 +809,8 @@ p {
   padding-block: var(--primitive-space-2);
 }
 
-/* A bottom sheet on a phone (the All jobs list; Proposal A): HDS Dialog anchored to the bottom
- * edge below sm, full width, top corners rounded, a grab handle, its body scrolling (.rjb-dialog).
- * From sm up it stays HDS's centred dialog. Upstream: HDS Sheet does this (hds#690), but it costs
- * the startup chunk ~0.7 kB, which is at its budget. */
+/* The grab handle of the phone bottom sheets (hds-gaps/BottomSheet.css, theme/late.css): nothing
+ * from sm. */
 .rjb-sheet-handle {
   display: none;
-}
-@media (max-width: 639.98px) {
-  [data-hds] .rjb-bottom-sheet {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    translate: 0 0;
-    width: 100%;
-    max-width: none;
-    max-height: 85dvh;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    /* The home indicator never sits on the footer (Companies' Done, #619). */
-    padding-bottom: max(var(--primitive-space-4), env(safe-area-inset-bottom));
-  }
-  .rjb-sheet-handle {
-    display: block;
-    align-self: center;
-    margin-bottom: var(--primitive-space-2);
-    width: var(--primitive-space-10);
-    height: var(--primitive-space-1);
-    border-radius: var(--primitive-radius-full, 999px);
-    background: var(--semantic-color-border-default);
-  }
 }

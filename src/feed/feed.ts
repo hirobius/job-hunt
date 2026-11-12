@@ -190,7 +190,7 @@ export type FeedSort = 'score' | 'newest' | 'company';
 export type FeedFilter = 'new' | 'contract' | 'founding' | 'remote';
 
 export const FILTER_LABEL: Record<FeedFilter, string> = {
-  new: 'New today',
+  new: 'New',
   contract: 'Contract',
   founding: 'First hire',
   remote: 'Remote',

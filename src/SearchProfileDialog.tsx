@@ -1,9 +1,11 @@
 // The Account menu's Search profile (simplify 7/11, #388): the profile's fields (job
 // titles, remote only or a place, the words to leave out) for the profile in use, saved on Save.
 // It takes Calibrate's and Manage track's place for what the Feed searches for. With no profile
-// yet, Save makes one the way a first run does. Its own chunk (lazyDialogs.ts).
+// yet, Save makes one the way a first run does. Its own chunk (lazyDialogs.ts). Scan details (what
+// the scan read, what it left out) is a closed row at its end since #549, off the Account menu.
 import { useEffect, useRef, useState } from 'react';
-import { Button, Dialog, Spinner, Stack, Text } from '@hirobius/design-system';
+import { Button, Dialog, Disclosure, Spinner, Stack, Text } from '@hirobius/design-system';
+import ScanDetails from './ScanDetails';
 import { useCloudSync } from './account/accountContext';
 import { hasCloudSession } from './demo/loadSample';
 import { saveProfile, useProfile } from './profile';
@@ -17,7 +19,7 @@ export default function SearchProfileDialog({
   onCloseAutoFocus,
 }: {
   onDone: () => void;
-  onCloseAutoFocus?: () => void;
+  onCloseAutoFocus?: (e: Event) => void;
 }) {
   const profile = useProfile();
   const { settled } = useCloudSync();
@@ -48,26 +50,32 @@ export default function SearchProfileDialog({
     <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
       <Dialog.Header>
         <Dialog.Title>Search profile</Dialog.Title>
-        <Dialog.Description>What Review new and the scan look for.</Dialog.Description>
+        <Dialog.Description>What Review on Find and the scan look for.</Dialog.Description>
       </Dialog.Header>
-      {waiting ? (
-        <Stack direction="row" gap="normal" align="center">
-          <Spinner size="sm" />
-          <Text variant="body">Restoring your search…</Text>
-        </Stack>
-      ) : (
-        <Stack gap="px24">
-          <TitlesField
-            titles={draft.titles}
-            onChange={(titles) => {
-              setTitleError(false);
-              change({ titles });
-            }}
-            error={titleError && !draft.titles.length}
-          />
-          <WhereFields draft={draft} onChange={change} />
-        </Stack>
-      )}
+      <Stack gap="px24" className="rjb-dialog-body">
+        {waiting ? (
+          <Stack direction="row" gap="normal" align="center">
+            <Spinner size="sm" />
+            <Text variant="body">Restoring your search…</Text>
+          </Stack>
+        ) : (
+          <>
+            <TitlesField
+              titles={draft.titles}
+              onChange={(titles) => {
+                setTitleError(false);
+                change({ titles });
+              }}
+              error={titleError && !draft.titles.length}
+            />
+            <WhereFields draft={draft} onChange={change} />
+          </>
+        )}
+        {/* What the last scan read and left out (#549: was the Account menu's Scan details). */}
+        <Disclosure variant="row" label="Scan details">
+          <ScanDetails />
+        </Disclosure>
+      </Stack>
       <Dialog.Footer>
         <Dialog.Close asChild>
           <ExitButton>Cancel</ExitButton>

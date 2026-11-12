@@ -1,7 +1,8 @@
-// The auto-scan's UI (#415) on Find: signed out a compact "Scan now" beside Review new's heading
-// (signed in nothing: the server syncs), and New companies (Follow / Ignore) at the end. Every action
-// says so with an Undo. The scan's line is the Account menu's Scan details (ScanDetailsDialog).
-import { useState } from 'react';
+// The auto-scan's UI (#415). Scan now is Find's More menu, signed out only (FindHeader.tsx, #544).
+// The companies the scan found (Follow / Ignore) are the Account menu's Companies dialog's Found list
+// (#618, Adrian 2026-11-12). Every action says so with an Undo. The scan's line is Scan details in
+// the Account menu's Search profile (ScanDetails.tsx).
+import { useContext, useState } from 'react';
 import {
   Box,
   Button,
@@ -13,7 +14,7 @@ import {
   Tooltip as HdsTooltip,
 } from '@hirobius/design-system';
 import { ExternalLink, RefreshCw } from 'lucide-react';
-import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, ItemRow } from './PipelinePanel';
 import { httpUrl } from './httpUrl';
 import { showNotice } from './saveNotice';
 import {
@@ -28,7 +29,8 @@ import {
   type LeadSource,
 } from './feed/autoScan';
 import { useScanInput } from './feed/useAutoScan';
-import { useCloudSync } from './account/accountContext';
+import { CloudSyncContext } from './account/accountContext';
+import { openSearchProfile } from './jobDialogs';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -37,31 +39,38 @@ const VIA_LABEL: Record<LeadSource, string> = {
   seed: 'the seed list',
 };
 
-/** Find's scan control (Adrian 2026-11-08): no status text on the page. Signed in, the server syncs
- *  every 15 minutes, so nothing shows. Signed out, nothing scans on its own: one compact Scan now
- *  (Stop scan while it runs) beside the Review new heading. When it last scanned, the sources that
- *  didn't answer and what was left out are the Account menu's Scan details (ScanDetailsDialog). */
-export function ScanStatus() {
-  const { user } = useCloudSync();
-  return user ? null : <ScanButton />;
-}
-
-function ScanButton() {
+/** Find's "No postings match yet" (#553): Scan now filled and Edit search profile grey (Scan
+ *  now is also in Find's More menu, #544). Signed in there is no Scan now (the
+ *  server syncs, Adrian 2026-11-08), so Edit search profile is the one, filled key. Stop scan
+ *  (quiet, as the heading's) while a scan runs. */
+export function NoResultsKeys() {
+  // Read the context directly: Review new also renders on its own (tests), outside the provider.
+  const user = useContext(CloudSyncContext)?.user;
   const { running } = useScan();
   const input = useScanInput();
-  return running ? (
-    <Button size="sm" variant="tertiary" onClick={cancelScan}>
-      Stop scan
-    </Button>
-  ) : (
-    <Button
-      size="sm"
-      variant="secondary"
-      iconLeft={<Icon icon={RefreshCw} />}
-      onClick={() => void scanNow(input, undefined, { force: true })}
-    >
-      Scan now
-    </Button>
+  return (
+    <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+      {!user &&
+        (running ? (
+          <Button variant="tertiary" onClick={cancelScan}>
+            Stop scan
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            iconLeft={<Icon icon={RefreshCw} />}
+            onClick={() => void scanNow(input, undefined, { force: true })}
+          >
+            Scan now
+          </Button>
+        ))}
+      <Button
+        variant={user ? 'primary' : 'secondary'}
+        onClick={(e) => openSearchProfile(e.currentTarget)}
+      >
+        Edit search profile
+      </Button>
+    </Stack>
   );
 }
 
@@ -83,11 +92,11 @@ function domainOf(url: string | undefined): string | null {
   }
 }
 
-/** The companies the scan found, not yet followed or ignored (Adrian 2026-11-08). Each row says who
- *  they are (the source's one-liner, the website's domain), what the scan read (matching jobs, a
- *  Preview of their titles, the job board once confirmed) and one action row: Follow, Ignore and
- *  Visit website. Companies with no matching job fold under one "Show N with no matching jobs".
- *  Renders nothing when there are none. */
+/** The companies the scan found, not yet followed or ignored (Adrian 2026-11-08): the Companies
+ *  dialog's Found list since #618. Each row says who they are (the source's one-liner, the
+ *  website's domain), what the scan read (matching jobs, a Preview of their titles, the job board
+ *  once confirmed) and one action row: Follow, Ignore and Visit website. Companies with no matching
+ *  job fold under one "Show N with no matching jobs". Renders nothing when there are none. */
 export function NewCompanies() {
   const { state } = useScan();
   const list = newCompanies(state);
@@ -97,7 +106,7 @@ export function NewCompanies() {
     const undo = followFound(f.key);
     showNotice({
       title: `Following ${f.name}`,
-      description: 'Its jobs show in Review new.',
+      description: 'Its jobs show in Review on Find.',
       tone: 'success',
       actions: [{ label: 'Undo', run: undo }],
     });
@@ -116,28 +125,29 @@ export function NewCompanies() {
     <CompanyRow key={f.key} f={f} onFollow={() => follow(f)} onIgnore={() => ignore(f)} />
   );
   return (
-    <Panel
-      label="New companies"
-      title="New companies"
-      count={list.length}
-      countLabel={`${list.length} companies`}
-      description="Found by the scan. A confirmed board’s matching jobs are already in Review new."
-    >
-      {matching.length > 0 && <ItemList label="New companies">{matching.map(row)}</ItemList>}
-      {empty.length > 0 && (
-        <PanelBody>
-          <Disclosure
-            label={`${showEmpty ? 'Hide' : 'Show'} ${empty.length} with no matching jobs`}
-            open={showEmpty}
-            onOpenChange={setShowEmpty}
-          >
-            {showEmpty && (
-              <ItemList label="New companies with no matching jobs">{empty.map(row)}</ItemList>
-            )}
-          </Disclosure>
-        </PanelBody>
+    <Stack gap="tight">
+      <Text variant="caption" as="p" tone="secondary">
+        Found by the scan. A confirmed board’s matching jobs are already in Review.
+      </Text>
+      {matching.length > 0 && (
+        <ItemList label="Found companies" inset="none">
+          {matching.map(row)}
+        </ItemList>
       )}
-    </Panel>
+      {empty.length > 0 && (
+        <Disclosure
+          label={`${showEmpty ? 'Hide' : 'Show'} ${empty.length} with no matching jobs`}
+          open={showEmpty}
+          onOpenChange={setShowEmpty}
+        >
+          {showEmpty && (
+            <ItemList label="Found companies with no matching jobs" inset="none">
+              {empty.map(row)}
+            </ItemList>
+          )}
+        </Disclosure>
+      )}
+    </Stack>
   );
 }
 

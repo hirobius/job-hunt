@@ -5,6 +5,7 @@ import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from '../TrackerView';
 import { CloudSyncContext, type CloudSyncApi } from '../account/accountContext';
 import { addJob, getAllJobs, removeJob } from '../store';
+import { openAllJobs } from '../test/allJobs';
 
 // With jobs the tab is the first job's Apply view (Proposal A, Adrian 2026-11-08), which reads sync.
 const renderTracker = () =>
@@ -41,11 +42,14 @@ describe('Try with sample data (Tracker)', () => {
       expect(banner()).toBeNull();
 
       await user.click(tryButton()!);
-      expect(banner()).toHaveTextContent(/10 fictional jobs/);
-      // The tab is now the first job to apply to (Proposal A), under the filter bar.
+      // The tab is now the first job to apply to (Proposal A); the sample line and the list's
+      // count are in the All jobs sheet (#543), not on the job page.
       expect(getAllJobs()).toHaveLength(10);
       expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-      expect(screen.getByText(/^To apply · \d+ jobs$/)).toBeInTheDocument();
+      expect(banner()).toBeNull();
+      const sheet = await openAllJobs();
+      expect(banner()).toHaveTextContent(/10 fictional jobs/);
+      expect(within(sheet).getByText(/^To apply · \d+ jobs$/)).toBeInTheDocument();
       expect(tryButton()).toBeNull();
 
       await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
@@ -63,10 +67,12 @@ describe('Try with sample data (Tracker)', () => {
     const heading = () => screen.getByRole('heading', { level: 1 });
 
     await user.click(tryButton()!);
-    expect(banner()).toBeInTheDocument();
     // The first job's title (Proposal A: the tab is the job).
     await waitFor(() => expect(heading()).toHaveFocus());
 
+    // Clear lives in the All jobs sheet (#543).
+    await openAllJobs();
+    expect(banner()).toBeInTheDocument();
     await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
     expect(banner()).toBeNull();
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Apply' })).toHaveFocus());
@@ -89,7 +95,7 @@ describe('Try with sample data (Tracker)', () => {
     const user = userEvent.setup();
     renderTracker();
     await user.click(tryButton()!);
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await openAllJobs();
     await user.type(screen.getByPlaceholderText(/search/i), 'zzz-no-match');
     expect(banner()).toBeInTheDocument();
   });
@@ -99,6 +105,7 @@ describe('Try with sample data (Tracker)', () => {
     renderTracker();
     await user.click(tryButton()!);
     addJob('https://boards.greenhouse.io/acme/jobs/8');
+    await openAllJobs();
     await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
     expect(getAllJobs().map((j) => j.url)).toEqual(['https://boards.greenhouse.io/acme/jobs/8']);
   });

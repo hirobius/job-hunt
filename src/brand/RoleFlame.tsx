@@ -21,6 +21,26 @@ import {
 // Late shell styles ride this chunk: it always loads just after first paint (the app bar's logo).
 import '../theme/late.css';
 
+/* eslint-disable react-refresh/only-export-components -- #556: the nudge stays in this file, beside the logo it moves (flameEngine.test.ts reads it). */
+/** The stacked flame's box height, in em of the logo's font size (1.6 x TEXT_SETTINGS.flameScale 1.5). */
+export const STACKED_FLAME_EM = 2.4;
+/** The name's ink centre in Sora 800 sits this far right of its text box centre, in em (canvas
+ *  measureText on src/brand/fonts/sora-800.woff2: ink 2.0 to 209.8 of a 210.9 advance at 40px;
+ *  `e2e/brand.spec.ts` measures it again in the browser). */
+export const NAME_INK_OFFSET_EM = 0.011;
+/** The flame's mean mass centre over the engine's frames (x, y in viewBox units; FLAME.cx = 57.5,
+ *  box centre y = 73). `flameEngine.test.ts` measures it again over 300 frames: a new tuning that
+ *  moves it fails there, so the nudge below is set again. */
+export const FLAME_MASS = { x: 57.9, y: 66.1 };
+/** Stacked (sign-in, #556): the flame's box is centred on the name's box, but the eye centres mass
+ *  on ink. This moves the flame right by the name's ink offset less the flame's own mass offset, so
+ *  its mass sits over the name's ink centre: (0.011 - (57.9 - 57.5) x 2.4 / 146) em, 0.2px at 40px
+ *  with today's tuning (the plan's 0.066em was measured on the flame before the 2026-11-10 engine).
+ *  The row layout (app bar) has no nudge. */
+export const STACKED_FLAME_NUDGE_EM = 0.0044;
+
+/* eslint-enable react-refresh/only-export-components */
+
 export type FlameColors = { outer: string; middle: string; core: string };
 /** The brand blues are HDS primitives, set on `.rjb-rf` in base.css (light and dark), so one set of
  *  colours follows the theme with no JS: no raw colour in the app. */
@@ -114,6 +134,7 @@ const svgStyle = (size: number | string, extra?: CSSProperties): CSSProperties =
   overflow: 'visible',
   ...extra,
 });
+const nudgeStyle = (em: number): CSSProperties => ({ transform: `translateX(${em}em)` });
 const rootStyle = (px: number, extra?: CSSProperties): CSSProperties => ({
   ['--rjb-rf-size' as string]: `${px}px`,
   ...extra,
@@ -245,6 +266,7 @@ export function RoleFlameLogo({
         frame={frame}
         size={`${(layout === 'stacked' ? 1.6 : 1.3) * T.flameScale}em`}
         colors={colors}
+        style={layout === 'stacked' ? nudgeStyle(STACKED_FLAME_NUDGE_EM) : undefined}
       />
       <span aria-hidden="true">
         {T.text.split('').map((c, i) => {

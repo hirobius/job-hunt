@@ -1,13 +1,13 @@
 // Calm list 7/7 (#241): the header and spacing pass. Tested at the route seam through App.
 // - The app name never competes with a page title: a body-size wordmark at every width (rev-3
 //   mock), named by BRAND (an image, not a heading: #363).
-// - The Pipeline is panels (rev-3 mock): Follow up and Jobs are HDS Cards with a count
-//   Badge; no tinted banner boxes.
+// - The Pipeline is panels (rev-3 mock): Follow up (under the lg list column) is an HDS Card
+//   with a count Badge; the All jobs sheet's rows sit on one surface (#543); no tinted banners.
 // - No cards within cards, ever (Adrian 2026-11-01, #449; replaced "lists are cards", 2026-10-23):
 //   one card level max. A list inside a panel is rows in the panel's flow, split by spacing and
 //   hairlines (`ItemList` / `ItemRow`), never a Card per item. Review new on Today has no card at
 //   all: its heading, count and metadata declare the group.
-// - Rev-3 rhythm: the Pipeline's panels stack 24 apart.
+// - Rhythm: the All jobs sheet's parts stack on one HDS gap (#543).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openAllJobs } from './test/allJobs';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -94,30 +94,37 @@ describe('app bar (rev-3)', () => {
 });
 
 describe('Pipeline panels (rev-3)', () => {
-  it('Follow up and Jobs are HDS Cards with a count Badge; no To apply panel (#471), no tinted banners', async () => {
+  it('Follow up is an HDS Card with a count Badge; the All jobs sheet has no To apply panel (#471), no tinted banners', async () => {
     loadSample();
     window.location.hash = '#/apply';
     renderApp();
-    // On a phone the list is the All jobs sheet (Proposal A, Adrian 2026-11-08).
+    // On a phone the list is the All jobs sheet (Proposal A, Adrian 2026-11-08): its rows sit on
+    // one surface, no Card per job (#543).
     const panel = await openAllJobs();
-    await screen.findByRole('region', { name: /^Jobs$/ });
-    expect(screen.getByRole('region', { name: /^Follow up/ })).toHaveAttribute('data-padding');
-    // Jobs is flat: each job is its own card (Adrian 2026-11-08).
-    expect(screen.getByRole('region', { name: /^Jobs$/ })).not.toHaveAttribute('data-padding');
+    const jobs = await within(panel).findByRole('navigation', { name: 'Jobs' });
+    expect(within(jobs).getAllByRole('listitem').length).toBeGreaterThan(0);
+    expect(panel.querySelectorAll(CARD)).toHaveLength(0);
     expect(screen.queryByRole('region', { name: /^To apply/ })).toBeNull();
-    expect(screen.getAllByRole('article').length).toBeGreaterThan(0);
     expect(tintedBoxesIn(panel)).toHaveLength(0);
     // No sync banner (and no avatar dot): the Account menu's sync line says it.
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
+    // Follow up is a panel under the lg list column (JobRail, #543), an HDS Card.
+    cleanup();
+    viewport(1440);
+    window.location.hash = '#/apply';
+    renderApp();
+    expect(await screen.findByRole('region', { name: /^Follow up/ })).toHaveAttribute(
+      'data-padding',
+    );
   });
 
-  it('the Pipeline panels stack 24 apart', async () => {
+  it('the All jobs sheet stacks its parts on one gap', async () => {
     loadSample();
     window.location.hash = '#/apply';
     renderApp();
-    await openAllJobs();
-    const jobsPanel = await screen.findByRole('region', { name: /^Jobs$/ });
-    expect(jobsPanel.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
+    const sheet = await openAllJobs();
+    const jobs = await within(sheet).findByRole('navigation', { name: 'Jobs' });
+    expect(jobs.parentElement).toHaveAttribute('data-hds-metrics', 'gap:normal');
   });
 
   it('the Documents library is rows in its panel, not a card per document (#449)', async () => {
@@ -125,7 +132,7 @@ describe('Pipeline panels (rev-3)', () => {
     addStarterMessages(); // a clean first run has none (Adrian 2026-10-22)
     window.location.hash = '#/copy-deck';
     const { container } = renderApp();
-    const outreach = await screen.findByRole('region', { name: 'Outreach messages' });
+    const outreach = await screen.findByRole('region', { name: 'Messages' });
     await waitFor(() =>
       expect(within(outreach).getAllByRole('listitem').length).toBeGreaterThan(0),
     );
@@ -135,17 +142,21 @@ describe('Pipeline panels (rev-3)', () => {
     expect(nestedCards(container)).toEqual([]);
   });
 
-  it('the Apply list on a phone is one card per job in a flat panel, never cards in a card', async () => {
+  it('the Apply list on a phone is rows on one surface, never a card per job (#543)', async () => {
     viewport(390);
     loadSample();
     window.location.hash = '#/apply';
     renderApp();
     const sheet = await openAllJobs();
-    const jobs = await screen.findByRole('region', { name: /^Jobs$/ });
-    const rows = within(jobs).getAllByRole('article');
+    const jobs = await within(sheet).findByRole('navigation', { name: 'Jobs' });
+    const rows = within(jobs).getAllByRole('listitem');
     expect(rows.length).toBeGreaterThan(1);
-    // Each job its own card (Adrian 2026-11-08), its article inside that card.
-    for (const r of rows) expect(r.parentElement!.closest('[data-padding]')).not.toBeNull();
+    for (const r of rows) {
+      expect(isCard(r)).toBe(false);
+      expect(r.closest(CARD)).toBeNull();
+      // A long title clamps at 2 lines.
+      expect(r.querySelector('.rjb-clamp-2')).not.toBeNull();
+    }
     expect(nestedCards(sheet)).toEqual([]);
   });
 
@@ -166,10 +177,10 @@ describe('Today: no cards within cards (#449)', () => {
     viewport(390);
     window.location.hash = '#/find';
     const { container } = renderApp();
-    const review = await screen.findByRole('region', { name: /^Review new/ });
+    const review = await screen.findByRole('region', { name: /^Review\b/ });
     expect(isCard(review)).toBe(false);
     expect(review.closest('[data-padding][data-variant]')).toBeNull();
-    expect(await screen.findByRole('heading', { name: 'Review new' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeInTheDocument();
     expect(nestedCards(container)).toEqual([]);
   });
 });

@@ -9,7 +9,6 @@ import { usePageTitle } from './pageTitle';
 import { goBackTo, openJob, originOf, useRoute } from './route';
 import { nearestShown, usePipelineView, visibleJobs } from './pipelineView';
 import { openNextAfter } from './applyNext';
-import ApplyFilterBar from './ApplyFilterBar';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
 import ApplyWalk from './ApplyWalk';
@@ -120,9 +119,9 @@ export default function JobPage({ jobId }: { jobId: string }) {
         {detail}
       </Sidebar>
     );
-  // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The filter bar on top, then the
-  // sticky walk control (#542: view picker, "N filters" chip, "‹ 3 of 55 ›"; a swipe steps it too),
-  // then the job in full. The picker's "All jobs and filters" and the chip open the All jobs sheet. A job opened from elsewhere keeps its Back.
+  // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The sticky walk control (#542: view picker, "N filters" chip, "‹ 3 of 55 ›"; a swipe steps it too),
+  // then the job in full. The picker's "All jobs and filters" and the chip open the All jobs sheet,
+  // which holds Add job, the search, the filters and Sort (#543). A job opened from elsewhere keeps its Back.
   const list = visibleJobs(jobs, view);
   const order = visibleJobs(jobs, { ...view, filter: 'all', q: '', remoteOnly: false });
   const at = list.findIndex((j) => j.url === job.url);
@@ -135,7 +134,6 @@ export default function JobPage({ jobId }: { jobId: string }) {
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
-        <ApplyFilterBar jobs={jobs} />
         <Box className="rjb-apply-pager">
           <ApplyWalk
             job={job}
@@ -154,7 +152,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
           />
         </SwipeArea>
       </Stack>
-      <AllJobsSheet jobs={jobs} open={all} onOpenChange={setAll} />
+      <AllJobsSheet jobs={jobs} openId={jobId} open={all} onOpenChange={setAll} />
     </Box>
   );
 }
