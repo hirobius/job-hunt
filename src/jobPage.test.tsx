@@ -543,7 +543,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     openJobPage(URL_A);
     expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
     expect(screen.getByRole('region', { name: 'Filter jobs' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'All jobs' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View: To apply' })).toBeInTheDocument();
   });
 
   it('clicking another rail row swaps the job without leaving the page', async () => {

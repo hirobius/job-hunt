@@ -96,14 +96,19 @@ export async function visitAll(page: Page, check: (name: string) => Promise<void
 /** Below lg the Apply tab is one job (Proposal A, Adrian 2026-11-08); its list is the All jobs
  *  sheet. Opens it and returns it. */
 export async function openAllJobs(page: Page) {
-  // exact: the named views' All jobs tag (#611, "All jobs 13") shares the name's start.
-  await page.getByRole('button', { name: 'All jobs', exact: true }).click();
+  await pressAllJobs(page);
   const sheet = page.getByRole('dialog', { name: 'All jobs' });
   await expect(sheet.getByRole('region', { name: /^Jobs/ })).toBeVisible();
   return sheet;
 }
 
-/** Below lg: open the Apply filter bar (search, the named views, Sort). */
+/** Below lg (#542): the walk row's view picker, then its "All jobs and filters" row. */
+export async function pressAllJobs(page: Page) {
+  await page.getByRole('button', { name: /^View: / }).click();
+  await page.getByRole('menuitem', { name: 'All jobs and filters' }).click();
+}
+
+/** Below lg: open the Apply filter bar (search, Sort). */
 export async function openFilters(page: Page) {
   const filters = page.getByRole('button', { name: 'Filters' });
   if ((await filters.getAttribute('aria-expanded')) !== 'true') await filters.click();

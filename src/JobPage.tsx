@@ -2,7 +2,7 @@
 // (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks). At
 // lg the list sits beside it; below lg it stands alone, with Back and the "‹ 2 of N ›" pager.
 import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from 'react';
-import { Box, Button, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobius/design-system';
+import { Box, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobius/design-system';
 import { findJobById, jobIdOf, useJobs } from './store';
 import { titleOf } from './jobRow';
 import { usePageTitle } from './pageTitle';
@@ -12,7 +12,7 @@ import { openNextAfter } from './applyNext';
 import ApplyFilterBar from './ApplyFilterBar';
 import AllJobsSheet from './AllJobsSheet';
 import { useBackCloses } from './useBackCloses';
-import ApplyPager from './ApplyPager';
+import ApplyWalk from './ApplyWalk';
 import { useFollowView } from './followView';
 import { ApplicationKit } from './ApplySheet';
 import { scrollToTop } from './scrollMemory';
@@ -119,9 +119,9 @@ export default function JobPage({ jobId }: { jobId: string }) {
         {detail}
       </Sidebar>
     );
-  // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The filter bar on top, a sticky
-  // "‹ 3 of 55 ›" over the jobs the filter shows (a swipe steps it too), then the job in full.
-  // All jobs opens a sheet to jump to any job. A job opened from elsewhere keeps its Back.
+  // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The filter bar on top, then the
+  // sticky walk control (#542: view picker, "N filters" chip, "‹ 3 of 55 ›"; a swipe steps it too),
+  // then the job in full. The picker's "All jobs and filters" and the chip open the All jobs sheet. A job opened from elsewhere keeps its Back.
   const list = visibleJobs(jobs, view);
   const order = visibleJobs(jobs, { ...view, filter: 'all', q: '', remoteOnly: false });
   const at = list.findIndex((j) => j.url === job.url);
@@ -136,12 +136,13 @@ export default function JobPage({ jobId }: { jobId: string }) {
       <Stack gap="normal">
         <ApplyFilterBar jobs={jobs} />
         <Box className="rjb-apply-pager">
-          <Stack direction="row" gap="tight" align="center" justify="space-between">
-            <ApplyPager job={job} list={list} order={order} />
-            <Button size="md" variant="secondary" onClick={() => setAll(true)}>
-              All jobs
-            </Button>
-          </Stack>
+          <ApplyWalk
+            job={job}
+            jobs={jobs}
+            list={list}
+            order={order}
+            onAllJobs={() => setAll(true)}
+          />
         </Box>
         <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
           <JobDetail

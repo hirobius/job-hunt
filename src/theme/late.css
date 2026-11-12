@@ -9,7 +9,8 @@
  *
  * Phone (below sm): the same HDS Menu, drawn as a bottom sheet: full width from the bottom edge,
  * a grab handle on top, at most 85% of the screen with its own scroll, over the scrim. Still a
- * menu (role, arrow keys, Escape, Back), so nothing about its use changes. HDS Sheet would add its
+ * menu (role, arrow keys, Escape, Back), so nothing about its use changes. `.rjb-menu-sheet` is
+ * shared: the Account menu and Apply's view picker (#542). HDS Sheet would add its
  * chunk to the first load. Upstream ask: docs/hds-upstream-asks-0.9.md, "Menu as a phone sheet". */
 .rjb-account-menu {
   min-width: 16rem;
@@ -20,14 +21,14 @@
 }
 
 @media (max-width: 639.98px) {
-  [data-radix-popper-content-wrapper]:has(> .rjb-account-menu) {
+  [data-radix-popper-content-wrapper]:has(> .rjb-menu-sheet) {
     position: fixed !important;
     inset: auto 0 0 0 !important;
     transform: none !important;
     min-width: 0 !important;
   }
 
-  [data-hds] .rjb-account-menu {
+  [data-hds] .rjb-menu-sheet {
     width: 100%;
     min-width: 0;
     max-height: 85dvh;
@@ -47,7 +48,7 @@
 
   /* The grab handle: 36x4, a pill in the strong border colour, centred on top. Its own box here,
    * not base.css's (that one is the All jobs sheet's, inside an HDS Dialog header). */
-  [data-hds] .rjb-account-menu > .rjb-sheet-handle {
+  [data-hds] .rjb-menu-sheet > .rjb-sheet-handle {
     display: block;
     flex: none;
     width: calc(var(--primitive-space-8) + var(--primitive-space-1));

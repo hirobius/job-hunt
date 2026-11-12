@@ -56,8 +56,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Two screens: Find and Apply** (the two top tabs). **Find** is home: Review new postings, Apply, Follow up
   and New companies. **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: a filter bar
-  (Filters, Add job), a sticky "‹ 3 of 55 ›" pager with All jobs (a bottom sheet with the list), then the
-  job. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
+  (Filters, Add job), the sticky walk control, then the job.
+- **The walk control (#542).** One row of three named controls, no box and no outline: left the view
+  picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the five views and
+  "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
+  jobs bottom sheet), and right the pager "7 of 12" with previous and next, which only steps (a
+  sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
   Interviewing, Applied, Recently closed, then All jobs. Each is a Tag chip with a count Badge, one

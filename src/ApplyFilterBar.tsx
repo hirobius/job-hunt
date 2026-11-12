@@ -1,12 +1,11 @@
 // The Apply screen's filter bar on a phone (Proposal A, Adrian 2026-11-08): one compact row at the
-// top (Filters and Add job, then what is shown; All jobs sits with the pager under it); Filters opens the search, the named views (#541) and Sort
+// top (Filters and Add job, then what is shown; All jobs sits with the pager under it); Filters opens the search and Sort (the named views moved to the walk row's picker, #542)
 // (the shared pipelineView). Liveness checks itself on open (#602): no action here. Open or closed
 // is kept for this page load (view memory).
 import { useRef } from 'react';
 import { ListFilter, Search } from 'lucide-react';
 import { Box, Button, Icon, Input, Stack, Text, Toggle } from '@hirobius/design-system';
 import AddJobButton from './AddJob';
-import JobViews from './JobViews';
 import PipelineMenus from './PipelineMenus';
 import { useClosedOnBoard } from './useClosedOnBoard';
 import { SampleBanner } from './demo/SampleData';
@@ -56,7 +55,6 @@ export default function ApplyFilterBar({ jobs }: { jobs: Job[] }) {
                 onChange={(e) => setPipelineView({ q: e.target.value })}
                 leadingVisual={<Search size={16} />}
               />
-              <JobViews />
               <PipelineMenus />
               {cleared && (
                 <Box>

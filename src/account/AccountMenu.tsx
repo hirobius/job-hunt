@@ -114,7 +114,7 @@ export default function AccountMenu() {
             className="rjb-account"
           />
         </Menu.Trigger>
-        <Menu.Content align="end" className="rjb-account-menu">
+        <Menu.Content align="end" className="rjb-account-menu rjb-menu-sheet">
           {/* The phone sheet's grab handle (theme/late.css); nothing on a wider screen. */}
           <span className="rjb-sheet-handle" aria-hidden="true" />
           {sync.user ? (

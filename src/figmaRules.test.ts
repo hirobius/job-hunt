@@ -39,6 +39,15 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(/the Status select is gone/);
   });
 
+  it('pins the walk control (#542)', () => {
+    expect(RULES).toMatch(/\*\*The walk control \(#542\)\.\*\*/);
+    expect(RULES).toMatch(/view name truncates, never the pager/);
+    expect(CLAUDE).toMatch(/view name truncates, never the pager/);
+    const walk = fs.readFileSync('src/ApplyWalk.tsx', 'utf8');
+    expect(walk).toContain('All jobs and filters');
+    expect(walk).toContain('rjb-menu-sheet');
+  });
+
   it('names the two screens as CLAUDE.md does', () => {
     // The top tabs, as CLAUDE.md states them (#471, #475).
     expect(CLAUDE).toMatch(/Two screens: Find and Apply/);
