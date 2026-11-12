@@ -15,6 +15,8 @@ export const LinkConfirmScreen = lazyView(importFresh(() => import('./account/Li
 export const ExportLinksDialog = lazyView(importFresh(() => import('./ExportLinksDialog')));
 export const CompaniesDialog = lazyView(importFresh(() => import('./CompaniesDialog')));
 export const SearchProfileDialog = lazyView(importFresh(() => import('./SearchProfileDialog')));
+// The Account menu's rows (#549): icons and toggles, off the entry.
+export const AccountMenuRows = lazyView(importFresh(() => import('./account/AccountMenuRows')));
 // The Account menu's Data dialog (#550): back up, restore, export, Recently removed, reset.
 export const DataDialog = lazyView(importFresh(() => import('./account/DataDialog')));
 export const FollowUpHost = lazyView(
@@ -43,6 +45,7 @@ export const preloadDialogs = () =>
       CompaniesDialog,
       SearchProfileDialog,
       DataDialog,
+      AccountMenuRows,
       FollowUpHost,
       AddInterviewHost,
       RecentlyRemovedHost,

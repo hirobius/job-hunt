@@ -268,6 +268,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `menuitemcheckbox` + `aria-checked` and a drawn switch, `.rjb-menu-switch` in late.css; G9 hds#1440). About = Send
   feedback, Privacy and terms. Every row has a 16px icon; rows are 44px on a phone (HDS `hds-touch-row`) and 38px from
   sm (late.css). **Scan details moved into the Search profile** (a closed HDS Disclosure row at its end, `ScanDetails.tsx`).
+  The rows are their own chunk (`AccountMenuRows.tsx`, `lazyDialogs.ts`, fetched 3 s after start and as the
+  Account button is pointed at or focused; `entryChunk.test.ts`), so the icons stay off the entry.
   Pinned in `shell.test.tsx`, `e2e/account-menu.spec.ts`, `e2e/brand.spec.ts`). Pillars and tracks are gone from the UI (ADR 0009).
 - **Data dialog (redesign §5.9, #550):** `src/account/DataDialog.tsx`, a lazy chunk (`lazyDialogs.ts` `DataDialog`,
   `entryChunk.test.ts`), opened by the Account menu's one **Data** item. An HDS Dialog drawn as a bottom sheet below sm

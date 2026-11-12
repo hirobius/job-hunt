@@ -63,7 +63,7 @@ describe('FIGMA-RULES.md', () => {
   it('pins the Account menu (#549): 9 items in 4 groups, toggles that show their state', () => {
     expect(RULES).toMatch(/\*\*The Account menu \(#549\): 9 items in 4 groups\.\*\*/);
     expect(CLAUDE).toMatch(/9 items in 4 groups, redesign §5\.9, #549/);
-    const menu = fs.readFileSync('src/account/AccountMenu.tsx', 'utf8');
+    const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
     for (const name of [
       'On this device only',
       'Sign in to see your jobs on any device',

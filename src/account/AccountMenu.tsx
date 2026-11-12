@@ -6,38 +6,33 @@
 //      lazy dialog for back up, restore, export, Recently removed and the repairs)
 //   3. Dark theme and Pause animations, toggles that show their state (MenuToggleItem, G9)
 //   4. Send feedback, Privacy and terms (#43)
-// Every row has a 16px icon; rows are 44px on a phone, 38px from sm (theme/late.css).
-import { useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  Building2,
-  Database,
-  FileText,
-  LogOut,
-  MessageSquare,
-  Moon,
-  Pause,
-  RefreshCw,
-  ShieldCheck,
-  SlidersHorizontal,
-  type LucideIcon,
-} from 'lucide-react';
-import { Avatar, Button, Dialog, Icon, Menu, Text } from '@hirobius/design-system';
-import { MenuToggleItem } from '../hds-gaps/MenuToggleItem';
-import { useColorMode } from '../ColorMode';
+// Every row has a 16px icon; rows are 44px on a phone, 38px from sm (theme/late.css). The rows live
+// in AccountMenuRows.tsx, a lazy chunk; this file keeps the trigger, the sheet and the dialogs.
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Avatar, Button, Dialog, Menu } from '@hirobius/design-system';
 import { refocusAccount, useCloudSync } from './accountContext';
-import { openDocuments, openLegal } from '../route';
 import { useBackCloses } from '../useBackCloses';
-import { CompaniesDialog, DataDialog, SearchProfileDialog, useLoadedWhen } from '../lazyDialogs';
+import {
+  AccountMenuRows,
+  CompaniesDialog,
+  DataDialog,
+  SearchProfileDialog,
+  useLoadedWhen,
+} from '../lazyDialogs';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
-import { motionPaused, setMotionPaused } from '../motionPref';
 
-const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
+/** Fetch the rows' chunk once the app is idle, so the first open needs no round trip. */
+const ROWS_PREFETCH_MS = 3000;
+const preloadRows = () => void AccountMenuRows.preload().catch(() => {});
 
 export default function AccountMenu() {
   const sync = useCloudSync();
   const { accountTrigger, setAccountTrigger } = sync;
-  const { mode, toggle } = useColorMode();
+  useEffect(() => {
+    const t = setTimeout(preloadRows, ROWS_PREFETCH_MS);
+    return () => clearTimeout(t);
+  }, []);
   // Followed and Ignored companies (simplify Q6: the Companies tab's place).
   const [companies, setCompanies] = useState(false);
   useBackCloses(companies, () => setCompanies(false), 'companies');
@@ -79,8 +74,6 @@ export default function AccountMenu() {
   // when not. No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
   const initial = sync.user?.email?.trim()[0]?.toUpperCase();
 
-  // Header lines are Menu.Labels (not focusable, not clickable). The email is plain text;
-  // index.html's format-detection meta stops iOS turning it into a mailto link.
   return (
     <>
       {/* Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly. */}
@@ -104,81 +97,23 @@ export default function AccountMenu() {
             }
             label="Account"
             className="rjb-account"
+            onPointerEnter={preloadRows}
+            onFocus={preloadRows}
           />
         </Menu.Trigger>
         <Menu.Content align="end" className="rjb-account-menu rjb-menu-sheet">
           {/* The phone sheet's grab handle (theme/late.css); nothing on a wider screen. */}
           <span className="rjb-sheet-handle" aria-hidden="true" />
-          {/* 1. Who you are. */}
-          {sync.user ? (
-            <>
-              <Menu.Label data-account-line>Signed in as {sync.user.email}</Menu.Label>
-              <Menu.Label data-account-line>
-                <Text variant="caption" as="span" tone="secondary">
-                  {syncLine(sync.status)}
-                </Text>
-              </Menu.Label>
-              {sync.offline && (
-                <Row icon={RefreshCw} onSelect={sync.retry}>
-                  Retry sync
-                </Row>
-              )}
-              <Row icon={LogOut} onSelect={sync.signOut}>
-                Sign out
-              </Row>
-            </>
-          ) : (
-            <>
-              <Menu.Label data-account-line>On this device only</Menu.Label>
-              <Menu.Label data-account-line>
-                <Text variant="caption" as="span" tone="secondary">
-                  Sign in to see your jobs on any device
-                </Text>
-              </Menu.Label>
-              {/* The grey key (redesign §3): an HDS secondary Button as the menu item. */}
-              <Menu.Item asChild onSelect={opensDialog(() => sync.setSignInOpen(true))}>
-                <Button variant="secondary" size="sm" className="rjb-menu-key">
-                  Sign in
-                </Button>
-              </Menu.Item>
-            </>
-          )}
-          <Menu.Separator />
-          {/* 2. Your things. Documents (was Templates, #227) is a dialog over the page (#471 slice
-              4); Back or Close returns to the page under it. */}
-          <Row icon={FileText} onSelect={() => openDocuments('')}>
-            Documents
-          </Row>
-          <Row icon={SlidersHorizontal} onSelect={opensDialog(() => setProfile(true))}>
-            Search profile
-          </Row>
-          <Row icon={Building2} onSelect={opensDialog(() => setCompanies(true))}>
-            Companies
-          </Row>
-          <Row icon={Database} onSelect={opensDialog(() => setDataOpen(true))}>
-            Data
-          </Row>
-          <Menu.Separator />
-          {/* 3. Display: toggles that show their state and keep the menu open. */}
-          <MenuToggleItem
-            checked={mode === 'dark'}
-            onCheckedChange={toggle}
-            icon={<Icon icon={Moon} size="small" />}
-          >
-            Dark theme
-          </MenuToggleItem>
-          <MotionToggle />
-          <Menu.Separator />
-          {/* 4. About. */}
-          <Row
-            icon={MessageSquare}
-            onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}
-          >
-            Send feedback
-          </Row>
-          <Row icon={ShieldCheck} onSelect={() => openLegal('privacy')}>
-            Privacy and terms
-          </Row>
+          {/* The rows are their own chunk (AccountMenuRows.tsx, fetched on idle and as the
+              button is pointed at or focused), so their icons and toggles stay off the entry. */}
+          <Suspense fallback={null}>
+            <AccountMenuRows
+              opensDialog={opensDialog}
+              openProfile={() => setProfile(true)}
+              openCompanies={() => setCompanies(true)}
+              openData={() => setDataOpen(true)}
+            />
+          </Suspense>
         </Menu.Content>
       </Menu>
       <Dialog open={companies && companiesReady} onOpenChange={setCompanies}>
@@ -202,46 +137,4 @@ export default function AccountMenu() {
       </Dialog>
     </>
   );
-}
-
-/** One menu row: a 16px icon, then the label. */
-function Row({
-  icon,
-  onSelect,
-  children,
-}: {
-  icon: LucideIcon;
-  onSelect: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Menu.Item onSelect={onSelect}>
-      <Icon icon={icon} size="small" />
-      {children}
-    </Menu.Item>
-  );
-}
-
-/** Pause animations (WCAG 2.2.2: the app bar's flame loops on; motionPref.ts). Read as the menu
- *  opens (its content mounts only then), so another tab's choice or a system change shows here
- *  too (#516 review). */
-function MotionToggle() {
-  const [paused, setPaused] = useState(motionPaused);
-  return (
-    <MenuToggleItem
-      checked={paused}
-      onCheckedChange={(next) => {
-        setMotionPaused(next);
-        setPaused(next);
-      }}
-      icon={<Icon icon={Pause} size="small" />}
-    >
-      Pause animations
-    </MenuToggleItem>
-  );
-}
-
-// The status reads "Synced · <email>"; the header already names the email, so drop it here.
-function syncLine(status: string): string {
-  return status.startsWith('Synced') ? 'Synced' : status;
 }
