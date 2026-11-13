@@ -36,6 +36,9 @@ jobs:
        github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # main only, no reviewer. The token is an ENVIRONMENT secret (here and on supabase-production),
+    # never a repository secret, so no other branch or workflow can read it.
+    environment: supabase-plan
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -58,7 +61,7 @@ jobs:
       github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Required reviewer: Adrian approves each run (Settings > Environments).
+    # main only, required reviewer: Adrian approves each run (Settings > Environments).
     environment: supabase-production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

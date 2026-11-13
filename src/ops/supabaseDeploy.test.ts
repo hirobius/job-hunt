@@ -136,4 +136,26 @@ describe('the script and the workflow', () => {
     expect(yml).toContain('environment: supabase-production');
     expect(yml).toContain('secrets.SUPABASE_ACCESS_TOKEN');
   });
+
+  it('every job that reads the token is behind an environment (no repository secret)', () => {
+    const jobs = yml.split(/\n {2}(?=[a-z]+:\n)/).slice(1);
+    expect(jobs.length).toBe(2);
+    for (const job of jobs) {
+      if (job.includes('secrets.SUPABASE_ACCESS_TOKEN'))
+        expect(job).toMatch(/environment: supabase-/);
+    }
+    const doc = fs.readFileSync('docs/ci/supabase-deploy.md', 'utf8');
+    expect(doc).toContain('Never add the token as a repository secret');
+  });
+
+  it('a plan with no ledger yet reports it and passes, so init can run after it', () => {
+    expect(script).toMatch(
+      /if \(mode === 'plan'\) \{\s*summary\(`supabase-deploy: \$\{msg\}`\);\s*process\.exit\(0\);/,
+    );
+  });
+
+  it('never redeploys an older commit over a newer one', () => {
+    expect(script).toContain("'merge-base', '--is-ancestor'");
+    expect(script).toContain('function kept');
+  });
 });

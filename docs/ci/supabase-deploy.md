@@ -31,10 +31,15 @@ see the plan.
 
 1. Supabase dashboard > your avatar > Account preferences > Access Tokens > Generate new token.
    Name it `job-hunt CI`. Keep it in Bitwarden (Hirobius - Internal, field `SUPABASE_ACCESS_TOKEN`).
-2. GitHub > hirobius/job-hunt > Settings > Secrets and variables > Actions > New repository secret.
-   Name `SUPABASE_ACCESS_TOKEN`, value: the token.
-3. GitHub > Settings > Environments > New environment > name `supabase-production`.
-   Tick "Required reviewers", add yourself, and save. Each deploy now waits for your approval.
+2. GitHub > hirobius/job-hunt > Settings > Environments > New environment > name `supabase-plan`.
+   Deployment branches and tags > Selected branches and tags > add `main`. Environment secrets >
+   Add environment secret: name `SUPABASE_ACCESS_TOKEN`, value: the token. Save. (No reviewer: the
+   plan job only reads.)
+3. New environment > name `supabase-production`. Tick "Required reviewers" and add yourself.
+   Deployment branches: `main` only, as in step 2. Add the same `SUPABASE_ACCESS_TOKEN` environment
+   secret. Save. Each deploy now waits for your approval.
+   **Never add the token as a repository secret:** any workflow on any branch can read a repository
+   secret, which would skip your approval.
 4. Check that every migration in `supabase/migrations` is live (the Roleflame lane can check).
    Known gap on 2026-11-12: `20261105100000_daily_picks.sql` was not applied. Apply it by hand
    first, or the init in step 6 records it as applied.
@@ -55,5 +60,9 @@ From then on, every merge to main runs plan, then waits for your approval to dep
 - **The function deploy failed:** the migrations before it are in. Fix the code, then run the
   workflow again (mode `deploy`).
 - **Roll back the function:** Supabase dashboard > Edge Functions > sync-postings shows the version.
-  Deploy the last good commit: Actions > supabase-deploy > Run workflow from that commit's branch,
-  or revert the PR on main.
+  To go back, revert the PR on main: the revert's merge runs the workflow and deploys the old code.
+- **Out of order:** when two merges' ci runs finish in the wrong order, the older commit never
+  redeploys the function over the newer one (the summary says "function kept").
+- **Statements that cannot run in a transaction** (`create index concurrently`, `vacuum`, a top-level
+  `commit`) cannot go through this path. Apply such a migration by hand, then add its row to
+  `ops.deployed_migrations`.

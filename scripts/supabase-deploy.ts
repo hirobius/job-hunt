@@ -106,7 +106,13 @@ insert into ops.deploys (kind, sha) values ('init', '${sha}');`,
 
 const ledger = await query(`select to_regclass('ops.deployed_migrations') is not null as ok`, true);
 if (!ledger[0]?.ok) {
-  fail('no ledger yet: run the workflow once with mode "init" (docs/ci/supabase-deploy.md)');
+  const msg = 'no ledger yet: run the workflow once with mode "init" (docs/ci/supabase-deploy.md)';
+  // The plan job runs before init too, so a plan only reports it; a deploy stops.
+  if (mode === 'plan') {
+    summary(`supabase-deploy: ${msg}`);
+    process.exit(0);
+  }
+  fail(msg);
 }
 const applied = (await query('select file from ops.deployed_migrations', true)).map((r) =>
   String(r.file),
@@ -118,7 +124,13 @@ const last = await query(
 const lastSha = last[0] ? String(last[0].sha) : '';
 // No CI deploy yet, or the last one's commit is not in this checkout: deploy.
 let functionChanged = true;
-if (lastSha) {
+const isAncestor = (a: string, b: string) =>
+  spawnSync('git', ['merge-base', '--is-ancestor', a, b]).status === 0;
+if (lastSha && lastSha !== sha && isAncestor(sha, lastSha)) {
+  // Two merges' ci runs can finish out of order: never put an older function over a newer one.
+  functionChanged = false;
+  summary(`- this commit is older than the last CI deploy (${lastSha.slice(0, 7)}): function kept`);
+} else if (lastSha) {
   const diff = spawnSync('git', ['diff', '--name-only', lastSha, sha], { encoding: 'utf8' });
   if (diff.status === 0) {
     functionChanged = touchesFunction(diff.stdout.split('\n').filter(Boolean), functionGraph());
