@@ -8,7 +8,11 @@
 /* "‹ › 1 of N" below lg: each arrow is its own 44px box (the phone's touch size), side by side
  * with a gap, so the hit areas never overlap; the count follows them. */
 [data-hds] .rjb-find-pager {
-  flex: none;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--semantic-color-surface-page);
+  padding-block: var(--primitive-space-1);
 }
 [data-hds] .rjb-find-pager > button {
   inline-size: var(--rjb-touch);
@@ -21,7 +25,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* An arrow scrolls its card to the top, clear of the sticky app bar. */
+/* An arrow scrolls its card to the top, clear of the sticky pager row (44px + its padding). */
 .rjb-find-list > li {
-  scroll-margin-top: var(--primitive-space-4);
+  scroll-margin-top: calc(var(--rjb-touch) + var(--primitive-space-4));
 }

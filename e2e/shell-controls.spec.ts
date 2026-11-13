@@ -59,14 +59,15 @@ for (const width of [390, 1440]) {
     test('Find: one list, no view switch and no filter row (2026-11-13)', async ({ page }) => {
       await seed(page);
       await page.goto('/#/find');
-      await expect(page.getByRole('list', { name: 'New postings' })).toBeVisible();
+      // The seed reads no postings: the empty state (at lg the right column's).
+      await expect(page.getByRole('region', { name: 'No postings' })).toBeVisible({
+        timeout: 15_000,
+      });
       await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
       await expect(page.getByRole('checkbox')).toHaveCount(0);
       await expect(page.getByRole('group', { name: 'Filter postings' })).toHaveCount(0);
-      // Phones keep only the pager row; at lg there is none.
-      await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(
-        width < 1024 ? 1 : 0,
-      );
+      // No pager beside an empty state (phones show it only beside postings, review.spec).
+      await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
     });
 
     test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({
@@ -199,19 +200,17 @@ test.describe('at 390, the view picker', () => {
     expect(fill.bg).not.toBe('rgba(0, 0, 0, 0)');
     expect(fill.h).toBeCloseTo(40, 0);
     expect(fill.w).toBeCloseTo(box!.width, 0);
-    // The chip's fill: the same colour and height as Find's New chip.
-    await page.goto('/#/find');
-    const chip = page.getByRole('group', { name: 'Filter postings' }).getByRole('button').first();
-    const chipFill = await chip.evaluate((el) => {
-      const s = getComputedStyle(el.firstElementChild as Element);
-      return {
-        bg: s.backgroundColor,
-        h: (el.firstElementChild as Element).getBoundingClientRect().height,
-      };
+    // The chip's fill: HDS Tag's resting background (Find's chips went on 2026-11-13; Apply's
+    // view chips keep the same Tag).
+    const tagBg = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.background = 'var(--component-tag-background)';
+      document.body.append(probe);
+      const bg = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return bg;
     });
-    expect(chipFill.bg).toBe(fill.bg);
-    expect(chipFill.h).toBeCloseTo(fill.h, 0);
-    await page.goto('/#/apply');
+    expect(tagBg).toBe(fill.bg);
     // The caret sits inside the fill.
     const caret = await picker.locator('svg').boundingBox();
     expect(caret!.x + caret!.width).toBeLessThan(box!.x + box!.width);

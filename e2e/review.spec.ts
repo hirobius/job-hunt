@@ -89,7 +89,7 @@ async function setUp(page: Page) {
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
   // The profile has landed (the list shows), so the page no longer swaps under the click. Signed
   // out, nothing scans on open (2026-11-07): Scan now does.
-  await expect(page.getByRole('list', { name: 'New postings' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
   const since = await page.evaluate(() => Date.now());
   // Scan now is the Account menu's (#694).
   await accountMenuItem(page, 'Scan now');
@@ -248,10 +248,9 @@ for (const width of [390, 1440]) {
     }
     for (let left = 2; left > 0; left--) {
       await page.waitForTimeout(800);
-      const title = (await list.getByRole('heading', { level: 3 }).first().innerText())
-        .replace(/\s*\(opens in new tab\)$/, '')
-        .replace(/⁠/g, '');
-      const company = title === 'Design Systems Designer' ? 'Orbit' : 'Kite';
+      // The first card's name is "<title> at <company>".
+      const name = (await list.getByRole('article').first().getAttribute('aria-label'))!;
+      const [title, company] = name.split(' at ');
       await (await decideOn(title, 'Skip', company)).click();
       if (left > 1) await expect(list.getByRole('listitem')).toHaveCount(1);
     }
@@ -263,7 +262,8 @@ for (const width of [390, 1440]) {
       ).toBeVisible();
       await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeFocused();
     } else {
-      await expect(page.getByRole('heading', { name: 'You’re all caught up' })).toBeFocused();
+      // Below lg the empty state's title takes the focus the last card left (#508).
+      await expect(page.locator('#rjb-review-empty-title')).toBeFocused();
     }
 
     // Back on the Pipeline, the save is in To apply.
@@ -318,7 +318,7 @@ for (const width of [375, 390]) {
     });
     await page.goto('/#/find');
     const list = page.getByRole('list', { name: 'New postings' });
-    await expect(list).toBeVisible();
+    await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
     const since = await page.evaluate(() => Date.now());
     await accountMenuItem(page, 'Scan now');
     await scanFinished(page, since);
@@ -328,42 +328,51 @@ for (const width of [375, 390]) {
     const next = pager.getByRole('button', { name: 'Next posting' });
     const count = pager.getByText(/^\d+ of 12$/);
     await expect(count).toHaveText('1 of 12');
-    // Arrows first, then the count; the row starts at the gutter.
-    const [p, n, c] = [
-      await prev.boundingBox(),
-      await next.boundingBox(),
-      await count.boundingBox(),
-    ];
-    expect(p!.x).toBeLessThan(n!.x);
-    expect(n!.x + n!.width).toBeLessThanOrEqual(c!.x);
-    expect(Math.abs(p!.x - 20)).toBeLessThan(2);
-    // Each arrow is a 44px box; the boxes do not overlap, and a tap anywhere in one is its own.
-    for (const b of [p!, n!]) {
-      expect(Math.round(b.width)).toBeGreaterThanOrEqual(44);
-      expect(Math.round(b.height)).toBeGreaterThanOrEqual(44);
-    }
-    expect(p!.x + p!.width).toBeLessThanOrEqual(n!.x);
-    for (const [key, b] of [
-      [prev, p!],
-      [next, n!],
-    ] as const) {
-      const misses = await key.evaluate((el, box) => {
-        const out: string[] = [];
-        for (const x of [box.x + 2, box.x + box.width / 2, box.x + box.width - 2])
-          for (const y of [box.y + 2, box.y + box.height / 2, box.y + box.height - 2])
-            if (document.elementFromPoint(x, y)?.closest('button') !== el)
-              out.push(`${Math.round(x)},${Math.round(y)}`);
-        return out;
-      }, b);
-      expect(misses).toEqual([]);
-    }
     // The arrows step the current card into view and focus its title.
     await next.click();
     await next.click();
     await expect(count).toHaveText('3 of 12');
     const third = list.getByRole('listitem').nth(2);
     await expect(third.getByRole('heading', { level: 3 })).toBeFocused();
-    expect(Math.abs((await third.boundingBox())!.y)).toBeLessThan(40);
+    // The card sits just under the pager row, which stays stuck at the top (2026-11-13).
+    const [cardTop, bar] = [(await third.boundingBox())!.y, (await pager.boundingBox())!];
+    expect(Math.abs(bar.y)).toBeLessThan(1);
+    expect(cardTop).toBeGreaterThanOrEqual(bar.y + bar.height - 1);
+    expect(cardTop).toBeLessThan(bar.y + bar.height + 24);
+    // With both arrows enabled (one step in): arrows first, then the count; the row starts at the gutter. Each arrow is a 44px box, the
+    // boxes do not overlap, and a tap anywhere in one is its own (viewport coordinates throughout).
+    const geo = await pager.evaluate((g) => {
+      const [p, n] = Array.from(g.querySelectorAll('button')).map((b) => b.getBoundingClientRect());
+      const c = (g.querySelector('span') as HTMLElement).getBoundingClientRect();
+      const misses: string[] = [];
+      for (const [i, r] of [p, n].entries())
+        // Each edge's middle 2px in, the centre, and the corners 8px in (the key's rounded corners
+        // are not hit-tested as part of it).
+        for (const [x, y] of [
+          [r.left + 2, r.top + r.height / 2],
+          [r.right - 2, r.top + r.height / 2],
+          [r.left + r.width / 2, r.top + 2],
+          [r.left + r.width / 2, r.bottom - 2],
+          [r.left + r.width / 2, r.top + r.height / 2],
+          [r.left + 8, r.top + 8],
+          [r.right - 8, r.top + 8],
+          [r.left + 8, r.bottom - 8],
+          [r.right - 8, r.bottom - 8],
+        ])
+          if (
+            document.elementFromPoint(x, y)?.closest('button') !== g.querySelectorAll('button')[i]
+          )
+            misses.push(`${i}: ${Math.round(x)},${Math.round(y)}`);
+      return { p: p.toJSON(), n: n.toJSON(), c: c.toJSON(), misses };
+    });
+    expect(geo.misses).toEqual([]);
+    expect(geo.p.right).toBeLessThanOrEqual(geo.n.left);
+    expect(geo.n.right).toBeLessThanOrEqual(geo.c.left);
+    expect(Math.abs(geo.p.left - 20)).toBeLessThan(2);
+    for (const b of [geo.p, geo.n]) {
+      expect(Math.round(b.width)).toBeGreaterThanOrEqual(44);
+      expect(Math.round(b.height)).toBeGreaterThanOrEqual(44);
+    }
     // Scrolling moves the current card with it, so the count stays true.
     await page.waitForTimeout(700);
     await page.evaluate(() => window.scrollTo(0, 0));

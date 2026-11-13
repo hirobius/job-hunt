@@ -8,7 +8,7 @@
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import {
   Badge,
@@ -143,6 +143,20 @@ export default function ReviewView({
   // A decided posting stays in the list while its card collapses: it is never picked again.
   const columns = wide && !!header;
   const alone = !selectedFp && !!view && !listed.length;
+  // When the last posting goes (or the list turns out empty) the right column's content changes
+  // under the focus a decision or a closing dialog gave: focus left on <body> goes to Find's h1.
+  const wasAlone = useRef(alone);
+  useLayoutEffect(() => {
+    const now = columns && alone;
+    if (now && !wasAlone.current) {
+      const active = document.activeElement;
+      if (!active || active === document.body) {
+        const h = pageHeadingNow();
+        if (h) focusAsHeading(h);
+      }
+    }
+    wasAlone.current = now;
+  }, [columns, alone]);
   // Kept with the list it was decided on: once the list changes the card has left it.
   const [deciding, setDeciding] = useState<{ on: FeedRow[]; gone: FeedRow[]; mute: boolean[] }>({
     on: [],
@@ -317,40 +331,41 @@ export default function ReviewView({
                     ? `${listed.length} postings, ${counts.new} new`
                     : ''))}
           </VisuallyHidden>
-          {/* Below lg only, the pager row (Adrian 2026-11-13): "‹ › 1 of N" at its start. At lg
-              there is no row: the list starts under the tabs. */}
-          {pager && (
-            <Stack
-              direction="row"
-              gap="px8"
-              align="center"
-              role="group"
-              aria-label="Postings in the list"
-              className="rjb-find-pager"
-            >
-              <Button
-                variant="tertiary"
-                iconOnly
-                label="Previous posting"
-                iconLeft={<Icon icon={ChevronLeft} />}
-                disabled={curAt <= 0}
-                onClick={() => step(-1)}
-              />
-              <Button
-                variant="tertiary"
-                iconOnly
-                label="Next posting"
-                iconLeft={<Icon icon={ChevronRight} />}
-                disabled={curAt >= listed.length - 1}
-                onClick={() => step(1)}
-              />
-              <Text variant="ui" as="span" aria-live="polite" className="rjb-find-pager-count">
-                {`${curAt + 1} of ${listed.length}`}
-              </Text>
-            </Stack>
-          )}
         </Stack>
       </PanelBody>
+      {/* Below lg only, the pager row (Adrian 2026-11-13): "‹ › 1 of N" at its start. At lg
+          there is no row: the list starts under the tabs. A direct child of the panel, so it stays
+      stuck at the top while the list scrolls under it. */}
+      {pager && (
+        <Stack
+          direction="row"
+          gap="px8"
+          align="center"
+          role="group"
+          aria-label="Postings in the list"
+          className="rjb-find-pager"
+        >
+          <Button
+            variant="tertiary"
+            iconOnly
+            label="Previous posting"
+            iconLeft={<Icon icon={ChevronLeft} />}
+            disabled={curAt <= 0}
+            onClick={() => step(-1)}
+          />
+          <Button
+            variant="tertiary"
+            iconOnly
+            label="Next posting"
+            iconLeft={<Icon icon={ChevronRight} />}
+            disabled={curAt >= listed.length - 1}
+            onClick={() => step(1)}
+          />
+          <Text variant="ui" as="span" aria-live="polite" className="rjb-find-pager-count">
+            {`${curAt + 1} of ${listed.length}`}
+          </Text>
+        </Stack>
+      )}
       {feed.error ? (
         <PanelBody>
           <EmptyState

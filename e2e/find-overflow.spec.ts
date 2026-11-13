@@ -59,7 +59,7 @@ test('Find at 390: no sideways scroll and no card wider than the screen, long ti
 }) => {
   await feed(page);
   await page.goto(`${PROD_URL}/#/find`);
-  await expect(page.getByRole('list', { name: 'New postings' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
   await accountMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
   await expect(list.getByRole('link', { name: /Prime Design Systems/ })).toBeVisible({
