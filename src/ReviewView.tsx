@@ -104,6 +104,7 @@ export default function ReviewView({
   scanStatus = false,
   header,
   before,
+  more,
 }: {
   /** The panel's name: "Review new" on Find. */
   label?: string;
@@ -117,6 +118,8 @@ export default function ReviewView({
   header?: ReactNode | ((tools: FindTools) => ReactNode);
   /** Find's list column, above the list: Daily picks. */
   before?: ReactNode;
+  /** The page's More menu (Find's), at the right end of the Review row after Sort. */
+  more?: ReactNode;
 }) {
   const feed = useFeed();
   const { view } = feed;
@@ -322,6 +325,7 @@ export default function ReviewView({
         ))}
       </Stack>
       {sortTool && <FindSortMenu sort={sortTool} />}
+      {more}
     </Stack>
   );
   const panel = (
@@ -350,19 +354,31 @@ export default function ReviewView({
             className="rjb-review-row"
           >
             {view && view.rows.length > 0 && (
-              <Stack direction="row" wrap="wrap" gap="xs" role="group" aria-label="Filter postings">
+              <Stack
+                direction="row"
+                wrap="wrap"
+                gap="xs"
+                role="group"
+                aria-label="Filter postings"
+                className="rjb-review-chips"
+              >
                 {FILTERS.map((f) => (
                   <Tag
                     key={f}
                     active={on.includes(f)}
                     aria-pressed={on.includes(f)}
-                    // The name says what is shown, label then count (axe label-content-name-mismatch).
-                    aria-label={`${FILTER_LABEL[f]} ${counts[f]}`}
+                    // New keeps its count; Remote is a plain toggle (Find controls, 2026-11-13). The
+                    // name says what is shown, label then count (axe label-content-name-mismatch).
+                    aria-label={f === 'new' ? `${FILTER_LABEL[f]} ${counts[f]}` : FILTER_LABEL[f]}
                     onClick={() => toggle(f)}
                   >
-                    <Stack as="span" direction="row" gap="px4" align="center">
-                      {FILTER_LABEL[f]} <CountBadge count={counts[f]} />
-                    </Stack>
+                    {f === 'new' ? (
+                      <Stack as="span" direction="row" gap="px4" align="center">
+                        {FILTER_LABEL[f]} <CountBadge count={counts[f]} />
+                      </Stack>
+                    ) : (
+                      FILTER_LABEL[f]
+                    )}
                   </Tag>
                 ))}
               </Stack>

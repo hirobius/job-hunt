@@ -7,7 +7,7 @@
 // so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
 import { Skeleton, Stack, Text } from '@hirobius/design-system';
 import { Panel, PanelBody } from './PipelinePanel';
-import { FindHeader } from './FindHeader';
+import { FindHeader, FindMore } from './FindHeader';
 import ReviewView from './ReviewView';
 import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
@@ -31,6 +31,7 @@ export default function Today() {
           <FindHeader heading={!selected} deckPlace={deckPlace} />
         )}
         before={picks}
+        more={<FindMore />}
       />
     );
   // The design-systems profile is made on its own once sync settles (searchDefaults.ts

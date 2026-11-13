@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { NewCompanies } from './AutoScanViews';
-import { FindHeader } from './FindHeader';
+import { FindHeader, FindMore } from './FindHeader';
 import ScanDetails from './ScanDetails';
 import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import NoticeHost from './NoticeHost';
@@ -103,6 +103,7 @@ const renderViews = ({ signedIn = false } = {}) =>
     >
       <ToastProvider>
         <FindHeader />
+        <FindMore />
         <NewCompanies />
         <NoticeHost />
       </ToastProvider>
@@ -126,6 +127,8 @@ describe('Find header: one caption and one More menu (#544)', () => {
     expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
     await user.keyboard('{Escape}');
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+    // The scan line is the label atop More (Find controls, 2026-11-13).
+    await user.click(more());
     expect(await screen.findByText('Scanned just now')).toBeInTheDocument();
     expect(screen.queryByText(/^Scanning |^Last scanned|^Not scanned|^Updated /)).toBeNull();
   });
@@ -134,8 +137,8 @@ describe('Find header: one caption and one More menu (#544)', () => {
     const user = userEvent.setup();
     server.at = new Date(Date.now() - 4 * 60_000).toISOString();
     renderViews({ signedIn: true });
-    expect(await screen.findByText('Scanned 4 min ago')).toBeInTheDocument();
     await user.click(more());
+    expect(await screen.findByText('Scanned 4 min ago')).toBeInTheDocument();
     expect(await screen.findByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
     expect(screen.queryByText(/Updated|Scanning/)).toBeNull();

@@ -41,9 +41,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   over hairline rows. One New key with a menu: Message, Cover letter, Résumé, Note. An empty group is
   one row, "No résumés yet.", with its own Add. A row's blanks are a count ("5 blanks"), never chips.
 - **Find Deck (#545, #617).** The same posting card as Browse, one at a time, with no source or New
-  badge (#557). Its place is a compact pager in the page bar, "‹ 1 of 4 ›" (the same HDS pager as
+  badge (#557). Its place is a compact pager at the right of the Find | Apply row, "‹ 1 of 4 ›" (the same HDS pager as
   Apply's, arrows off at the ends); a sideways swipe or the arrow keys step it too. Skip (grey, left) and Save (filled,
-  right) sit in one row right under the card, in flow, the card's width (no fixed dock on Find); both show a toast with Undo. The page bar's More sits at the right end of the pager row. The card shows the
+  right) sit in one row right under the card, in flow, the card's width (no fixed dock on Find); both show a toast with Undo. Find's More stays at the right end of the chip row, as in Browse. The card shows the
   posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More (Not this
   company) sits beside the card's title, as a job's More does. Sort (its own key) works in the Deck too: the deck's order and its
   "1 of N" follow the sort, and the card on screen stays when the sort changes.
@@ -79,20 +79,19 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   (#618). **Apply** is the saved jobs. From 1024 px Apply is two columns: the job
   list on the left, the selected job on the right. Below that, one job at a time: the sticky walk
   control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
-- **Find's short header (#544).** No visible "Find" title (the page bar's Find / Apply says where
-  you are); one caption, "Scanned 2 h ago" (no count: the New and Remote chips hold the numbers),
-  with one More menu holding Scan now (signed out) and Search profile, both at the right of the page
-  bar. No date line, no Scan now key. **No visible "Review" heading (2026-11-12):** one row, the New
-  / Remote chips on the left, then at the right the Browse | Deck switch (a compact two-icon
-  segmented group drawn as the Find / Apply rail: the pressed key takes the open tab's fill, edge and text colour, the rail as tall as the chips) and **Sort**, its own icon key ("Sort: Newest", tooltip "Sort", a menu of Newest,
-  Best match, Company); one line at 390 (keys 28 px on the rail, Sort 32 px, to look at, each with its own 44 px tap area), the keys wrapping under the chips at 375 and below. The list loads its next
+- **Find's short header (#544).** (Find controls, 2026-11-13.) No visible "Find" title (the page bar's Find / Apply says where
+  you are). The Find | Apply row holds the Deck's place "‹ 1 of 50 ›" at its right, in the Deck
+  only; nothing there in List. No date line, no Scan now key. **No visible "Review" heading (2026-11-12):** one row, the New
+  chip (with its count) and the Remote chip (a plain toggle, no count) on the left, then pinned at the right end the Browse | Deck switch (a compact two-icon
+  segmented group drawn as the Find / Apply rail: the pressed key takes the open tab's fill, edge and text colour, the rail as tall as the chips), **Sort**, its own icon key ("Sort: Newest", tooltip "Sort", a menu of Newest,
+  Best match, Company), and the **More** menu (…: the scan line "Scanned 2 h ago" (no count: the chips hold it), Scan now signed out, Search profile); keys 28 px on the rail, Sort and More 32 px, to look at, each with its own 44 px tap area. The chips take the left and may wrap; the right group never moves. The list loads its next
   page on its own as you near the end; "Load more (N)" stays as the fallback, one card gap below the
   last card. A Browse card: the company's logo (letter first; a 24 px inline mark, as on Apply rows) before its name, on one line, or "Company not
   stated"; two lines of the posting's text, "Show more" right under them (the excerpt's own line rhythm, no extra gap) opens it in place (then "Read the full
   posting").
 - **The page bar (2026-11-12).** The first row of every Find and Apply page: Find / Apply as a
   segmented control at top left, where the page title was (no visible "Find" or "Apply" title; a
-  job's title stays). A page's own tools sit at the bar's right (Find: the caption and More).
+  job's title stays). A page's own tools sit at the bar's right (Find: the Deck's place, in the Deck only).
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the six views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
@@ -146,9 +145,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   keeps its own keys and nothing is selected.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
 - **One app-bar row (#548).** At every width: the logo, then the Account avatar (Find / Apply moved to
-  the page bar, 2026-11-12). No second row on a phone. Each tab shows its count as an HDS count
-  Badge after its label ("Find 12", "Apply 4"; over 99 is "99+"), the pill's own fill on both
-  states: Find the new postings, Apply the jobs its list shows. No count when it is 0. Find and Apply
+  the page bar, 2026-11-12). No second row on a phone. The tabs show no counts (Find controls, 2026-11-13). Find and Apply
   are two equal segments, the label centred, the whole segment the target (44 px tall on a phone). Segment corners are concentric: the
   inner radius is the rail's radius less its 4 px padding and 1 px.
 - **The logo is the home link (#620).** A tap on the logo opens Find at its root. Its target is 44 px.
@@ -172,7 +169,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   one line, then one filled key and one grey key. Never a card around them, and a second choice is a
   grey key, never a text button. Apply empty: "Track your first job" (Add job | Try with sample
   data). Find with no results: Scan now | Edit search profile. Not found is unchanged.
-- **Done (#554):** when To apply is finished, the Apply tab shows the live flame (still under reduced
-  motion), "That is the list", one caption line for the week ("You applied to 3 jobs this week."),
+- **Done (#554; 2026-11-13):** when To apply is finished, the Apply tab shows the standard empty-state icon tile
+  (no flame), "That is the list", one caption line for the week ("You applied to 3 jobs this week."),
   then the next step as the filled key (Follow up (N) while some are due, else Find more jobs) and
   All jobs as the grey key.

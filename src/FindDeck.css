@@ -54,16 +54,19 @@
   inset-block: calc((var(--rjb-key) - var(--rjb-touch)) / 2);
 }
 
-/* Find's tools (2026-11-13): when the bar wraps (390, Deck), the row takes the width and More sits at
- * its right end, as in Browse, never mid-row. */
+/* Find controls (2026-11-13): the Review row keeps its right group (List | Deck, Sort, More) pinned
+ * at its end; the chips take the rest and wrap. The Deck's place sits at the page bar's right. */
 .rjb-page-bar-tools:has(.rjb-find-tools) {
-  flex: 1 1 auto;
-  justify-content: flex-end;
+  margin-inline-start: auto;
 }
-.rjb-find-tools {
-  flex: 1 1 auto;
-  justify-content: flex-end;
+[data-hds] .rjb-review-row {
+  flex-wrap: nowrap;
 }
-.rjb-find-tools > :last-child {
+.rjb-review-chips {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+[data-hds] .rjb-review-row > .rjb-review-tools {
+  flex: none;
   margin-inline-start: auto;
 }

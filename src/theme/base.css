@@ -356,7 +356,6 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* The label, then its count pill (TopTabCount, an HDS Badge). */
   gap: var(--primitive-space-px6);
   white-space: nowrap;
   min-height: 30px;

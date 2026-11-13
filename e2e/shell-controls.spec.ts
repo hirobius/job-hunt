@@ -169,19 +169,19 @@ for (const width of [390, 1440]) {
   });
 }
 
-// Count pills and equal segments (2026-11-12): the counts are HDS count Badges; Find | Apply are two
+// Equal segments, no counts (2026-11-13): Find | Apply are two
 // equal segments, each 44px tall on a phone; the page bar fits on one row at 375 and 390 and wraps,
 // never scrolls sideways, at 320.
 for (const width of [320, 375, 390]) {
-  test(`Find | Apply: equal segments with count pills, fit at ${width}`, async ({ page }) => {
+  test(`Find | Apply: equal segments, no counts, fit at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
     await seed(page);
     await page.goto('/#/apply');
     const nav = page.getByRole('navigation', { name: 'Sections' });
     const apply = nav.getByRole('link', { name: /^Apply/ });
-    await expect(apply).toHaveAccessibleName(/^Apply \d+\+?$/);
-    await expect(apply.locator('.rjb-seg-count')).toBeVisible();
+    await expect(apply).toHaveAccessibleName('Apply');
+    await expect(nav.locator('.rjb-seg-count')).toHaveCount(0);
     const [find, app] = [await topTab(page, 'Find').boundingBox(), await apply.boundingBox()];
     expect(Math.abs(find!.width - app!.width)).toBeLessThan(1);
     expect(Math.abs(find!.y - app!.y)).toBeLessThan(1);

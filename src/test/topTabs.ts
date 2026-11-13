@@ -4,10 +4,10 @@ import { screen, within } from '@testing-library/react';
 
 const nav = (hidden = false) => screen.getByRole('navigation', { name: 'Sections', hidden });
 
-/** A tab's accessible name: its label, then its count when it shows one ("Apply 12", #548). */
-const tabName = (name: string) => new RegExp(`^${name}( \\d+\\+?)?$`);
+/** A tab's accessible name: its label (no counts since 2026-11-13). */
+const tabName = (name: string) => new RegExp(`^${name}$`);
 
-/** A top tab by its name ("Find", "Apply"), with or without its count. */
+/** A top tab by its name ("Find", "Apply"). */
 export const topTab = (name: string, { hidden = false } = {}) =>
   within(nav(hidden)).getByRole('link', { name: tabName(name), hidden });
 

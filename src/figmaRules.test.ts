@@ -212,9 +212,9 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('titleHidden');
   });
 
-  it("pins the top tabs' count Badges and equal segments (2026-11-12)", () => {
-    expect(RULES).toMatch(/count\s+Badge after its label/);
-    expect(fs.readFileSync('src/TopTabCount.tsx', 'utf8')).toContain('<CountBadge count={n}');
+  it('pins the top tabs: no counts, equal segments (2026-11-13)', () => {
+    expect(RULES).toMatch(/The tabs show no counts/);
+    expect(fs.existsSync('src/TopTabCount.tsx')).toBe(false);
     expect(fs.readFileSync('src/CountBadge.tsx', 'utf8')).toContain(
       '<Badge count={count} max={COUNT_MAX}',
     );

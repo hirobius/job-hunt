@@ -154,8 +154,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   search profile (Scan now is also in Find's More menu, #544); signed in Edit search profile alone, filled, as
   there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Done:**
   with nothing left to apply to at all (To apply view, no search; Remote only aside) the Apply tab is
-  `TrackerView` `DonePage`: the h1, then `ApplyDone.tsx` (BootHold's `<Flame animate />`, the lazy startFlame
-  chunk, still under reduced motion and Pause animations; "That is the list"; `applyDone.ts` `weekLine`: applied
+  `TrackerView` `DonePage`: the h1, then `ApplyDone.tsx` (the standard `hds-gaps/EmptyState` `centered` icon tile,
+  `ListChecks`, no flame since 2026-11-13; "That is the list" (its title, not a heading); `applyDone.ts` `weekLine`: applied
   in the last 7 days and follow-ups due; the filled key Follow up (N) while some are due, else Find more jobs; the
   grey All jobs key sets the All jobs view and focus goes to its first job's title), the lg rail beside it. After
   the last Mark applied / Not a fit the tab lands there and its h1 takes focus. Pinned in `applyDone.test.ts(x)`,
@@ -394,18 +394,21 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
   and a sign-in error land on Today; there is no setup screen (see First run).
-  `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the h1 "Find" and one
-  caption, "Scanned 2 h ago" (`findCaption.ts`; no count since #660: the New and Remote chips hold the numbers, and Review's polite `role="status"` says "N postings, M new"; the server's last sync signed in
+  `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the sr-only h1 "Find" and, in
+  the Deck only, its place at the right of the Find | Apply row (**Find controls, 2026-11-13**, Adrian's approved
+  draft: nothing there in List); the scan line "Scanned 2 h ago" is a `Menu.Label` atop Find's More (`findCaption.ts`; no count since #660: the New and Remote chips hold the numbers, and Review's polite `role="status"` says "N postings, M new"; the server's last sync signed in
   (`useServerUpdatedAt`) or this browser's last scan signed out (`agoPhrase`), "scanning…" while one runs; no date
-  line), with **one More menu** on its row ("More: scan and search profile": Scan now / Stop scan signed out only,
-  Search profile; Sort left it 2026-11-12, see the Review row below); `ReviewView`'s `header` is a function given the new count,
+  line). **One More menu** (`FindMore`, passed to `ReviewView` as `more`) ends the Review row after List | Deck and
+  Sort ("More: scan and search profile": the scan line, Scan now / Stop scan signed out only, Search profile). The
+  Review row (`.rjb-review-row`, `FindDeck.css`): the chips on the left (New with its count, Remote a plain toggle
+  with no count) take the rest and wrap; the right group (List | Deck, Sort, More) stays pinned at the end; `ReviewView`'s `header` is a function given the new count,
   the sort and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
   (was "Review new", #615: no count on the heading since #660; labels only)
   = `ReviewView` itself (`label="New postings" scanStatus`; **no visible heading since 2026-11-12**: an sr-only h2
-  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (count Badges capped at "99+" by `CountBadge.tsx`, shared with the top tabs; the chip's name keeps the full count, "New 140"), then at the right Browse | Deck
+  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (New's count Badge capped at "99+" by `CountBadge.tsx`; its name keeps the full count, "New 140"; Remote has no count since 2026-11-13), then pinned at the right Browse | Deck
   (`.rjb-segs .rjb-view-segs`, 2026-11-13: the Find | Apply rail on a 2px pad so it is the chips' 32px, 28px icon keys, the pressed one the open tab's fill, edge and text colour; `aria-pressed`; in `FindDeck.css`, off base.css) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
   ArrowUpDown named "Sort: Newest" / "Sort: Best match" / "Sort: Company", Tooltip "Sort", a Menu of radio items; only
-  while there is a list to sort), one line at 390 with two-digit counts (the tools may wrap under the chips at 375 and below; Adrian 2026-11-12: its keys 28-32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
+  while there is a list to sort) and More, one line at 375 and 390 (the right group never wraps or moves, the chips wrap; Adrian 2026-11-12: its keys 28-32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
   end, disconnected on unmount; off without IntersectionObserver or under prefers-reduced-data); "Load more (N)" stays as
   the fallback, one card gap below the cards, and the polite status says "Loaded N more". A Browse card shows
@@ -451,7 +454,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   of Filters); `PipelineMenus` is Sort only (an icon at lg, a chip in the sheet). Default view To apply. Since #543 search,
   filters, sort and Add job live in the All jobs sheet (see Two screens); "Clear N" clears the filters, not the view. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 - **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: the title step; no source or New badge since #557), one at a time (`ReviewView.tsx`
-  `Deck`). Its place is "‹ 1 of 4 ›" in the page bar (2026-11-12: `header`'s tools carry `DeckPlace`, `FindHeader`
+  `Deck`). Its place is "‹ 1 of 4 ›" at the right of the Find | Apply row, Deck only (2026-11-12, 2026-11-13: `header`'s tools carry `DeckPlace`, `FindHeader`
   `DeckPager` draws HDS `Pagination variant="compact"` labelled "Postings in the deck", as Apply's pager; arrows off at the
   ends); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
   card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock docked={false} row`: in flow
@@ -493,16 +496,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`, G7 hds#1438); **one app-bar row at every width (#548):**
   logo · Find / Apply · Account (the phone's 52px second row is gone; below sm the segments' sides narrow to 6 and the
-  row's minimum gap is 4, so it fits at 375 and 390 with counts up to two digits; where it cannot fit, a 320 screen
-  or two "99+" counts, it wraps the tabs under the logo). Concentric corners (hds#1470): `.rjb-segs` sets
-  `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. Each tab
-  shows its **count** as an HDS count `Badge` after its label (2026-11-12; `TopTabCount.tsx`, a lazy chunk; `max={99}`
-  reads "99+"; the pill's own fill in both states, `theme.contrast.test.ts`; it fits at 375/390 now the tabs are in the
-  page bar, #680, and wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
-  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): Find the new postings Review new last
-  read (`scanDetails.newToday`), Apply its To apply count (`filterCounts(…, remoteOnly).toApply`: Remote only counts, the open
-  view never does, so the number keeps one meaning; prod audit 2026-11-12); none while 0 or not known; the link's name is "Apply 12" (`test/topTabs.ts` matches label then
-  count). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
+  row's minimum gap is 4, so it fits at 375 and 390; where it cannot fit, a 320 screen, it wraps the tabs under the logo). Concentric corners (hds#1470): `.rjb-segs` sets
+  `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. The tabs
+  show **no counts** (Find controls, 2026-11-13: `TopTabCount.tsx` is deleted; the New chip keeps Find's number and
+  the To apply view chip Apply's; the bar wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
+  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label alone ("Apply"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
   a tab tap, which reopens where the tab was left. Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
   `aria-pressed` in a `role="group"` "Review view", each with an HDS Tooltip. Apply's **Remote only** HDS `Toggle`
@@ -812,7 +810,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
   `AutoScanViews.tsx` and `FindHeader.tsx` (**Adrian 2026-11-08: no status text above Browse / Deck.** Find's short
-  header has one caption, "Scanned 2 h ago", and its More menu holds Scan now / Stop scan, signed out only (the
+  header has no visible caption: "Scanned 2 h ago" is the label atop its More menu (2026-11-13), which holds Scan now / Stop scan, signed out only (the
   server syncs every 15 minutes signed in), #544; `ScanStatus` is gone). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
   signed out), the sources that didn't answer and the "not shown" counts are **Scan details**, a closed row at the end of
   the Account menu's Search profile (#549; `ScanDetails.tsx`, in the Search profile's lazy chunk; Review new writes what it read to `feed/scanDetails.ts`); a screen reader still hears

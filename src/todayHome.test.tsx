@@ -154,10 +154,12 @@ describe('the auto-scan', () => {
     const review = await screen.findByRole('region', { name: /^New postings$/ });
     await within(review).findByRole('button', { name: 'Browse' });
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
-    // No date line: the caption says when the sources were scanned, and no count (the chip has it).
-    expect(screen.getByText('Scanned 2 h ago')).toBeInTheDocument();
+    // No date line and no visible caption: More's label says when the sources were scanned
+    // (Find controls, 2026-11-13), and no count (the chip has it).
+    expect(screen.queryByText('Scanned 2 h ago')).toBeNull();
     expect(screen.queryByText(/^(\d+ new|Nothing new)$/)).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More: scan and search profile' }));
+    expect(await screen.findByText('Scanned 2 h ago')).toBeInTheDocument();
     expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
     await user.keyboard('{Escape}');

@@ -322,9 +322,6 @@ describe('Review new: Browse', () => {
     await user.click(screen.getByRole('button', { name: 'Load more (5)' }));
     expect(titles(ul)).toHaveLength(REVIEW_PAGE + 5);
     // Sort is its own key beside Browse | Deck (2026-11-12), named by the open sort; More has none.
-    await user.click(screen.getByRole('button', { name: 'More: scan and search profile' }));
-    expect(screen.queryByRole('menuitemradio')).toBeNull();
-    await user.keyboard('{Escape}');
     await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
     expect(await screen.findByRole('menuitemradio', { name: 'Newest' })).toBeChecked();
     await user.click(screen.getByRole('menuitemradio', { name: 'Company' }));
@@ -334,7 +331,7 @@ describe('Review new: Browse', () => {
       within(screen.getByRole('group', { name: 'Filter postings' }))
         .getAllByRole('button')
         .map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['New 30', 'Remote 30']);
+    ).toEqual(['New 30', 'Remote']);
   });
 });
 
