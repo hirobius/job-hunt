@@ -23,9 +23,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   application link (a fact says so, never a dashed box): Mark applied / Add link / Not a fit.
   Follow-up due: Copy follow-up / Mark followed up / Close out; the last two with Undo. A section shows
   only when it has content: no messages, no message rows; no Templates disclosure.
-- **Copy into the form.** Each filled field is a flat Tag chip with a copy icon, never a keycap: a
-  press copies and shows "Copied". Empty fields fold into one line: "8 more fields are empty. Add
-  them". If the copy fails, a toast shows the text to copy by hand.
+- **No Application kit on a job.** The "Copy into the form" panel is gone (Adrian 2026-11-13): a job's
+  view is the title block, the keys, then Details, Notes and the links. Templates live in Documents.
 - **One saved list.** Apply is the saved list. Save (filled key with a plus icon) on Find adds a
   posting to Apply: "Added to Apply: <title> · Open · Undo". A toast stays across pages until it
   times out. More on a job has "Remove from Apply" (to
@@ -60,8 +59,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   line is left out when the place already says remote ("Remote (US)", "New York or Remote"). Never inline after
   each other: the same in a title block (place, pay, date) and Daily picks (pay, posted day). The 16 px
   icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top.
-- **Disclosure rows are flat and steady.** A Disclosure row in a panel (Why this company, Cover note,
-  Draft note) is a hairline row in the panel's flow, never a card inside it; it opens without a jump.
+- **Disclosure rows are flat and steady.** A Disclosure row in a panel (Daily picks' Draft note) is a hairline row in the panel's flow, never a card inside it; it opens without a jump.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.

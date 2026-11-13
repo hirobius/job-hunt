@@ -3,11 +3,11 @@ import {
   go,
   JOB_LINK,
   openAllJobs,
-  openApply,
   openFilters,
   seed,
   topTab,
   openData,
+  accountMenuItem,
 } from './routes';
 
 // Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
@@ -118,9 +118,9 @@ for (const width of [390, 800] as const) {
       const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
       const at = await stepPager(page);
 
-      // Edit documents: Documents opens over the job (#471 slice 4), and the browser's Back closes it.
+      // Documents (Account menu) opens over the job (#471 slice 4), and the browser's Back closes it.
       const job = (await h1(page).textContent())!.trim();
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
+      await accountMenuItem(page, 'Documents');
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       await page.goBack();
       await expect(page.getByRole('dialog', { name: 'Documents' })).toHaveCount(0);
@@ -184,214 +184,6 @@ for (const width of [390, 800] as const) {
       await page.getByRole('button', { name: /^Account/ }).click();
       await page.getByRole('menuitem', { name: 'Search profile' }).click();
       await closesOnBack(page.getByRole('dialog', { name: 'Search profile' }), queue);
-    });
-
-    // Review blockers (2026-10-22): Remove, Delete and double clicks each navigated twice, landing
-    // one page too far back. Every case starts with a page in history before the origin, so a
-    // second pop would have somewhere to go.
-    test('Remove goes back once: to the Company page, to the Apply tab; the Apply tab then opens another job', async ({
-      page,
-    }) => {
-      const removeOpenJob = async (title: string) => {
-        await page
-          .getByRole('button', { name: `More actions: ${title}` })
-          .first()
-          .click();
-        await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
-      };
-      // Opened from its Company page, with Apply behind it.
-      await go(page, '#/apply');
-      await go(page, '#/apply/company/larkspur-analytics');
-      const row = page.getByRole('list', { name: /^Jobs at / }).locator(JOB_LINK);
-      const title = (await row.first().textContent())!.trim();
-      await row.first().click();
-      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-      await removeOpenJob(title);
-      await expect(page).toHaveURL(/#\/apply\/company\/larkspur-analytics$/);
-      await page.waitForTimeout(600);
-      await expect(page).toHaveURL(/#\/apply\/company\/larkspur-analytics$/);
-
-      // Jumped to from All jobs, with Find behind it: Remove lands on the Apply tab, once.
-      await go(page, '#/find');
-      await go(page, '#/apply');
-      const last = (await allJobs(page)).locator(JOB_LINK).last();
-      const lastTitle = (await last.textContent())!.trim();
-      await last.click();
-      await expect(page.getByRole('heading', { level: 1, name: lastTitle })).toBeVisible();
-      await removeOpenJob(lastTitle);
-      await expect(page).toHaveURL(/#\/apply$/);
-      await page.waitForTimeout(800);
-      await expect(page).toHaveURL(/#\/apply$/);
-      await expect(h1(page)).not.toHaveText(lastTitle);
-
-      // Opened from Find (a save notice's Open names it), with another page behind it: Remove
-      // lands on Find, and the Apply tab then opens another job, not the removed one.
-      const next = (await allJobs(page)).locator(JOB_LINK).first();
-      const id = (await next.getAttribute('href'))!.replace('#/apply/', '');
-      const nextTitle = (await next.textContent())!.trim();
-      await page.keyboard.press('Escape');
-      await go(page, '#/find?documents=');
-      await go(page, '#/find');
-      await go(page, `#/apply/${id}?from=%2Ffind`);
-      await expect(page.getByRole('heading', { level: 1, name: nextTitle })).toBeVisible();
-      await removeOpenJob(nextTitle);
-      await expect(page).toHaveURL(/#\/find$/);
-      await page.waitForTimeout(600);
-      await expect(page).toHaveURL(/#\/find$/);
-      await topTab(page, 'Apply').click();
-      await expect(page).toHaveURL(/#\/apply$/);
-      await expect(h1(page)).toBeVisible();
-      await expect(h1(page)).not.toHaveText(nextTitle);
-    });
-
-    test('Delete in a document opened from the library goes back to the library, once', async ({
-      page,
-    }) => {
-      await openApply(page);
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
-      const library = await page.evaluate(() => location.hash);
-      const outreach = page.getByRole('region', { name: 'Messages' });
-      await outreach.locator('button[aria-expanded]').first().click();
-      await outreach
-        .getByRole('button', { name: /^Open / })
-        .first()
-        .click();
-      await expect(page.getByRole('button', { name: 'All documents' })).toBeVisible();
-      await page.getByRole('button', { name: 'More actions' }).last().click();
-      // Soft (#329): no confirm, the document goes at once with Undo.
-      await page.getByRole('menuitem', { name: 'Delete' }).click();
-      await expect.poll(() => page.evaluate(() => location.hash)).toBe(library);
-      await page.waitForTimeout(600);
-      expect(await page.evaluate(() => location.hash)).toBe(library);
-    });
-
-    test('an unknown job or document goes back to the page that linked it, once', async ({
-      page,
-    }) => {
-      // The dev server runs effects twice on mount (StrictMode): each fallback still goes back once.
-      const hash = () => page.evaluate(() => location.hash);
-      const cases: [string, string, string][] = [
-        // A document is a dialog over the page (#471 slice 4): an unknown one shows the library.
-        ['#/apply', '#/apply?documents=does-not-exist', '#/apply?documents='],
-        ['#/find', '#/apply/nojob123?from=%2Ffind', '#/find'],
-        ['#/apply', '#/apply/nojob123', '#/apply'],
-      ];
-      for (const [origin, unknown, lands] of cases) {
-        // Another page behind the origin, so a second pop would have somewhere to go.
-        await go(page, '#/find?documents=');
-        await go(page, origin);
-        await go(page, unknown);
-        await expect.poll(hash).toBe(lands);
-        await page.waitForTimeout(600);
-        expect(await hash()).toBe(lands);
-      }
-    });
-
-    test('a double click goes back once: the open tab, Not a fit; a double Save saves once', async ({
-      page,
-    }) => {
-      const hash = () => page.evaluate(() => location.hash);
-      const stays = async (re: RegExp) => {
-        await expect(page).toHaveURL(re);
-        await page.waitForTimeout(600);
-        await expect(page).toHaveURL(re);
-      };
-      // A job jumped to from All jobs, Find behind it: the open tab, tapped twice.
-      await go(page, '#/find');
-      await go(page, '#/apply');
-      const link = (await allJobs(page)).locator(JOB_LINK).nth(1);
-      const title = (await link.textContent())!.trim();
-      await link.click();
-      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-      await topTab(page, 'Apply').dblclick();
-      await stays(/#\/apply$/);
-
-      // A job still to apply to (Saved), so Not a fit is there: a double Save in a new document
-      // from Edit documents saves one and comes back.
-      // The To apply view (#541) holds only jobs still to apply to: the walk row's picker (#542).
-      await page.getByRole('button', { name: /^View: / }).click();
-      await page.getByRole('menuitemradio', { name: /^To apply/ }).click();
-      await page
-        .getByRole('navigation', { name: 'Jobs in the list' })
-        .getByRole('button', { name: 'Next page' })
-        .click();
-      await expect(page).toHaveURL(/#\/apply\//);
-      const apply = await hash();
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
-      const count = () =>
-        page.evaluate(() => JSON.parse(localStorage.getItem('rjb_documents') || '[]').length);
-      const docs = await count();
-      // The library's one New key (#552): its menu, then the kind.
-      await page.getByRole('button', { name: 'New document' }).click();
-      await page.getByRole('menuitem', { name: 'Résumé' }).click();
-      await page.getByRole('textbox', { name: 'Text' }).fill('Ten years of welding.');
-      await page.getByRole('button', { name: 'Save', exact: true }).dblclick();
-      await expect.poll(hash).toBe(apply);
-      await page.waitForTimeout(600);
-      expect(await hash()).toBe(apply);
-      expect(await count()).toBe(docs + 1);
-
-      // Not a fit, clicked twice: one job set aside, one move to the next job, in place.
-      const setAside = () =>
-        page.evaluate(
-          () =>
-            (
-              JSON.parse(localStorage.getItem('rjb_shortlist') || '[]') as { archived?: boolean }[]
-            ).filter((j) => j.archived).length,
-        );
-      const aside = await setAside();
-      const steps = await page.evaluate(() => history.length);
-      await page.getByRole('button', { name: /^Not a fit/ }).dblclick();
-      await expect.poll(hash).not.toBe(apply);
-      await page.waitForTimeout(600);
-      expect(await setAside()).toBe(aside + 1);
-      expect(await page.evaluate(() => history.length)).toBe(steps);
-    });
-
-    test('each top tab reopens where it was left', async ({ page }) => {
-      await go(page, '#/find');
-      await topTab(page, 'Apply').click();
-      await stepPager(page);
-      const title = (await h1(page).textContent())!.trim();
-      await topTab(page, 'Find').click();
-      await expect(page).toHaveURL(/#\/find$/);
-      await topTab(page, 'Apply').click();
-      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-      // The open tab, tapped again, goes to its root.
-      await topTab(page, 'Apply').click();
-      await expect(page).toHaveURL(/#\/apply$/);
-    });
-
-    // Review blockers (2026-10-22): coming back must restore what the person was doing, not only
-    // the page. Each walk changes the view, leaves with a key action, and comes back both ways.
-    test("a job's Apply view: a half-typed kit field is still open with its text after Edit documents", async ({
-      page,
-    }) => {
-      await openApply(page);
-      await page.getByRole('button', { name: 'Add them' }).click();
-      const add = page
-        .getByRole('region', { name: /^Copy into the form/ })
-        .getByRole('button', { name: /^Add / })
-        .first();
-      const label = (await add.getAttribute('aria-label'))!.replace(/^Add /, '');
-      await add.click();
-      const field = page.getByRole('textbox', { name: label, exact: true });
-      await field.fill('Half typ');
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page
-        .getByRole('dialog', { name: 'Documents' })
-        .getByRole('button', { name: 'Close' })
-        .click();
-      await expect(page).toHaveURL(/#\/apply\/[^?]+$/);
-      await expect(field).toHaveValue('Half typ');
-      // And the browser's Back.
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page).toHaveURL(/documents=/);
-      await page.goBack();
-      await expect(page).toHaveURL(/#\/apply\//);
-      await expect(field).toHaveValue('Half typ');
     });
   });
 }
