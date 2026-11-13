@@ -130,10 +130,23 @@ function runBurn(frame: (p: number) => BurnFrame, ms: number, apply: (f: BurnFra
   });
 }
 
-/** Drop the no-transition class `frames` animation frames from now (0: at once). */
-function endSwitching(frames: number) {
+/** Which burn holds the no-transition class: only the latest one's end removes it, so a burn
+ *  started inside an earlier one's two-frame tail keeps it (#695). */
+let switching = 0;
+
+/** Put the no-transition class on; returns this burn's generation for endSwitching. */
+export function startSwitching(): number {
+  document.documentElement.classList.add('rjb-theme-switching');
+  return ++switching;
+}
+
+/** Drop the no-transition class `frames` animation frames from now (0: at once), unless a later
+ *  burn has taken it since. */
+export function endSwitching(gen: number, frames: number) {
   const root = document.documentElement;
-  const done = () => root.classList.remove('rjb-theme-switching');
+  const done = () => {
+    if (gen === switching) root.classList.remove('rjb-theme-switching');
+  };
   if (!frames || typeof requestAnimationFrame !== 'function') return done();
   requestAnimationFrame(() => (frames > 1 ? requestAnimationFrame(done) : done()));
 }
@@ -154,7 +167,7 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
   old?.clip('');
   root.setAttribute('data-rjb-burning', '');
   // No transitions while the theme flips (#695): colours behind the front are final at once.
-  root.classList.add('rjb-theme-switching');
+  const gen = startSwitching();
   root.style.setProperty('--rjb-burn-clip', 'inset(50%)');
   let vt: ViewTransition;
   try {
@@ -165,7 +178,11 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
       if (old) document.body.append(old.box);
     });
   } catch (e) {
-    endSwitching(0);
+    endSwitching(gen, 0);
+    svg.remove();
+    old?.remove();
+    root.removeAttribute('data-rjb-burning');
+    root.style.removeProperty('--rjb-burn-clip');
     throw e;
   }
   let ok = false;
@@ -185,7 +202,7 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
     ok = true;
     return true;
   } finally {
-    endSwitching(ok ? 2 : 0);
+    endSwitching(gen, ok ? 2 : 0);
     svg.remove();
     old?.remove();
     root.removeAttribute('data-rjb-burning');
