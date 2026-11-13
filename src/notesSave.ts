@@ -1,11 +1,10 @@
 // The job Notes field's save line and its older-note rule (TodosNotes.tsx), kept pure.
 import type { Job } from './types';
 
-/** What the line under the field says: nothing until the first edit. */
-export type NotesSaveState = 'idle' | 'saving' | 'saved';
+/** What the line beside the Save key says: nothing until a save, nothing again once edited. */
+export type NotesSaveState = 'idle' | 'saved';
 export const NOTES_STATUS: Record<NotesSaveState, string> = {
   idle: '',
-  saving: 'Saving…',
   saved: 'Saved to this job',
 };
 

@@ -123,11 +123,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   When the keys change under a focused key (a sync from another device), focus goes to the new filled key, or the
   title when none is left. The dock is `position: fixed; bottom: 0` on body and never moves on scroll or overscroll (iOS rubber-band and the home-screen web app raised it half-way up, fix/dock-ios-scroll): `useDockLift` writes `--rjb-dock-lift` on visualViewport resize only, non-zero only while a keyboard is open (`keyboardOpen`) and a field has focus (`dockLift`); `html:has(.rjb-dock)` sets `overscroll-behavior-y: none` (no pull-to-refresh on dock pages only). It reserves one row for one key (`data-rows`) (#593). Pinned in `e2e/dock-ios-scroll.spec.ts` (Chromium iPhone 13 emulation).
   Pinned in `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `jobPage.test.tsx`, `e2e/action-dock.spec.ts`.
-- **Job Notes save as you type (Adrian 2026-11-13):** `TodosNotes.tsx` `NotesField` saves 300 ms after the last
-  keystroke (and on blur, tab hide, unmount); under the field a caption `role="status"` (polite) says "Saving…", then
-  "Saved to this job" (`notesSave.ts` `NOTES_STATUS`; nothing before the first edit). "From when you saved it: …" shows
-  the older `note` only when Notes does not already hold its text (`olderNoteLine`). Pinned in `notesSave.test.ts`,
-  `jobPage.test.tsx`.
+- **Job Notes: a Save key (Adrian 2026-11-13, in place of saving while typing):** `TodosNotes.tsx` `NotesField` saves
+  on its Save key (HDS secondary, on only while there are unsaved changes) and still on blur, tab hide, pagehide and
+  unmount; beside the key a caption `role="status"` (polite) says "Saved to this job" after a save, empty again on the
+  next edit (`notesSave.ts` `NOTES_STATUS`). "From when you saved it: …" shows the older `note` only when Notes does
+  not already hold its text (`olderNoteLine`). Pinned in `notesSave.test.ts`, `jobPage.test.tsx`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or

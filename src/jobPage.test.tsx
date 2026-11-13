@@ -1,7 +1,7 @@
 // The job page (#130), tested at the route seam through App: #/apply/<jobId>. Slice by slice:
 // header + Overview, tabs, delete, two-pane desktop.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -280,17 +280,14 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
     expect(getAllJobs()[0].notes).toBe('Ask about the shop floor');
   });
 
-  it('Notes is never lost: saved while typing, and on leaving the page without a blur', async () => {
+  it('Notes is never lost: saved on leaving the page, even without a blur or Save', async () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
     const notes = () => screen.getByRole('textbox', { name: 'Notes' });
-    // Debounced save while typing, no blur.
-    await userEvent.type(notes(), 'Ask');
-    await waitFor(() => expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Ask'));
     // pagehide (reload, phone back gesture) flushes the draft at once.
-    await userEvent.type(notes(), ' about pay');
+    await userEvent.type(notes(), 'Ask about pay');
     act(() => {
       window.dispatchEvent(new Event('pagehide'));
     });
@@ -357,17 +354,32 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
     expect(screen.queryByText(/From when you saved it/)).toBeNull();
   });
 
-  it('saves while typing and says so politely under the field', async () => {
+  it('saves on its Save key (on only with unsaved changes) and says so politely', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
-    const notes = screen.getByRole('textbox', { name: 'Notes' });
-    const status = () => within(screen.getByRole('region', { name: 'Notes' })).getByRole('status');
+    const panel = screen.getByRole('region', { name: 'Notes' });
+    const notes = within(panel).getByRole('textbox', { name: 'Notes' });
+    const save = within(panel).getByRole('button', { name: 'Save' });
+    const status = () => within(panel).getByRole('status');
+    expect(save).toBeDisabled();
     expect(status()).toHaveTextContent('');
     await userEvent.type(notes, 'Hi');
-    expect(status()).toHaveTextContent('Saving…');
-    await waitFor(() => expect(status()).toHaveTextContent('Saved to this job'));
-    expect(status()).toHaveAttribute('aria-live', 'polite');
+    // No save while typing (Adrian 2026-11-13: a Save key, not autosave).
+    expect(save).toBeEnabled();
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBeFalsy();
+    fireEvent.click(save);
     expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Hi');
+    expect(status()).toHaveTextContent('Saved to this job');
+    expect(status()).toHaveAttribute('aria-live', 'polite');
+    expect(save).toBeDisabled();
+    // The next edit clears the line and turns the key back on.
+    await userEvent.type(notes, '!');
+    expect(status()).toHaveTextContent('');
+    expect(save).toBeEnabled();
+    // Leaving the field still saves (blur).
+    act(() => notes.blur());
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Hi!');
+    expect(save).toBeDisabled();
   });
 
   it('with only the older note, the Notes field shows it and no duplicate line', () => {

@@ -1,35 +1,34 @@
 // The job's one Notes field, as a panel on the job page (rev-3 F). The to-dos left the page in
 // #416; they stay on the Job. Every change flows through updateJob, so it persists and syncs.
-// It saves while you type (debounced) and says so in a quiet polite line under the field:
-// "Saving…", then "Saved to this job" (Adrian 2026-11-13).
+// It saves on a Save key under the field (on only while there are unsaved changes; Adrian
+// 2026-11-13, in place of saving while typing) and still on blur, tab hide and leaving the page;
+// a quiet polite line beside the key then says "Saved to this job".
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Textarea, Box, Stack, Text } from '@hirobius/design-system';
+import { Textarea, Box, Button, Stack, Text } from '@hirobius/design-system';
 import { updateJob } from './store';
 import { Panel, PanelBody } from './PipelinePanel';
 import type { Job } from './types';
 import { NOTES_STATUS, olderNoteLine, type NotesSaveState } from './notesSave';
-
-const NOTES_DEBOUNCE_MS = 300;
 
 function NotesField({ job }: { job: Job }) {
   const shown = job.notes || job.note || '';
   const [draft, setDraft] = useState(shown);
   const draftRef = useRef(draft);
   const savedRef = useRef(shown);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // The saved text as state too, for the Save key (a ref is not read while rendering).
+  const [saved, setSaved] = useState(shown);
   const [state, setState] = useState<NotesSaveState>('idle');
   const mounted = useRef(true);
   const url = job.url;
   const flush = useCallback(() => {
-    clearTimeout(timer.current);
-    if (draftRef.current === savedRef.current) {
-      if (mounted.current) setState((s) => (s === 'saving' ? 'saved' : s));
-      return;
-    }
+    if (draftRef.current === savedRef.current) return;
     savedRef.current = draftRef.current;
     updateJob(url, { notes: draftRef.current });
-    if (mounted.current) setState('saved');
+    if (!mounted.current) return;
+    setSaved(draftRef.current);
+    setState('saved');
   }, [url]);
+  const dirty = draft !== saved;
   // A newer note from a sync pull replaces the field while nothing is unsaved (#330); an unsaved
   // edit wins and is saved over it, as before. Only `notes` is followed: the older `note` the field
   // falls back to must not come back into it when the user clears Notes.
@@ -38,6 +37,7 @@ function NotesField({ job }: { job: Job }) {
     if (!synced || synced === savedRef.current || draftRef.current !== savedRef.current) return;
     savedRef.current = synced;
     draftRef.current = synced;
+    setSaved(synced);
     setDraft(synced);
   }, [synced]);
   useEffect(() => {
@@ -55,7 +55,7 @@ function NotesField({ job }: { job: Job }) {
     };
   }, [flush]);
   return (
-    <Box>
+    <Stack gap="tight">
       <Textarea
         aria-label="Notes"
         rows={3}
@@ -64,20 +64,22 @@ function NotesField({ job }: { job: Job }) {
         onChange={(e) => {
           setDraft(e.target.value);
           draftRef.current = e.target.value;
-          clearTimeout(timer.current);
-          setState('saving');
-          timer.current = setTimeout(flush, NOTES_DEBOUNCE_MS);
+          setState('idle');
         }}
         onBlur={flush}
       />
-      {/* Polite: it never interrupts typing. Empty (no height) until the first edit, so the
-          page does not change before one. */}
-      <Box role="status" aria-live="polite" sx={{ pt: state === 'idle' ? 0 : 'xs' }}>
-        <Text variant="caption" as="p" tone="secondary">
+      <Stack direction="row" gap="px8" align="center">
+        {/* On only with unsaved changes. A press after the field's blur (which saved already)
+            finds it off, so a note is never saved twice. */}
+        <Button variant="secondary" size="md" disabled={!dirty} onClick={flush}>
+          Save
+        </Button>
+        {/* Polite: said once after a save; empty again on the next edit. */}
+        <Text variant="caption" as="p" tone="secondary" role="status" aria-live="polite">
           {NOTES_STATUS[state]}
         </Text>
-      </Box>
-    </Box>
+      </Stack>
+    </Stack>
   );
 }
 
