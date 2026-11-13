@@ -205,12 +205,8 @@ export default function App() {
   const [barSlot, setBarSlot] = useState<HTMLDivElement | null>(null);
   const sections = (
     <Box as="nav" aria-label="Sections" className="rjb-segs">
-      <a {...tabLink(FIND_TAB)}>
-        Find
-      </a>
-      <a {...tabLink(APPLY_TAB)}>
-        Apply
-      </a>
+      <a {...tabLink(FIND_TAB)}>Find</a>
+      <a {...tabLink(APPLY_TAB)}>Apply</a>
     </Box>
   );
 
