@@ -9,3 +9,11 @@ export const SIGN_IN_LABEL = 'On this device only. Sign in to sync across device
 export const SIGN_IN_ITEM = 'Sign in';
 /** The two lines' box: the form step's description. */
 export const SIGN_IN_COPY_ID = 'rjb-signin-copy';
+/** The one legal line on the sign-in screen (Adrian 2026-11-13, after Tailscale's login page). */
+export const SIGN_IN_AGREE = {
+  before: (name: string) => `By signing in, you agree to ${name}’s `,
+  terms: 'Terms of use',
+  and: ' and ',
+  privacy: 'Privacy policy',
+  after: '.',
+};
