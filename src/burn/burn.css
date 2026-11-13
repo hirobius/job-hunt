@@ -75,3 +75,39 @@
   height: calc(var(--rjb-burn-h) * 1px);
   margin: 0;
 }
+
+/* No transitions while the theme flips (burn.ts, #695): set before data-theme changes, dropped two
+   frames after the burn, so nothing fades to the new colours behind the front. The theme switch is
+   left out: its icon morphs from the tap, at HDS's own durations. */
+:root.rjb-theme-switching *:not(.rjb-theme-toggle, .rjb-theme-toggle *),
+:root.rjb-theme-switching *:not(.rjb-theme-toggle, .rjb-theme-toggle *)::before,
+:root.rjb-theme-switching *:not(.rjb-theme-toggle, .rjb-theme-toggle *)::after {
+  transition: none !important;
+}
+/* HDS's own switching rule (data-hds-theme-switching) would snap the toggle's morph: give its parts
+   back their HDS transitions while it is set. */
+:root[data-hds-theme-switching] .rjb-theme-toggle .hds-theme-toggle__icon,
+:root[data-hds-theme-switching] .rjb-theme-toggle .hds-theme-toggle__core {
+  transition: transform var(--primitive-duration-long) var(--primitive-easing-emphasized) !important;
+}
+:root[data-hds-theme-switching] .rjb-theme-toggle .hds-theme-toggle__cut {
+  transition: transform var(--primitive-duration-long) var(--primitive-easing-decelerate) !important;
+}
+:root[data-hds-theme-switching] .rjb-theme-toggle .hds-theme-toggle__rays {
+  transition:
+    transform var(--primitive-duration-medium) var(--primitive-easing-emphasized),
+    opacity var(--primitive-duration-short) var(--primitive-easing-accelerate) !important;
+}
+/* The switch is captured on its own above the burn clip, like the logo: only its live new view
+   shows, so its morph plays where the front has not reached yet. */
+:root[data-rjb-burning] header .rjb-theme-toggle {
+  view-transition-name: rjb-burn-toggle;
+}
+:root[data-rjb-burning]::view-transition-group(rjb-burn-toggle),
+:root[data-rjb-burning]::view-transition-new(rjb-burn-toggle) {
+  z-index: 6;
+  animation: none;
+}
+:root[data-rjb-burning]::view-transition-old(rjb-burn-toggle) {
+  display: none;
+}
