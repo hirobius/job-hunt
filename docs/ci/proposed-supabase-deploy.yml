@@ -1,0 +1,76 @@
+# Supabase deploy from CI (#596). Copy to .github/workflows/supabase-deploy.yml (agents never edit
+# .github/workflows: Adrian copies it, see docs/ci/supabase-deploy.md).
+# After the ci workflow passes on main: the `plan` job prints what would change (read only). Then
+# the `deploy` job waits for Adrian's approval (the supabase-production environment's required
+# reviewer), then applies new migrations, deploys sync-postings when it changed, and applies the
+# deploy-order.json "after" migrations (scripts/supabase-deploy.ts). The commit is recorded in
+# ops.deploys and the run summary.
+name: supabase-deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'plan (read only), deploy, or init (once: ledger + every current migration as applied)'
+        type: choice
+        options: [plan, deploy, init]
+        default: plan
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: plan
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Plan (read only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: node --experimental-strip-types --no-warnings scripts/supabase-deploy.ts
+
+  deploy:
+    name: deploy
+    needs: plan
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.mode != 'plan') ||
+      github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Required reviewer: Adrian approves each run (Settings > Environments).
+    environment: supabase-production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Apply and deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          MODE: ${{ inputs.mode == 'init' && '--init' || '--deploy' }}
+        run: node --experimental-strip-types --no-warnings scripts/supabase-deploy.ts "$MODE"
