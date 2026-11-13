@@ -85,6 +85,7 @@ import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
 import { saveRow } from './saveFlight';
 import { usePostingText } from './feed/postingText';
+import PostingDescription from './PostingDescription';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
 import { FactLines } from './hds-gaps/FactLines';
@@ -899,28 +900,6 @@ function SkipKey({
   );
 }
 
-/** The posting's text (the detail's Description), read on open (usePostingText) with a Skeleton. */
-function DescriptionText({ r }: { r: FeedRow }) {
-  const { text, loading } = usePostingText(r);
-  if (text.trim())
-    return (
-      <Text variant="body" as="p" tone="secondary" className="rjb-prewrap">
-        {excerpt(text, 2000)}
-      </Text>
-    );
-  return loading ? (
-    <Stack gap="px8" aria-busy="true">
-      <Skeleton variant="text" width="90%" />
-      <Skeleton variant="text" width="80%" />
-      <Skeleton variant="text" width="60%" />
-    </Stack>
-  ) : (
-    <Text variant="caption" as="p" tone="secondary">
-      This source gives no description. Open the posting to read it.
-    </Text>
-  );
-}
-
 /** A posting card (#458, Adrian 2026-11-02; actions 2026-11-08): a badge row (the source; New only
  *  when the posting is new), the title on the ramp's title step, the company as a subline, the
  *  meta lines with their icons, the pay when the source states it (never invented), then one
@@ -1305,7 +1284,7 @@ function PostingDetail({
       />
       <Panel label="Description" title="Description">
         <PanelBody>
-          <DescriptionText r={r} />
+          <PostingDescription posting={r} />
         </PanelBody>
       </Panel>
     </Box>
