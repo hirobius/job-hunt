@@ -298,11 +298,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
-  (**9 items in 4 groups, redesign §5.9, #549**: who | things | display | about. Signed out: "On this device only. Sign in to sync across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
+  (**8 items in 4 groups, redesign §5.9, #549**; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Signed out: "On this device only. Sign in to sync across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
   in" as a grey key** (`signInCopy.ts` `SIGN_IN_ITEM`; HDS secondary `Button` as the
   `Menu.Item`, `.rjb-menu-key`); signed in: "Signed in as <email>" + sync line as labels, Retry sync when it failed, and
-  Sign out. Things = Documents, Search profile, Companies, Data. Display = **Dark theme** and **Pause animations**,
-  toggles that show their state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role
+  Sign out. Things = Documents, Search profile, Companies, Data. Display = **Pause animations**,
+  a toggle that shows its state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role
   `menuitemcheckbox` + `aria-checked` and a drawn switch, `.rjb-menu-switch` in late.css; G9 hds#1440). About = Send
   feedback, Privacy and terms. Every row has a 16px icon; rows are 44px on a phone (HDS `hds-touch-row`) and 38px from
   sm (late.css). **Scan details moved into the Search profile** (a closed HDS Disclosure row at its end, `ScanDetails.tsx`).
@@ -403,9 +403,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (was "Review new", #615: no count on the heading since #660; labels only)
   = `ReviewView` itself (`label="New postings" scanStatus`; **no visible heading since 2026-11-12**: an sr-only h2
   "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (count Badges capped at "99+" by `CountBadge.tsx`, shared with the top tabs; the chip's name keeps the full count, "New 140"), then at the right Browse | Deck
-  (`.rjb-view-segs`, a compact two-icon group, `aria-pressed`) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
+  (`.rjb-segs .rjb-view-segs`, 2026-11-13: the Find | Apply rail on a 2px pad so it is the chips' 32px, 28px icon keys, the pressed one the open tab's fill, edge and text colour; `aria-pressed`; in `FindDeck.css`, off base.css) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
   ArrowUpDown named "Sort: Newest" / "Sort: Best match" / "Sort: Company", Tooltip "Sort", a Menu of radio items; only
-  while there is a list to sort), one line at 390 with two-digit counts, the tools wrapping under the chips at 375 and below (Adrian 2026-11-12: its keys 32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
+  while there is a list to sort), one line at 390 with two-digit counts (the tools may wrap under the chips at 375 and below; Adrian 2026-11-12: its keys 28-32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
   end, disconnected on unmount; off without IntersectionObserver or under prefers-reduced-data); "Load more (N)" stays as
   the fallback, one card gap below the cards, and the polite status says "Loaded N more". A Browse card shows
@@ -462,11 +462,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `Deck`). Its place is "‹ 1 of 4 ›" in the page bar (2026-11-12: `header`'s tools carry `DeckPlace`, `FindHeader`
   `DeckPager` draws HDS `Pagination variant="compact"` labelled "Postings in the deck", as Apply's pager; arrows off at the
   ends); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
-  card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock row` (one row, `data-layout="row"`):
-  fixed at the bottom below lg, inline under the card at lg; the card collapses as it goes and both toast with Undo.
+  card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock docked={false} row`: in flow
+  under the card at every width, two equal keys the card's width (`.rjb-deck`, Adrian 2026-11-13: no fixed dock on Find; Apply keeps its dock); the card collapses as it goes and both toast with Undo.
   After a decision focus goes to the next card's title (h3), or Find's h1 once the deck is empty (`Deck`'s `decided`
   mark; the card's elements stay, so `focusNextTitle`'s list-item walk does not apply).
-  The card shows the posting's text at once (`usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
+  The card shows the posting's text at once, all-caps runs title-cased as Browse's (`capsToSentence`; `usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
   Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More (Not this company) sits beside
   the card's title (2026-11-12, as a job's More, #546); no disclosure. Sort (its own key since 2026-11-12) works in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
   keeps the card on screen (`changeSort` finds it by fingerprint). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
@@ -486,6 +486,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/hds-gaps/FactLines.tsx` (hds#1509)
   (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
   (inline) in `DetailTitleBlock`, the posting cards and Daily picks. Both are in the HDS gap registry.
+- **Theme toggle + burn (#688):** the app bar's HDS `ThemeToggle` (left of the Account avatar, 44px; its own name
+  "Switch to dark/light theme", no aria-pressed, HDS's contract) is the one theme switch; `src/burn/ThemeBurnToggle.tsx`,
+  a lazy chunk with a 44px hold (`.rjb-theme-toggle-hold`). `ColorMode.burnToggle(at)` reveals the new theme from the
+  tap point (the button's centre from the keyboard): `src/burn/burn.ts` (lazy, `importFresh`) runs a View Transition,
+  holds it open and clips the new snapshot to `burnField.ts`'s front (`clip-path: path()`, a thin char band ahead of it).
+  `BURN` is **locked** (Adrian 2026-11-13: 970 ms, cell 6.5, fps 10…; the char band's flat fill is `edgeColor` offtone (old surface darkened) | cobalt (`--primitive-color-blue-500`) | flame (`--primitive-color-cobalt-400`) at `edgeOpacity`; `burnField.test.ts`). No View Transitions,
+  reduced motion or Pause animations = an instant swap. Both theme-color metas take the page background on every
+  swap (`ColorMode.syncThemeColor`). Save on Find flies the card to the Apply tab, which pulses (`saveFlight.ts`
+  `saveRow`); the card burn is off (open choice). The Account sheet shows no focus ring on a row the pointer or a
+  tap highlights (late.css); opened by the keyboard, the first row takes focus with its ring, also when the rows'
+  chunk lands late. Pinned in `burnField.test.ts`, `colorModeBurn.test.tsx`, `shell.test.tsx`, `e2e/theme-toggle.spec.ts`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`, G7 hds#1438); **one app-bar row at every width (#548):**

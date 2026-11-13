@@ -84,6 +84,7 @@ import { addJobDetailed } from './store';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
+import { saveRow } from './saveFlight';
 import { usePostingText } from './feed/postingText';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
@@ -290,29 +291,29 @@ export default function ReviewView({
   // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
   // (a compact two-icon segmented group) and Sort on the right; it wraps at narrow widths.
   const tools = (
-    <Stack direction="row" gap="px12" align="center" className="rjb-review-tools">
+    <Stack direction="row" gap="px16" align="center" className="rjb-review-tools">
       {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
           takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
-          with a tooltip; the pressed one is the secondary (filled) button. */}
+          with a tooltip; drawn as the top tabs' rail, the pressed one filled as the open tab. */}
       <Stack
         direction="row"
         gap="hairline"
         role="group"
         aria-label="Review view"
-        className="rjb-view-segs"
+        className="rjb-segs rjb-view-segs"
       >
         {VIEW_TOGGLE.map(({ value, label: name, icon }, i) => (
           <HdsTooltip key={value}>
             <HdsTooltip.Trigger asChild>
               <Button
                 size="sm"
-                variant={mode === value ? 'secondary' : 'tertiary'}
+                variant="tertiary"
                 iconOnly
                 label={name}
                 aria-label={name}
                 aria-pressed={mode === value}
                 // Each grows its hit area on its outer side only (base.css .rjb-hit-44).
-                className={`rjb-hit-44 ${i === 0 ? 'rjb-hit-start' : 'rjb-hit-end'}`}
+                className={`rjb-seg-icon rjb-hit-44 ${i === 0 ? 'rjb-hit-start' : 'rjb-hit-end'}`}
                 onClick={() => setMode(value)}
                 iconLeft={<Icon icon={icon} />}
               />
@@ -404,7 +405,6 @@ export default function ReviewView({
             rows={listed}
             at={deckAt}
             onAt={setCard}
-            docked={!wide}
             now={feed.at}
             actions={actions}
             empty={caughtUp}
@@ -575,7 +575,7 @@ interface RowActions {
 const rowActions: RowActions = {
   // The row collapses first, then the job is saved (a saved posting leaves the list).
   save: (r, from) =>
-    collapseRow(from, () => {
+    saveRow(from, () => {
       // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
       if (alreadyInApply(r.url)) return;
       const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
@@ -955,7 +955,7 @@ function PostingCard({
         {r.company.trim() ? (
           // The company's logo first (letter until it loads; companyLogo.ts's rule), then its name.
           <Stack direction="row" gap="px8" align="center">
-            <CompanyLogo company={r.company} postings={[r.url]} />
+            <CompanyLogo inline company={r.company} postings={[r.url]} />
             <Text variant="ui" as="p" className="min-w-0">
               {r.company}
             </Text>
@@ -1021,7 +1021,6 @@ function Deck({
   rows,
   at,
   onAt,
-  docked,
   now,
   actions,
   empty,
@@ -1029,8 +1028,6 @@ function Deck({
   rows: FeedRow[];
   at: number;
   onAt: (n: number) => void;
-  /** Below lg: the keys dock at the bottom of the screen. */
-  docked: boolean;
   now: number;
   actions: RowActions;
   empty: string;
@@ -1087,7 +1084,7 @@ function Deck({
   };
   const from = () => cardRef.current;
   return (
-    <Stack gap="normal">
+    <Stack gap="normal" className="rjb-deck">
       <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
         <Card
           ref={cardRef}
@@ -1108,7 +1105,8 @@ function Deck({
           </DeckBody>
         </Card>
       </SwipeArea>
-      <ActionDock docked={docked} row label={`Actions for ${rowName(r)}`}>
+      {/* In flow under the card, its width, at every width (Adrian 2026-11-13): no fixed dock on Find. */}
+      <ActionDock docked={false} row label={`Actions for ${rowName(r)}`}>
         <SkipKey r={r} actions={deckActions} from={from} />
         <SaveKey r={r} actions={deckActions} from={from} />
       </ActionDock>
@@ -1127,7 +1125,7 @@ function BrowseExcerpt({ r }: { r: FeedRow }) {
   const body = capsToSentence(excerpt(raw, open ? 1200 : 300));
   const link = httpUrl(r.url);
   return (
-    <Stack gap="px4" align="start">
+    <Stack gap="hairline" align="start">
       <Text
         id={id}
         variant="caption"
@@ -1159,7 +1157,9 @@ function BrowseExcerpt({ r }: { r: FeedRow }) {
  *  posting" (the posting itself, in a new tab). No disclosure. */
 function DeckExcerpt({ r }: { r: FeedRow }) {
   const { text, loading } = usePostingText(r);
-  const body = text.trim() ? excerpt(text, 1200) : r.snippet;
+  const raw = text.trim() ? excerpt(text, 1200) : r.snippet;
+  // All-caps runs ("ABOUT RAMP") read as a sentence, as Browse's excerpt does.
+  const body = raw ? capsToSentence(raw) : raw;
   const link = httpUrl(r.url);
   return (
     <Stack gap="px8">

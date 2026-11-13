@@ -1,0 +1,10 @@
+/* A company's mark inline before its name (Find cards, Apply rows; 2026-11-13): 24px, out of
+ * HDS's phone touch-size rule (it is not a control), as .rjb-avatar is. */
+[data-hds] .rjb-logo-inline {
+  inline-size: var(--primitive-space-6);
+  block-size: var(--primitive-space-6);
+  min-width: 0;
+  min-height: 0;
+  flex-shrink: 0;
+  font-size: var(--semantic-typography-caption-font-size);
+}

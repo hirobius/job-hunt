@@ -24,7 +24,8 @@ const COLLAPSE_MS = 180;
 
 /** The row an action sits in: a table row (an HDS Table's is a `role="row"` div), a list item or
  *  a card. */
-const rowOf = (from: Element | null) => from?.closest('tr, [role="row"], li, article') ?? null;
+export const rowOf = (from: Element | null) =>
+  from?.closest('tr, [role="row"], li, article') ?? null;
 
 /** The attribute that carries a flash or a collapse (base.css). */
 const MOTION = 'data-motion';

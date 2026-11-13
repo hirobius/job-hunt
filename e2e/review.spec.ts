@@ -259,13 +259,13 @@ for (const width of [390, 1440]) {
     const [skipBox, saveBox] = [await skipKey.boundingBox(), await saveKey.boundingBox()];
     expect(skipBox && saveBox && skipBox.x < saveBox.x).toBe(true);
     expect(Math.abs((skipBox?.y ?? 0) - (saveBox?.y ?? 1))).toBeLessThan(1);
-    if (width < 1024) {
-      expect(await dock.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
-      expect(skipBox!.height).toBeGreaterThanOrEqual(44);
-      expect(skipBox!.y + skipBox!.height).toBeGreaterThan(900 - 80);
-    } else {
-      expect(await dock.evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed');
-    }
+    // In flow under the card at every width (2026-11-13): no fixed dock on Find, the card's width.
+    expect(await dock.evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed');
+    const cardBox = (await page.locator('.rjb-deck article').boundingBox())!;
+    expect(skipBox!.y).toBeGreaterThan(cardBox.y + cardBox.height - 1);
+    expect(Math.abs(skipBox!.x - cardBox.x)).toBeLessThan(1);
+    expect(Math.abs(saveBox!.x + saveBox!.width - (cardBox.x + cardBox.width))).toBeLessThan(1);
+    if (width < 1024) expect(skipBox!.height).toBeGreaterThanOrEqual(44);
     await page.screenshot({ path: `test-results/review-deck-${width}.png`, fullPage: true });
     for (let left = 2; left > 0; left--) {
       // Past the double-tap guard again.
@@ -299,8 +299,7 @@ for (const width of [390, 1440]) {
 }
 
 // Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 390;
-// at 375 and below the tools wrap under the chips (exclusive 44px hit areas need 329px; 375's row
-// is 320). At both widths each key's 44px hit area is its own (elementFromPoint).
+// at 375 the tools may wrap under the chips. At both widths each key's 44px hit area is its own (elementFromPoint).
 for (const width of [375, 390]) {
   test(`the Review row: one line at 390, its own 44px hit areas (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -345,6 +344,7 @@ for (const width of [375, 390]) {
     const sort = page.getByRole('button', { name: /^Sort: / });
     const [c, s] = [await chips.boundingBox(), await sort.boundingBox()];
     const sameLine = Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2)) < 4;
+    // One line at 390 is required; at 375 the tools may wrap under the chips (the agreed rule).
     expect(sameLine).toBe(width >= 390);
     expect(s!.x + s!.width).toBeLessThanOrEqual(width);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it

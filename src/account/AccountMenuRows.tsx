@@ -1,16 +1,15 @@
-// The Account menu's rows (redesign §5.9, #549): 9 items in 4 groups, each with a 16px icon. Its
+// The Account menu's rows (redesign §5.9, #549): 8 items in 4 groups, each with a 16px icon. Its
 // own chunk (lazyDialogs.ts `AccountMenuRows`), fetched on idle and as the Account button is pointed
 // at or focused, so the icons and the toggle rows stay off the entry (AccountMenu.tsx keeps the
 // trigger, the sheet and the dialogs). Header lines are Menu.Labels (not focusable, not clickable).
 // The email is plain text; index.html's format-detection meta stops iOS turning it into a mailto link.
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Building2,
   Database,
   FileText,
   LogOut,
   MessageSquare,
-  Moon,
   Pause,
   RefreshCw,
   ShieldCheck,
@@ -19,7 +18,6 @@ import {
 } from 'lucide-react';
 import { Button, Icon, Menu, Text } from '@hirobius/design-system';
 import { MenuToggleItem } from '../hds-gaps/MenuToggleItem';
-import { useColorMode } from '../ColorMode';
 import { openDocuments, openLegal } from '../route';
 import { motionPaused, setMotionPaused } from '../motionPref';
 import { useCloudSync } from './accountContext';
@@ -32,17 +30,22 @@ export default function AccountMenuRows({
   openProfile,
   openCompanies,
   openData,
+  onReady,
 }: {
   /** Wrap an item that opens a dialog: the dialog gives focus back to the Account button. */
   opensDialog: (open: () => void) => () => void;
   openProfile: () => void;
   openCompanies: () => void;
   openData: () => void;
+  /** Called once the rows are on the page, with an element inside the menu. */
+  onReady?: (inside: HTMLElement | null) => void;
 }) {
   const sync = useCloudSync();
-  const { mode, toggle } = useColorMode();
+  const mark = useRef<HTMLSpanElement>(null);
+  useEffect(() => onReady?.(mark.current), [onReady]);
   return (
     <>
+      <span ref={mark} hidden />
       {/* 1. Who you are. */}
       {sync.user ? (
         <>
@@ -89,14 +92,7 @@ export default function AccountMenuRows({
         Data
       </Row>
       <Menu.Separator />
-      {/* 3. Display: toggles that show their state and keep the menu open. */}
-      <MenuToggleItem
-        checked={mode === 'dark'}
-        onCheckedChange={toggle}
-        icon={<Icon icon={Moon} size="small" />}
-      >
-        Dark theme
-      </MenuToggleItem>
+      {/* 3. Display: Pause animations, a toggle that shows its state (the theme is the app bar's ThemeToggle, #688). */}
       <MotionToggle />
       <Menu.Separator />
       {/* 4. About. */}

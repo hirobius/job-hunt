@@ -47,7 +47,7 @@ export function FindHeader({
         </Text>
       )}
       <InPageBar>
-        <Stack direction="row" gap="tight" align="center" className="min-w-0">
+        <Stack direction="row" gap="tight" align="center" className="min-w-0 rjb-find-tools">
           <MetaCaption items={findCaption(scanned, !user && running)} />
           {deckPlace && <DeckPager place={deckPlace} />}
           <FindMore signedIn={!!user} running={running} />

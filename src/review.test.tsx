@@ -344,6 +344,8 @@ describe('Review new: Deck', () => {
     renderReview();
     await list();
     const group = screen.getByRole('group', { name: 'Review view' });
+    // Drawn as the Find | Apply rail (2026-11-13): .rjb-segs, each key a .rjb-seg-icon.
+    expect(group).toHaveClass('rjb-segs', 'rjb-view-segs');
     const browse = within(group).getByRole('button', { name: 'Browse' });
     const deck = within(group).getByRole('button', { name: 'Deck' });
     expect(browse).toHaveAttribute('aria-pressed', 'true');
@@ -602,6 +604,8 @@ describe('Review new: Deck card anatomy (#458)', () => {
     // The text shows at once (no disclosure), cut at 7 lines, then the link to the full posting.
     const text = within(card).getByText('Own the design system.');
     expect(text).toHaveClass('rjb-deck-excerpt');
+    // Inline company mark, 24px before the name (2026-11-13).
+    expect(card.querySelector('[data-rjb-logo]')).toHaveClass('rjb-logo-inline');
     expect(within(card).queryByRole('button', { name: /description/i })).toBeNull();
     const full = within(card).getByRole('link', { name: /Read the full posting/ });
     expect(full).toHaveAttribute('href', ONE.url);
@@ -624,10 +628,10 @@ describe('Review new: Deck card anatomy (#458)', () => {
     ]);
     expect(keys[1]).toHaveAttribute('data-variant', 'primary');
     expect(keys[0]).toHaveAttribute('data-variant', 'secondary');
-    // Below lg the dock is fixed at the bottom of the screen, one row of two keys.
-    expect(dock).toHaveClass('rjb-dock');
-    expect(dock).toHaveAttribute('data-layout', 'row');
-    expect(dock).toHaveAttribute('data-rows', '1');
+    // In flow under the card at every width (2026-11-13): no fixed dock on Find.
+    expect(dock).toHaveClass('rjb-dock-row');
+    expect(dock).not.toHaveClass('rjb-dock');
+    expect(dock.parentElement).toHaveClass('rjb-deck');
     // The meta lines carry their icons (lucide marks them aria-hidden svgs).
     expect(
       card.querySelectorAll('svg.lucide-map-pin, svg.lucide-briefcase, svg.lucide-calendar'),

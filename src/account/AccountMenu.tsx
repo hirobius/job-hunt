@@ -1,14 +1,15 @@
-// The header's account menu (#115 Phase 1; redesign §5.9, #549: 9 items in 4 groups). One home for
+// The header's account menu (#115 Phase 1; redesign §5.9, #549: 8 items in 4 groups). One home for
 // everything about "my account and my data", top to bottom:
 //   1. who you are: signed out "On this device only. Sign in to sync across devices.", and Sign in as a grey key;
 //      signed in the email, the sync line (Retry when it failed) and Sign out
 //   2. Documents (#227), Search profile (Scan details sits in it, #549), Companies, Data (#550: one
 //      lazy dialog for back up, restore, export, Recently removed and the repairs)
-//   3. Dark theme and Pause animations, toggles that show their state (MenuToggleItem, G9)
+//   3. Pause animations, a toggle that shows its state (MenuToggleItem, G9); the theme is the
+//      app bar's HDS ThemeToggle (#688)
 //   4. Send feedback, Privacy and terms (#43)
 // Every row has a 16px icon; rows are 44px on a phone, 38px from sm (theme/late.css). The rows live
 // in AccountMenuRows.tsx, a lazy chunk; this file keeps the trigger, the sheet and the dialogs.
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Avatar, Button, Dialog, Menu } from '@hirobius/design-system';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { useBackCloses } from '../useBackCloses';
@@ -71,6 +72,14 @@ export default function AccountMenu() {
     setOpen(next);
   };
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Opened by the keyboard, Radix focuses the first row; when the rows' chunk lands after that
+  // (a slow fetch), the menu itself holds focus, so the first row takes it once they mount (#688).
+  const byKeyboard = useRef(false);
+  const rowsReady = (root: HTMLElement | null) => {
+    const menu = root?.closest<HTMLElement>('[role="menu"]');
+    if (!byKeyboard.current || !menu || document.activeElement !== menu) return;
+    menu.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
+  };
   /** Run an item that opens a dialog; the dialog gives focus back to this trigger on close. */
   const opensDialog = (open: () => void) => () => {
     setReturnFocus(triggerRef.current);
@@ -105,6 +114,12 @@ export default function AccountMenu() {
             className="rjb-account"
             onPointerEnter={preloadRows}
             onFocus={preloadRows}
+            onPointerDown={() => {
+              byKeyboard.current = false;
+            }}
+            onKeyDown={(e: KeyboardEvent) => {
+              byKeyboard.current = ['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key);
+            }}
           />
         </Menu.Trigger>
         <Menu.Content align="end" className="rjb-account-menu rjb-menu-sheet">
@@ -118,6 +133,7 @@ export default function AccountMenu() {
               openProfile={() => setProfile(true)}
               openCompanies={() => setCompanies(true)}
               openData={() => setDataOpen(true)}
+              onReady={rowsReady}
             />
           </Suspense>
         </Menu.Content>
