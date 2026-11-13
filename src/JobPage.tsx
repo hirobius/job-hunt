@@ -31,7 +31,6 @@ import { useBackCloses } from './useBackCloses';
 import ApplyWalk from './ApplyWalk';
 import { SwipeArea } from './SwipeArea';
 import { useFollowView } from './followView';
-import { ApplicationKit } from './ApplySheet';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
@@ -41,8 +40,7 @@ import type { Job } from './types';
 
 /** The header over the one page (#416, Adrian's Q5: no tabs). An old `?section=` link opens it
  *  as is. The job page and Apply mode are one view (#471, Adrian 2026-11-05): the header's Open
- *  application, Mark applied and Not a fit, then the job's filled templates and the Application
- *  kit, then Details, Notes and the links. */
+ *  application, Mark applied and Not a fit, then Details, Notes and the links. */
 function JobDetail({
   job,
   showBack,
@@ -55,12 +53,9 @@ function JobDetail({
   return (
     <Box>
       <JobHeader job={job} showBack={showBack} onAnswered={onAnswered} />
-      {/* #540: sections show only with content. The "Templates (N)" disclosure is gone; a job's
-          messages live in Copy into the form, and every template stays in Documents. */}
-      <Stack gap="px24">
-        <ApplicationKit job={job} />
-        <JobOverview job={job} />
-      </Stack>
+      {/* The Application kit ("Copy into the form") left the job view (Adrian 2026-11-13); its data
+          stays (rjb_apply_kit, blob v6). Every template stays in Documents. */}
+      <JobOverview job={job} />
     </Box>
   );
 }

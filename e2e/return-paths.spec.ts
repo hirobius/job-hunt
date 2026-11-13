@@ -8,6 +8,7 @@ import {
   seed,
   topTab,
   openData,
+  accountMenuItem,
 } from './routes';
 
 // Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
@@ -118,9 +119,9 @@ for (const width of [390, 800] as const) {
       const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
       const at = await stepPager(page);
 
-      // Edit documents: Documents opens over the job (#471 slice 4), and the browser's Back closes it.
+      // Documents (Account menu) opens over the job (#471 slice 4), and the browser's Back closes it.
       const job = (await h1(page).textContent())!.trim();
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
+      await accountMenuItem(page, 'Documents');
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       await page.goBack();
       await expect(page.getByRole('dialog', { name: 'Documents' })).toHaveCount(0);
@@ -243,7 +244,7 @@ for (const width of [390, 800] as const) {
       page,
     }) => {
       await openApply(page);
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
+      await accountMenuItem(page, 'Documents');
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const library = await page.evaluate(() => location.hash);
       const outreach = page.getByRole('region', { name: 'Messages' });
@@ -303,7 +304,7 @@ for (const width of [390, 800] as const) {
       await stays(/#\/apply$/);
 
       // A job still to apply to (Saved), so Not a fit is there: a double Save in a new document
-      // from Edit documents saves one and comes back.
+      // from Documents (Account menu) saves one and comes back.
       // The To apply view (#541) holds only jobs still to apply to: the walk row's picker (#542).
       await page.getByRole('button', { name: /^View: / }).click();
       await page.getByRole('menuitemradio', { name: /^To apply/ }).click();
@@ -313,7 +314,7 @@ for (const width of [390, 800] as const) {
         .click();
       await expect(page).toHaveURL(/#\/apply\//);
       const apply = await hash();
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
+      await accountMenuItem(page, 'Documents');
       await expect(page.getByRole('dialog', { name: 'Documents' })).toBeVisible();
       const count = () =>
         page.evaluate(() => JSON.parse(localStorage.getItem('rjb_documents') || '[]').length);
@@ -357,36 +358,6 @@ for (const width of [390, 800] as const) {
       // The open tab, tapped again, goes to its root.
       await topTab(page, 'Apply').click();
       await expect(page).toHaveURL(/#\/apply$/);
-    });
-
-    // Review blockers (2026-10-22): coming back must restore what the person was doing, not only
-    // the page. Each walk changes the view, leaves with a key action, and comes back both ways.
-    test("a job's Apply view: a half-typed kit field is still open with its text after Edit documents", async ({
-      page,
-    }) => {
-      await openApply(page);
-      await page.getByRole('button', { name: 'Add them' }).click();
-      const add = page
-        .getByRole('region', { name: /^Copy into the form/ })
-        .getByRole('button', { name: /^Add / })
-        .first();
-      const label = (await add.getAttribute('aria-label'))!.replace(/^Add /, '');
-      await add.click();
-      const field = page.getByRole('textbox', { name: label, exact: true });
-      await field.fill('Half typ');
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await page
-        .getByRole('dialog', { name: 'Documents' })
-        .getByRole('button', { name: 'Close' })
-        .click();
-      await expect(page).toHaveURL(/#\/apply\/[^?]+$/);
-      await expect(field).toHaveValue('Half typ');
-      // And the browser's Back.
-      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
-      await expect(page).toHaveURL(/documents=/);
-      await page.goBack();
-      await expect(page).toHaveURL(/#\/apply\//);
-      await expect(field).toHaveValue('Half typ');
     });
   });
 }

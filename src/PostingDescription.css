@@ -1,0 +1,21 @@
+/* Find's detail Description (PostingDescription.tsx): lists keep their markers, indented one step. */
+.rjb-desc {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.rjb-desc .rjb-desc-list {
+  margin: 0;
+  padding-inline-start: var(--primitive-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitive-space-1);
+}
+.rjb-desc ul.rjb-desc-list {
+  list-style: disc;
+}
+.rjb-desc ol.rjb-desc-list {
+  list-style: decimal;
+}
+.rjb-desc .rjb-desc-list li::marker {
+  color: var(--semantic-color-content-secondary);
+}

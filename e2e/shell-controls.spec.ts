@@ -50,6 +50,7 @@ for (const width of [390, 1440]) {
     });
 
     test('the top tabs show no counts (2026-11-13)', async ({ page }) => {
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);
       await page.goto('/#/apply');
       const nav = page.getByRole('navigation', { name: 'Sections' });
@@ -58,6 +59,7 @@ for (const width of [390, 1440]) {
     });
 
     test('List / Deck: one toggle over the whole track, with a tooltip', async ({ page }) => {
+      // No outside-host block here: Find's postings (and so this toggle) come from those reads.
       await seed(page);
       await page.goto('/#/find');
       const toggle = page.getByRole('button', { name: /^View: / });
@@ -87,6 +89,8 @@ for (const width of [390, 1440]) {
     test('the Apply list: views only, and each chip count matches its rows (2026-11-13)', async ({
       page,
     }) => {
+      // Outside hosts refused: left open they hang and stall the lg column (#614).
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);
       await page.goto('/#/apply');
       const list = await listScope(page);

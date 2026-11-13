@@ -22,10 +22,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The filled key follows the state.** To apply: Open application / Mark applied / Not a fit. No
   application link (a fact says so, never a dashed box): Mark applied / Add link / Not a fit.
   Follow-up due: Copy follow-up / Mark followed up / Close out; the last two with Undo. A section shows
-  only when it has content: no messages, no message rows; no Templates disclosure.
-- **Copy into the form.** Each filled field is a flat Tag chip with a copy icon, never a keycap: a
-  press copies and shows "Copied". Empty fields fold into one line: "8 more fields are empty. Add
-  them". If the copy fails, a toast shows the text to copy by hand.
+  only when it has content; no Templates disclosure.
+- **No Application kit on a job.** The "Copy into the form" panel is gone (Adrian 2026-11-13): a job's
+  view is the title block, the keys, then Details, Notes and the links. Templates live in Documents.
 - **One saved list.** Apply is the saved list. Save (filled key with a plus icon) on Find adds a
   posting to Apply: "Added to Apply: <title> · Open · Undo". A toast stays across pages until it
   times out. More on a job has "Remove from Apply" (to
@@ -60,8 +59,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   line is left out when the place already says remote ("Remote (US)", "New York or Remote"). Never inline after
   each other: the same in a title block (place, pay, date) and Daily picks (pay, posted day). The 16 px
   icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top.
-- **Disclosure rows are flat and steady.** A Disclosure row in a panel (Why this company, Cover note,
-  Draft note) is a hairline row in the panel's flow, never a card inside it; it opens without a jump.
+- **Disclosure rows are flat and steady.** A Disclosure row in a panel (Daily picks' Draft note) is a hairline row in the panel's flow, never a card inside it; it opens without a jump.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.
@@ -96,7 +94,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   Find chips' fill and 40 px height, no edge, its left edge on the page gutter under Find | Apply and
   the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the seven views and
   "All jobs", which opens the All jobs bottom sheet; no filters chip since 2026-11-13), and right the pager "7 of 12" with previous and next, which only steps (a
-  sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
+  sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. A job's view holds Open application, Mark applied | Not a fit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
   This week (interviews and closing dates in the next 7 days, soonest first; #640), Interviewing,
@@ -164,8 +162,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   then the benefit: "Sign in to see your jobs on any device." (body, primary). Continue with Google
   and LinkedIn are secondary with no raised edge (shadow none), so Send link leads. Then the email
   field with its helper under it, "We email you a sign-in link. No password needed." (caption,
-  secondary), Send link (filled) and Continue without an account (underlined exit). Top right: Pause
-  animations, an icon key.
+  secondary), Send link (filled) and Continue without an account (underlined exit). At the foot, one
+  centred caption: "By signing in, you agree to roleflame’s Terms of use and Privacy policy.", the two
+  names inline links (the only legal links there). Top right: Pause animations, an icon key.
 - **Empty, error and done states sit on the page background (#553):** centred icon tile, bold title,
   one line, then one filled key and one grey key. Never a card around them, and a second choice is a
   grey key, never a text button. Apply empty: "Track your first job" (Add job | Try with sample

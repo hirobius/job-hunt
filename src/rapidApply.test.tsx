@@ -1,5 +1,5 @@
-// Rapid apply: saves say where they went, the Apply tab walks the list (#471), and a job walks the
-// queue with the Application kit. Tested at the route seam through App, by role + name.
+// Rapid apply: saves say where they went and the Apply tab walks the list (#471). The Application
+// kit left the job view (2026-11-13). Tested at the route seam through App, by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -18,15 +18,11 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import type { createFakeSupabase } from './test/fakeSupabase';
-import { loadSupabase } from './supabase';
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
-import { getApplyKit, replaceApplyKit, emptyKit, setKitField } from './applyKit';
-import { setOutreachMessages } from './test/outreach';
-import { getSnippets, replaceSnippets } from './copyDeckStore';
-import { addDeviceDataIfAsked } from './test/renderAccount';
+import { getApplyKit, replaceApplyKit, emptyKit } from './applyKit';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { resetAnswerGuard } from './answerGuard';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
@@ -110,78 +106,6 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
       await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' }),
     ).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
-  });
-
-  it('kit fields are entered once inline and copied with a Copied confirmation', async () => {
-    const user = userEvent.setup();
-    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    // Empty fields fold into one line: "11 more fields are empty. Add them" (#539).
-    expect(await screen.findByText(/^\d+ more fields are empty\./)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Add them' }));
-    // A labelled secondary "Add" (rev-3 mock), named for its field.
-    expect(screen.getByRole('button', { name: 'Add Name' })).toHaveTextContent('Add');
-    await user.click(screen.getByRole('button', { name: 'Add Name' }));
-    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Placeholder');
-    await user.click(screen.getByRole('button', { name: 'Done' }));
-    expect(getApplyKit().fields.name).toBe('Sam Placeholder');
-    // A flat chip with a copy icon (#539): a press copies and says "Copied", also to screen readers.
-    const chip = screen.getByRole('button', { name: 'Copy Name' });
-    expect(chip.querySelector('svg')).not.toBeNull();
-    expect(chip).not.toHaveAttribute('data-variant'); // a Tag, not a keycap Button
-    await user.click(chip);
-    expect(writeText).toHaveBeenCalledWith('Sam Placeholder');
-    // The name stays "Copy Name" and the status alone says "Copied Name", so it is said once (#593).
-    await waitFor(() => expect(chip).toHaveTextContent('Copied'));
-    expect(chip).toHaveAccessibleName('Copy Name');
-    expect(screen.getAllByRole('status').some((s) => s.textContent === 'Copied Name')).toBe(true);
-    // A copy chip is a plain button, not a toggle: no aria-pressed (#593).
-    expect(chip).not.toHaveAttribute('aria-pressed');
-  });
-
-  it('Escape cancels a kit field edit: the value stays, focus returns to its button (#312)', async () => {
-    const user = userEvent.setup();
-    setKitField('name', 'Sam');
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    // Edit opens the field rows (#539); the chips only copy.
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
-    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo{Escape}');
-    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
-    expect(getApplyKit().fields.name).toBe('Sam');
-    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
-    // Opened again, the dropped draft is gone.
-    await user.click(screen.getByRole('button', { name: 'Edit Name' }));
-    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Sam');
-    // Enter saves and hands focus back the same way, without reopening the field.
-    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Lee{Enter}');
-    expect(getApplyKit().fields.name).toBe('Sam Lee');
-    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
-  });
-
-  it("the kit field editor's Cancel is the exit (#537): a link button with the 44px target", async () => {
-    const user = userEvent.setup();
-    setKitField('name', 'Sam');
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    // Edit opens the field rows (#539); the chips only copy.
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
-    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo');
-    const cancel = screen.getByRole('button', { name: 'Cancel' });
-    expect(cancel).toHaveAttribute('data-variant', 'link');
-    expect(cancel).toHaveAttribute('data-rjb-exit');
-    expect(cancel.className).toContain('hds-touch-target');
-    expect(screen.getByRole('button', { name: 'Done' })).toHaveAttribute(
-      'data-variant',
-      'secondary',
-    );
-    await user.click(cancel);
-    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
-    expect(getApplyKit().fields.name).toBe('Sam');
   });
 
   it('Mark applied and Not a fit move on to the next job in the list, each with Undo', async () => {
@@ -414,99 +338,17 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
   });
 });
 
-// The templates are the library's Outreach messages (#227).
-describe("a job's messages (#540: sections only with content)", () => {
-  beforeEach(() => {
-    setOutreachMessages([
-      { id: 'intro', label: 'Cold intro', body: 'Hi, the [Role] role at [Company]. [Your name]' },
-    ]);
-  });
-  afterEach(() => setOutreachMessages([]));
-
-  it('has no Templates disclosure; Edit documents opens Documents over the job', async () => {
+// Adrian 2026-11-13: the Application kit ("Copy into the form") left the job view. Its data
+// (rjb_apply_kit, blob v6) stays in storage, sync, Back up and the merge.
+describe('no Application kit on the job view', () => {
+  it('shows no Copy into the form panel', async () => {
+    replaceApplyKit({ ...emptyKit(), fields: { ...emptyKit().fields, name: 'Ada' } });
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     await screen.findByRole('link', { name: 'Open application' });
-    expect(screen.queryByRole('button', { name: /^Templates \(/ })).toBeNull();
-    expect(screen.queryByRole('region', { name: 'Templates' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
-      'href',
-      `#/apply/${jobIdOf(A)}?documents=`,
-    );
-    // With a message, the message rows show.
-    expect(screen.getByRole('button', { name: /^Why this company/ })).toBeInTheDocument();
-  });
-
-  it('with no messages: no message rows, one tap adds the starters, or write one', async () => {
-    const user = userEvent.setup();
-    setOutreachMessages([]);
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const kit = await screen.findByRole('region', { name: 'Copy into the form' });
-    expect(within(kit).queryByRole('button', { name: /^Why this company/ })).toBeNull();
-    expect(within(kit).queryByRole('button', { name: /^Cover note/ })).toBeNull();
-    expect(within(kit).getByRole('link', { name: 'Write a message' })).toHaveAttribute(
-      'href',
-      `#/apply/${jobIdOf(A)}?documents=new%2Foutreach`,
-    );
-    await user.click(within(kit).getByRole('button', { name: 'Add starter messages' }));
-    expect(await within(kit).findByRole('button', { name: /^Cover note/ })).toBeInTheDocument();
-  });
-});
-
-describe('Application kit: a deleted template pick (#314)', () => {
-  afterEach(() => setOutreachMessages([]));
-
-  it('delete-then-open-the-job: the pick reads as No template, is cleared, and re-adding the message does not re-link it', async () => {
-    const user = userEvent.setup();
-    setOutreachMessages([
-      { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
-      { id: 'other', label: 'Other note', body: 'Other body' },
-    ]);
-    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-gone' });
-    // The picked message is deleted in Documents; the other message stays.
-    setOutreachMessages([{ id: 'other', label: 'Other note', body: 'Other body' }]);
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    const kit = await screen.findByRole('region', { name: 'Copy into the form' });
-    await user.click(within(kit).getByRole('button', { name: /^Why this company/ }));
-    const picker = (await within(kit).findByRole('combobox', {
-      name: /^Why this company template/,
-    })) as HTMLSelectElement;
-    expect(picker.value).toBe('');
-    // Once sync has settled the stale id is cleared from the kit itself, not just hidden.
-    await waitFor(() => expect(getApplyKit().whyTemplate).toBeUndefined());
-    // Re-adding a message under the same id must not silently re-link the old pick.
-    act(() =>
-      setOutreachMessages([
-        { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
-        { id: 'other', label: 'Other note', body: 'Other body' },
-      ]),
-    );
-    expect(getApplyKit().whyTemplate).toBeUndefined();
-    expect(
-      (
-        within(kit).getByRole('combobox', {
-          name: /^Why this company template/,
-        }) as HTMLSelectElement
-      ).value,
-    ).toBe('');
-  });
-});
-
-describe('Application kit: a pick on a snippet not moved yet (#314 review)', () => {
-  afterEach(() => setOutreachMessages([]));
-
-  it('keeps the pick while the snippet waits for its move into the library', async () => {
-    // A device that never ran the move: the picked message is still a legacy snippet.
-    setOutreachMessages([]);
-    replaceSnippets([{ id: 'why-legacy', label: 'Why Acme', body: 'Because [Company]' }]);
-    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-legacy' });
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    await screen.findByRole('region', { name: 'Copy into the form' });
-    await waitFor(() => expect(getSnippets().every((s) => s.migrated)).toBe(true));
-    expect(getApplyKit().whyTemplate).toBe('why-legacy');
+    expect(screen.queryByRole('region', { name: /^Copy into the form/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Custom answers/ })).toBeNull();
+    expect(getApplyKit().fields.name).toBe('Ada');
   });
 });
 
@@ -571,63 +413,5 @@ describe('rapid apply follow-ups (#219)', () => {
     expect(within(notice).getByText('Acme Designer')).toBeInTheDocument();
     expect(within(notice).getByRole('button', { name: 'Open' })).toBeInTheDocument();
     expect(within(notice).queryByText(/^Added to Apply/)).toBeNull();
-  });
-
-  it('an unnamed question’s remove button still says what it removes', async () => {
-    const user = userEvent.setup();
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
-    await user.click(screen.getByRole('button', { name: 'Add a question' }));
-    expect(screen.getByRole('button', { name: 'Remove this question' })).toBeInTheDocument();
-  });
-});
-
-describe('Custom answers: Remove is soft (#212)', () => {
-  it('removing a question offers Undo, which puts it back in its place', async () => {
-    const user = userEvent.setup();
-    replaceApplyKit({
-      ...emptyKit(),
-      answers: [
-        { id: 'qa-1', q: 'Visa?', a: 'No sponsorship needed' },
-        { id: 'qa-2', q: 'Relocate?', a: 'Yes' },
-      ],
-    });
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
-    await user.click(screen.getByRole('button', { name: 'Remove question Visa?' }));
-    await waitFor(() => expect(getApplyKit().answers.map((a) => a.id)).toEqual(['qa-2']));
-    const region = await findNotice();
-    expect(within(region).getByText(/Visa\?/)).toBeInTheDocument();
-    await user.click(within(region).getByRole('button', { name: 'Undo' }));
-    expect(getApplyKit().answers.map((a) => a.id)).toEqual(['qa-1', 'qa-2']);
-    expect(getApplyKit().answers[0].a).toBe('No sponsorship needed');
-  });
-});
-
-describe('Application kit: where it is kept (sign-in aware)', () => {
-  const kitNote = () =>
-    within(screen.getByRole('region', { name: /^Copy into the form/ })).getByText(
-      /^Enter these once/,
-    );
-
-  it('signed out, it says the kit stays on this device', async () => {
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    await screen.findByRole('heading', { name: 'Acme Designer' });
-    expect(kitNote()).toHaveTextContent('Enter these once. Saved on this device only.');
-  });
-
-  it('signed in, it says the kit follows the account', async () => {
-    await loadSupabase();
-    window.location.hash = `#/apply/${jobIdOf(A)}`;
-    renderApp();
-    act(() => h.fake!.signIn('u1'));
-    await addDeviceDataIfAsked();
-    await waitFor(() =>
-      expect(kitNote()).toHaveTextContent('Enter these once. They follow your account.'),
-    );
-    act(() => void h.fake!.client.auth.signOut());
   });
 });

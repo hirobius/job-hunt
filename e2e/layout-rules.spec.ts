@@ -357,8 +357,12 @@ for (const theme of THEMES) {
             ? page.getByText('Nothing under “Recently closed”')
             : page.getByText('No jobs match.', { exact: true }),
         ).toBeVisible();
-        // The chip's click may scroll it clear of the sticky bar: measure from the top.
-        await page.evaluate(() => window.scrollTo(0, 0));
+        // The chip's click may scroll it clear of the sticky bar, or scroll the lg list column
+        // inside itself (Playwright brings the chip into view): measure both from the top.
+        await page.evaluate(() => {
+          window.scrollTo(0, 0);
+          document.querySelectorAll('.job-rail').forEach((el) => el.scrollTo(0, 0));
+        });
         await page.waitForTimeout(200);
         expect(await probe(page)).toEqual([]);
       });

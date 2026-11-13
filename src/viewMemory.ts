@@ -1,6 +1,6 @@
 // View memory (return paths, Adrian 2026-10-22): small bits of on-screen state, like which rows of
 // Apply mode were open or a Live postings search, kept for this page load by a key, so a page left
-// for a moment (Edit documents, or a saved posting's page, then Back) comes back as it was. In
+// for a moment (Documents, or a saved posting's page, then Back) comes back as it was. In
 // memory only; nothing here is data.
 import { useState } from 'react';
 

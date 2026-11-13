@@ -14,8 +14,10 @@ export const BUDGET = {
    *  HDS 0.38 (m + LazyMotion in 14 components, hds#1386): 255.0 → 249.0 kB; the limit stays. */
   initialJsGzip: 255_000,
   /** All CSS index.html links (render-blocking). 27.0 → 27.5 kB for HDS 0.38: its styles.css
-   *  grew 23.29 → 23.63 kB gzip (raised Button edge tokens, .hds-button in 0.37), 26.9 → 27.2 kB. */
-  initialCssGzip: 27_500,
+   *  grew 23.29 → 23.63 kB gzip (raised Button edge tokens, .hds-button in 0.37), 26.9 → 27.2 kB.
+   *  27.5 → 27.7 kB for HDS 0.43 (2026-11-13): the app's initial CSS was at the limit (27.5) and
+   *  HDS's styles.css grew a few dozen bytes gzip, so the build read 27.6 kB. No app CSS changed. */
+  initialCssGzip: 27_700,
   /** Any single lazy chunk. supabase-js is the largest (~56 kB) and loads only to sign in. */
   lazyChunkGzip: 70_000,
 };
