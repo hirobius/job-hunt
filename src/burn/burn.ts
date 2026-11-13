@@ -35,25 +35,35 @@ export const holeClip = (hole: string) => (hole ? `path(evenodd, '${hole}')` : '
 /** Frame times per burn, read by the perf check. */
 const stats = ((globalThis as { __burnStats?: number[][] }).__burnStats ??= []);
 
-/** Run the burn over a w×h box from `at` for `ms`: the contour steps at BURN.fps; between steps
- *  nothing is recomputed. */
+/** Run the burn over a w×h box from `at` for `ms`: the contour steps at BURN.fps. Each step's
+ *  contour is computed in its own task right after the previous step is applied, so a frame never
+ *  carries both the maths and the repaint of the new clip (perf check, #688). */
 function runBurn(w: number, h: number, at: Pt, ms: number, apply: (f: BurnFrame) => void) {
   const frame = createBurn(BURN, w, h, at.x, at.y);
   const times: number[] = [];
   stats.push(times);
+  const step = 1000 / Math.min(60, Math.max(4, BURN.fps));
+  const steps = Math.ceil(ms / step);
+  const progress = (k: number) => Math.min(1, (k * step) / ms);
+  let k = 0;
+  let ready: BurnFrame = frame(0);
+  const prepare = () => {
+    ready = frame(progress(k + 1));
+  };
   return new Promise<void>((done) => {
     const t0 = performance.now();
-    const step = 1000 / Math.min(60, Math.max(4, BURN.fps));
-    let last = -1;
     const paint = (now: number) => {
       times.push(now);
       const e = now - t0;
-      const p = e >= ms ? 1 : (Math.floor(e / step) * step) / ms;
-      if (p !== last) {
-        last = p;
-        apply(frame(p));
+      const want = e >= ms ? steps : Math.floor(e / step);
+      if (want > k || (k === 0 && times.length === 1)) {
+        // Late (a slow device): jump to the step it should be on.
+        if (want > k + 1) ready = frame(progress(want));
+        k = want;
+        apply(ready);
+        if (k < steps) setTimeout(prepare, 0);
       }
-      if (e < ms) requestAnimationFrame(paint);
+      if (k < steps) requestAnimationFrame(paint);
       else done();
     };
     requestAnimationFrame(paint);

@@ -4,7 +4,7 @@
 // moves continuously: no re-randomising, no flicker. The hole (F < t) shows the new theme; the thin
 // char band (t <= F < t + char) darkens the old one just ahead of the edge. The settings are locked
 // (BURN); the cost per frame is one pass over a reused grid per contour.
-import { contours, curve, noise, simplify } from '../brand/flameEngine';
+import { curve, noise, simplify } from '../brand/flameEngine';
 
 export type Easing = 'inOutCubic' | 'inOutQuad' | 'inOutSine' | 'linear';
 export type BurnSettings = {
@@ -99,15 +99,17 @@ export function createBurn(S: BurnSettings, w: number, h: number, ox: number, oy
       if (v > hi) hi = v;
     }
   }
-  // One grid, reused by every contour; its rim stays 0 (unburnt) and is never written.
-  const g = new Float32Array(W * H);
+  // The rim is forced unburnt, just above each frame's cut (as the flame engine's 0-heat rim reads),
+  // so every loop closes inside the grid.
+  const rim = (v: number) => {
+    for (let i = 0; i < W; i++) F[i] = F[(H - 1) * W + i] = v;
+    for (let j = 0; j < H; j++) F[j * W] = F[j * W + W - 1] = v;
+  };
+  const march = marcher(F, W, H, c, x0, y0);
   const level = (t: number) => {
-    for (let j = 1; j < H - 1; j++) {
-      const r = j * W;
-      for (let i = 1; i < W - 1; i++) g[r + i] = 1 + (t - F[r + i]) * 40;
-    }
+    rim(t + 1 / 40);
     let d = '';
-    for (const loop of contours(g, W, H, c, x0, y0)) d += curve(simplify(loop as Pt[], 0.35), -2);
+    for (const loop of march(t)) d += curve(simplify(loop, 0.35), -2);
     return d;
   };
   const charOn = S.charOn && S.char > 0 && S.charStrength > 0;
@@ -117,5 +119,89 @@ export function createBurn(S: BurnSettings, w: number, h: number, ox: number, oy
     const e = ease(Math.min(1, Math.max(0, p)));
     const t = lo - 0.002 + (hi - lo + charN + 0.004) * e;
     return { hole: level(t), char: charOn ? level(t + charN) : '' };
+  };
+}
+
+// Which two cell edges each case joins, as T R B L = 0 1 2 3 (two pairs for a saddle): the flame
+// engine's table, so the burn's outline is the same shape its contours gave.
+const TBL = [
+  [],
+  [3, 2],
+  [2, 1],
+  [3, 1],
+  [1, 0],
+  [3, 0, 1, 2],
+  [2, 0],
+  [3, 0],
+  [0, 3],
+  [0, 2],
+  [0, 1, 2, 3],
+  [0, 1],
+  [1, 3],
+  [1, 2],
+  [2, 3],
+  [],
+];
+
+/** Marching squares over the fixed field F at threshold t (inside = F < t), loops of points. The
+ *  same cut as the flame engine's `contours`, without its Maps: every edge key indexes typed
+ *  arrays allocated once per burn, so a frame allocates only its points (perf check, #688). */
+function marcher(F: Float32Array, W: number, H: number, c: number, ox: number, oy: number) {
+  const N = 2 * W * H;
+  const next = new Int32Array(N);
+  const px = new Float32Array(N),
+    py = new Float32Array(N);
+  const stamp = new Uint32Array(N); // a key's point is set in this frame when stamp === frame
+  const used = new Uint32Array(N);
+  const starts = new Int32Array(N);
+  let frame = 0;
+  return (t: number): Pt[][] => {
+    frame++;
+    let ns = 0;
+    const f = (a: number, b: number) => (a - t) / (a - b);
+    for (let j = 0; j < H - 1; j++)
+      for (let i = 0; i < W - 1; i++) {
+        const n = j * W + i;
+        const a = F[n],
+          b = F[n + 1],
+          d = F[n + W + 1],
+          e = F[n + W];
+        const idx = (a < t ? 8 : 0) | (b < t ? 4 : 0) | (d < t ? 2 : 0) | (e < t ? 1 : 0);
+        if (idx === 0 || idx === 15) continue;
+        const x = ox + i * c,
+          y = oy + j * c;
+        const tb = TBL[idx];
+        for (let k = 0; k < tb.length; k++) {
+          const s = tb[k];
+          const key =
+            s === 0 ? n * 2 : s === 1 ? (n + 1) * 2 + 1 : s === 2 ? (n + W) * 2 : n * 2 + 1;
+          if (stamp[key] !== frame) {
+            stamp[key] = frame;
+            if (s === 0) ((px[key] = x + c * f(a, b)), (py[key] = y));
+            else if (s === 1) ((px[key] = x + c), (py[key] = y + c * f(b, d)));
+            else if (s === 2) ((px[key] = x + c * f(e, d)), (py[key] = y + c));
+            else ((px[key] = x), (py[key] = y + c * f(a, e)));
+          }
+          if ((k & 1) === 0) {
+            const s2 = tb[k + 1];
+            next[key] =
+              s2 === 0 ? n * 2 : s2 === 1 ? (n + 1) * 2 + 1 : s2 === 2 ? (n + W) * 2 : n * 2 + 1;
+            starts[ns++] = key;
+          }
+        }
+      }
+    const loops: Pt[][] = [];
+    for (let q = 0; q < ns; q++) {
+      let k = starts[q];
+      if (used[k] === frame) continue;
+      const loop: Pt[] = [];
+      while (used[k] !== frame) {
+        used[k] = frame;
+        loop.push([px[k], py[k]]);
+        k = next[k];
+      }
+      if (loop.length > 5) loops.push(loop);
+    }
+    return loops;
   };
 }
