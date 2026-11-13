@@ -9,6 +9,7 @@ import { savePersisted } from './persisted';
 import { fingerprint } from './tracks/score';
 import { updateSources } from './sources';
 import { nameKey, type Source } from './sourcesModel';
+import { httpUrl } from './httpUrl';
 
 export const DECIDED_KEY = 'rjb_decided';
 /** Newest kept: a year of heavy triage. */
@@ -22,7 +23,20 @@ export interface Decided {
   verdict: Verdict;
   /** ISO time of the decision; the later one wins on a merge. */
   at: string;
+  /** What the posting was, kept with a Skip so Apply's Passed view can list it (2026-11-13).
+   *  Older entries have none and read as "Skipped posting". */
+  title?: string;
+  company?: string;
+  /** An http(s) link only. */
+  url?: string;
+  /** Deleted from Passed: still decided (it never comes back in Review), no longer listed. */
+  hidden?: true;
 }
+
+/** What a Skip keeps about its posting. */
+export type PostingInfo = Pick<Decided, 'title' | 'company' | 'url'>;
+
+const text = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 300) : '');
 
 /** A posting's fingerprint, the key `decided` is kept by. */
 export const postingFingerprint = (p: { company: string; title: string }) => fingerprint(p);
@@ -32,10 +46,17 @@ function sanitizeOne(raw: unknown): Decided | null {
   const o = raw as Record<string, unknown>;
   const fp = typeof o.fingerprint === 'string' ? o.fingerprint.trim() : '';
   if (!fp || !VERDICTS.includes(o.verdict as Verdict)) return null;
+  const title = text(o.title);
+  const company = text(o.company);
+  const url = typeof o.url === 'string' ? httpUrl(o.url.trim().slice(0, 2000)) : null;
   return {
     fingerprint: fp,
     verdict: o.verdict as Verdict,
     at: typeof o.at === 'string' ? o.at : new Date(0).toISOString(),
+    ...(title && { title }),
+    ...(company && { company }),
+    ...(url && { url }),
+    ...(o.hidden === true && { hidden: true as const }),
   };
 }
 
@@ -112,8 +133,13 @@ export const decided = {
   /** Whether a posting was decided either way. */
   has: (fp: string): boolean => readAll().some((d) => d.fingerprint === fp),
   /** Record (or change) a decision. Returns the entry, for Undo. */
-  set(fp: string, verdict: Verdict, at = new Date().toISOString()): Decided | null {
-    const d = sanitizeOne({ fingerprint: fp, verdict, at });
+  set(
+    fp: string,
+    verdict: Verdict,
+    at = new Date().toISOString(),
+    info: PostingInfo = {},
+  ): Decided | null {
+    const d = sanitizeOne({ ...info, fingerprint: fp, verdict, at });
     if (!d) return null;
     write(settle([...readAll().filter((x) => x.fingerprint !== d.fingerprint), d]));
     return d;
@@ -123,6 +149,14 @@ export const decided = {
   undo(fp: string, prev?: Decided | null, at = new Date().toISOString()): void {
     const rest = readAll().filter((x) => x.fingerprint !== fp);
     write(settle(prev ? [...rest, { ...prev, at }] : rest));
+  },
+  /** Delete from Passed: the decision stays (the posting never comes back), marked hidden and
+   *  stamped now so a sync keeps it. Returns what it was, for Undo (`undo(fp, prev)`). */
+  hide(fp: string, at = new Date().toISOString()): Decided | null {
+    const cur = readAll().find((d) => d.fingerprint === fp);
+    if (!cur) return null;
+    write(settle([...readAll().filter((x) => x.fingerprint !== fp), { ...cur, hidden: true, at }]));
+    return cur;
   },
   /** Every decision, live, by fingerprint. */
   use: useDecidedMap,

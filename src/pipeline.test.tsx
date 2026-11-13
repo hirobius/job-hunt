@@ -289,36 +289,6 @@ describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () =
     await waitFor(() => expect(links()).toHaveLength(all.length - 1));
     await waitFor(() => expect(document.activeElement?.textContent).toBe(prevName));
   });
-
-  it('Clear N gives focus to the search, and the shown count is announced', async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await openListOnPhone();
-    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
-    await user.type(search, 'zzz');
-    await waitFor(() =>
-      expect(screen.getAllByRole('status').some((s) => s.textContent === '0 jobs shown')).toBe(
-        true,
-      ),
-    );
-    await user.click(screen.getByRole('button', { name: 'Clear 1 filter' }));
-    expect(document.activeElement).toBe(search);
-    await waitFor(() =>
-      expect(screen.getAllByRole('status').some((s) => s.textContent === '2 jobs shown')).toBe(
-        true,
-      ),
-    );
-  });
-
-  it('Clear search in the empty list gives focus to the search', async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await openListOnPhone();
-    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
-    await user.type(search, 'zzz');
-    await user.click(screen.getByRole('button', { name: 'Clear search' }));
-    expect(document.activeElement).toBe(search);
-  });
 });
 
 describe('Retired jobs stay readable', () => {
@@ -356,51 +326,16 @@ describe('Retired jobs stay readable', () => {
 describe('Pipeline filter (#129, #543)', () => {
   beforeEach(() => viewport(390));
 
-  it('a view is not a filter: no Clear; Remote only is, and "Clear 1" takes it off (#543)', async () => {
+  it('the list has no search, filter chips, Clear or Sort (2026-11-13)', async () => {
     renderApp();
     await openListOnPhone();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Filters' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Clear \d/ })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /^Applied \d/ }));
-    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.queryByRole('button', { name: /^Clear \d/ })).toBeNull();
-    const remote = within(screen.getByRole('group', { name: 'Filters' })).getByRole('button', {
-      name: 'Remote only',
-    });
-    await userEvent.click(remote);
-    expect(remote).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(await screen.findByRole('button', { name: 'Clear 1 filter' }));
-    expect(remote).toHaveAttribute('aria-pressed', 'false');
-    // The view stays what was picked.
-    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.queryByRole('button', { name: /^Clear \d/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Sort:/ })).toBeNull();
   });
 
-  it('Clear N sits with the filter chips after Sort, and counts what is on (#543)', async () => {
-    renderApp();
-    await openListOnPhone();
-    await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz');
-    const filters = screen.getByRole('group', { name: 'Filters' });
-    const clear = await within(filters).findByRole('button', { name: 'Clear 1 filter' });
-    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
-    // Under the search, after the Remote only and Sort chips.
-    expect(search.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const sort = within(filters).getByRole('button', { name: /^Sort:/ });
-    expect(sort.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(clear).toHaveTextContent(/^Clear 1$/);
-    await userEvent.click(within(filters).getByRole('button', { name: 'Remote only' }));
-    const clear2 = within(filters).getByRole('button', { name: 'Clear 2 filters' });
-    expect(clear2).toHaveTextContent(/^Clear 2$/);
-    await userEvent.click(clear2);
-    expect(within(filters).queryByRole('button', { name: /^Clear \d/ })).toBeNull();
-  });
-
-  it('the six named views, then All jobs, replace the Status select (#541)', async () => {
+  it('the seven named views, then All jobs, replace the Status select (#541)', async () => {
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('button', { name: /^Status:/ })).toBeNull();
@@ -414,6 +349,7 @@ describe('Pipeline filter (#129, #543)', () => {
       'Interviewing 0',
       'Applied 1',
       'Recently closed 0',
+      'Passed 0',
       'All jobs 2',
     ]);
   });
@@ -465,45 +401,29 @@ describe('Pipeline on a tablet: the sheet rows too (Adrian 2026-10-24)', () => {
     expect(within(card).queryByText('Starred')).toBeNull();
   });
 
-  it('sorts through the Sort chip, and back', async () => {
-    addJob('https://acme.example/jobs/3', 'Writer'); // the newest, but last A–Z
+  it('lists newest first, the pinned job first (no Sort since 2026-11-13)', async () => {
+    addJob('https://acme.example/jobs/3', 'Writer'); // the newest
     setPipelineView({ filter: 'all' });
     renderApp();
     await openListOnPhone();
-    const pickSort = async (name: string) => {
-      await userEvent.click(screen.getByRole('button', { name: /^Sort:/ }));
-      await userEvent.click(
-        within(await screen.findByRole('menu')).getByRole('menuitemradio', { name }),
-      );
-    };
-    // Default: the pinned job with a due follow-up first, then most recently added.
-    expect(titles()).toEqual(['Zenith Product Designer', 'Writer', 'Design Engineer']);
-    await pickSort('A–Z');
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Sort: A–Z' })).toBeInTheDocument(),
-    );
-    // Priority still floats in every sort (jobSort's invariant); A–Z orders the rest.
-    expect(titles()).toEqual(['Zenith Product Designer', 'Design Engineer', 'Writer']);
-    await pickSort('Recently added');
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Sort: Newest' })).toBeInTheDocument(),
-    );
     expect(titles()).toEqual(['Zenith Product Designer', 'Writer', 'Design Engineer']);
   });
 });
 
 describe('shared list state (#130 slice 4)', () => {
-  it('the filter, search and sort survive a jump to a job and opening the list again', async () => {
-    setPipelineView({ filter: 'all' });
+  it('the view survives a jump to a job and opening the list again', async () => {
+    setPipelineView({ filter: 'applied' });
     renderApp();
     await openListOnPhone();
-    await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Zenith');
     // A jump from the sheet opens the job in place and closes it (Proposal A).
     await userEvent.click(within(jobsNav()).getByRole('link', { name: 'Zenith Product Designer' }));
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(APPLIED)}`));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
     await openAllJobs();
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('Zenith');
+    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(queryRow('Design Engineer')).toBeNull();
   });
 });

@@ -20,7 +20,8 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { loadSupabase } from './supabase';
 import { viewport } from './test/viewport';
-import { setPipelineView } from './pipelineView';
+import { setFollowProfileRemote, setPipelineView } from './pipelineView';
+import { replaceProfiles, saveProfile } from './profile';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import {
@@ -554,17 +555,20 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
   });
 
-  it('shows the same jobs the Pipeline list showed: its search and filter', () => {
+  it('the column holds the views and the jobs, and no other control (2026-11-13)', () => {
     viewport(1280);
-    setPipelineView({ q: 'welder' });
+    setPipelineView({ filter: 'applied' });
     openJobPage(URL_B);
-    expect(railRows()).toHaveLength(1);
-    // The views and Sort sit in the column itself (#471, #541): no trip back to a list page.
-    expect(screen.getByRole('button', { name: /^To apply \d/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
-    expect(screen.getByRole('button', { name: /^Sort: / })).toBeInTheDocument();
+    const column = document.querySelector<HTMLElement>('.job-rail')!;
+    expect(within(column).queryByRole('button', { name: /^Sort: / })).toBeNull();
+    expect(within(column).queryByRole('button', { name: 'Search jobs' })).toBeNull();
+    expect(within(column).queryByRole('switch', { name: 'Remote only' })).toBeNull();
+    expect(within(column).queryByRole('status')).toBeNull();
+    expect(within(column).queryByText(/Every saved job/)).toBeNull();
   });
 
   it('the Jobs tab at lg opens on the first job beside the list (#471)', () => {
@@ -600,22 +604,13 @@ describe('job page two-pane (#130 slice 5)', () => {
   it("a view change that hides the open job opens the list's first job instead (#614)", async () => {
     viewport(1280);
     updateJob(URL_B, { location: 'Portland, OR, or Remote within the United States' });
+    updateJob(URL_A, { location: 'Austin, TX' });
     openJobPage(URL_A);
-    act(() => setPipelineView({ remoteOnly: true }));
+    // Remote only follows the Search profile's work mode (2026-11-13).
+    setFollowProfileRemote(true);
+    act(() => void saveProfile({ titles: [], mode: 'remote' }));
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`));
-    // Remote only is kept per device: leave it off for the next test.
-    act(() => setPipelineView({ remoteOnly: false }));
-  });
-
-  it('searching in the rail narrows it, behind its search icon (#614)', async () => {
-    viewport(1280);
-    openJobPage(URL_A);
-    expect(screen.queryByRole('textbox', { name: 'Search jobs' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Search jobs' }));
-    await userEvent.type(screen.getByRole('textbox', { name: 'Search jobs' }), 'Welder');
-    expect(railRow('Welder')).toBeInTheDocument();
-    // Search typing never moves the open job.
-    expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_A)}`);
+    act(() => replaceProfiles([]));
   });
 
   it('marks a follow-up that is due', () => {
@@ -1011,8 +1006,6 @@ describe('the keys follow the state (#540)', () => {
     await user.click(screen.getByRole('button', { name: 'Close out: Alpha Designer' }));
     expect(getAllJobs().find((j) => j.url === URL_A)?.archived).toBe(true);
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`));
-    // Remote only is kept per device: leave it off for the next test.
-    act(() => setPipelineView({ remoteOnly: false }));
     const next = await screen.findByRole('heading', { level: 1, name: 'Beta Designer' });
     await waitFor(() => expect(next).toHaveFocus());
   });

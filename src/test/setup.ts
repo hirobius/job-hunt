@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach } from 'vitest';
 import { preloadViews } from '../routeViews';
-import { resetPipelineView } from '../pipelineView';
+import { resetPipelineView, setFollowProfileRemote } from '../pipelineView';
 import { closeExportLinks } from '../exportLinks';
 import { closeFollowUp } from '../followUpFlow';
 import { closeAddInterview, closeRecentlyRemoved } from '../jobDialogs';
@@ -23,6 +23,9 @@ window.scrollTo = () => {};
 
 // The Pipeline's filter/sort/search is shared in-memory state (#130): every test starts on Active.
 beforeEach(resetPipelineView);
+// Apply's Remote only follows the Search profile (2026-11-13); first run's remote profile lands
+// mid-test, so it is off unless a test turns it on (remoteOnly.test.tsx).
+beforeEach(() => setFollowProfileRemote(false));
 
 // The shell's route views load on demand (routeViews.ts); load them up front so a test sees the
 // Pipeline, job page, Apply mode and Company page on the first render, as before the split.

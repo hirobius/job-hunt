@@ -3,7 +3,6 @@ import {
   DEFAULT_VIEW,
   FILTER_LABEL,
   VIEWS,
-  VIEW_DESCRIPTION,
   filterCounts,
   getPipelineView,
   weekDateOf,
@@ -25,9 +24,9 @@ const all = [saved, applied, pinned, retired];
 beforeEach(resetPipelineView);
 
 describe('pipelineView', () => {
-  it('starts on To apply, recently added, no search', () => {
+  it('starts on To apply (no search or sort since 2026-11-13; no profile: Remote only off)', () => {
     expect(getPipelineView()).toEqual(DEFAULT_VIEW);
-    expect(DEFAULT_VIEW).toEqual({ filter: 'toApply', sort: 'recent', q: '' });
+    expect(DEFAULT_VIEW).toEqual({ filter: 'toApply' });
   });
 
   it.each([
@@ -42,26 +41,11 @@ describe('pipelineView', () => {
     ).toEqual([...titles].sort());
   });
 
-  it('search matches title, company and url, case-insensitively, and also notes', () => {
-    const withNotes = job('https://e.example/5', { label: 'Epsilon', notes: 'ask about Forklift' });
-    const v = { ...DEFAULT_VIEW, filter: 'all' as const };
-    expect(visibleJobs([...all, withNotes], { ...v, q: 'ACME' }).map((j) => j.label)).toEqual([
-      'Alpha welder',
-    ]);
-    expect(visibleJobs([...all, withNotes], { ...v, q: 'forklift' }).map((j) => j.label)).toEqual([
-      'Epsilon',
-    ]);
+  it('lists newest first (the one order since 2026-11-13; pinned still floats first)', () => {
+    expect(visibleJobs(all, { filter: 'all' })[0].label).toBe('Gamma');
   });
 
-  it('sort is applied: A to Z', () => {
-    expect(
-      visibleJobs(all, { filter: 'all', sort: 'az', q: '' })
-        .filter((j) => !j.archived)
-        .map((j) => j.label),
-    ).toEqual(['Gamma', 'Alpha welder', 'Beta fitter']); // pinned floats first;
-  });
-
-  it('six named views, then All jobs, each with a label and a one-line description', () => {
+  it('seven named views, then All jobs, each with a label', () => {
     expect(VIEWS.map((v) => FILTER_LABEL[v])).toEqual([
       'To apply',
       'Follow up',
@@ -69,9 +53,9 @@ describe('pipelineView', () => {
       'Interviewing',
       'Applied',
       'Recently closed',
+      'Passed',
       'All jobs',
     ]);
-    for (const v of VIEWS) expect(VIEW_DESCRIPTION[v]).toMatch(/^[^\n]{10,80}$/);
   });
 
   it('counts every view', () => {
@@ -82,8 +66,15 @@ describe('pipelineView', () => {
       interviewing: 0,
       applied: 2,
       closed: 0,
+      passed: 1,
       all: 4,
     });
+    // Passed adds the skipped postings it lists beside its jobs.
+    expect(filterCounts(all, undefined, false, 3).passed).toBe(4);
+  });
+
+  it('Passed lists jobs marked Not a fit or set aside, and only those', () => {
+    expect(visibleJobs(all, { filter: 'passed' }).map((j) => j.label)).toEqual(['Delta']);
   });
 
   it('This week lists interviews and closing dates in the next 7 days, soonest first (#640)', () => {
@@ -137,8 +128,7 @@ describe('pipelineView', () => {
 
   it('set merges into the shared state and reset restores the default', () => {
     setPipelineView({ filter: 'applied' });
-    setPipelineView({ q: 'x' });
-    expect(getPipelineView()).toEqual({ filter: 'applied', sort: 'recent', q: 'x' });
+    expect(getPipelineView()).toEqual({ filter: 'applied' });
     resetPipelineView();
     expect(getPipelineView()).toEqual(DEFAULT_VIEW);
   });

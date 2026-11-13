@@ -249,20 +249,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
   screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
-  empty state; no filter bar on the job since #543: Add job, search, filters, Sort and the sample line are the
-  All jobs sheet's), the sticky **walk control** (#542, `ApplyWalk.tsx`:
+  empty state; no filter bar on the job since #543; no search, filters, Sort or sample line anywhere since the
+  control-free list, 2026-11-13), the sticky **walk control** (#542, `ApplyWalk.tsx`:
   one row, no box: the **view picker** (the open view's name, bold, caret inside, named "View: <name>"; since 2026-11-13 an HDS
   secondary `Button` drawn as a select by `ApplyWalk.css` `.rjb-view-picker`: the Find chips' fill (HDS Tag tokens) as a
   40px pill (its `::after`; HDS's `::before` is the press wipe) in a 44px hit area, no edge or shadow, its left edge on
   the page gutter under Find | Apply and the job title, `e2e/shell-controls.spec.ts`; an HDS Menu drawn as
-  a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the six views with counts and
-  "All jobs and filters"), a **"N filters" chip** only while a filter is on (`filtersOn`: search, Remote only; it opens
-  the sheet), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
+  a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the seven views with counts and
+  "All jobs", which opens the sheet; the "N filters" chip went with the filters, 2026-11-13), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
   label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways swipe on the job steps it too);
   at 390 the view name truncates, never the pager; no pager at lg) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
   `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (#543: Add job, the
-  view chips, search "Search saved jobs", a "Filters" group with the Remote only `Tag` chip (aria-pressed), the
-  Sort chip (`PipelineMenus chip`, a Tag) and "Clear N" while `filtersOn` > 0, the sample line, then the rows).
+  view chips, then the rows; Passed shows `PassedList`).
   **One job list, sheet and lg column alike (#543):** `JobRowList.tsx` (+ `.css`), rows in an HDS NavList on one
   surface, never a Card per job: badges, the title (`rjb-clamp-2`, two lines), the company, place and one date;
   the title is the link, its hit area stretched over the row (`::after`, which carries the focus ring), so its name
@@ -404,7 +402,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Scan details (the Search profile dialog); no count on Find since #660 (the New and Remote chips hold the numbers, and
   Review's polite `role="status"` says "N postings, M new"). The Review row's right side is List | Deck, pinned at its end. **No Sort on Find (Adrian 2026-11-13):** List and
   Deck are newest first, always (`sortRows(…, 'newest')`; an older remembered `review:sort` is not read; `FindSortMenu`
-  and `SORT_LABEL` are deleted; Apply's Sort, `PipelineMenus`, stays). No hairline between the toolbar and the list or above Find's empty state. The
+  and `SORT_LABEL` are deleted; Apply's Sort went too, 2026-11-13). No hairline between the toolbar and the list or above Find's empty state. The
   Review row (`.rjb-review-row`, `FindDeck.css`): the chips on the left (New with its count, Remote a plain toggle
   with no count) take the rest and wrap; the right group (List | Deck) stays pinned at the end; `ReviewView`'s `header` is a function given the new count
   and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
@@ -449,13 +447,22 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   window (`respondByJobs`), soonest first; it replaces the phone's lost Next 7 days section), **Interviewing**
   (Interviewing or Offer), **Applied**,
   **Recently closed** (`isClosed`: gone from the board or past its day; #602, where closed jobs collect and each is
-  removed or kept; the automatic check is #602's own work), then **All jobs** (every job, set-aside ones too: the old
-  Saved / Offer / Rejected / Retired / Closing soon filters went with the select). `VIEW_DESCRIPTION` is each one's
-  one line. `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"` "Views", `aria-pressed`, a `Badge` count,
-  amber on Follow up while one is due) with the open view's line under them: at the top of the lg list column
-  (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the walk row's view picker picks them (#542, out
-  of Filters); `PipelineMenus` is Sort only (an icon at lg, a chip in the sheet). Default view To apply. Since #543 search,
-  filters, sort and Add job live in the All jobs sheet (see Two screens); "Clear N" clears the filters, not the view. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
+  removed or kept; the automatic check is #602's own work), **Passed** (Adrian 2026-11-13, `passed.ts` +
+  `PassedList.tsx`: jobs marked Not a fit or set aside (`archived`), each row with Delete (`removeWithUndo`: to Recently
+  removed, Undo; Delete forever stays there), then "Skipped in Find": the `decided[]` Skips not `hidden`, newest
+  first, with Save (`addJobDetailed`, verdict saved, Undo skips again), Undo skip (`decided.undo`, back in Find, Undo
+  skips again) and Delete (`decided.hide`: `hidden: true`, stamped now so the later decision wins a merge; still
+  decided, so it never comes back in Find; Undo lists it again). A Skip now keeps the posting's `title`, `company` and
+  an http(s) `url` on its `decided` entry (`feed/decided.ts` `decide`; additive fields, sanitized, in sync, backup
+  and the three-way merge, no blob bump); an older Skip has only its fingerprint and lists as "Skipped posting" with no
+  link and no Save. The Passed count is its jobs (under the profile's Remote only) plus its listed Skips
+  (`filterCounts(…, skipped)`); pinned in `passed.test.tsx`, `jobViews.test.tsx`), then **All jobs** (every job, set-aside ones too: the old
+  Saved / Offer / Rejected / Retired / Closing soon filters went with the select). `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"`
+  "Views", `aria-pressed`, a `Badge` count, amber on Follow up while one is due), with no description line under them
+  (2026-11-13): at the top of the lg list column (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the
+  walk row's view picker picks them (#542). Default view To apply. **Control-free list (Adrian 2026-11-13):** no
+  search, no Sort (newest first; To apply closing soonest first, This week soonest first), no Remote only switch, no
+  status line, no sample line; `PipelineView` is `{ filter, remoteOnly? }` and only the view is the person's choice. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 - **Browse is windowed (memory audit 2026-11-13):** `src/useWindowedList.ts` mounts a window of 100 cards
   (`WINDOW_SIZE`, moved in steps of 20) around the viewport; each run of the rest is one `li.rjb-window-spacer`
   (aria-hidden, height through `--rjb-spacer-h`, `FindDeck.css`) as tall as its cards and gaps. Heights are measured
@@ -519,17 +526,19 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   "View: Deck, switch to List", an HDS Tooltip "Switch to …", a 44px hit area over the whole track. Segment pills
   nest in their track (`--seg-inner-radius` = rail radius less its pad) and draw the ledge as a gradient clipped by
   that radius (never a box shadow: the focus outline stays the one ring). The app bar's theme switch (`ThemeBurnToggle`) draws its icon at 28px, and the Account button
-  matches it (the same 44px box and 28px icon, #694) (a base.css gap, registered in `docs/hds-upstream-asks-0.9.md`). Apply's **Remote only** HDS `Toggle`
-  (`RemoteOnlySwitch.tsx`, the lg job rail; the phone's All jobs sheet shows it as a chip, #543) sets `PipelineView.remoteOnly`, kept per
-  device (`rjb_apply_remote_only`); `visibleJobs` keeps `isRemoteJob` (#614: the job's mode when set, else
-  `inferMode` on title + location, where a list offering remote among places, "Portland, OR, or Remote within
-  Canada", counts), and **every count follows it**: the view chips (`filterCounts(…, remoteOnly)`), the status
-  line, the closed count (`remoteFiltered`), the pager and All jobs. A view change (named view or Remote only)
+  matches it (the same 44px box and 28px icon, #694) (a base.css gap, registered in `docs/hds-upstream-asks-0.9.md`). Apply's **Remote only** has no control since
+  2026-11-13: it **follows the Search profile's work mode, as Review does** (`usePipelineView` / `getPipelineView` set
+  `remoteOnly` when `profile.mode === 'remote'`; the old per-device `rjb_apply_remote_only` key is left unread).
+  `visibleJobs` keeps `keptUnderRemote`, Review's rule: `isRemoteJob` (#614: the job's mode when set, else
+  `classifyRemote` on title + location, where a list offering remote among places, "Portland, OR, or Remote within
+  Canada", counts) or a job with no mode and no place ("Remote not stated"); and **every count follows it**: the view
+  chips (`filterCounts(…, remoteOnly)`), the pager and All jobs. A view change (named view or the profile's mode)
   that hides the open job opens the list's first job in place (`followView.ts`; none: at lg the job stays and the list
   says "No jobs match", below lg the page shows the view's empty state "Nothing under “…”" and no pager); search typing never moves it, and the lg rail has no "Not in this filter" card. **lg list
-  column header (#614, Adrian 2026-11-12):** Jobs + Add job, the chips and the view description unchanged, then
-  one row: Remote only, with Search (opens the field under it) and Sort (`PipelineMenus compact`) as tertiary icon
-  buttons, then one status line. `.job-rail` pads its scroll box by a ring's width on every side (given back by a
+  column header (#614; control-free 2026-11-13):** Jobs + Add job, the chips, then the jobs. A closed job shows by its
+  Closed badge on the row and the job's header (the "N closed on the board" status line and `useClosedOnBoard` are
+  gone). Clear sample data is the Account menu's (only while sample jobs exist, `ClearSampleRow` in
+  `AccountMenuRows.tsx`, `clearSample`). `.job-rail` pads its scroll box by a ring's width on every side (given back by a
   negative margin), so rings and the selected fill are never clipped (`e2e/sheet-gutter.spec.ts`). Pinned in `appNav.test.tsx`, `review.test.tsx`, `remoteOnly.test.tsx`,
   `e2e/shell-controls.spec.ts`.
 - **Calm list shell (PR #208) and "Today is gone" (#236)** are history: the final shell above brought Today
@@ -668,7 +677,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   auto-scan uses (probe, identity check, YC / GitHub / Adele leads, `companySource`, `teamRoles`) stay.
   `feed/liveList.ts` stays as the breadth guard's baseline. `/api/sam` is gone; `SAM_GOV_API_KEY` can go from Vercel.
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
-  furniture: unsynced is only the Account menu's sync line (no Avatar dot), and `SampleBanner` is a one-line note under the page header. Section heads are
+  furniture: unsynced is only the Account menu's sync line (no Avatar dot), and the sample's Clear is the Account menu's "Clear sample data" (2026-11-13). Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 44px phone controls (`--rjb-touch`, retro quick wins 2026-11-08),
   reduced motion); secondary colour is `Text tone="secondary"`. Guards: inline `style={{`
@@ -1186,8 +1195,8 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
     `scanOnOpenEnabled()`): once sync settles, signed in only, never behind the sign-in screen, once per page load
     (`autoLivenessCheck`), each board read once, a job checked in the last 6 h not asked again (`dueJobs`). **No
     manual action anywhere** ("Check which are still open" is gone from the lg rail and the phone's Filters). **One
-    quiet place (#601):** the Apply list's status line ("To apply · 21 jobs · 1 closed on the board",
-    `useClosedOnBoard`, over the Remote only pool); no page-top line, no "Checked live" date, no second link to a
+    quiet place (#601):** the job's Closed badge (on its Apply row and header; the Apply list's status line and
+    `useClosedOnBoard` went in 2026-11-13); no page-top line, no "Checked live" date, no second link to a
     closed job (its Closed badge on the card and header says it). Pinned in `liveness.test.tsx`.
   - **Starter boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; onboarding follows the design-systems
     list as Sources (`searchDefaults.seedSources`). `seedPack` / `topUpFromPack` (no app caller now) file the

@@ -28,7 +28,7 @@ export default function ApplyDone({ jobs }: { jobs: Job[] }) {
               onClick={() => {
                 if (next.kind === 'find') return navigate({ tab: 'find', sub: null, jobId: null });
                 const from = pageHeadingNow();
-                setPipelineView({ filter: 'followUp', q: '' });
+                setPipelineView({ filter: 'followUp' });
                 focusNewHeading(from);
               }}
             >
@@ -38,7 +38,7 @@ export default function ApplyDone({ jobs }: { jobs: Job[] }) {
               variant="secondary"
               onClick={() => {
                 const from = pageHeadingNow();
-                setPipelineView({ filter: 'all', q: '' });
+                setPipelineView({ filter: 'all' });
                 focusNewHeading(from);
               }}
             >

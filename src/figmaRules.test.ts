@@ -77,7 +77,7 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/view name truncates, never the pager/);
     expect(CLAUDE).toMatch(/view name truncates, never the pager/);
     const walk = fs.readFileSync('src/ApplyWalk.tsx', 'utf8');
-    expect(walk).toContain('All jobs and filters');
+    expect(walk).toContain('All jobs');
     expect(walk).toContain('rjb-menu-sheet');
   });
 
@@ -282,7 +282,7 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/One job list, sheet and 1440 column alike/);
     expect(CLAUDE).toMatch(/One job list, sheet and lg column alike/);
     const list = fs.readFileSync('src/TrackerView.tsx', 'utf8');
-    expect(list).toContain('<PipelineMenus chip />');
+    expect(list).not.toMatch(/PipelineMenus|SampleBanner|Search saved jobs|Remote only/);
     expect(list).toContain('<JobRowList');
     expect(list).not.toContain('<Card');
     const rail = fs.readFileSync('src/JobRail.tsx', 'utf8');
@@ -299,8 +299,11 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(/lg list\s+column header \(#614/);
     for (const doc of [RULES, CLAUDE]) expect(doc).not.toMatch(/with `LivenessCheck`/);
     const rail = fs.readFileSync('src/JobRail.tsx', 'utf8');
-    expect(rail).toContain('<RemoteOnlySwitch />');
-    expect(rail).toContain('<PipelineMenus size="sm" compact />');
+    // Control-free (2026-11-13): the views and the jobs, nothing else.
+    expect(rail).toContain('<JobViews />');
+    expect(rail).not.toMatch(/RemoteOnlySwitch|PipelineMenus|SampleBanner|role="status"/);
+    for (const gone of ['RemoteOnlySwitch', 'PipelineMenus', 'useClosedOnBoard'])
+      expect(fs.existsSync(`src/${gone}.tsx`) || fs.existsSync(`src/${gone}.ts`)).toBe(false);
     expect(rail).not.toContain('LivenessCheck');
     expect(rail).not.toContain('Not in this filter');
   });

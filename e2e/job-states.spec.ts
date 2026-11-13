@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { seed, pressAllJobs } from './routes';
+import { seed, pressAllJobs, allWorkModes } from './routes';
 
 // The filled key follows the state (#540): one filled key, then a grey key and an exit.
 const ranks = (page: Page) =>
@@ -32,6 +32,7 @@ for (const width of [390, 1440]) {
     test('to apply, then follow-up due with Undo', async ({ page }) => {
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);
+      await allWorkModes(page);
       await page.goto('/#/apply');
       // Default: Open application filled, Mark applied grey, Not a fit the exit.
       await expect

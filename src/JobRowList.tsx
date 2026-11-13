@@ -4,8 +4,9 @@
 // title is the row's link and its hit area covers the row (`::after`), so the link's name is its
 // visible text, the title (axe label-content-name-mismatch), and the rest describes it. The open
 // job takes the selected fill (#603), never a ring. No key on a row and no posting glyph (#543):
-// the job's own page holds its next step and Open posting.
-import { useId } from 'react';
+// the job's own page holds its next step and Open posting. The one exception is the Passed view's
+// Delete (`keys`, 2026-11-13).
+import { useId, type ReactNode } from 'react';
 import { Box, NavList, Stack, Text } from '@hirobius/design-system';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
@@ -20,7 +21,17 @@ import { jobHighlightKey } from './saveNotice';
 import type { Job } from './types';
 import './JobRowList.css';
 
-function Row({ job, current, onPick }: { job: Job; current: boolean; onPick: (job: Job) => void }) {
+function Row({
+  job,
+  current,
+  onPick,
+  keys,
+}: {
+  job: Job;
+  current: boolean;
+  onPick: (job: Job) => void;
+  keys?: (job: Job) => ReactNode;
+}) {
   const v = rowView(job);
   const id = useId();
   // A Remove's Undo (#593) asks for this row: it scrolls into view and flashes.
@@ -54,6 +65,11 @@ function Row({ job, current, onPick }: { job: Job; current: boolean; onPick: (jo
           </Stack>
         </Box>
       </Stack>
+      {keys && (
+        <Stack direction="row" gap="px8" align="center" className="rjb-job-row-keys">
+          {keys(job)}
+        </Stack>
+      )}
     </li>
   );
 }
@@ -63,16 +79,25 @@ export default function JobRowList({
   jobs,
   openId,
   onPick,
+  keys,
 }: {
   jobs: Job[];
   openId?: string;
   onPick: (job: Job) => void;
+  /** A row's own keys under its facts (Apply's Passed view: Delete). */
+  keys?: (job: Job) => ReactNode;
 }) {
   return (
     <nav aria-label="Jobs" className="rjb-job-rows">
       <NavList>
         {jobs.map((j) => (
-          <Row key={j.url} job={j} current={jobIdOf(j.url) === openId} onPick={onPick} />
+          <Row
+            key={j.url}
+            job={j}
+            current={jobIdOf(j.url) === openId}
+            onPick={onPick}
+            keys={keys}
+          />
         ))}
       </NavList>
     </nav>

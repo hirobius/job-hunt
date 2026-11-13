@@ -128,15 +128,10 @@ describe('Export links', () => {
     expect(within(dialog).getByText('2 links')).toBeInTheDocument();
   });
 
-  it('follows the Jobs panel search', async () => {
+  it('follows the Apply list view', async () => {
     const user = userEvent.setup();
     renderApp();
-    await user.click(screen.getByRole('button', { name: /^All jobs \d/ }));
-    // At 1440 the list is the column beside the first job (#471): its search is the same view.
-    // At lg the search opens behind its icon (#614).
-    const icon = screen.queryByRole('button', { name: 'Search jobs' });
-    if (icon) await user.click(icon);
-    await user.type(screen.getByRole('textbox', { name: /^Search (saved )?jobs$/ }), 'zenith');
+    await user.click(screen.getByRole('button', { name: /^Applied \d/ }));
     const dialog = await openOnThisView(user);
     expect(within(dialog).getByRole('radio', { name: 'This view (1)' })).toBeChecked();
     expect(preview().value).toBe(ZENITH);

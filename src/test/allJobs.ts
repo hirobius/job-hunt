@@ -30,7 +30,7 @@ async function leaveDone(): Promise<void> {
 export async function openAllJobs(): Promise<HTMLElement> {
   if ((await walkOrDone()) === 'done') await leaveDone();
   await userEvent.click(await screen.findByRole('button', { name: /^View: / }));
-  await userEvent.click(await screen.findByRole('menuitem', { name: 'All jobs and filters' }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'All jobs' }));
   return screen.findByRole('dialog', { name: 'All jobs' });
 }
 
@@ -43,6 +43,6 @@ export async function openListOnPhone(): Promise<void> {
   if (!shown) return;
   if (shown === 'done') await leaveDone();
   await userEvent.click(viewButton()!);
-  await userEvent.click(await screen.findByRole('menuitem', { name: 'All jobs and filters' }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'All jobs' }));
   await screen.findByRole('dialog', { name: 'All jobs' });
 }

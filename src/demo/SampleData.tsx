@@ -1,12 +1,10 @@
-// "Try with sample data" (#107): the empty-Tracker button that loads the fictional pipeline, and
-// the banner that stays up while any sample record exists. Pure HDS + tokens (no src/ui), so it
+// "Try with sample data" (#107): the empty-Tracker button that loads the fictional pipeline. Its
+// Clear is the Account menu's "Clear sample data" (AccountMenuRows, bare list 2026-11-13). Pure HDS + tokens (no src/ui), so it
 // adds nothing to the src/ui retirement (#92) or the brand move (#91).
-import { Box, Button, Stack, Text } from '@hirobius/design-system';
+import { Button } from '@hirobius/design-system';
 import { navigate } from '../route';
-import type { Job } from '../types';
 import { importFresh } from '../staleBuild';
-import { clearSample, hasCloudSession } from './sampleSession';
-import { isSample } from './isSample';
+import { hasCloudSession } from './sampleSession';
 
 // Seeding takes a starter pack: loaded on the click, not with the Pipeline (#372).
 const loadSampleModule = importFresh(() => import('./loadSample'));
@@ -53,44 +51,5 @@ export function TrySampleButton({
     >
       Try with sample data
     </Button>
-  );
-}
-
-/** Visible while the tracker holds sample records; Clear removes exactly those. A one-line note
- *  under the page header (#133), not a full-width band. */
-export function SampleBanner({
-  jobs,
-  onCleared,
-}: {
-  jobs: Job[];
-  /** Called after Clear: the banner leaves with the sample, so the mount moves focus (#345). */
-  onCleared?: () => void;
-}) {
-  const n = jobs.filter(isSample).length;
-  if (n === 0) return null;
-  return (
-    <Box role="status" aria-label="Sample data">
-      {/* One quiet line (rev-3 mock): what it is, and Clear. */}
-      <Stack direction="row" wrap="wrap" gap="px4" align="center">
-        <Text variant="caption" as="span" tone="secondary">
-          Sample data, {n} fictional {n === 1 ? 'job' : 'jobs'}.
-        </Text>
-        {/* An inline link right after the sentence (rev-3 mock): HDS InlineLink is href-only, so a
-            tertiary Button styled as a link (.rjb-inline-link) keeps the button semantics. */}
-        <Button
-          variant="tertiary"
-          size="sm"
-          className="rjb-inline-link"
-          label="Clear sample data"
-          title="Clearing removes them and any edits to them"
-          onClick={() => {
-            clearSample();
-            onCleared?.();
-          }}
-        >
-          Clear
-        </Button>
-      </Stack>
-    </Box>
   );
 }

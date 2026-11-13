@@ -55,3 +55,9 @@
 .rjb-job-row:has(> [aria-current='page']) {
   --component-badge-neutral-bg: var(--semantic-color-surface-page);
 }
+
+/* A row's own keys (Apply's Passed view: Delete): above the row's stretched link. */
+.rjb-job-row-keys {
+  position: relative;
+  z-index: 2;
+}

@@ -2,7 +2,6 @@
 // tested at the route seam through App and driven by title text and the action's role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
-import { openAllJobs } from './test/allJobs';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -20,7 +19,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, removeJob, setStatusByUrl } from './store';
+import { getAllJobs, removeJob, setStatusByUrl } from './store';
 import { replaceCurationState } from './curation/curationStore';
 import { getAllDocuments } from './documents';
 import { getSnippets } from './copyDeckStore';
@@ -50,23 +49,8 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-// rev-3 "filtered to nothing": a short title (straight quotes, no period), one sentence, and the
-// way back out as the empty's own action.
+// rev-3 "filtered to nothing" (no search since 2026-11-13: the done state is the one left here).
 describe('Pipeline filtered to nothing', () => {
-  it('a search with no match: No jobs match "q", a sentence, and Clear search', async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/apply';
-    renderApp();
-    // The Apply list is the All jobs sheet on a phone (Proposal A).
-    await openAllJobs();
-    await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz nothing');
-    expect(screen.getByText('No jobs match "zzz nothing"')).toBeInTheDocument();
-    expect(screen.getByText('Try a shorter word, or clear the search.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('');
-    expect(screen.queryByText(/No jobs match/)).toBeNull();
-  });
-
   it('nothing left to apply to: the done state, the week and two keys (#554)', async () => {
     setStatusByUrl('https://acme.example/jobs/1', 'Applied', 'Design Engineer');
     window.location.hash = '#/apply';

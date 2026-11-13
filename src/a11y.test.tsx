@@ -66,10 +66,10 @@ describe('a11y — the Pipeline agenda with the sample pipeline (#236, was Today
     await auditA11y(container);
   });
 
-  it('the All jobs sheet body: views, search, filter chips, Sort and the rows (#543)', async () => {
+  it('the All jobs sheet body: Add job, the views and the rows (#543)', async () => {
     loadSample();
     const { container, getByRole } = withTheme(<JobsList />);
-    expect(getByRole('group', { name: 'Filters' })).toBeInTheDocument();
+    expect(getByRole('group', { name: 'Views' })).toBeInTheDocument();
     expect(getByRole('navigation', { name: 'Jobs' })).toBeInTheDocument();
     await auditA11y(container);
   });

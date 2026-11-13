@@ -136,11 +136,11 @@ export default function JobPage({ jobId }: { jobId: string }) {
         {detail}
       </Sidebar>
     );
-  // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The sticky walk control (#542: view picker, "N filters" chip, "‹ 3 of 55 ›"; a swipe steps it too),
-  // then the job in full. The picker's "All jobs and filters" and the chip open the All jobs sheet,
-  // which holds Add job, the search, the filters and Sort (#543). A job opened from elsewhere keeps its Back.
+  // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The sticky walk control (#542: view picker, "‹ 3 of 55 ›"; a swipe steps it too),
+  // then the job in full. The picker's "All jobs" opens the All jobs sheet: Add job, the views
+  // and the list (#543; no search, filters or sort since 2026-11-13). A job opened from elsewhere keeps its Back.
   const list = visibleJobs(jobs, view);
-  const order = visibleJobs(jobs, { ...view, filter: 'all', q: '', remoteOnly: false });
+  const order = visibleJobs(jobs, { ...view, filter: 'all', remoteOnly: false });
   const at = list.findIndex((j) => j.url === job.url);
   const step = (d: -1 | 1) => {
     // A job the filter hides steps to the nearest shown one, as its pager does.
@@ -173,11 +173,24 @@ export default function JobPage({ jobId }: { jobId: string }) {
               centered
               icon={Search}
               title={`Nothing under “${FILTER_LABEL[view.filter]}”`}
-              description="Try another view."
+              description={
+                view.filter === 'passed'
+                  ? 'Postings you skipped in Find are in All jobs.'
+                  : 'Try another view.'
+              }
               action={
-                <Button variant="secondary" onClick={() => setPipelineView({ filter: 'toApply' })}>
-                  Show to apply
-                </Button>
+                view.filter === 'passed' ? (
+                  <Button variant="secondary" onClick={() => setAll(true)}>
+                    All jobs
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setPipelineView({ filter: 'toApply' })}
+                  >
+                    Show to apply
+                  </Button>
+                )
               }
             />
           </Stack>
@@ -192,7 +205,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
           </SwipeArea>
         )}
       </Stack>
-      <AllJobsSheet jobs={jobs} openId={jobId} open={all} onOpenChange={setAll} />
+      <AllJobsSheet openId={jobId} open={all} onOpenChange={setAll} />
     </Box>
   );
 }

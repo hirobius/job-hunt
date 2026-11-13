@@ -4,7 +4,7 @@
 // walkthroughs of the new flows. Local only (no Actions): `npm run test:e2e`.
 import { test, expect, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
-import { topTab, currentTab, pressAllJobs, listScope } from './routes';
+import { topTab, currentTab, pressAllJobs, listScope, allWorkModes } from './routes';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
@@ -358,6 +358,7 @@ for (const width of [390, 1440] as const) {
 
     test('a page change moves focus to the new page heading', async ({ page }) => {
       await seed(page);
+      await allWorkModes(page);
       await go(page, '#/apply');
       // From lg the Jobs tab is the list beside a job (#471): a pick there moves in place, so open
       // the second row. Below lg the list is the All jobs sheet (Proposal A): a pick closes it.
@@ -394,7 +395,9 @@ for (const width of [390, 1440] as const) {
     });
 
     // #345: the pressed control leaves with what it changed (the empty state, the banner).
-    test('Try with sample data and Clear hand focus to the Pipeline heading', async ({ page }) => {
+    test('Try with sample data hands focus to the page heading; Clear (Account menu) keeps it off body', async ({
+      page,
+    }) => {
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await page.goto('/#/apply');
       await page.getByRole('button', { name: 'Try with sample data' }).focus();
@@ -403,14 +406,16 @@ for (const width of [390, 1440] as const) {
       await page.waitForTimeout(300);
       // The Apply tab turns into the first job (#471, Proposal A): its title is the h1.
       await expect.poll(() => focused(page)).toMatch(/^H1 /);
-      // The sample line is the list's (#543): the All jobs sheet below lg.
-      const list = await listScope(page);
-      await expect(list.getByRole('status', { name: 'Sample data' })).toBeVisible();
-      await list.getByRole('button', { name: 'Clear sample data' }).focus();
+      // Clear sample data is the Account menu's since 2026-11-13 (shown only while sample jobs exist).
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await page.getByRole('menuitem', { name: 'Clear sample data' }).focus();
       await page.keyboard.press('Enter');
-      await expect(page.getByRole('status', { name: 'Sample data' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Try with sample data' })).toBeVisible();
       await page.waitForTimeout(300);
-      await expect.poll(() => focused(page)).toBe('H1 Apply');
+      await expect.poll(() => focused(page)).not.toMatch(/^BODY/);
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await expect(page.getByRole('menuitem', { name: 'Clear sample data' })).toHaveCount(0);
+      await page.keyboard.press('Escape');
     });
 
     test('a row that leaves the list hands focus on, and the notice is announced', async ({

@@ -67,7 +67,9 @@ export const getAllDecided = (): DecidedState => decidedStateOf(getDecided(), ge
 
 /** Record a verdict on one posting. */
 export function decide(p: Pick<Posting, 'company' | 'title' | 'url'>, verdict: Verdict): void {
-  decidedStore.set(postingFingerprint(p), verdict);
+  // A Skip keeps the posting's title, company and link for Apply's Passed view.
+  const info = verdict === 'skipped' ? { title: p.title, company: p.company, url: p.url } : {};
+  decidedStore.set(postingFingerprint(p), verdict, undefined, info);
 }
 
 /** Undo a verdict: the posting is back in Review new. */
