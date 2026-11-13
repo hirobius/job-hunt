@@ -170,7 +170,8 @@ export function createBurn(
       const nx = cr * x - sr * y + shape.dx,
         ny = sr * x + cr * y + shape.dy;
       let n = 0;
-      for (let o = 0; o < ks.length; o++) n += as[o] * planes[o](nx * ks[o], ny * ks[o]);
+      for (let o = 0; o < ks.length; o++)
+        n += as[o] * planes[o](nx * ks[o], ny * ks[o]);
       const v = Math.hypot(x - ox, dy) / D + amp * n - S.rough;
       F[j * W + i] = v;
       if (v < lo) lo = v;

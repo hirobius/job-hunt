@@ -99,7 +99,7 @@ const decode = (s: string) => {
   }
 };
 
-/** The page a dialog opened from an old link sits over: the page the link came from, else Find. */
+/** The page a dialog opened from an old link sits over: the page the link came from, else Review. */
 function pageUnder(r: Route): Route {
   const o = r.from ? parseHash('#' + r.from) : null;
   const base = o ? (redirectOf(o) ?? o) : { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
@@ -112,7 +112,7 @@ function pageUnder(r: Route): Route {
  *  of its own) and `navigate` never writes one. `#/today` → `#/review`, `#/find[/<fp>]` → `#/review[/<fp>]`, `#/queue` → `#/apply`,
  *  `#/queue/<id>` → `#/apply/<id>` (its origin kept), `#/company/<slug>` →
  *  `#/apply/company/<slug>`, the Companies tab → `#/review`, `#/copy-deck/<id>` and `#/legal/<doc>` →
- *  the page they were opened from (else Find) with the Documents or Legal dialog over it. */
+ *  the page they were opened from (else Review) with the Documents or Legal dialog over it. */
 export function redirectOf(r: Route): Route | null {
   if (r.tab === OLD_DOCUMENTS) return { ...pageUnder(r), documents: r.sub ? decode(r.sub) : '' };
   if (r.tab === OLD_LEGAL) return { ...pageUnder(r), legal: r.sub || 'privacy' };
