@@ -1,0 +1,27 @@
+/* ApplyWalk's view picker; in the JobPage chunk, off base.css (the first-load CSS budget). */
+/* The walk control's view picker (2026-11-13): a select-style key, not a ghost. The Find chips' fill,
+ * radius (HDS Tag tokens) and 40px height, soft (no edge, no shadow), its box on the page gutter.
+ * The button keeps its 44px hit area; the fill is its ::after (HDS Button's ::before is its press wipe), centred in it (HDS Button is
+ * `isolate`, so z-index -1 stays under the label). */
+[data-hds] .rjb-view-picker {
+  min-height: var(--rjb-touch);
+  padding-inline: var(--component-tag-paddingX);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  /* The focus ring follows the pill. */
+  border-radius: var(--component-tag-radius);
+}
+[data-hds] .rjb-view-picker::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  /* The chip's drawn height: 40 (HDS Tag's min-height plus its padding and edge). */
+  inset: calc((100% - var(--primitive-space-10)) / 2) 0;
+  border-radius: var(--component-tag-radius);
+  background: var(--component-tag-background);
+  transition: background-color var(--hds-motion-productive-duration);
+}
+[data-hds] .rjb-view-picker:hover::after {
+  background: var(--semantic-color-surface-accentSubtle);
+}

@@ -190,3 +190,45 @@ for (const width of [320, 375, 390]) {
     ).toBe(true);
   });
 }
+
+// The walk control's view picker (2026-11-13): a select-style key with the Find chips' fill and
+// 40px height, the caret inside it, its left edge on the page gutter under Find | Apply and the
+// job title; its hit area stays 44px, and its name stays "View: <name>".
+test.describe('at 390, the view picker', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  test('reads as a control on the gutter', async ({ page }) => {
+    await seed(page);
+    await page.goto('/#/apply');
+    const picker = page.getByRole('button', { name: /^View: / });
+    await expect(picker).toHaveAccessibleName('View: To apply');
+    const nav = await page.getByRole('navigation', { name: 'Sections' }).boundingBox();
+    const title = await page.getByRole('main').getByRole('heading', { level: 1 }).boundingBox();
+    const box = await picker.boundingBox();
+    expect(Math.abs(box!.x - nav!.x)).toBeLessThan(1);
+    expect(Math.abs(box!.x - title!.x)).toBeLessThan(1);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    const fill = await picker.evaluate((el) => {
+      const a = getComputedStyle(el, '::after');
+      return { bg: a.backgroundColor, h: parseFloat(a.height), w: parseFloat(a.width) };
+    });
+    expect(fill.bg).not.toBe('rgba(0, 0, 0, 0)');
+    expect(fill.h).toBeCloseTo(40, 0);
+    expect(fill.w).toBeCloseTo(box!.width, 0);
+    // The chip's fill: the same colour and height as Find's New chip.
+    await page.goto('/#/find');
+    const chip = page.getByRole('group', { name: 'Filter postings' }).getByRole('button').first();
+    const chipFill = await chip.evaluate((el) => {
+      const s = getComputedStyle(el.firstElementChild as Element);
+      return {
+        bg: s.backgroundColor,
+        h: (el.firstElementChild as Element).getBoundingClientRect().height,
+      };
+    });
+    expect(chipFill.bg).toBe(fill.bg);
+    expect(chipFill.h).toBeCloseTo(fill.h, 0);
+    await page.goto('/#/apply');
+    // The caret sits inside the fill.
+    const caret = await picker.locator('svg').boundingBox();
+    expect(caret!.x + caret!.width).toBeLessThan(box!.x + box!.width);
+  });
+});
