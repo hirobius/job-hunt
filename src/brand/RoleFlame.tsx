@@ -123,8 +123,6 @@ function useFlame(animated = true, settings: FlameSettings = FLAME) {
   useEffect(() => {
     if (!on || !visible) return;
     const id = window.setInterval(() => {
-      // Held still while the theme burns (#688): each flame frame would repaint the clipped new theme.
-      if (document.documentElement.hasAttribute('data-rjb-burning')) return;
       setState({ frame: next(), tick: ++ticks.current });
     }, 1000 / settings.fps);
     return () => window.clearInterval(id);

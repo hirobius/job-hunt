@@ -29,3 +29,18 @@
   height: 100vh;
   view-transition-name: rjb-burn-rim;
 }
+
+/* The app bar's logo keeps burning through the theme burn (#688): it is captured on its own, above
+   the root, and only its live new view shows (in the new theme from the first frame), so its
+   flame moves and repainting it never touches the clipped page snapshot. */
+:root[data-rjb-burning] header .rjb-logo-link {
+  view-transition-name: rjb-burn-logo;
+}
+:root[data-rjb-burning]::view-transition-group(rjb-burn-logo),
+:root[data-rjb-burning]::view-transition-new(rjb-burn-logo) {
+  z-index: 4;
+  animation: none;
+}
+:root[data-rjb-burning]::view-transition-old(rjb-burn-logo) {
+  display: none;
+}

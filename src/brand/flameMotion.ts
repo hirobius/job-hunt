@@ -22,8 +22,7 @@ export function animateFlame(svg: Element, letters: HTMLElement[] = []): () => v
   let n = 0;
 
   const tick = () => {
-    // Held still while the theme burns (#688): a live flame repaints the clipped new theme every frame.
-    if (document.hidden || document.documentElement.hasAttribute('data-rjb-burning')) return;
+    if (document.hidden) return;
     next().forEach((d, i) => paths[i]?.setAttribute('d', d));
     n++;
     if (S.tOn !== 'letters' || n % S.tEvery) return;
