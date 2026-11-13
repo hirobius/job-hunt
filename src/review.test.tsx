@@ -321,11 +321,8 @@ describe('Review new: Browse', () => {
     expect(titles(ul)[0]).toBe('Design Systems Designer 0');
     await user.click(screen.getByRole('button', { name: 'Load more (5)' }));
     expect(titles(ul)).toHaveLength(REVIEW_PAGE + 5);
-    // Sort is its own key beside Browse | Deck (2026-11-12), named by the open sort; More has none.
-    await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
-    expect(await screen.findByRole('menuitemradio', { name: 'Newest' })).toBeChecked();
-    await user.click(screen.getByRole('menuitemradio', { name: 'Company' }));
-    expect(titles(ul)[0]).toBe('Design Systems Designer 29');
+    // No Sort on Find (Adrian 2026-11-13): newest first, always.
+    expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
     // Two filters only (Adrian 2026-10-28): New (was "New today", #615) and Remote.
     expect(
       within(screen.getByRole('group', { name: 'Filter postings' }))
@@ -481,7 +478,7 @@ describe('Review new: Deck', () => {
     expect(deckTitle()).toBe(first);
   });
 
-  it('shows the Sort menu; the deck follows the sort and keeps its card (#617)', async () => {
+  it('walks the deck newest first with no Sort; More ends the key row (2026-11-13)', async () => {
     const user = userEvent.setup();
     feed.fetchFeed.mockResolvedValue(
       result([
@@ -517,19 +514,26 @@ describe('Review new: Deck', () => {
     expect(screen.getByTestId('caption')).toHaveTextContent('2 of 3');
     await user.click(within(pager).getByRole('button', { name: /previous/i }));
     expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
-    // More (Not this company) sits beside the card's title (2026-11-12).
+    // More (Not this company) is not by the title (2026-11-13): it ends the key row, Skip | Save | More.
+    expect(within(screen.getByRole('article')).queryByRole('button', { name: /^More/ })).toBeNull();
+    const keys = screen.getByRole('group', { name: /^Actions for / });
     expect(
-      within(screen.getByRole('article')).getAllByRole('button', { name: /^More/ }),
-    ).toHaveLength(1);
-    // Sort is its own key (2026-11-12), there in the Deck too.
-    await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
-    await user.click(await screen.findByRole('menuitemradio', { name: 'Company' }));
-    // The same card stays on screen, now 3 of 3 (Acme, Mono, Zeta).
-    expect(deckTitle()).toBe('Design Systems Designer at Zeta');
-    expect(screen.getByTestId('caption')).toHaveTextContent('3 of 3');
+      within(keys)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual([
+      'Skip Design Systems Designer at Zeta',
+      'Save Design Systems Designer at Zeta',
+      'More actions: Design Systems Designer at Zeta',
+    ]);
+    await user.click(within(keys).getByRole('button', { name: /^More actions/ }));
+    expect(await screen.findByRole('menuitem', { name: 'Not this company: Zeta' })).toBeTruthy();
+    await user.keyboard('{Escape}');
+    // No Sort on Find (2026-11-13): the deck is newest first.
+    expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
     await user.click(within(screen.getByRole('article')).getByRole('heading', { level: 3 }));
-    await user.keyboard('{ArrowLeft}');
-    expect(deckTitle()).toBe('Design Systems Lead at Mono');
+    await user.keyboard('{ArrowRight}');
+    expect(deckTitle()).toBe('Design Systems Engineer at Acme');
   });
 });
 
@@ -595,7 +599,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
   const before = (a: Node, b: Node) =>
     Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  it('stacks title (More beside it), company, meta lines, pay, the excerpt; Skip and Save in the dock (#545)', async () => {
+  it('stacks title (full width), company, meta lines, pay, the excerpt; Skip and Save in the dock (#545)', async () => {
     const card = await openDeck(ONE);
     const title = within(card).getByRole('heading', { level: 3 });
     const company = within(card).getByText('Acme');
@@ -611,11 +615,9 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(within(card).queryByRole('button', { name: /description/i })).toBeNull();
     const full = within(card).getByRole('link', { name: /Read the full posting/ });
     expect(full).toHaveAttribute('href', ONE.url);
-    const more = within(card).getByRole('button', {
-      name: 'More actions: Design Systems Designer at Acme',
-    });
-    // More sits beside the title (2026-11-12), before the company.
-    const order = [title, more, company, place, mode, posted, pay, text, full];
+    // More left the title's side (2026-11-13): it ends the key row under the card.
+    expect(within(card).queryByRole('button', { name: /^More actions/ })).toBeNull();
+    const order = [title, company, place, mode, posted, pay, text, full];
     order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
     // Save and Skip left the card for the dock: Skip (grey) first, Save (filled) on the right.
     expect(within(card).queryByRole('button', { name: /^(Save|Skip) / })).toBeNull();
@@ -627,7 +629,9 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(keys.map((k) => k.getAttribute('aria-label'))).toEqual([
       'Skip Design Systems Designer at Acme',
       'Save Design Systems Designer at Acme',
+      'More actions: Design Systems Designer at Acme',
     ]);
+    expect(keys[2]).toHaveClass('rjb-deck-more');
     expect(keys[1]).toHaveAttribute('data-variant', 'primary');
     expect(keys[0]).toHaveAttribute('data-variant', 'secondary');
     // In flow under the card at every width (2026-11-13): no fixed dock on Find.

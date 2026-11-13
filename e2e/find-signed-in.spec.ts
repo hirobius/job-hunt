@@ -75,7 +75,7 @@ for (const width of [390, 1440]) {
 }
 
 // #694: no More menu on Find. Scan now (signed out) sits in the Account menu beside Search profile;
-// the Review row's right side is List | Deck (and Sort with postings) alone. No Scan now key on the page.
+// the Review row's right side is List | Deck alone (no Sort since 2026-11-13). No Scan now key on the page.
 test('signed out: Scan now is in the Account menu, beside Search profile (390)', async ({
   page,
 }) => {

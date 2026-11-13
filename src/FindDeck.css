@@ -13,9 +13,20 @@
   block-size: var(--rjb-spacer-h, 0px);
 }
 
-/* Skip | Save in flow under the card, the card's width (Adrian 2026-11-13): two equal keys. */
+/* Skip | Save | More in flow under the card, the card's width (Adrian 2026-11-13): Skip and Save
+ * share the width; More (…) is a fixed 44px key that never shrinks, at the row's end. */
+.rjb-deck > .rjb-dock-row {
+  flex-wrap: nowrap;
+}
 .rjb-deck > .rjb-dock-row > * {
   flex: 1 1 0;
+  min-width: 0;
+}
+[data-hds] .rjb-deck > .rjb-dock-row > .rjb-deck-more {
+  flex: none;
+  inline-size: var(--rjb-touch);
+  block-size: var(--rjb-touch);
+  min-inline-size: var(--rjb-touch);
 }
 
 /* List | Deck, one toggle (Adrian 2026-11-13): one button drawn as the .rjb-segs track (a 2px pad,
@@ -66,7 +77,7 @@
   inset: calc((var(--primitive-space-8) - var(--rjb-touch)) / 2) 0;
 }
 
-/* Find controls (2026-11-13): the Review row keeps its right group (List | Deck, Sort, More) pinned
+/* Find controls (2026-11-13): the Review row keeps its right group (List | Deck) pinned
  * at its end; the chips take the rest and wrap. The Deck's place sits at the page bar's right. */
 .rjb-page-bar-tools:has(.rjb-find-tools) {
   margin-inline-start: auto;
