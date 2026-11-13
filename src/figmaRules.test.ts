@@ -187,30 +187,23 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
-  it('pins the Find Deck (#545, #617): keys under the card, "‹ 1 of N ›" in the page bar, More in the key row', () => {
-    expect(RULES).toMatch(/Find Deck \(#545, #617\)/);
+  it('pins Find as one list (2026-11-13): no Deck, no switch, the phone pager, no filter row', () => {
+    expect(RULES).toMatch(/Find is one list \(2026-11-13\)/);
     expect(RULES).toMatch(
-      /Skip \(grey, left\) and Save \(filled,\s+right\) sit in one row right under the card, in flow/,
+      /with no source or New\s+badge \(#557\)|carry no source or New\s+badge \(#557\)/,
     );
-    expect(CLAUDE).toMatch(/\*\*Find Deck \(#545, #617/);
-    // #557 cuts: no source or New badge on the Deck card, and no blue (info) badge on any card.
-    expect(RULES).toMatch(/with no source or New\s+badge \(#557\)/);
+    expect(CLAUDE).not.toMatch(/\*\*Find Deck \(#545/);
+    expect(fs.existsSync('src/FindDeck.css')).toBe(false);
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
-    expect(review).toContain('<ActionDock docked={false} row');
-    expect(review).not.toContain('Pagination');
+    expect(review).not.toMatch(/\bDeck\b|ActionDock|SwipeArea|Checkbox|remoteOnly/);
     expect(review).not.toContain('<Badge tone="info">');
-    expect(review).not.toMatch(/mode === 'browse' && \(/);
-    expect(fs.readFileSync('src/FindDeck.css', 'utf8')).toContain('line-clamp: 7');
-    // 2026-11-12: the Deck's pager is HDS compact Pagination in the page bar; More by the title.
-    expect(RULES).toContain('"‹ 1 of 4 ›"');
-    expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).toContain('label="Postings in the deck"');
-    // 2026-11-13: More ends the key row as a fixed 44px key; the title has the card's width.
-    expect(RULES).toMatch(/then More \(…, Not this\s+company\) as a fixed 44 px icon key/);
-    expect(review).toContain('className="rjb-deck-more"');
-    expect(fs.readFileSync('src/FindDeck.css', 'utf8')).toMatch(/\.rjb-deck-more \{\s+flex: none;/);
+    expect(review).toContain('aria-label="Postings in the list"');
+    expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Pagination');
+    // The Apply job still swipes.
+    expect(fs.readFileSync('src/JobPage.tsx', 'utf8')).toContain('<SwipeArea');
   });
 
-  it("pins Find's one Review row (2026-11-12): no visible heading, chips left, view right, no Sort", () => {
+  it("pins Find's Review (2026-11-12): no visible heading, no Sort", () => {
     expect(RULES).toMatch(/No visible "Review" heading \(2026-11-12\)/);
     // No Sort on Find (Adrian 2026-11-13): newest first, always.
     expect(fs.existsSync('src/FindSortMenu.tsx')).toBe(false);
@@ -340,9 +333,9 @@ describe('FIGMA-RULES.md', () => {
     const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
     // No More menu on Find (#694): Scan now and Search profile are the Account menu's.
     expect(head).not.toContain('Menu');
-    // No visible "Find" title: the h1 is .sr-only and the tools sit in the page bar (2026-11-12).
+    // No visible "Find" title: the h1 is .sr-only; nothing in the page bar since the Deck went.
     expect(head).toContain('className="sr-only"');
-    expect(head).toContain('<InPageBar>');
+    expect(head).not.toContain('<InPageBar>');
     expect(RULES).toMatch(/\*\*The page bar \(2026-11-12\)\.\*\*/);
     expect(CLAUDE).toMatch(/\*\*The page bar \(2026-11-12/);
   });

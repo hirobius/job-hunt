@@ -851,42 +851,6 @@ p {
   display: none;
 }
 
-/* Find's Review row (2026-11-12): the chips on the left, Browse | Deck and Sort on the right. The
- * view switch is a compact two-icon segmented group on the muted rail, as the top tabs are. */
-.rjb-review-tools {
-  margin-inline-start: auto;
-}
-/* Its keys stay HDS sm to look at (32px), over the phone's 44px control rule; an ::after gives each
- * a 44px hit area that belongs to it alone (.rjb-hit-44; HDS's hds-touch-target grows the box
- * itself): 6px above and below, and 12px on one side only. Browse | Deck touch, so each grows on
- * its outer side (Browse into the row gap and the tools' 4px start); Sort grows to its right, 12px
- * from Deck, exactly Deck's 12. One line at 390 with two-digit counts; at 375 and below the tools wrap under
- * the chips (Adrian 2026-11-12). */
-[data-hds] .rjb-review-tools {
-  --rjb-hit-grow: calc(var(--rjb-touch) - var(--primitive-space-8)); /* 12px */
-  padding-inline-start: var(--primitive-space-1);
-}
-[data-hds] .rjb-hit-44 {
-  position: relative;
-}
-[data-hds] .rjb-hit-44::after {
-  content: '';
-  position: absolute;
-  inset: calc((var(--primitive-space-8) - var(--rjb-touch)) / 2);
-}
-[data-hds] .rjb-hit-44.rjb-hit-start::after {
-  inset-inline: calc(var(--rjb-hit-grow) * -1) 0;
-}
-[data-hds] .rjb-hit-44.rjb-hit-end::after {
-  inset-inline: 0 calc(var(--rjb-hit-grow) * -1);
-}
-[data-hds] .rjb-review-tools button {
-  inline-size: var(--primitive-space-8);
-  block-size: var(--primitive-space-8);
-  min-inline-size: var(--primitive-space-8);
-  min-height: var(--primitive-space-8);
-}
-
 /* The app bar's theme switch and the Account button match (#694): HDS ThemeToggle is a 44px box
    whose sun/moon is fixed at 24px, with no size option; it takes 28px, the Account icon's size
    (hds-gap: ThemeToggle size, docs/hds-upstream-asks-0.9.md). */

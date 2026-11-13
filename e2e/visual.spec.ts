@@ -66,7 +66,7 @@ async function prepare(page: Page, theme: 'light' | 'dark') {
 
 async function shoot(page: Page, name: string) {
   await page.evaluate(() => document.fonts.ready);
-  // Every icon-only button (no text, e.g. the Browse / Deck toggle) must show a drawn icon before the
+  // Every icon-only button (no text, e.g. the phone pager's arrows) must show a drawn icon before the
   // shot: the #528 baselines saved those buttons empty, and the gap hid under the diff threshold.
   await page.waitForFunction(() =>
     [...document.querySelectorAll('button')]

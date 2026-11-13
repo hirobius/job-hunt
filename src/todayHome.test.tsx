@@ -152,7 +152,7 @@ describe('the auto-scan', () => {
     window.location.hash = '#/find';
     renderApp();
     const review = await screen.findByRole('region', { name: /^New postings$/ });
-    await within(review).findByRole('button', { name: /^View: / });
+    await within(review).findByRole('list', { name: 'New postings' });
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
     // No date line, no caption and no More (#694): when the sources were scanned is Scan details',
     // and no count (the chip has it). Scan now and Search profile are the Account menu's.

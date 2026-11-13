@@ -1,0 +1,27 @@
+/* Find's list (Adrian 2026-11-13, list only): in Find's chunk, not base.css. */
+
+/* Browse's windowed list (useWindowedList): a spacer holds the height of the cards it stands for. */
+.rjb-window-spacer {
+  block-size: var(--rjb-spacer-h, 0px);
+}
+
+/* "‹ › 1 of N" below lg: each arrow is its own 44px box (the phone's touch size), side by side
+ * with a gap, so the hit areas never overlap; the count follows them. */
+[data-hds] .rjb-find-pager {
+  flex: none;
+}
+[data-hds] .rjb-find-pager > button {
+  inline-size: var(--rjb-touch);
+  block-size: var(--rjb-touch);
+  min-inline-size: var(--rjb-touch);
+  min-height: var(--rjb-touch);
+}
+.rjb-find-pager-count {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An arrow scrolls its card to the top, clear of the sticky app bar. */
+.rjb-find-list > li {
+  scroll-margin-top: var(--primitive-space-4);
+}
