@@ -1,0 +1,53 @@
+/* The theme burn (burn.ts, lazy). No colour of its own: the char band is the old page colour
+   (--rjb-burn-tone, read before the swap) darkened. */
+.rjb-burn-rim {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+.rjb-burn-char {
+  fill: color-mix(in srgb, var(--rjb-burn-tone) 55%, var(--primitive-color-neutral-950));
+  fill-opacity: var(--rjb-burn-char);
+}
+/* The edge in a flame layer's colour (BURN.edgeColor), a flat fill. */
+.rjb-burn-rim[data-edge='cobalt'] .rjb-burn-char {
+  fill: var(--primitive-color-blue-500);
+}
+.rjb-burn-rim[data-edge='flame'] .rjb-burn-char {
+  fill: var(--primitive-color-cobalt-400);
+}
+:root[data-rjb-burning]::view-transition-old(root),
+:root[data-rjb-burning]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root[data-rjb-burning]::view-transition-new(root) {
+  z-index: 2;
+  clip-path: var(--rjb-burn-clip);
+}
+:root[data-rjb-burning]::view-transition-group(rjb-burn-rim) {
+  z-index: 3;
+  animation: none;
+}
+.rjb-burn-rim[data-root] {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  view-transition-name: rjb-burn-rim;
+}
+
+/* The app bar's logo keeps burning through the theme burn (#688): it is captured on its own, above
+   the root, and only its live new view shows (in the new theme from the first frame), so its
+   flame moves and repainting it never touches the clipped page snapshot. */
+:root[data-rjb-burning] header .rjb-logo-link {
+  view-transition-name: rjb-burn-logo;
+}
+:root[data-rjb-burning]::view-transition-group(rjb-burn-logo),
+:root[data-rjb-burning]::view-transition-new(rjb-burn-logo) {
+  z-index: 4;
+  animation: none;
+}
+:root[data-rjb-burning]::view-transition-old(rjb-burn-logo) {
+  display: none;
+}

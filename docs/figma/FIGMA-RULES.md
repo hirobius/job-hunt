@@ -113,10 +113,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
-- **The Account menu (#549): 9 items in 4 groups.** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
+- **The Account menu (#549): 8 items in 4 groups.** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
   "Sign in" as a grey key (signed in: the email, the sync
-  line, Sign out). Then Documents, Search profile, Companies, Data. Then Dark theme and Pause
-  animations as toggles with a switch on the right that shows the state. Then Send feedback, Privacy and
+  line, Sign out). Then Documents, Search profile, Companies, Data. Then Pause animations as a
+  toggle with a switch on the right that shows the state (the theme is the app bar's sun/moon
+  ThemeToggle, left of the Account avatar). Then Send feedback, Privacy and
   terms. Every row has a 16 px icon; rows are 44 px on a phone (a bottom sheet), 38 px at 1440. Scan
   details lives in the Search profile, as a closed row at its end.
 - **The Data dialog (#550).** The Account menu has one Data item. It opens one dialog (a bottom sheet

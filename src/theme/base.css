@@ -891,3 +891,12 @@ p {
   min-inline-size: var(--primitive-space-8);
   min-height: var(--primitive-space-8);
 }
+
+/* The app bar's theme switch holds its 44px place while its chunk loads (#688), so nothing in
+   the row moves when the HDS ThemeToggle lands. */
+.rjb-theme-toggle-hold {
+  display: inline-block;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  flex-shrink: 0;
+}

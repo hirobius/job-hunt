@@ -187,7 +187,7 @@ function hash(x: number, y: number, z: number, s: number) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 const sm = (t: number) => t * t * (3 - 2 * t);
-function noise(x: number, y: number, z: number, s: number) {
+export function noise(x: number, y: number, z: number, s: number) {
   const xi = Math.floor(x),
     yi = Math.floor(y),
     zi = Math.floor(z);
@@ -204,7 +204,7 @@ function noise(x: number, y: number, z: number, s: number) {
 }
 /** Marching squares at one level, segments joined into closed loops. */
 /** Marching squares at heat 1 over a W x H grid (row-major), segments joined into closed loops. */
-function contours(
+export function contours(
   g: Float32Array,
   W: number,
   H: number,
@@ -278,7 +278,7 @@ function contours(
   }
   return loops;
 }
-function simplify(p: Pt[], tol: number): Pt[] {
+export function simplify(p: Pt[], tol: number): Pt[] {
   if (p.length < 4) return p;
   const dp = (pts: Pt[]): Pt[] => {
     if (pts.length < 3) return pts;
@@ -322,7 +322,7 @@ function simplify(p: Pt[], tol: number): Pt[] {
 }
 /** A closed path through the points: sharp where the outline turns hard (a tip, a notch), a
  *  smooth curve everywhere else, so edges sweep and points stay points. */
-function curve(p: Pt[], corner: number): string {
+export function curve(p: Pt[], corner: number): string {
   const n = p.length;
   if (n < 4) return '';
   const f = (v: Pt) => v[0].toFixed(1) + ',' + v[1].toFixed(1);
