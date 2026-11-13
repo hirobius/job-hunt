@@ -242,7 +242,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `#/apply`, `#/queue/<id>` → `#/apply/<id>` (origin and section kept); an old `?from=` reads as its new route
   (`originOf`, `routeLabel`). **There is no Apply mode, To apply panel or Start applying on Apply:** the tab is
   the walk. One job view (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`;
-  a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then (no Application kit since 2026-11-13) then Details,
+  a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then (no Application kit since 2026-11-13) Details,
   Notes, Documents, Decks). Mark applied / Not a fit open the next job in the list as it shows (in place, before
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
@@ -570,7 +570,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   steps back. Close, Escape and the browser's Back shut it on the page (a pop when the dialog-less entry
   is just behind, else in place); opened over a job, a Save closes it there. Old `#/copy-deck[/<id>]`
   links redirect in place to their `?from=` page (else Find) with the dialog open. Reached from the
-  Account menu's Documents item and the Apply sheet's Edit documents link. Headings in it are h2 (the
+  Account menu's Documents item (the job view's Edit documents link went with the Application kit, 2026-11-13). Headings in it are h2 (the
   page keeps its h1). **Grouped lists, one New menu, a blanks count (redesign §5.10, #552):** `DocumentsLibrary`
   is a flat `Panel` per kind on the dialog's one surface, ordered by use (Messages, Cover letters, Résumés, then
   Notes), each with its count; **one New key** heads the library, a Menu of Message, Cover letter, Résumé, Note
@@ -593,8 +593,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   synced snippet store, so a deleted message never comes back and a second device adds nothing.
   "Restore starter messages" re-adds missing `tpl-*` (`restoreStarterOutreach`). **Every fill path reads
   `useOutreachTemplates()`** (latest Version text, values, pinned first; a moved message keeps its
-  snippet id, so `tpl-followup` and the kit's picks still match): Use template, `FollowUp`, the Apply
-  sheet and the kit's letters, all through `templateFill.fillSnippet`. Editor menus are
+  snippet id, so `tpl-followup` and the kit's picks still match): Use template and `FollowUp`, all through `templateFill.fillSnippet`. Editor menus are
   `modal={false}` (a modal menu plus the dialog left the page unclickable). Pinned in
   `documentsRoute.test.tsx`, `documentsLibrary.test.tsx`, `outreachTemplates.test.ts`; E2E
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
@@ -942,7 +941,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   no starter messages are migrated in on a first run or a new device; `AddStarterMessages`
   (`StarterMessages.tsx` → `addStarters.ts` → `restoreStarterOutreach`) adds them in one tap from
   Documents' empty state ("No documents yet": Add starter messages | Start from scratch), the
-  follow-up dialog (an empty message box until then), the Apply sheet and the kit's letters. Sample
+  follow-up dialog (an empty message box until then). Sample
   data stays opt-in and adds no messages. The Search profile form prefills only the design-system titles
   (onboarding, #388) and adds nothing else the user did not finish. Documents'
   empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,

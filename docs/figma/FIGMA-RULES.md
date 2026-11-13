@@ -22,7 +22,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The filled key follows the state.** To apply: Open application / Mark applied / Not a fit. No
   application link (a fact says so, never a dashed box): Mark applied / Add link / Not a fit.
   Follow-up due: Copy follow-up / Mark followed up / Close out; the last two with Undo. A section shows
-  only when it has content: no messages, no message rows; no Templates disclosure.
+  only when it has content; no Templates disclosure.
 - **No Application kit on a job.** The "Copy into the form" panel is gone (Adrian 2026-11-13): a job's
   view is the title block, the keys, then Details, Notes and the links. Templates live in Documents.
 - **One saved list.** Apply is the saved list. Save (filled key with a plus icon) on Find adds a
@@ -95,7 +95,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the six views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
   jobs bottom sheet), and right the pager "7 of 12" with previous and next, which only steps (a
-  sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,
+  sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. A job's view holds Open application, Mark applied | Not a fit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
   This week (interviews and closing dates in the next 7 days, soonest first; #640), Interviewing,
