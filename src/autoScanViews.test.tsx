@@ -7,7 +7,8 @@ import { ToastProvider } from '@hirobius/design-system';
 import { NewCompanies } from './AutoScanViews';
 import { FindHeader } from './FindHeader';
 import ScanDetails from './ScanDetails';
-import { hiddenParts, setScanDetails } from './feed/scanDetails';
+import { setScanDetails } from './feed/scanDetails';
+import { hiddenParts } from './feed/scanDetailsText';
 import NoticeHost from './NoticeHost';
 import { dismissNotice } from './saveNotice';
 import {

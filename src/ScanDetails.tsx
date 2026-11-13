@@ -10,7 +10,8 @@ import { lastScannedLine, scanBoardUrls, useScan, type ScanProgress } from './fe
 import { useScanningCount } from './feed/scanningCount';
 import { useServerUpdated } from './feed/serverUpdated';
 import { useScanInput } from './feed/useAutoScan';
-import { unavailableWhy, useScanDetails } from './feed/scanDetails';
+import { useScanDetails } from './feed/scanDetails';
+import { unavailableWhy } from './feed/scanDetailsText';
 
 function progressLine(p: ScanProgress | undefined): string {
   switch (p?.phase) {

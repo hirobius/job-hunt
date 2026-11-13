@@ -10,7 +10,8 @@
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { hiddenParts, setScanDetails } from './feed/scanDetails';
+import { setScanDetails } from './feed/scanDetails';
+import { hiddenParts } from './feed/scanDetailsText';
 import {
   Badge,
   Box,
