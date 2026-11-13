@@ -10,8 +10,7 @@
 // Every row has a 16px icon; rows are 44px on a phone, 38px from sm (theme/late.css). The rows live
 // in AccountMenuRows.tsx, a lazy chunk; this file keeps the trigger, the sheet and the dialogs.
 import { Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Button, Dialog, Icon, Menu } from '@hirobius/design-system';
-import { CircleUser } from 'lucide-react';
+import { Button, Dialog, Menu } from '@hirobius/design-system';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { useBackCloses } from '../useBackCloses';
 import {
@@ -26,6 +25,7 @@ import {
   takeSearchProfileOpener,
   useSearchProfileOpen,
 } from '../jobDialogs';
+import { AccountGlyph } from './AccountGlyph';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
@@ -87,8 +87,8 @@ export default function AccountMenu() {
     open();
   };
   // The trigger is an HDS icon Button (#694), the ThemeToggle's 44px box and 28px icon beside it:
-  // CircleUser signed out, your initial in a 24px ring signed in (no grey Avatar disc; never a
-  // menu icon). No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
+  // a filled circle with a person (signed out) or your initial (signed in) knocked out of it
+  // (AccountGlyph; no grey Avatar disc; never a menu icon). No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
   const initial = sync.user?.email?.trim()[0]?.toUpperCase();
 
   return (
@@ -103,15 +103,7 @@ export default function AccountMenu() {
             }}
             variant="tertiary"
             iconOnly
-            iconLeft={
-              initial ? (
-                <span aria-hidden="true" className="rjb-account-initial">
-                  {initial}
-                </span>
-              ) : (
-                <Icon icon={CircleUser} size="var(--primitive-space-7)" />
-              )
-            }
+            iconLeft={<AccountGlyph initial={initial} />}
             label="Account"
             className="rjb-account"
             onPointerEnter={preloadRows}

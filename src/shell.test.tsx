@@ -287,13 +287,22 @@ describe('app shell (#115 Phase 1)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
   });
 
-  it('the trigger is an HDS icon Button (#694): CircleUser signed out, no Avatar, no dot', async () => {
+  it('the trigger is an HDS icon Button (#694): a filled circle, a person knocked out signed out, no Avatar, no dot', async () => {
     renderApp();
     const account = await screen.findByRole('button', { name: 'Account' });
     expect(account.textContent?.trim()).toBe('');
+    const glyph = account.querySelector('svg.rjb-account-glyph');
+    expect(glyph).toHaveAttribute('data-glyph', 'person');
+    expect(glyph).toHaveAttribute('aria-hidden', 'true');
+    // The knockout is a mask (the bar shows through), not a second fill colour.
+    const id = glyph!.querySelector('mask')!.id;
+    expect(glyph!.querySelector(`circle[mask="url(#${id})"]`)).toHaveAttribute(
+      'fill',
+      'currentColor',
+    );
     expect(
       account.querySelector('svg.lucide-circle-user, svg.lucide-circle-user-round'),
-    ).not.toBeNull();
+    ).toBeNull();
     expect(account.querySelector('.rjb-avatar, [class*="hds-avatar"]')).toBeNull();
     expect(account).toHaveClass('rjb-account');
   });
@@ -438,8 +447,9 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     await addDeviceDataIfAsked();
     const account = await screen.findByRole('button', { name: 'Account' });
     await waitFor(() => expect(account.textContent).toBe('U'));
-    // The initial in its 24px ring (#694), no grey Avatar disc.
-    expect(account.querySelector('.rjb-account-initial')).toHaveTextContent('U');
+    // The initial knocked out of the same filled circle (a mask text), no grey Avatar disc.
+    expect(account.querySelector('svg.rjb-account-glyph')).toHaveAttribute('data-glyph', 'initial');
+    expect(account.querySelector('mask text.rjb-account-initial')).toHaveTextContent('U');
     expect(account.querySelector('.rjb-avatar')).toBeNull();
     const menu = await openAccount();
     await within(menu).findByText('Synced');

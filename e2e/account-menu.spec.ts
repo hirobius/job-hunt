@@ -144,3 +144,48 @@ for (const [width, height, row] of [
       .poll(() => sw.evaluate((n) => getComputedStyle(n).backgroundColor))
       .not.toBe(before);
   });
+
+// The Account glyph is filled (Adrian 2026-11-13): a solid content-primary circle the ThemeToggle's
+// 28px in its 44px box, the person knocked out to the bar. The circle is at least 3:1 on the bar.
+for (const theme of ['light', 'dark'] as const) {
+  test(`the Account glyph is a filled 28px circle in a 44px box, 3:1 on the bar (${theme})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: theme });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await seed(page);
+    const button = page.getByRole('button', { name: 'Account' });
+    const box = (await button.boundingBox())!;
+    expect(Math.round(box.width)).toBe(44);
+    expect(Math.round(box.height)).toBe(44);
+    const glyph = button.locator('svg.rjb-account-glyph');
+    const g = (await glyph.boundingBox())!;
+    expect(Math.round(g.width)).toBe(28);
+    // The ThemeToggle's sun/moon is the same 28px (its layout size: the icon turns, so its box grows).
+    const toggle = page.locator('.rjb-theme-toggle .hds-theme-toggle__icon');
+    expect(await toggle.evaluate((el) => getComputedStyle(el).width)).toBe('28px');
+    const ratio = await glyph.evaluate((svg) => {
+      const rgb = (c: string) =>
+        c
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number);
+      const lum = ([r, g, b]: number[]) => {
+        const f = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      let bg = 'rgba(0, 0, 0, 0)';
+      for (let el: Element | null = svg.parentElement; el; el = el.parentElement) {
+        const c = getComputedStyle(el).backgroundColor;
+        if (!/rgba\(.*, 0\)$/.test(c) && c !== 'transparent') {
+          bg = c;
+          break;
+        }
+      }
+      const [a, b] = [lum(rgb(getComputedStyle(svg).color)), lum(rgb(bg))];
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    });
+    expect(ratio).toBeGreaterThanOrEqual(3);
+  });
+}
