@@ -478,8 +478,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `aria-current`, never a radio group) left the app bar for the **page bar**, the first row of `main`
   (`.rjb-page-bar` in App, `.rjb-main` keeps the 24 page rhythm under it) at top left, where the page title was; the
   app bar is the logo and Account, one row. No visible "Find" / "Apply" title: each page keeps its h1 as
-  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). Find's caption ("Scanned
-  2 h ago", the Deck's "1 of N") and More go to the bar's right through `PageBar.tsx` `InPageBar`
+  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). Only the Deck's "‹ 1 of N ›" goes
+  to the bar's right through `PageBar.tsx` `InPageBar` (the scan line is a `Menu.Label` in Find's More, at the right end of the Review row)
   (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
 - **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/hds-gaps/DisclosureRow.tsx` (hds#1508) wraps HDS
@@ -752,7 +752,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   table: the blob is the one source of truth, and the sync never writes it. Migrations `2026102410*`: postings,
   sync_log, `mark_missed_postings`, `watched_tile_urls`, the cron. Auth is `SYNC_SECRET` only. **Every 15 minutes
   (#448, Adrian 2026-11-06):** migration `20261106100000` (06:23 keeps the feeds); a 429/5xx/timeout is read once more
-  after 2 s (`tracks/retry.ts`); Find's caption says "scanned N min ago" for a signed-in user (#544; was ScanStatus's "Updated N min ago")
+  after 2 s (`tracks/retry.ts`); Find's More menu label says "Scanned N min ago" for a signed-in user (#544; was ScanStatus's "Updated N min ago")
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
   `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
