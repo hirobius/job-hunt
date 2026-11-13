@@ -13,6 +13,7 @@ import {
   NAME_INK_OFFSET_EM,
   STACKED_FLAME_EM,
   STACKED_FLAME_NUDGE_EM,
+  WORD_INK_CENTRE_EM,
   X_HEIGHT_CENTRE_EM,
 } from './RoleFlame';
 
@@ -235,12 +236,13 @@ describe('the flame’s mass centre (#556)', () => {
     ).toBeLessThan(0.25);
   });
 
-  it('the row nudge (app bar, #639) puts the mass within 1.5px of the x-height centre at 19px', () => {
+  it('the row nudge (app bar, #639) puts the mass within 0.5px of the word’s optical centre at 19px', () => {
     // Below the line box centre is positive. The flame's box is centred on that line box.
     const massEm = ((mean.y - 73) * INLINE_FLAME_EM) / 146 + INLINE_FLAME_NUDGE_EM;
-    expect(Math.abs(massEm - X_HEIGHT_CENTRE_EM) * 19).toBeLessThan(1.5);
-    // Without it the mass was well off (2.9px at today's tuning): the check is not loose.
-    expect(Math.abs(massEm - INLINE_FLAME_NUDGE_EM - X_HEIGHT_CENTRE_EM) * 19).toBeGreaterThan(1.5);
+    expect(Math.abs(massEm - WORD_INK_CENTRE_EM) * 19).toBeLessThan(0.5);
+    // Higher than the x-height centre (the old 0.152em aim, which read low), lower than no nudge.
+    expect(massEm).toBeLessThan(X_HEIGHT_CENTRE_EM);
+    expect(Math.abs(massEm - INLINE_FLAME_NUDGE_EM - WORD_INK_CENTRE_EM) * 19).toBeGreaterThan(1.5);
   });
 
   it('each layout takes its own nudge', () => {
