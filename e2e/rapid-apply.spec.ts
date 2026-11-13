@@ -77,14 +77,8 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await jobs.locator('a[href^="#/apply/"]').first().click();
   await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeHidden();
 
-  // The kit: enter a name once (empty fields wait behind one row), copy it.
-  await page.getByRole('button', { name: 'Add them' }).click();
-  await page.getByRole('button', { name: 'Add Name' }).click();
-  await page.getByRole('textbox', { name: 'Name' }).fill('Sam Placeholder');
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Copy Name' }).click();
-  // The chip keeps its name; it shows "Copied" and the status says it (#593).
-  await expect(page.getByRole('button', { name: 'Copy Name' })).toHaveText('Copied');
+  // No Application kit on the job view (2026-11-13).
+  await expect(page.getByRole('region', { name: /^Copy into the form/ })).toHaveCount(0);
 
   // Mark applied moves on to the next job in the list, in place; the last goes back to the list.
   for (let n = 1; n <= 3; n++) {
@@ -112,30 +106,6 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await expect(
     page.getByRole('dialog', { name: 'All jobs' }).getByRole('button', { name: 'Applied 3' }),
   ).toBeVisible();
-});
-
-// #540: sections show only with content. A first run has no messages: no message rows and no
-// Templates disclosure, one tap adds the starters, and then the message rows show. It fits 390.
-test('a job with no messages: no message rows; one tap adds the starters, at 390', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto(
-    '/?add=' + encodeURIComponent('https://acme.example/jobs/1') + '&t=Acme+Designer',
-  );
-  await expect(page.getByRole('heading', { level: 1, name: 'Acme Designer' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Templates \(/ })).toHaveCount(0);
-  const kit = page.getByRole('region', { name: 'Copy into the form' });
-  await expect(kit.getByRole('button', { name: /^Why this company/ })).toHaveCount(0);
-  await kit.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(kit.getByRole('button', { name: /^Why this company/ })).toBeVisible();
-  const sideways = await page.evaluate(
-    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
-  );
-  expect(sideways).toBe(false);
-  const edit = await page.getByRole('link', { name: 'Edit documents' }).boundingBox();
-  expect(edit?.height).toBeGreaterThanOrEqual(40);
 });
 
 // From lg (#471): the Jobs tab opens on the first job's Apply view beside the list; Mark applied

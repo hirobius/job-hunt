@@ -158,7 +158,9 @@ describe('Pipeline toolbar', () => {
   it('Follow up shows an amber count while a follow-up is due, a neutral one otherwise', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();
-    const neutral = within(screen.getByRole('button', { name: 'Follow up 0' })).getByText('0');
+    const neutral = within(screen.getByRole('button', { name: 'Follow up 0' }))
+      .getByText('0')
+      .closest('[data-tone]')!;
     expect(neutral.className).not.toMatch(/warning/);
     cleanup();
     markAppliedByUrl('https://acme.example/jobs/1', 'Design Engineer');
@@ -166,7 +168,9 @@ describe('Pipeline toolbar', () => {
     d.setDate(d.getDate() - 10);
     updateJob('https://acme.example/jobs/1', { applied: d.toISOString().slice(0, 10) });
     renderList();
-    const due = within(screen.getByRole('button', { name: 'Follow up 1' })).getByText('1');
+    const due = within(screen.getByRole('button', { name: 'Follow up 1' }))
+      .getByText('1')
+      .closest('[data-tone]')!;
     expect(due.className).toMatch(/warning/);
   });
 });

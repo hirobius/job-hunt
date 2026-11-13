@@ -60,6 +60,7 @@ for (const width of [390, 1440]) {
     });
 
     test('List / Deck: one toggle over the whole track, with a tooltip', async ({ page }) => {
+      // No outside-host block here: Find's postings (and so this toggle) come from those reads.
       await seed(page);
       await page.goto('/#/review');
       const toggle = page.getByRole('button', { name: /^View: / });
@@ -89,6 +90,8 @@ for (const width of [390, 1440]) {
     test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({
       page,
     }) => {
+      // Outside hosts refused: left open they hang and stall the lg column (#614).
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);
       await page.goto('/#/apply');
       const phone = width < 1024;
@@ -129,42 +132,52 @@ for (const width of [390, 1440]) {
         .toBe(remote);
     });
 
-    test('Remote only on each view: chip count, status line and list agree (#614)', async ({
-      page,
-    }) => {
-      await seed(page);
-      await page.goto('/#/apply');
-      const phone = width < 1024;
-      const list = await listScope(page);
-      const sw = phone
-        ? list.getByRole('button', { name: 'Remote only' })
-        : list.getByRole('switch', { name: 'Remote only' });
-      const isOn = async () =>
-        phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
-      const chips = list.getByRole('group', { name: 'Views' }).first().getByRole('button');
-      const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
-      // The lg column's status line ("To apply · N jobs"); the sheet says "N jobs shown" (#543).
-      const status = list
-        .getByRole('status')
-        .filter({ hasText: phone ? /^\d+ jobs? shown$/ : /· \d+ jobs?/ })
-        .first();
-      const shownCount = async () => Number((await status.textContent())!.match(/(\d+) jobs?/)![1]);
-      for (const on of [false, true]) {
-        if ((await isOn()) !== on) await sw.click();
+    // Split by Remote only (the one test ran 2 x 7 views and sat near the 30 s limit). Outside
+    // hosts are refused as in the tests above: left open, the lg column's requests (company logos,
+    // the seeded Greenhouse board) hang in a sandbox with no outbound network and stall each
+    // click by seconds, which timed out the chip clicks and the aria-pressed wait at 1440.
+    for (const on of [false, true]) {
+      test(`Remote only ${on ? 'on' : 'off'} on each view: chip count, status line and list agree (#614)`, async ({
+        page,
+      }) => {
+        await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+        await seed(page);
+        await page.goto('/#/apply');
+        const phone = width < 1024;
+        const list = await listScope(page);
+        const sw = phone
+          ? list.getByRole('button', { name: 'Remote only' })
+          : list.getByRole('switch', { name: 'Remote only' });
+        const chips = list.getByRole('group', { name: 'Views' }).first().getByRole('button');
+        const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
+        // The lg column's status line ("To apply · N jobs"); the sheet says "N jobs shown" (#543).
+        const status = list
+          .getByRole('status')
+          .filter({ hasText: phone ? /^\d+ jobs? shown$/ : /· \d+ jobs?/ })
+          .first();
+        const shownCount = async () =>
+          Number((await status.textContent())!.match(/(\d+) jobs?/)![1]);
+        // Wait on the switch's state, never assume the click landed.
+        const pressed = async () =>
+          phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
+        if ((await pressed()) !== on) await sw.click();
+        await expect.poll(pressed).toBe(on);
         for (const name of names) {
-          const chip = chips.filter({ hasText: name }).first();
-          await chip.click();
-          await expect(chip).toHaveAttribute('aria-pressed', 'true');
-          const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
-          await expect.poll(shownCount, `${name}, Remote only ${on}`).toBe(badge);
-          const n = await list
-            .getByRole('navigation', { name: 'Jobs' })
-            .locator('a[href^="#/apply/"]')
-            .count();
-          expect(n, `${name} rows`).toBe(badge);
+          await test.step(name, async () => {
+            const chip = chips.filter({ hasText: name }).first();
+            await chip.click();
+            await expect(chip).toHaveAttribute('aria-pressed', 'true');
+            const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
+            await expect.poll(shownCount, `${name}, Remote only ${on}`).toBe(badge);
+            const n = await list
+              .getByRole('navigation', { name: 'Jobs' })
+              .locator('a[href^="#/apply/"]')
+              .count();
+            expect(n, `${name} rows`).toBe(badge);
+          });
         }
-      }
-    });
+      });
+    }
   });
 }
 

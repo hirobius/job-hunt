@@ -644,6 +644,11 @@ export function openDocuments(sub = '', replace = false): void {
   navigate({ documents: sub, legal: null }, replace);
 }
 
+/** The hash of `page` with the Legal dialog open on `doc` (`privacy` or `terms`). */
+export function legalHash(doc: string, page: Route = getSnapshot()): string {
+  return buildHash({ ...page, legal: doc, documents: null });
+}
+
 /** Open the Legal dialog over the page on `privacy` or `terms`, or swap between them in place. */
 export function openLegal(doc: string, replace = false): void {
   navigate({ legal: doc, documents: null }, replace);

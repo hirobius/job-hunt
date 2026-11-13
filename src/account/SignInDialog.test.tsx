@@ -78,10 +78,38 @@ const brandOf = (dialog: HTMLElement) => {
 };
 
 const COPY = SIGN_IN_BENEFIT;
+/** The legal line at the foot (2026-11-13). */
+const AGREE = `By signing in, you agree to ${BRAND.name}’s Terms of use and Privacy policy.`;
 /** How it works is the Email field's helper (Adrian 2026-11-12). */
 const EMAIL = `Email${SIGN_IN_HOW}`;
 
 describe('SignInDialog', () => {
+  it('ends with one legal line whose two links open Privacy and terms on their tab (2026-11-13)', () => {
+    window.location.hash = '#/review';
+    const { dialog } = setup();
+    const line = within(dialog).getByText(/^By signing in, you agree to/);
+    expect(line).toHaveTextContent(
+      `By signing in, you agree to ${BRAND.name}’s Terms of use and Privacy policy.`,
+    );
+    expect(within(line).getByRole('link', { name: 'Terms of use' })).toHaveAttribute(
+      'href',
+      '#/review?legal=terms',
+    );
+    expect(within(line).getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
+      'href',
+      '#/review?legal=privacy',
+    );
+    // The only legal links on the screen, and the last thing in it.
+    expect(
+      within(dialog)
+        .getAllByRole('link')
+        .map((l) => l.textContent),
+    ).toEqual(['Terms of use', 'Privacy policy']);
+    const step = line.parentElement!;
+    expect(step.lastElementChild).toBe(line);
+    window.location.hash = '';
+  });
+
   it('is a full screen with the flame and the wordmark (not a heading) above the title', () => {
     const { dialog } = setup();
     expect(dialog).toHaveClass('rjb-signin-screen');
@@ -119,7 +147,7 @@ describe('SignInDialog', () => {
         .map((b) => b.textContent),
     ).toEqual(['Send link', 'Continue without an account', '']);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign in${COPY}${EMAIL}Send linkContinue without an account`,
+      `${BRAND.name}Sign in${COPY}${EMAIL}Send linkContinue without an account${AGREE}`,
     );
     // The magic link still signs in.
     expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument();
@@ -149,7 +177,7 @@ describe('SignInDialog', () => {
       '',
     ]);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign in${COPY}Continue with GoogleContinue with LinkedIn${EMAIL}Send linkContinue without an account`,
+      `${BRAND.name}Sign in${COPY}Continue with GoogleContinue with LinkedIn${EMAIL}Send linkContinue without an account${AGREE}`,
     );
   });
 
