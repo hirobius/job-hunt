@@ -45,12 +45,19 @@ export const INLINE_FLAME_EM = 1.95;
  *  the x centre is 28 above the baseline and the box centre 37 above it. `e2e/brand.spec.ts`
  *  measures it again in the browser. */
 export const X_HEIGHT_CENTRE_EM = 0.06;
-/** Row (app bar, #639): the flame's box is centred on the name's line box, so its mass (FLAME_MASS.y,
- *  above the box centre: the rising licks) sat 2.9px above the x-height centre at 19px. This moves
- *  the flame down by the mass's lift plus the x-height's drop: (73 - 66.1) x 1.95 / 146 + 0.06 em,
- *  2.9px at 19px, so the mass sits on the x-height centre (within 1.5px: flameEngine.test.ts). A
- *  transform: the bar's height and the name never move. */
-export const INLINE_FLAME_NUDGE_EM = 0.152;
+/** The optical centre of the lowercase name (BRAND.name) in Sora 800: the centroid of its ink area
+ *  (canvas, sora-800.woff2 at 400px), this far below the line box centre, in em. The x-height band
+ *  carries most of the ink; the f and l ascenders pull it up by their area only, so lightly (the
+ *  x-height centre is 0.06, the whole ink box's centre -0.016). `e2e/brand.spec.ts` measures it
+ *  again in the browser. */
+export const WORD_INK_CENTRE_EM = 0.031;
+/** Row (app bar, #639; optical centre 2026-11-13): the flame's box is centred on the name's line
+ *  box, so its mass (FLAME_MASS.y, above the box centre: the rising licks) sat above the word. This
+ *  moves the flame down by the mass's lift plus the word's ink centre: (73 - 66.1) x 1.95 / 146 +
+ *  0.031 em, 2.3px at 19px, so the mass sits on the word's optical centre (within 0.5px:
+ *  flameEngine.test.ts). It was 0.152em (the x-height centre), which read a little low beside the
+ *  word. A transform: the bar's height and the name never move. */
+export const INLINE_FLAME_NUDGE_EM = 0.123;
 
 /* eslint-enable react-refresh/only-export-components */
 

@@ -248,7 +248,8 @@ test('the logo links home to Find (#620)', async ({ page }) => {
 
 // #556: the stacked flame (sign-in) is centred by mass. RoleFlame.tsx's nudge assumes the name's
 // ink centre sits NAME_INK_OFFSET_EM (0.011em) right of its box centre in Sora 800: measure it in
-// the browser, and check the nudge is on the stacked flame and not on the app bar's row.
+// the browser, and check the nudge is on the stacked flame and not on the app bar's row, whose drop aims at the
+// word's optical centre (its ink centroid), measured here too.
 test('the sign-in flame takes its mass nudge; the app bar row its own drop (#639)', async ({
   page,
 }) => {
@@ -273,7 +274,7 @@ test('the sign-in flame takes its mass nudge; the app bar row its own drop (#639
   const row = page.locator('header .rjb-rf[data-layout="inline"] > svg');
   await expect(row).toBeVisible();
   expect(await row.evaluate((el) => (el as SVGElement).style.transform)).toBe(
-    'translateY(0.152em)',
+    'translateY(0.123em)',
   );
   // RoleFlame.tsx's X_HEIGHT_CENTRE_EM: Sora 800's x-height centre below a line-height 1 box centre.
   const xCentre = await page.evaluate(async () => {
@@ -286,12 +287,38 @@ test('the sign-in flame takes its mass nudge; the app bar row its own drop (#639
     return (-m.actualBoundingBoxAscent / 2 - (top + 50)) / 100;
   });
   expect(Math.abs(xCentre - 0.06)).toBeLessThan(0.01);
+  // RoleFlame.tsx's WORD_INK_CENTRE_EM: the ink-area centroid of the name, the row nudge's aim.
+  const wordCentre = await page.evaluate(async () => {
+    await document.fonts.load('800 400px "Roleflame Sora"');
+    const c = document.createElement('canvas');
+    c.width = 2400;
+    c.height = 800;
+    const g = c.getContext('2d')!;
+    g.font = '800 400px "Roleflame Sora"';
+    g.fillText('roleflame', 10, 500);
+    const d = g.getImageData(0, 0, 2400, 800).data;
+    let sum = 0;
+    let sy = 0;
+    for (let y = 0; y < 800; y++) {
+      let row = 0;
+      for (let x = 0; x < 2400; x++) row += d[(y * 2400 + x) * 4 + 3];
+      sum += row;
+      sy += row * y;
+    }
+    const m = g.measureText('roleflame');
+    const top =
+      500 -
+      m.fontBoundingBoxAscent +
+      (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent - 400) / 2;
+    return (sy / sum - (top + 200)) / 400;
+  });
+  expect(Math.abs(wordCentre - 0.031)).toBeLessThan(0.006);
   // The drop is a transform: the flame's box stays centred on the name's line, so the bar never moves.
   const centres = await page.locator('header .rjb-rf[data-layout="inline"]').evaluate((el) => {
     const svg = el.querySelector('svg')!;
     const name = el.querySelector('svg + span')!;
     const box = svg.getBoundingClientRect();
-    const drop = parseFloat(getComputedStyle(svg).fontSize) * 0.152;
+    const drop = parseFloat(getComputedStyle(svg).fontSize) * 0.123;
     const text = name.getBoundingClientRect();
     return { flame: box.top - drop + box.height / 2, name: text.top + text.height / 2 };
   });
