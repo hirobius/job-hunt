@@ -699,7 +699,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     deleting.current = true;
     clearTimeout(pushTimer.current);
     await Promise.allSettled([...pushing.current]);
-    const why = await eraseCloud(user);
+    let authDeleted = false; // delete_my_data ran: the auth user and its sessions are gone too
+    const why = await eraseCloud(user, () => (authDeleted = true));
     if (why) {
       deleting.current = false; // the local copy is kept, so syncing it may go on
       if (why === STOPPED) return; // the freeze notice says why; local copy kept
@@ -719,8 +720,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     setTabAccount(null);
     handled.current = null;
     // delete_my_data removed the auth user and its sessions (2026-11-13): end the session on this
-    // device only; a global sign-out would ask the server about a user that is gone.
-    await (await loadSupabase()).auth.signOut({ scope: 'local' });
+    // device only; a global sign-out would ask the server about a user that is gone. The per-table
+    // fallback leaves the auth user, so it still signs out everywhere (revoking other devices).
+    await (await loadSupabase()).auth.signOut(authDeleted ? { scope: 'local' } : undefined);
     location.reload();
   };
 
@@ -729,12 +731,15 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // transaction; until it can run (see below) the tables the app writes are deleted
   // one by one, child → parent, so erasure never silently depends on the FK cascade. RLS scopes
   // each to this user. supabase-js reports failure as `{ error }`, not a throw.
-  async function eraseCloud(u: User): Promise<string> {
+  async function eraseCloud(u: User, onServerErase?: () => void): Promise<string> {
     const supa = await loadSupabase();
     if (!(await sessionIsStill(u))) return STOPPED;
     try {
       const r = await supa.rpc('delete_my_data', { p_user: u.id });
-      if (!r.error) return '';
+      if (!r.error) {
+        onServerErase?.();
+        return '';
+      }
       // Not applied yet (PGRST202), or applied before the scorer's tables exist (42P01): the
       // tables the app writes are all there is to delete.
       if (r.error.code !== 'PGRST202' && r.error.code !== '42P01') return DELETE_FAILED;

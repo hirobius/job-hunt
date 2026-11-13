@@ -228,6 +228,20 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect(screen.queryByText('Delete incomplete')).toBeNull();
   });
 
+  // Without the function (the per-table fallback) the auth user stays, so sign-out stays global.
+  it('Delete my data without delete_my_data signs out everywhere', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    const signOut = vi.spyOn(fake().client.auth, 'signOut');
+    await chooseDataAction('Delete my data');
+    await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    await waitFor(() => expect(signOut).toHaveBeenCalledWith(undefined));
+  });
+
   // A tab's shared session can flip to another tab's account between its check and the call:
   // the call names the account it means, and the server refuses any other.
   it('delete_my_data names the account and is refused for another one', async () => {
