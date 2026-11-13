@@ -134,7 +134,7 @@ describe('Review new: no board progress on the page (Adrian 2026-11-08)', () => 
         }),
     );
     renderReview();
-    await screen.findByRole('button', { name: /^View: / });
+    await waitFor(() => expect(feed.fetchFeed).toHaveBeenCalled());
     // Past the 1 s repaint that would show progress.
     await new Promise((r) => setTimeout(r, 1500));
     expect(screen.queryByText(/^Read \d+ of \d+ boards$/)).toBeNull();
@@ -419,6 +419,8 @@ describe('Review new: Deck', () => {
       expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toHaveFocus(),
     );
     expect(screen.getByText('You’re all caught up')).toBeInTheDocument();
+    // The toggle went with the last card; focus never sat on it.
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
   });
 
   it("steps the Deck by the arrow keys; its place is Find's (#545)", async () => {
@@ -928,11 +930,8 @@ describe('Review new: the caught-up empty state (Adrian 2026-11-08)', () => {
     // The framed teaching empty: its icon tile and centred column inside one panel.
     expect(within(section).getByText(/saved or skipped/)).toBeInTheDocument();
     expect(section.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
-    // The Deck's caught-up state is the same section.
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    expect(
-      (await screen.findByText('You’re all caught up')).closest('[data-empty-section]'),
-    ).not.toBeNull();
+    // No postings shown: no List | Deck toggle to switch it (Adrian 2026-11-13).
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
   });
 });
 
@@ -1093,13 +1092,12 @@ describe('Find: one empty state, picked by cause, the same in List and Deck (#69
       icon: section.querySelector('[aria-hidden="true"] svg')?.getAttribute('class'),
     };
   };
-  const both = async (user: ReturnType<typeof userEvent.setup>) => {
-    const inList = await shape();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    await screen.findByRole('button', { name: 'View: Deck, switch to List' });
-    const inDeck = await shape();
-    expect(inDeck).toEqual(inList);
-    return inList;
+  // No postings shown: the List | Deck toggle hides (Adrian 2026-11-13), so an empty state is
+  // never switched; the Deck's own empty is checked by emptying the Deck below.
+  const both = async (_user: ReturnType<typeof userEvent.setup>) => {
+    const s = await shape();
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
+    return s;
   };
 
   it('nothing matches: "No postings match yet" with Scan now and Edit search profile', async () => {
@@ -1138,5 +1136,47 @@ describe('Find: one empty state, picked by cause, the same in List and Deck (#69
     expect(s.cause).toBe('filtered');
     expect(s.text).toContain('No postings with these filters');
     expect(s.keys).toEqual(['Clear filters']);
+    // The chips stay (Clear is a chip away); only the toggle hides. Back to postings: it returns.
+    await user.click(screen.getByRole('button', { name: /^Remote/ }));
+    expect(
+      await screen.findByRole('button', { name: 'View: List, switch to Deck' }),
+    ).toBeInTheDocument();
+  });
+
+  it('the Deck emptied by its last decision: the same empty state, the toggle hides', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([BASIC[0]]));
+    renderReview();
+    await list();
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
+    const card = screen.getByRole('article').getAttribute('aria-label');
+    await user.click(screen.getByRole('button', { name: `Skip ${card}` }));
+    const s = await shape();
+    expect(s.cause).toBe('caughtUp');
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
+  });
+});
+
+describe('Find: the List | Deck toggle shows only beside postings (Adrian 2026-11-13)', () => {
+  const toggle = () => screen.queryByRole('button', { name: /^View: / });
+
+  it('shown while postings show', async () => {
+    feed.fetchFeed.mockResolvedValue(result(BASIC));
+    renderReview();
+    await list();
+    expect(toggle()).toBeInTheDocument();
+  });
+
+  it('hidden while loading (skeleton, no cards)', () => {
+    feed.fetchFeed.mockReturnValue(new Promise(() => {}));
+    renderReview();
+    expect(toggle()).toBeNull();
+  });
+
+  it('hidden when nothing matches', async () => {
+    feed.fetchFeed.mockResolvedValue(result([]));
+    renderReview();
+    await screen.findByRole('region', { name: 'No postings' });
+    expect(toggle()).toBeNull();
   });
 });

@@ -98,8 +98,10 @@ for (const width of [390, 1440]) {
     await page.goto('/#/find');
     // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
-    // No status text on Find (Adrian 2026-11-08); Scan now is the Account menu's (#694).
-    await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
+    // No status text on Find (Adrian 2026-11-08); Scan now is the Account menu's (#694). Nothing
+    // read yet: the empty state, and no List | Deck toggle beside it (Adrian 2026-11-13).
+    await expect(page.getByRole('region', { name: 'No postings' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
     await page.waitForTimeout(3000);
     expect(asked.filter((u) => u.includes('yc-oss.github.io'))).toEqual([]);
     const since = await page.evaluate(() => Date.now());
