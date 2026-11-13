@@ -8,6 +8,11 @@
   overflow: hidden;
 }
 
+/* Browse's windowed list (useWindowedList): a spacer holds the height of the cards it stands for. */
+.rjb-window-spacer {
+  block-size: var(--rjb-spacer-h, 0px);
+}
+
 /* Skip | Save in flow under the card, the card's width (Adrian 2026-11-13): two equal keys. */
 .rjb-deck > .rjb-dock-row > * {
   flex: 1 1 0;
