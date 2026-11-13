@@ -7,3 +7,63 @@
   line-clamp: 7;
   overflow: hidden;
 }
+
+/* Skip | Save in flow under the card, the card's width (Adrian 2026-11-13): two equal keys. */
+.rjb-deck > .rjb-dock-row > * {
+  flex: 1 1 0;
+}
+
+/* Browse | Deck look like Find | Apply (Adrian 2026-11-13): the same .rjb-segs rail, a 2px pad so
+ * the rail is the chips' 32px tall, and the pressed key takes the open top tab's fill, edge and
+ * text colour (.rjb-seg[aria-current]). The keys are 28px to look at, each with its 44px hit area. */
+[data-hds] .rjb-segs.rjb-view-segs {
+  --seg-rail-pad: var(--primitive-space-px2);
+  display: inline-grid;
+}
+[data-hds] .rjb-view-segs .rjb-seg-icon {
+  color: var(--semantic-color-content-secondary);
+  background: transparent;
+  border-radius: var(--seg-inner-radius);
+}
+[data-hds] .rjb-view-segs .rjb-seg-icon:hover {
+  color: var(--semantic-color-content-primary);
+  background: var(--semantic-color-surface-accentSubtle);
+}
+[data-hds] .rjb-view-segs .rjb-seg-icon[aria-pressed='true'] {
+  color: var(--semantic-color-content-onAccent);
+  background: linear-gradient(
+    to top,
+    var(--hds-edge-primary) var(--rjb-seg-ledge),
+    var(--semantic-accent-rest) 0
+  );
+  padding-bottom: var(--rjb-seg-ledge);
+}
+[data-hds] .rjb-review-tools .rjb-view-segs button {
+  --rjb-key: calc(var(--primitive-space-8) - 2 * var(--seg-rail-pad));
+  inline-size: var(--rjb-key);
+  block-size: var(--rjb-key);
+  min-inline-size: var(--rjb-key);
+  min-height: var(--rjb-key);
+}
+/* 28px keys grow 16 on their outer side to 44 (Browse into the 16 gap and the tools' 4px start,
+ * Deck into the 16 gap before Sort, whose own area grows to its right). */
+[data-hds] .rjb-view-segs .rjb-hit-44 {
+  --rjb-hit-grow: calc(var(--rjb-touch) - var(--rjb-key));
+}
+[data-hds] .rjb-view-segs .rjb-hit-44::after {
+  inset-block: calc((var(--rjb-key) - var(--rjb-touch)) / 2);
+}
+
+/* Find's tools (2026-11-13): when the bar wraps (390, Deck), the row takes the width and More sits at
+ * its right end, as in Browse, never mid-row. */
+.rjb-page-bar-tools:has(.rjb-find-tools) {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+.rjb-find-tools {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+.rjb-find-tools > :last-child {
+  margin-inline-start: auto;
+}

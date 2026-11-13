@@ -43,7 +43,7 @@ function Row({ job, current, onPick }: { job: Job; current: boolean; onPick: (jo
         {v.title}
       </a>
       <Stack direction="row" gap="px8" align="center">
-        {job.company && <CompanyLogo company={job.company} postings={[job.url]} />}
+        {job.company && <CompanyLogo inline company={job.company} postings={[job.url]} />}
         <Box id={`${id}-facts`}>
           <Stack>
             {facts.map((line, i) => (

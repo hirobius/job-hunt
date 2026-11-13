@@ -6,6 +6,7 @@
 // letter shows: never a broken image. Decorative: the company's name is always beside it.
 import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@hirobius/design-system';
+import './CompanyLogo.css';
 import { companyDomain, logoLetter, logoUrl, MIN_LOGO_PX, verdicts } from './companyLogo';
 
 export default function CompanyLogo({
@@ -14,6 +15,7 @@ export default function CompanyLogo({
   postings = [],
   size = 'sm',
   className,
+  inline,
 }: {
   company: string | undefined;
   /** The company's own web addresses (dreams, targets): always win when usable. */
@@ -23,6 +25,8 @@ export default function CompanyLogo({
   size?: 'sm' | 'md' | 'lg';
   /** AvatarGroup adds its ring and overlap through this. */
   className?: string;
+  /** 24px before a name on one line (Find cards, Apply rows: .rjb-logo-inline). */
+  inline?: boolean;
 }) {
   const name = company?.trim() ?? '';
   const domain = name ? companyDomain(name, addresses, postings) : null;
@@ -73,7 +77,7 @@ export default function CompanyLogo({
       src={shown ?? undefined}
       aria-hidden
       data-rjb-logo={shown ? 'image' : 'letter'}
-      className={className}
+      className={[inline && 'rjb-logo-inline', className].filter(Boolean).join(' ') || undefined}
     />
   );
 }
