@@ -87,6 +87,8 @@ for (const width of [390, 1440]) {
     test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({
       page,
     }) => {
+      // Outside hosts refused: left open they hang and stall the lg column (#614).
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);
       await page.goto('/#/apply');
       const phone = width < 1024;
