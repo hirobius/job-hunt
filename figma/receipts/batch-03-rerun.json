@@ -1,0 +1,91 @@
+{
+  "page": "Sync preview",
+  "runtime": "830c80df",
+  "section": "63:7851",
+  "frames": {
+    "390/Apply / 0 jobs (empty) — dark": {
+      "id": "63:7852",
+      "box": [100, 100, 390, 844],
+      "checksum": "0bc1213b",
+      "projection": "393810b3",
+      "ok": true
+    },
+    "390/Apply / 0 jobs (empty) — light": {
+      "id": "37:4477",
+      "box": [0, 2400, 390, 844],
+      "checksum": "a9d7f433",
+      "projection": "393810b3",
+      "ok": true
+    },
+    "390/Apply / 1 job — dark": {
+      "id": "63:8006",
+      "box": [1640, 100, 390, 844],
+      "checksum": "08165b82",
+      "projection": "64c02055",
+      "ok": true
+    },
+    "390/Apply / 1 job — light": {
+      "id": "63:8332",
+      "box": [3180, 100, 390, 844],
+      "checksum": "bde548fa",
+      "projection": "64c02055",
+      "ok": true
+    },
+    "390/Apply / All jobs sheet — dark": {
+      "id": "64:8098",
+      "box": [4720, 100, 390, 844],
+      "checksum": "8c3f051c",
+      "projection": "5396af4c",
+      "ok": true
+    },
+    "390/Apply / All jobs sheet — light": {
+      "id": "64:9085",
+      "box": [6260, 100, 390, 844],
+      "checksum": "3314aee4",
+      "projection": "5396af4c",
+      "ok": true
+    },
+    "390/Apply / Filters open — dark": {
+      "id": "65:8774",
+      "box": [7800, 100, 390, 844],
+      "checksum": "b44f0854",
+      "projection": "91018734",
+      "ok": true
+    },
+    "390/Apply / Filters open — light": {
+      "id": "65:9132",
+      "box": [100, 1100, 390, 844],
+      "checksum": "b0a0efdc",
+      "projection": "91018734",
+      "ok": true
+    },
+    "390/Apply / Many jobs (sample, pager) — dark": {
+      "id": "65:9459",
+      "box": [1640, 1100, 390, 844],
+      "checksum": "b7da1fff",
+      "projection": "e3762fd1",
+      "ok": true
+    },
+    "390/Apply / Many jobs (sample, pager) — light": {
+      "id": "65:9739",
+      "box": [3180, 1100, 390, 844],
+      "checksum": "1cecd347",
+      "projection": "e3762fd1",
+      "ok": true
+    },
+    "390/Apply / Template dialog — dark": {
+      "id": "65:10019",
+      "box": [4720, 1100, 390, 844],
+      "checksum": "640455d0",
+      "projection": "fd3ab0ab",
+      "ok": true
+    },
+    "390/Apply / Template dialog — light": {
+      "id": "65:10453",
+      "box": [6260, 1100, 390, 844],
+      "checksum": "1611c568",
+      "projection": "fd3ab0ab",
+      "ok": true
+    }
+  }
+}

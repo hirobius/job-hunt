@@ -1,0 +1,192 @@
+{
+  "page": "Sync preview",
+  "section": "55:3875",
+  "note": "batch 02, from figma/snapshot.json of 1765394",
+  "frames": {
+    "1440/Find / Browse / long title + no company — light": {
+      "id": "55:3876",
+      "checksum": "cbd2603d",
+      "projection": "38cff297"
+    },
+    "1440/Find / Browse / many jobs — dark": {
+      "id": "55:4076",
+      "checksum": "a86148d0",
+      "projection": "cfd85174"
+    },
+    "1440/Find / Browse / many jobs — light": {
+      "id": "55:4576",
+      "checksum": "f602b7b6",
+      "projection": "cfd85174"
+    },
+    "1440/Find / Card description open — dark": {
+      "id": "55:5076",
+      "checksum": "a3e5a04c",
+      "projection": "b4b69b98"
+    },
+    "1440/Find / Card description open — light": {
+      "id": "55:5628",
+      "checksum": "4b717896",
+      "projection": "b4b69b98"
+    },
+    "1440/Find / Deck — dark": {
+      "id": "55:6180",
+      "checksum": "a4d321c2",
+      "projection": "4975ac27"
+    },
+    "1440/Find / Deck — light": {
+      "id": "55:6354",
+      "checksum": "7c889ab8",
+      "projection": "4975ac27"
+    },
+    "1440/Find / Loading (scan running) — dark": {
+      "id": "56:4866",
+      "checksum": "b41a61d2",
+      "projection": "05254b4e"
+    },
+    "1440/Find / Loading (scan running) — light": {
+      "id": "56:4982",
+      "checksum": "0b8aa15c",
+      "projection": "05254b4e"
+    },
+    "1440/Find / More menu open — dark": {
+      "id": "56:5086",
+      "checksum": "ed837385",
+      "projection": "33442814"
+    },
+    "1440/Find / More menu open — light": {
+      "id": "56:5601",
+      "checksum": "53cd17d7",
+      "projection": "33442814"
+    },
+    "1440/Find / New companies / List — dark": {
+      "id": "56:6107",
+      "checksum": "157c8afb",
+      "projection": "31d95999"
+    },
+    "1440/Find / New companies / List — light": {
+      "id": "56:6702",
+      "checksum": "a177fe9d",
+      "projection": "31d95999"
+    },
+    "1440/Find / Signed out / 0 jobs (first run) — dark": {
+      "id": "56:7294",
+      "checksum": "892c5670",
+      "projection": "9ab8851a"
+    },
+    "1440/Find / Signed out / 0 jobs (first run) — light": {
+      "id": "56:7398",
+      "checksum": "4c9541da",
+      "projection": "9ab8851a"
+    },
+    "1440/Job / Company page / Larkspur Analytics — dark": {
+      "id": "57:5812",
+      "checksum": "79afb61a",
+      "projection": "4f89f478"
+    },
+    "1440/Job / Company page / Larkspur Analytics — light": {
+      "id": "57:6500",
+      "checksum": "6e895c38",
+      "projection": "4f89f478"
+    },
+    "1440/Job / Job page / Default — dark": {
+      "id": "58:6276",
+      "checksum": "54ea173d",
+      "projection": "ecffc8a8"
+    },
+    "1440/Job / Job page / Default — light": {
+      "id": "58:7043",
+      "checksum": "fcc3b677",
+      "projection": "ecffc8a8"
+    },
+    "1440/Job / Not found / Unknown route — dark": {
+      "id": "58:7781",
+      "checksum": "2240c86a",
+      "projection": "014059d3"
+    },
+    "1440/Job / Not found / Unknown route — light": {
+      "id": "58:7830",
+      "checksum": "b5ec8594",
+      "projection": "014059d3"
+    },
+    "1440/Menus / Account menu / Signed in — dark": {
+      "id": "58:7879",
+      "checksum": "6c006511",
+      "projection": "ad211c4d"
+    },
+    "1440/Menus / Account menu / Signed in — light": {
+      "id": "59:6870",
+      "checksum": "13217ddb",
+      "projection": "24fc5d87"
+    },
+    "1440/Menus / Account menu / Signed out — dark": {
+      "id": "59:7031",
+      "checksum": "de9208cd",
+      "projection": "60cc715d"
+    },
+    "1440/Menus / Account menu / Signed out — light": {
+      "id": "59:7199",
+      "checksum": "7a1d1a9f",
+      "projection": "f713fae3"
+    },
+    "1440/Menus / Scan details / After scan — dark": {
+      "id": "59:7361",
+      "checksum": "14e0a460",
+      "projection": "3f86d0d0"
+    },
+    "1440/Menus / Scan details / After scan — light": {
+      "id": "59:7934",
+      "checksum": "4a7d3052",
+      "projection": "3f86d0d0"
+    },
+    "1440/Sign-in / Check email — dark": {
+      "id": "59:8498",
+      "checksum": "9bcc86ca",
+      "projection": "869e5038"
+    },
+    "1440/Sign-in / Check email — light": {
+      "id": "60:7471",
+      "checksum": "8c0550e0",
+      "projection": "869e5038"
+    },
+    "1440/Sign-in / Confirm link — dark": {
+      "id": "60:7624",
+      "checksum": "f7d9cfb1",
+      "projection": "043dfd9c"
+    },
+    "1440/Sign-in / Confirm link — light": {
+      "id": "60:7785",
+      "checksum": "83e6c5f7",
+      "projection": "043dfd9c"
+    },
+    "1440/Sign-in / Email — dark": {
+      "id": "60:7942",
+      "checksum": "b635090b",
+      "projection": "1427eda3"
+    },
+    "1440/Sign-in / Email — light": {
+      "id": "60:8088",
+      "checksum": "6472cba5",
+      "projection": "1427eda3"
+    },
+    "1440/Sign-in / Error (refused link) — dark": {
+      "id": "60:8222",
+      "checksum": "d69b09c9",
+      "projection": "296fd70f"
+    },
+    "1440/Sign-in / Error (refused link) — light": {
+      "id": "60:8400",
+      "checksum": "08254a1f",
+      "projection": "296fd70f"
+    },
+    "1440/Sign-in / Signed in — dark": {
+      "id": "60:8572",
+      "checksum": "45518916",
+      "projection": "05959852"
+    },
+    "1440/Sign-in / Signed in — light": {
+      "id": "60:8696",
+      "checksum": "f9d8e254",
+      "projection": "05959852"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "page": "Sync preview",
+  "created": [],
+  "updated": [
+    "1440/Find / More menu open — light",
+    "1440/Menus / Account menu / Signed in — light",
+    "1440/Menus / Account menu / Signed out — light"
+  ],
+  "removed": [],
+  "frames": {
+    "1440/Find / More menu open — light": {
+      "id": "56:5601",
+      "box": [6260, 1100, 1440, 900],
+      "checksum": "53cd17d7",
+      "projection": "33442814",
+      "ok": true
+    },
+    "1440/Menus / Account menu / Signed in — light": {
+      "id": "59:6870",
+      "box": [6260, 3100, 1440, 900],
+      "checksum": "13217ddb",
+      "projection": "24fc5d87",
+      "ok": true
+    },
+    "1440/Menus / Account menu / Signed out — light": {
+      "id": "59:7199",
+      "box": [100, 4100, 1440, 900],
+      "checksum": "7a1d1a9f",
+      "projection": "f713fae3",
+      "ok": true
+    }
+  },
+  "section": "55:3875"
+}
