@@ -36,6 +36,13 @@ describe('JobTitleBlock', () => {
     expect(screen.queryByText('Saved')).toBeNull();
     expect(document.querySelector('[data-tone="info"]')).toBeNull();
   });
+  it("puts the company's 24px inline mark before its name, as on Find cards", () => {
+    const { container } = render(<JobTitleBlock job={{ ...base, company: 'Harbor Atlas' }} />);
+    const mark = container.querySelector('[data-rjb-logo]');
+    expect(mark).toHaveClass('rjb-logo-inline');
+    expect(mark?.nextElementSibling).toHaveTextContent('Harbor Atlas');
+  });
+
   it('shows stated pay and a company', () => {
     render(<JobTitleBlock job={{ ...base, company: 'Lattice Freight', salary: '$150k–$185k' }} />);
     expect(screen.getByText('Lattice Freight')).toBeInTheDocument();
