@@ -93,7 +93,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   segmented control at top left, where the page title was (no visible "Find" or "Apply" title; a
   job's title stays). A page's own tools sit at the bar's right (Find: the Deck's place, in the Deck only).
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
-  picker (the view's name, bold, with a caret; a Menu, a sheet on a phone, with the six views and
+  picker (the view's name, bold, with the caret inside it, drawn as a select: a soft grey pill with the
+  Find chips' fill and 40 px height, no edge, its left edge on the page gutter under Find | Apply and
+  the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the six views and
   "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
   jobs bottom sheet), and right the pager "7 of 12" with previous and next, which only steps (a
   sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. Templates are a closed row list (name, one-line preview, blanks left, Copy). A job's view holds Open application, Mark applied | Not a fit, Templates, the Application kit,

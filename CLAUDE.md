@@ -251,7 +251,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
   empty state; no filter bar on the job since #543: Add job, search, filters, Sort and the sample line are the
   All jobs sheet's), the sticky **walk control** (#542, `ApplyWalk.tsx`:
-  one row, no box: the **view picker** (the open view's name, bold, caret, named "View: <name>"; an HDS Menu drawn as
+  one row, no box: the **view picker** (the open view's name, bold, caret inside, named "View: <name>"; since 2026-11-13 an HDS
+  secondary `Button` drawn as a select by `ApplyWalk.css` `.rjb-view-picker`: the Find chips' fill (HDS Tag tokens) as a
+  40px pill (its `::after`; HDS's `::before` is the press wipe) in a 44px hit area, no edge or shadow, its left edge on
+  the page gutter under Find | Apply and the job title, `e2e/shell-controls.spec.ts`; an HDS Menu drawn as
   a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the six views with counts and
   "All jobs and filters"), a **"N filters" chip** only while a filter is on (`filtersOn`: search, Remote only; it opens
   the sheet), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
