@@ -270,6 +270,32 @@ const pairs: Pair[] = [
     bg: 'component-badge-neutral-bg',
     min: 4.5,
   },
+  // Find's New chip count (#694): its fill must show on the chip (3:1, non-text) and its text read
+  // (4.5:1), on the resting grey chip and the selected accent chip (FindDeck.css .rjb-chip-count).
+  {
+    name: 'New count fill on the resting chip',
+    fg: 'semantic-color-surface-inverse',
+    bg: 'component-tag-background',
+    min: 3,
+  },
+  {
+    name: 'New count text on its resting fill',
+    fg: 'semantic-color-content-inverse',
+    bg: 'semantic-color-surface-inverse',
+    min: 4.5,
+  },
+  {
+    name: 'New count fill on the selected chip',
+    fg: 'semantic-color-content-onAccent',
+    bg: 'component-tag-activeBackground',
+    min: 3,
+  },
+  {
+    name: 'New count text on its selected fill',
+    fg: 'semantic-accent-rest',
+    bg: 'semantic-color-content-onAccent',
+    min: 4.5,
+  },
   ...(['hover', 'pressed'] as const).map((state): Pair => ({
     name: `on-accent label on the ${state} accent`,
     fg: 'semantic-color-content-onAccent',

@@ -197,7 +197,7 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
       const cs = getComputedStyle(e);
       const shadow =
         cs.boxShadow !== 'none' && !/^(rgba\(0, 0, 0, 0\)[^,]*,?\s*)+$/.test(cs.boxShadow);
-      // A pressed toggle (Browse / Deck, 2026-11-09) is the secondary button, whose edge is a
+      // A pressed toggle (2026-11-09) is the secondary button, whose edge is a
       // box shadow at rest too: only a shadow that differs from the unfocused one is a ring.
       const rest = e.getAttribute('aria-pressed') === 'true';
       return cs.outlineStyle !== 'none' || (shadow && !rest)
@@ -206,15 +206,18 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     });
   // The top tabs' names end in their count when they show one ("Apply 12", #548).
   for (const [role, name] of [
-    ['button', 'Deck'],
-    ['button', 'Browse'],
+    // List | Deck is one toggle (#694): a tap flips it, twice back to List.
+    ['button', /^View: /],
+    ['button', /^View: /],
     ['link', 'Apply'],
     ['link', 'Find'],
-    // Scan now left the page for Find's More menu (#544): a menu moves focus into itself, as the
-    // Account menu does, so it is not in this list.
+    // Scan now is in the Account menu (#694): a menu moves focus into itself, so it is not in
+    // this list.
   ] as const) {
     const target =
-      role === 'link' ? topTab(page, name) : page.getByRole(role, { name, exact: true }).first();
+      role === 'link'
+        ? topTab(page, String(name))
+        : page.getByRole(role, { name, exact: true }).first();
     await target.click();
     await page.waitForTimeout(200);
     expect(await ring(), `${role} ${name}`).toBe('none');

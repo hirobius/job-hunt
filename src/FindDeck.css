@@ -21,7 +21,7 @@
 /* List | Deck, one toggle (Adrian 2026-11-13): one button drawn as the .rjb-segs track (a 2px pad,
  * the chips' 32px tall); both icons show, the open one takes the open top tab's fill, edge and text
  * colour. Concentric corners (hds#1470): each pill's radius is the track's less its padding, and the
- * ledge is an inset shadow, so it follows that radius. No overflow clip on the track. The whole track
+ * ledge is a gradient clipped by that radius, so it follows it. No overflow clip on the track. The whole track
  * is the target, 44px tall (.rjb-hit-44::after). */
 [data-hds] .rjb-segs.rjb-view-segs {
   --seg-rail-pad: var(--primitive-space-px2);
@@ -55,8 +55,11 @@
 }
 [data-hds] .rjb-view-segs .rjb-seg-icon[data-on] {
   color: var(--semantic-color-content-onAccent);
-  background: var(--semantic-accent-rest);
-  box-shadow: inset 0 calc(var(--rjb-seg-ledge) * -1) 0 var(--hds-edge-primary);
+  background: linear-gradient(
+    to top,
+    var(--hds-edge-primary) var(--rjb-seg-ledge),
+    var(--semantic-accent-rest) 0
+  );
   padding-bottom: var(--rjb-seg-ledge);
 }
 [data-hds] .rjb-view-segs.rjb-hit-44::after {
@@ -74,6 +77,18 @@
 .rjb-review-chips {
   flex: 1 1 auto;
   min-width: 0;
+}
+/* The New chip's count (#694): HDS Badge's neutral fill is all but the chip's grey, so on the resting
+ * chip it takes the inverse surface (black on light, white on dark) and on the selected (accent) chip
+ * the on-accent colour with accent text; each at least 3:1 against its chip, its text 4.5:1
+ * (theme.contrast.test.ts). */
+[data-hds] .rjb-review-chips .rjb-chip-count {
+  background: var(--semantic-color-surface-inverse);
+  color: var(--semantic-color-content-inverse);
+}
+[data-hds] .rjb-review-chips [aria-pressed='true'] .rjb-chip-count {
+  background: var(--semantic-color-content-onAccent);
+  color: var(--semantic-accent-rest);
 }
 [data-hds] .rjb-review-row > .rjb-review-tools {
   flex: none;

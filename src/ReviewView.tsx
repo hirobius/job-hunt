@@ -112,7 +112,6 @@ export default function ReviewView({
   scanStatus = false,
   header,
   before,
-  more,
 }: {
   /** The panel's name: "Review new" on Find. */
   label?: string;
@@ -126,8 +125,6 @@ export default function ReviewView({
   header?: ReactNode | ((tools: FindTools) => ReactNode);
   /** Find's list column, above the list: Daily picks. */
   before?: ReactNode;
-  /** The page's More menu (Find's), at the right end of the Review row after Sort. */
-  more?: ReactNode;
 }) {
   const feed = useFeed();
   const { view } = feed;
@@ -327,7 +324,6 @@ export default function ReviewView({
         <HdsTooltip.Content>{`Switch to ${mode === 'deck' ? 'List' : 'Deck'}`}</HdsTooltip.Content>
       </HdsTooltip>
       {sortTool && <FindSortMenu sort={sortTool} />}
-      {more}
     </Stack>
   );
   const panel = (
@@ -375,7 +371,8 @@ export default function ReviewView({
                   >
                     {f === 'new' ? (
                       <Stack as="span" direction="row" gap="px4" align="center">
-                        {FILTER_LABEL[f]} <CountBadge count={counts[f]} />
+                        {FILTER_LABEL[f]}{' '}
+                        <CountBadge count={counts[f]} className="rjb-chip-count" />
                       </Stack>
                     ) : (
                       FILTER_LABEL[f]
@@ -543,7 +540,7 @@ function EmptySection({ children, cause }: { children: ReactNode; cause: EmptyCa
       aria-label="No postings"
       data-empty-section=""
       data-empty-cause={cause}
-      sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}
+      sx={{ py: 'lg' }}
     >
       <PanelBody>{children}</PanelBody>
     </Box>

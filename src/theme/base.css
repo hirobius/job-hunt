@@ -311,27 +311,27 @@ p {
   --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
 }
 
-/* The Account avatar (rev-3 P, mock #s-account-menu): a 32px circle with a hairline, and the
- * unsynced Badge sitting on its rim with a page-colour ring. HDS's phone touch-size rule
- * (`.h-8 { min-height }`, `.w-8[class*=h-8] { min-width }` below 640) also hits the Avatar span,
- * which is not a control, inflating it to 44px inside its 40px button and pushing the badge off
- * the circle. Upstream ask: the touch-size rule must not target Avatar (docs/hds-upstream-asks-0.9.md). */
-/* The same rule widens the icon button to 44 on a phone: the app's phone target since 2026-11-08. */
-
-[data-hds] .rjb-avatar {
-  min-width: 0;
-  min-height: 0;
-  border: thin solid var(--semantic-color-border-default);
+/* The Account button (#694): an HDS tertiary icon Button in the ThemeToggle's 44px box, its icon the
+ * toggle's 28px (CircleUser signed out, HDS Icon size). Signed in, the initial sits in a 24px ring drawn in the
+ * icon's colour and stroke, no grey Avatar disc. */
+[data-hds] .rjb-account {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  min-inline-size: 2.75rem;
+  min-height: 2.75rem;
 }
-
-[data-hds] .rjb-avatar > .absolute {
-  top: 1px;
-  right: 1px;
-  width: var(--primitive-space-px10);
-  height: var(--primitive-space-px10);
-  min-width: 0;
-  min-height: 0;
-  box-shadow: 0 0 0 2px var(--semantic-color-surface-page);
+.rjb-account-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--primitive-space-6);
+  block-size: var(--primitive-space-6);
+  border: var(--primitive-space-px2) solid currentColor;
+  border-radius: var(--hds-radius-full);
+  color: var(--semantic-color-content-primary);
+  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-caption-font-size) / 1
+    var(--semantic-typography-ui-font-family);
+  font-weight: 700;
 }
 
 /* The shell's top tabs, Find / Apply (Adrian 2026-11-09): HDS SegmentedControl's look (muted rail,
@@ -374,10 +374,13 @@ p {
 }
 .rjb-seg[aria-current='page'] {
   color: var(--semantic-color-content-onAccent);
-  /* The 3px edge as an inset shadow, so it follows the pill's radius (#694); the focus ring is
-   * the outline, so it stays the one ring. */
-  background: var(--semantic-accent-rest);
-  box-shadow: inset 0 calc(var(--rjb-seg-ledge) * -1) 0 var(--hds-edge-primary);
+  /* The 3px edge as a gradient, not a box shadow: the focus ring stays the one ring, and the fill
+   * is clipped by the pill's own radius, so the edge follows it (#694). */
+  background: linear-gradient(
+    to top,
+    var(--hds-edge-primary) var(--rjb-seg-ledge),
+    var(--semantic-accent-rest) 0
+  );
   /* Centre the label on the coloured fill, not the box (Adrian 2026-11-11): the ledge's height
    * as bottom padding moves it up by half the ledge (seg-centering.spec). */
   padding-bottom: var(--rjb-seg-ledge);
@@ -884,9 +887,9 @@ p {
   min-height: var(--primitive-space-8);
 }
 
-/* The app bar's theme switch at the Account Avatar's weight (#694): HDS ThemeToggle is a 44px box
-   like the Account button, but its sun/moon is 24px beside the Avatar's 32px disc and has no size
-   option. Its icon goes to 28px, the Avatar's ink weight inside its 32px disc (hds-gap: ThemeToggle size, docs/hds-upstream-asks-0.9.md). */
+/* The app bar's theme switch and the Account button match (#694): HDS ThemeToggle is a 44px box
+   whose sun/moon is fixed at 24px, with no size option; it takes 28px, the Account icon's size
+   (hds-gap: ThemeToggle size, docs/hds-upstream-asks-0.9.md). */
 [data-hds] .rjb-theme-toggle .hds-theme-toggle__icon {
   inline-size: var(--primitive-space-7);
   block-size: var(--primitive-space-7);

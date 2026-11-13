@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { NewCompanies } from './AutoScanViews';
-import { FindHeader, FindMore } from './FindHeader';
+import { FindHeader } from './FindHeader';
 import ScanDetails from './ScanDetails';
 import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import NoticeHost from './NoticeHost';
@@ -103,45 +103,27 @@ const renderViews = ({ signedIn = false } = {}) =>
     >
       <ToastProvider>
         <FindHeader />
-        <FindMore />
         <NewCompanies />
         <NoticeHost />
       </ToastProvider>
     </CloudSyncContext.Provider>,
   );
 
-// #544: Scan now left the page for Find's one More menu; the header says how fresh the list is in
-// one caption, "Scanned 2 h ago" (no count: the New chip has it). No other status text on Find (Adrian 2026-11-08).
-describe('Find header: one caption and one More menu (#544)', () => {
-  const more = () => screen.getByRole('button', { name: 'More: scan and search profile' });
-
-  it('signed out: Scan now is in More, and the caption says when it last scanned', async () => {
-    const user = userEvent.setup();
+// #694: Find has no More menu and no scan line. Scan now (signed out) is the Account menu's
+// (shell.test.tsx), and when the sources were last scanned is Scan details' alone (below).
+describe('Find header: no More menu, no scan line (#694)', () => {
+  it('signed out or in: no More, no Scan now, no "Scanned …" on Find, even after a scan', async () => {
     renderViews();
-    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
-    expect(screen.queryByText(/^\d+ new$/)).toBeNull();
-    expect(screen.queryByText(/^Scanned /)).toBeNull();
-    await user.click(more());
-    expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
-    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('button', { name: /^More: scan/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
-    // The scan line is the label atop More (Find controls, 2026-11-13).
-    await user.click(more());
-    expect(await screen.findByText('Scanned just now')).toBeInTheDocument();
-    expect(screen.queryByText(/^Scanning |^Last scanned|^Not scanned|^Updated /)).toBeNull();
-  });
-
-  it('signed in: no Scan now (the server syncs every 15 minutes); "scanned" is its last run', async () => {
-    const user = userEvent.setup();
+    expect(screen.queryByText(/^Scanned |^Scanning |^Last scanned|^Updated /)).toBeNull();
+    cleanup();
     server.at = new Date(Date.now() - 4 * 60_000).toISOString();
     renderViews({ signedIn: true });
-    await user.click(more());
-    expect(await screen.findByText('Scanned 4 min ago')).toBeInTheDocument();
-    expect(await screen.findByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
-    expect(screen.queryByText(/Updated|Scanning/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /^More: scan/ })).toBeNull();
+    expect(screen.queryByText(/Scanned 4 min ago|Updated/)).toBeNull();
   });
 });
 

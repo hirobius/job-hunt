@@ -40,7 +40,7 @@ function useScanLine(counts?: { newToday: number; sources: number }): string {
   return (
     state.error ??
     lastScannedLine(state, undefined, counts, scanning) ??
-    'Not scanned yet. Sign in for automatic updates, or use Scan now on Find.'
+    'Not scanned yet. Sign in for automatic updates, or use Scan now in the Account menu.'
   );
 }
 

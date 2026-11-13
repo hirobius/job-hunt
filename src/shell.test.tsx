@@ -207,7 +207,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.lastElementChild).toHaveTextContent(BRAND.name);
   });
 
-  it('signed out, the account menu is 8 items in 4 groups: who | things | display | about (#549)', async () => {
+  it('signed out, the account menu is 9 items in 4 groups: who | things | display | about (#549, #694)', async () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
@@ -216,6 +216,8 @@ describe('app shell (#115 Phase 1)', () => {
       '---',
       'item:Documents',
       'item:Search profile',
+      // Scan now (#694, was Find's More menu): signed out only; signed in the server syncs.
+      'item:Scan now',
       'item:Companies',
       // Data (#550): back up, restore, export and the repairs, in one lazy dialog.
       'item:Data',
@@ -285,11 +287,15 @@ describe('app shell (#115 Phase 1)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
   });
 
-  it('the trigger is the HDS Avatar (rev-3 P): a person icon signed out, no dot with nothing to sync', async () => {
+  it('the trigger is an HDS icon Button (#694): CircleUser signed out, no Avatar, no dot', async () => {
     renderApp();
     const account = await screen.findByRole('button', { name: 'Account' });
     expect(account.textContent?.trim()).toBe('');
-    expect(account.querySelector('svg')).not.toBeNull();
+    expect(
+      account.querySelector('svg.lucide-circle-user, svg.lucide-circle-user-round'),
+    ).not.toBeNull();
+    expect(account.querySelector('.rjb-avatar, [class*="hds-avatar"]')).toBeNull();
+    expect(account).toHaveClass('rjb-account');
   });
 
   it('data controls left the Pipeline toolbar', () => {
@@ -432,6 +438,9 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     await addDeviceDataIfAsked();
     const account = await screen.findByRole('button', { name: 'Account' });
     await waitFor(() => expect(account.textContent).toBe('U'));
+    // The initial in its 24px ring (#694), no grey Avatar disc.
+    expect(account.querySelector('.rjb-account-initial')).toHaveTextContent('U');
+    expect(account.querySelector('.rjb-avatar')).toBeNull();
     const menu = await openAccount();
     await within(menu).findByText('Synced');
     expect(menuOutline(menu)).toEqual([

@@ -197,8 +197,8 @@ test('Find: Scan now and the Account menu’s Companies and Data answer within 3
   page,
 }) => {
   await go(page, '#/find');
-  // Scan now is the short header's More menu (#544); its caption says the scan runs.
-  await menu(page, 'More: scan and search profile', 'Scan now');
+  // Scan now is the Account menu's (#694, signed out).
+  await menu(page, 'Account', 'Scan now');
   await menu(page, 'Account', 'Companies');
   await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
   await closeOverlay(page);

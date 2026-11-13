@@ -99,7 +99,7 @@ test('the Data dialog is a centred dialog on a desktop', async ({ page }) => {
   await expect(dialog.locator('.rjb-sheet-handle')).toBeHidden();
 });
 
-// #549: 8 items in 4 groups (#688: the theme is the app bar's ThemeToggle). Each row has a 16px
+// #549: 8 items in 4 groups, 9 signed out with Scan now (#694; #688: the theme is the app bar's ThemeToggle). Each row has a 16px
 // icon; rows are 44px on a phone and 38px on a desktop; Pause animations is a toggle that shows its
 // state; Sign in is a grey key.
 for (const [width, height, row] of [
@@ -115,7 +115,8 @@ for (const [width, height, row] of [
       menu.getByText('On this device only. Sign in to sync across devices.', { exact: true }),
     ).toBeVisible();
     const rows = menu.locator('[role="menuitem"]:not(.rjb-menu-key), [role="menuitemcheckbox"]');
-    await expect(rows).toHaveCount(7);
+    await expect(rows).toHaveCount(8);
+    await expect(menu.getByRole('menuitem', { name: 'Scan now' })).toBeVisible();
     await expect(menu.getByRole('menuitemcheckbox', { name: 'Dark theme' })).toHaveCount(0);
     for (const r of await rows.all()) {
       const b = (await r.boundingBox())!;

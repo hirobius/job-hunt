@@ -43,7 +43,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Find Deck (#545, #617).** The same posting card as Browse, one at a time, with no source or New
   badge (#557). Its place is a compact pager at the right of the Find | Apply row, "‹ 1 of 4 ›" (the same HDS pager as
   Apply's, arrows off at the ends); a sideways swipe or the arrow keys step it too. Skip (grey, left) and Save (filled,
-  right) sit in one row right under the card, in flow, the card's width (no fixed dock on Find); both show a toast with Undo. Find's More stays at the right end of the chip row, as in Browse. The card shows the
+  right) sit in one row right under the card, in flow, the card's width (no fixed dock on Find); both show a toast with Undo. List | Deck and Sort stay at the right end of the chip row, as in Browse. The card shows the
   posting's text at once, cut at 7 lines, then "Read the full posting"; no disclosure. More (Not this
   company) sits beside the card's title, as a job's More does. Sort (its own key) works in the Deck too: the deck's order and its
   "1 of N" follow the sort, and the card on screen stays when the sort changes.
@@ -82,9 +82,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Find's short header (#544).** (Find controls, 2026-11-13.) No visible "Find" title (the page bar's Find / Apply says where
   you are). The Find | Apply row holds the Deck's place "‹ 1 of 50 ›" at its right, in the Deck
   only; nothing there in List. No date line, no Scan now key. **No visible "Review" heading (2026-11-12):** one row, the New
-  chip (with its count) and the Remote chip (a plain toggle, no count) on the left, then pinned at the right end the Browse | Deck switch (a compact two-icon
-  segmented group drawn as the Find / Apply rail: the pressed key takes the open tab's fill, edge and text colour, the rail as tall as the chips), **Sort**, its own icon key ("Sort: Newest", tooltip "Sort", a menu of Newest,
-  Best match, Company), and the **More** menu (…: the scan line "Scanned 2 h ago" (no count: the chips hold it), Scan now signed out, Search profile); keys 28 px on the rail, Sort and More 32 px, to look at, each with its own 44 px tap area. The chips take the left and may wrap; the right group never moves. The list loads its next
+  chip (with its count) and the Remote chip (a plain toggle, no count) on the left, then pinned at the right end the List | Deck toggle (one button drawn as the Find / Apply rail, both icons shown,
+  the open one with the open tab's fill, edge and text colour; a tap anywhere flips it; the rail as tall as the chips), then **Sort** while there are postings, its own icon key ("Sort: Newest", tooltip "Sort", a menu of Newest,
+  Best match, Company). **No More menu on Find (#694):** Scan now (signed out) is in the Account menu beside Search profile, and "Scanned 2 h ago" lives only in Scan details (the Search profile dialog). Icon pills 28 px on the rail, Sort 32 px, to look at, each with its own 44 px tap area. No hairline between the row and the list. **One empty state, by cause, the same in List and Deck (#694):** "No postings match yet" (Scan now | Edit search profile), "You’re all caught up" (check-circle; Scan now), "No postings with these filters" (Clear filters); each its own icon tile on the page background, no divider above it. The chips take the left and may wrap; the right group never moves. The list loads its next
   page on its own as you near the end; "Load more (N)" stays as the fallback, one card gap below the
   last card. A Browse card: the company's logo (letter first; a 24 px inline mark, as on Apply rows) before its name, on one line, or "Company not
   stated"; two lines of the posting's text, "Show more" right under them (the excerpt's own line rhythm, no extra gap) opens it in place (then "Read the full
@@ -112,11 +112,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
   runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
   Focus rings and the selected fill are never clipped at the column's edges.
-- **The Account menu (#549): 8 items in 4 groups.** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
+- **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
   "Sign in" as a grey key (signed in: the email, the sync
-  line, Sign out). Then Documents, Search profile, Companies, Data. Then Pause animations as a
+  line, Sign out). Then Documents, Search profile, Scan now (signed out only; Stop scan while one runs), Companies, Data. Then Pause animations as a
   toggle with a switch on the right that shows the state (the theme is the app bar's sun/moon
-  ThemeToggle, left of the Account avatar). Then Send feedback, Privacy and
+  ThemeToggle, left of the Account button). Then Send feedback, Privacy and
   terms. Every row has a 16 px icon; rows are 44 px on a phone (a bottom sheet), 38 px at 1440. Scan
   details lives in the Search profile, as a closed row at its end.
 - **The Data dialog (#550).** The Account menu has one Data item. It opens one dialog (a bottom sheet
@@ -144,10 +144,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   one opens; with none left, the list shows the caught-up state alone. Below 1024 each Find card
   keeps its own keys and nothing is selected.
 - Page gutter 20 on a phone (`clamp(1.25rem, 5vw, 4rem)`, 64 from 1280). Shell max width 1048, content at most 920.
-- **One app-bar row (#548).** At every width: the logo, then the Account avatar (Find / Apply moved to
+- **One app-bar row (#548).** At every width: the logo, then the Account button (Find / Apply moved to
   the page bar, 2026-11-12). No second row on a phone. The tabs show no counts (Find controls, 2026-11-13). Find and Apply
   are two equal segments, the label centred, the whole segment the target (44 px tall on a phone). Segment corners are concentric: the
-  inner radius is the rail's radius less its 4 px padding and 1 px.
+  inner radius is the rail's radius less its padding, and the open segment's 3 px bottom edge follows that radius. The
+  app bar's sun/moon and the Account button match: a 44 px box, a 28 px icon (#694). Account is a ghost icon button: the
+  CircleUser icon signed out, your initial in a 24 px ring signed in (no grey avatar disc, never a menu icon).
 - **The logo is the home link (#620).** A tap on the logo opens Find at its root. Its target is 44 px.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
 - Touch targets are at least 44 px on a phone. Text contrast is AA (4.5) in light and dark.

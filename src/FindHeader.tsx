@@ -1,21 +1,10 @@
 // Find's short header (#544, redesign §5.1; the page bar, 2026-11-12): the page's sr-only h1 and, in
 // the Deck only, its place "‹ 1 of 50 ›" at the right of the Find | Apply row (Find controls,
-// 2026-11-13; nothing there in List). The More menu (FindMore) ends the Review row, after List | Deck
-// and Sort: it holds the scan line ("Scanned 2 h ago", a label), Scan now (signed out; Stop scan
-// while it runs) and Search profile. Signed in, "scanned" is the server's last sync (#448); signed
-// out, the last scan in this browser. Nothing is said about a time that is not known.
-import { useRef, useState } from 'react';
-import { Button, Dialog, Icon, Menu, Pagination, Stack, Text } from '@hirobius/design-system';
-import { Ellipsis } from 'lucide-react';
-import { useBackCloses, useBackSheet } from './useBackCloses';
-import { SearchProfileDialog, useLoadedWhen } from './lazyDialogs';
-import { refocusAccount, useCloudSync } from './account/accountContext';
-import { cancelScan, scanNow, useScan } from './feed/autoScan';
-import { useScanInput } from './feed/useAutoScan';
-import { agoPhrase, useServerUpdatedAt } from './feed/serverUpdated';
+// 2026-11-13; nothing there in List). Find has no More menu since #694: Scan now (signed out) and
+// Search profile are the Account menu's, and when the sources were last scanned is Scan details'.
+import { Pagination, Stack, Text } from '@hirobius/design-system';
 import type { FeedSort } from './feed/feed';
 import type { DeckPlace } from './ReviewView';
-import { findCaption } from './findCaption';
 import { InPageBar } from './PageBar';
 
 export interface FindSort {
@@ -49,69 +38,6 @@ export function FindHeader({
           </Stack>
         </InPageBar>
       )}
-    </>
-  );
-}
-
-/** Find's More (…), at the right end of the Review row. */
-export function FindMore() {
-  const { user } = useCloudSync();
-  const signedIn = !!user;
-  const { state, running } = useScan();
-  const server = useServerUpdatedAt(signedIn);
-  const scanned = user ? agoPhrase(server.at, server.now) : agoPhrase(state.finishedAt);
-  const caption = findCaption(scanned, !signedIn && running)[0];
-  const input = useScanInput();
-  const trigger = useRef<HTMLButtonElement | null>(null);
-  const sheet = useBackSheet('find-more');
-  // The Search profile, as the Account menu opens it (lazy, Back closes it).
-  const [profile, setProfile] = useState(false);
-  useBackCloses(profile, () => setProfile(false), 'find-search-profile');
-  const profileReady = useLoadedWhen(SearchProfileDialog, profile, () => setProfile(false));
-  return (
-    <>
-      <Menu
-        modal={false}
-        {...sheet}
-        onOpenChange={(next) => {
-          // Fetch the dialog's chunk as the menu opens, so the item answers within 300 ms (#212).
-          if (next) SearchProfileDialog.preload().catch(() => {});
-          sheet.onOpenChange(next);
-        }}
-      >
-        <Menu.Trigger asChild>
-          <Button
-            ref={trigger}
-            variant="tertiary"
-            iconOnly
-            iconLeft={<Icon icon={Ellipsis} />}
-            label="More: scan and search profile"
-            // Its 44px hit area grows to its right, past Sort's (base.css .rjb-hit-44).
-            className="rjb-hit-44 rjb-hit-end"
-          />
-        </Menu.Trigger>
-        <Menu.Content align="end">
-          {caption && <Menu.Label>{caption}</Menu.Label>}
-          {/* Signed in the server syncs every 15 minutes; signed out nothing scans on its own. */}
-          {!signedIn &&
-            (running ? (
-              <Menu.Item onSelect={cancelScan}>Stop scan</Menu.Item>
-            ) : (
-              <Menu.Item onSelect={() => void scanNow(input, undefined, { force: true })}>
-                Scan now
-              </Menu.Item>
-            ))}
-          <Menu.Item onSelect={() => setProfile(true)}>Search profile</Menu.Item>
-        </Menu.Content>
-      </Menu>
-      <Dialog open={profile && profileReady} onOpenChange={setProfile}>
-        {profile && profileReady && (
-          <SearchProfileDialog
-            onDone={() => setProfile(false)}
-            onCloseAutoFocus={() => refocusAccount(trigger.current)()}
-          />
-        )}
-      </Dialog>
     </>
   );
 }

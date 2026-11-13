@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findMenuItem, openScanDetails } from './routes';
+import { accountMenuItem, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
 import { hitArea } from './hitArea';
 
@@ -92,8 +92,8 @@ async function setUp(page: Page) {
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
   await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
   const since = await page.evaluate(() => Date.now());
-  // Scan now is Find's More menu (#544).
-  await findMenuItem(page, 'Scan now');
+  // Scan now is the Account menu's (#694).
+  await accountMenuItem(page, 'Scan now');
   await scanFinished(page, since);
 }
 
@@ -306,7 +306,7 @@ for (const width of [390, 1440]) {
 }
 
 // Find controls (2026-11-13): New (two-digit count) and Remote (no count) on the left, Browse | Deck,
-// Sort and More pinned at the right, one row at 375 and 390. Each key's 44px hit area is its own (elementFromPoint).
+// List | Deck and Sort pinned at the right (no More since #694), one row at 375 and 390. Each key's 44px hit area is its own (elementFromPoint).
 for (const width of [375, 390]) {
   test(`the Review row: one line, the right group pinned, its own 44px hit areas (${width})`, async ({
     page,
@@ -345,23 +345,25 @@ for (const width of [375, 390]) {
     await page.goto('/#/find');
     await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
     const since = await page.evaluate(() => Date.now());
-    await findMenuItem(page, 'Scan now');
+    await accountMenuItem(page, 'Scan now');
     await scanFinished(page, since);
     const chips = page.getByRole('group', { name: 'Filter postings' });
     await expect(chips.getByRole('button', { name: /^New \d\d$/ })).toBeVisible();
     await expect(chips.getByRole('button', { name: 'Remote', exact: true })).toBeVisible();
     const sort = page.getByRole('button', { name: /^Sort: / });
-    const more = page.getByRole('button', { name: 'More: scan and search profile' });
-    const [c, s, m] = [
+    const view = page.getByRole('button', { name: /^View: / });
+    // No More on Find (#694): List | Deck, then Sort, end the row.
+    await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
+    const [c, s, v] = [
       await chips.boundingBox(),
       await sort.boundingBox(),
-      await more.boundingBox(),
+      await view.boundingBox(),
     ];
     expect(Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(4);
-    expect(Math.abs(m!.y - s!.y)).toBeLessThan(1);
-    expect(m!.x).toBeGreaterThan(s!.x);
-    // More ends the row, inside the page gutter (20px).
-    expect(m!.x + m!.width).toBeLessThanOrEqual(width - 20);
+    expect(Math.abs(v!.y + v!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(1);
+    expect(s!.x).toBeGreaterThan(v!.x + v!.width);
+    // Sort ends the row, inside the page gutter (20px).
+    expect(s!.x + s!.width).toBeLessThanOrEqual(width - 20);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
     // lands on that key, never its neighbour.
     // A tap just inside the last chip's right edge is the chip's, not the List | Deck toggle's.
@@ -371,7 +373,7 @@ for (const width of [375, 390]) {
       return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
     });
     expect(onChip).toBe(true);
-    for (const name of [/^View: /, /^Sort: /, 'More: scan and search profile']) {
+    for (const name of [/^View: /, /^Sort: /]) {
       const hit = await hitArea(page.getByRole('button', { name }));
       expect(hit.width).toBeGreaterThanOrEqual(44);
       expect(hit.height).toBeGreaterThanOrEqual(44);

@@ -153,13 +153,9 @@ export const topTab = (page: Page, name: string) =>
 export const currentTab = (page: Page) =>
   page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]');
 
-/** Find's one More menu (#544): Scan now (signed out; Stop scan while it runs) and Search profile
- *  (Sort is its own key since 2026-11-12). */
-export const findMore = (page: Page) =>
-  page.getByRole('button', { name: 'More: scan and search profile' });
-
-/** Pick an item in Find's More menu ("Scan now", "Stop scan", "Search profile"). */
-export async function findMenuItem(page: Page, name: string) {
-  await findMore(page).click();
+/** Pick an item in the Account menu ("Scan now", "Stop scan", "Search profile"). Find has no
+ *  More menu since #694: Scan now (signed out) sits in the Account menu beside Search profile. */
+export async function accountMenuItem(page: Page, name: string) {
+  await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name, exact: true }).click();
 }
