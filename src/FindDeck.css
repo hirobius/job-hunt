@@ -7,3 +7,8 @@
   line-clamp: 7;
   overflow: hidden;
 }
+
+/* Browse's windowed list (useWindowedList): a spacer holds the height of the cards it stands for. */
+.rjb-window-spacer {
+  block-size: var(--rjb-spacer-h, 0px);
+}

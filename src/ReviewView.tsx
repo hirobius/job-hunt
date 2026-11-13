@@ -59,6 +59,7 @@ import { CountBadge } from './CountBadge';
 import type { FindSort } from './FindHeader';
 import { FindSortMenu } from './FindSortMenu';
 import { useAutoLoad } from './autoLoad';
+import { spacerRef, useWindowedList } from './useWindowedList';
 import { placeSaysRemote } from './feed/placeRemote';
 import { capsToSentence } from './feed/capsCase';
 import CompanyLogo from './CompanyLogo';
@@ -637,11 +638,18 @@ function RowList({
   // Auto-load (2026-11-12): the sentinel pages the list; Review's polite status says "Loaded N more".
   const more = () => onMore(Math.min(left, REVIEW_PAGE));
   const sentinel = useAutoLoad(left > 0, more);
+  // Only a window of ~100 cards is mounted (memory audit 2026-11-13); spacers hold the rest.
+  const visible = rows.slice(0, shown);
+  const { listRef, itemRef, segments } = useWindowedList(
+    visible.map((r) => r.fingerprint),
+    [selected, linked],
+  );
   return (
     // The gap before Load more is the cards' own gap (one parent gap, no margins).
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'sm' }}>
       <Box
         as="ul"
+        ref={listRef}
         aria-label={label}
         sx={{
           listStyle: 'none',
@@ -652,28 +660,47 @@ function RowList({
           gap: 'sm',
         }}
       >
-        {rows.slice(0, shown).map((r) => (
-          <Box as="li" key={r.fingerprint} ref={r.fingerprint === linked ? linkedRef : undefined}>
-            <Card
-              as="article"
-              padding="none"
-              aria-label={rowName(r)}
-              aria-current={r.fingerprint === selected ? 'true' : undefined}
-              className={r.fingerprint === selected ? 'rjb-selected' : undefined}
+        {segments.map((seg) => {
+          if (seg.kind === 'spacer')
+            return (
+              <li
+                key={seg.key}
+                className="rjb-window-spacer"
+                aria-hidden="true"
+                ref={spacerRef(seg.px)}
+              />
+            );
+          const r = visible[seg.index];
+          return (
+            <Box
+              as="li"
+              key={r.fingerprint}
+              ref={(el: HTMLDivElement | null) => {
+                if (r.fingerprint === linked) linkedRef.current = el;
+                return itemRef(r.fingerprint)(el);
+              }}
             >
-              <Box sx={{ p: 'sm' }}>
-                <PostingCard
-                  r={r}
-                  now={now}
-                  onOpen={onOpen}
-                  keys={!onOpen}
-                  compact
-                  actions={actions}
-                />
-              </Box>
-            </Card>
-          </Box>
-        ))}
+              <Card
+                as="article"
+                padding="none"
+                aria-label={rowName(r)}
+                aria-current={r.fingerprint === selected ? 'true' : undefined}
+                className={r.fingerprint === selected ? 'rjb-selected' : undefined}
+              >
+                <Box sx={{ p: 'sm' }}>
+                  <PostingCard
+                    r={r}
+                    now={now}
+                    onOpen={onOpen}
+                    keys={!onOpen}
+                    compact
+                    actions={actions}
+                  />
+                </Box>
+              </Card>
+            </Box>
+          );
+        })}
       </Box>
       {left > 0 && (
         <>
