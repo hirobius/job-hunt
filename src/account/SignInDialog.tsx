@@ -13,12 +13,15 @@ import {
   Box,
   Button,
   Dialog,
+  InlineLink,
   Input,
   Stack,
   Text,
   VisuallyHidden,
 } from '@hirobius/design-system';
-import { SIGN_IN_BENEFIT, SIGN_IN_COPY_ID, SIGN_IN_HOW } from './signInCopy';
+import { SIGN_IN_AGREE, SIGN_IN_BENEFIT, SIGN_IN_COPY_ID, SIGN_IN_HOW } from './signInCopy';
+import { BRAND } from '../brand';
+import { legalHash, useRoute } from '../route';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
@@ -257,7 +260,23 @@ export default function SignInDialog() {
         <ExitButton className="sign-in-dialog__primary" onClick={() => onOpenChange(false)}>
           Continue without an account
         </ExitButton>
+        <SignInAgree />
       </SignInShell>
     </Dialog>
+  );
+}
+
+/** The screen's one legal line, at its foot (Adrian 2026-11-13): each link is the page's hash with
+ *  the Privacy and terms dialog open on its tab (`?legal=terms|privacy`), over the sign-in screen. */
+function SignInAgree() {
+  const route = useRoute();
+  return (
+    <Text variant="caption" as="p" tone="secondary">
+      {SIGN_IN_AGREE.before(BRAND.name)}
+      <InlineLink href={legalHash('terms', route)}>{SIGN_IN_AGREE.terms}</InlineLink>
+      {SIGN_IN_AGREE.and}
+      <InlineLink href={legalHash('privacy', route)}>{SIGN_IN_AGREE.privacy}</InlineLink>
+      {SIGN_IN_AGREE.after}
+    </Text>
   );
 }
