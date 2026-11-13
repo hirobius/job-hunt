@@ -399,17 +399,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   draft: nothing there in List). **No More menu and no scan line on Find (#694, Adrian 2026-11-13):** Scan now / Stop
   scan (signed out only) is the Account menu's, beside Search profile; when the sources were last scanned lives only in
   Scan details (the Search profile dialog); no count on Find since #660 (the New and Remote chips hold the numbers, and
-  Review's polite `role="status"` says "N postings, M new"). The Review row's right side is List | Deck, then Sort while
-  there are postings, pinned at its end. No hairline between the toolbar and the list or above Find's empty state. The
+  Review's polite `role="status"` says "N postings, M new"). The Review row's right side is List | Deck, pinned at its end. **No Sort on Find (Adrian 2026-11-13):** List and
+  Deck are newest first, always (`sortRows(…, 'newest')`; an older remembered `review:sort` is not read; `FindSortMenu`
+  and `SORT_LABEL` are deleted; Apply's Sort, `PipelineMenus`, stays). No hairline between the toolbar and the list or above Find's empty state. The
   Review row (`.rjb-review-row`, `FindDeck.css`): the chips on the left (New with its count, Remote a plain toggle
-  with no count) take the rest and wrap; the right group (List | Deck, then Sort while there are postings) stays pinned at the end; `ReviewView`'s `header` is a function given the new count,
-  the sort and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
+  with no count) take the rest and wrap; the right group (List | Deck) stays pinned at the end; `ReviewView`'s `header` is a function given the new count
+  and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
   (was "Review new", #615: no count on the heading since #660; labels only)
   = `ReviewView` itself (`label="New postings" scanStatus`; **no visible heading since 2026-11-12**: an sr-only h2
   "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (New's count Badge capped at "99+" by `CountBadge.tsx`; its fill is the inverse surface on the resting chip and on-accent with accent text on the selected one, `.rjb-chip-count`, 3:1 against the chip and 4.5:1 text, pinned in `theme.contrast.test.ts`, #694; its name keeps the full count, "New 140"; Remote has no count since 2026-11-13), then pinned at the right List | Deck
-  (`.rjb-segs .rjb-view-segs`, 2026-11-13: one toggle button drawn as the Find | Apply rail on a 2px pad so it is the chips' 32px, two 28px icon pills, the open one the open tab's fill, edge and text colour; its name says the view, #694; in `FindDeck.css`, off base.css) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
-  ArrowUpDown named "Sort: Newest" / "Sort: Best match" / "Sort: Company", Tooltip "Sort", a Menu of radio items; only
-  while there is a list to sort; no More since #694), one line at 375 and 390 (the right group never wraps or moves, the chips wrap; Adrian 2026-11-12: its keys 28-32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
+  (`.rjb-segs .rjb-view-segs`, 2026-11-13: one toggle button drawn as the Find | Apply rail on a 2px pad so it is the chips' 32px, two 28px icon pills, the open one the open tab's fill, edge and text colour; its name says the view, #694; in `FindDeck.css`, off base.css) (no Sort since 2026-11-13; no More since #694), one line at 375 and 390 (the right group never wraps or moves, the chips wrap; Adrian 2026-11-12: its keys 28-32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
   end, disconnected on unmount; off without IntersectionObserver or under prefers-reduced-data); "Load more (N)" stays as
   the fallback, one card gap below the cards, and the polite status says "Loaded N more". A Browse card shows
@@ -466,14 +465,15 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `Deck`). Its place is "‹ 1 of 4 ›" at the right of the Find | Apply row, Deck only (2026-11-12, 2026-11-13: `header`'s tools carry `DeckPlace`, `FindHeader`
   `DeckPager` draws HDS `Pagination variant="compact"` labelled "Postings in the deck", as Apply's pager; arrows off at the
   ends); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
-  card step it. Skip (grey, left) and Save (filled, right) are an `ActionDock docked={false} row`: in flow
-  under the card at every width, two equal keys the card's width (`.rjb-deck`, Adrian 2026-11-13: no fixed dock on Find; Apply keeps its dock); the card collapses as it goes and both toast with Undo.
+  card step it. Skip (grey), Save (filled) and More (…, Not this company) are an `ActionDock docked={false} row`: in flow
+  under the card at every width, Skip and Save sharing the card's width and More a fixed 44px icon key at the end
+  (`.rjb-deck-more`, `flex: none`; Adrian 2026-11-13: beside the title it shrank as the title wrapped, so the title has
+  the card's width now; Browse cards keep their own action row) (`.rjb-deck`, Adrian 2026-11-13: no fixed dock on Find; Apply keeps its dock); the card collapses as it goes and both toast with Undo.
   After a decision focus goes to the next card's title (h3), or Find's h1 once the deck is empty (`Deck`'s `decided`
   mark; the card's elements stay, so `focusNextTitle`'s list-item walk does not apply).
   The card shows the posting's text at once, all-caps runs title-cased as Browse's (`capsToSentence`; `usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
-  Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); More (Not this company) sits beside
-  the card's title (2026-11-12, as a job's More, #546); no disclosure. Sort (its own key since 2026-11-12) works in the Deck too: the deck walks `listed` in the Sort's order, and a sort change
-  keeps the card on screen (`changeSort` finds it by fingerprint). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
+  Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); no disclosure. The deck walks `listed`
+  newest first (no Sort on Find since 2026-11-13). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
   `figmaRules.test.ts`.
 - **The page bar (2026-11-12, a phone recording, #679):** Find / Apply (the `.rjb-segs` nav of links,
   `aria-current`, never a radio group) left the app bar for the **page bar**, the first row of `main`

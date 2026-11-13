@@ -196,12 +196,6 @@ export const FILTER_LABEL: Record<FeedFilter, string> = {
   remote: 'Remote',
 };
 
-export const SORT_LABEL: Record<FeedSort, string> = {
-  score: 'Best match',
-  newest: 'Newest',
-  company: 'Company',
-};
-
 const passes = (r: FeedRow, f: FeedFilter) =>
   f === 'new' ? r.isNew : f === 'remote' ? r.mode === 'remote' : r.signals.some((s) => s.id === f);
 

@@ -1,10 +1,10 @@
 // Review new (simplify 5/9, #386; docs/specs/simplify.md): every undecided design-system posting
-// from every source, two ways. Browse (the default) is one list, newest first, to sort and filter;
+// from every source, two ways. Browse (the default) is one list, newest first, to filter;
 // a title selects the posting (#471 slice 3: `#/find/<fingerprint>`), and the posting shows in the
 // right column at lg (details, why it is listed, Save / Skip / Not this company, Open posting), or
 // as its own view with Back and a pager below lg. "Load more" pages the list. Deck is the same postings one card at a time
 // (#545): the same card, Skip and Save in the action dock, "1 of N" in Find's caption, a swipe steps; it
-// walks the list in the Sort's order (#617). No fit tiers
+// walks the list newest first. No fit tiers
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
@@ -58,8 +58,6 @@ import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
 import { CountBadge } from './CountBadge';
-import type { FindSort } from './FindHeader';
-import { FindSortMenu } from './FindSortMenu';
 import { useAutoLoad } from './autoLoad';
 import { spacerRef, useWindowedList } from './useWindowedList';
 import { placeSaysRemote } from './feed/placeRemote';
@@ -75,7 +73,6 @@ import {
   sortRows,
   type FeedFilter,
   type FeedRow,
-  type FeedSort,
 } from './feed/feed';
 import { companyKey, decide, muteCompany, undecide } from './feed/decided';
 import { followPosting } from './feed/follow';
@@ -120,7 +117,7 @@ export default function ReviewView({
   scanStatus?: boolean;
   /** The page's head (its h1), shown while no posting is selected: a selected posting's title is
    *  the page's h1 then (#363, as a job's is on Apply). Find passes a function and gets what its
-   *  short header shows (#544): the new count, the sort, whether a posting is selected and the
+   *  short header shows (#544): the new count, whether a posting is selected and the
    *  Deck's place ("1 of 4", #545; null outside the Deck). */
   header?: ReactNode | ((tools: FindTools) => ReactNode);
   /** Find's list column, above the list: Daily picks. */
@@ -140,12 +137,12 @@ export default function ReviewView({
   }, [view]);
   const kept = (k: string) => `review:${k}`;
   const [mode, setMode] = useRemembered<Mode>(kept('mode'), 'browse');
-  const [sort, setSort] = useRemembered<FeedSort>(kept('sort'), 'newest');
   const [on, setOn] = useRemembered<FeedFilter[]>(kept('filters'), []);
   const [shown, setShown] = useRemembered(kept('shown'), REVIEW_PAGE);
   const [card, setCard] = useRemembered(kept('card'), 0);
 
-  const rows = useMemo(() => (view ? sortRows(view.rows, sort) : []), [view, sort]);
+  // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
+  const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
   const listed = useMemo(() => filterRows(rows, on), [rows, on]);
   const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   // The selected posting is in the route (#/find/<fingerprint>), so a link to it is shareable and
@@ -211,17 +208,6 @@ export default function ReviewView({
     view && mode === 'deck' && listed.length
       ? { at: deckAt, count: listed.length, onAt: setCard }
       : null;
-  // A new sort reorders the Deck too (#617), and keeps the card on screen where it moved to.
-  const changeSort = (to: FeedSort) => {
-    const current = listed[deckAt]?.fingerprint;
-    setSort(to);
-    setShown(REVIEW_PAGE);
-    setLoadedMore('');
-    if (!view || !current) return;
-    const at = filterRows(sortRows(view.rows, to), on).findIndex((x) => x.fingerprint === current);
-    setCard(Math.max(0, at));
-  };
-
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
     setShown(REVIEW_PAGE);
@@ -282,9 +268,6 @@ export default function ReviewView({
   const open = (r: FeedRow) => selectPosting(r.fingerprint, true);
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
-  // Sort is its own key in the Review row (2026-11-12); shown only while there is a list to sort.
-  const sortTool: FindSort | null =
-    view && view.rows.length > 0 ? { value: sort, onChange: changeSort } : null;
   // Find's one empty state (#694): List and Deck show the same one, picked by cause, not by view.
   const emptyCause: EmptyCause = on.length
     ? 'filtered'
@@ -293,7 +276,7 @@ export default function ReviewView({
       : 'none';
   const empty = <FindEmpty cause={emptyCause} onClear={() => setOn([])} />;
   // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
-  // (a compact two-icon segmented group) and Sort on the right; it wraps at narrow widths.
+  // (a compact two-icon segmented group) on the right; it wraps at narrow widths.
   const tools = (
     <Stack direction="row" gap="px16" align="center" className="rjb-review-tools">
       {/* List | Deck as one toggle (Adrian 2026-11-13): one HDS Button over the whole track, a tap
@@ -323,7 +306,6 @@ export default function ReviewView({
         </HdsTooltip.Trigger>
         <HdsTooltip.Content>{`Switch to ${mode === 'deck' ? 'List' : 'Deck'}`}</HdsTooltip.Content>
       </HdsTooltip>
-      {sortTool && <FindSortMenu sort={sortTool} />}
     </Stack>
   );
   const panel = (
@@ -447,7 +429,6 @@ export default function ReviewView({
     typeof header === 'function'
       ? header({
           newCount: view ? counts.new : null,
-          sort: sortTool,
           selected: !!selectedFp,
           deckPlace,
         })
@@ -501,7 +482,6 @@ export interface DeckPlace {
 
 export interface FindTools {
   newCount: number | null;
-  sort: FindSort | null;
   /** A posting is selected (at lg its title is the page's h1). */
   selected: boolean;
   /** The Deck's place (#545): "‹ 1 of 4 ›" in the page bar; null outside the Deck. */
@@ -816,7 +796,7 @@ function PostingActions({
 }: {
   r: FeedRow;
   actions: RowActions;
-  /** False in the Deck (#545): Save and Skip sit in the action dock; the card keeps More. */
+  /** False in the Deck (#545): Save, Skip and More sit in the Deck's action row. */
   decide?: boolean;
   /** The Open posting key; a compact Browse card has none (its title is the way in, #544). */
   openKey?: boolean;
@@ -831,7 +811,16 @@ function PostingActions({
 
 /** More (…): Not this company. On a card it ends the action row; in the detail it sits beside
  *  the title block, as a job's More does (one detail template, #546). */
-function PostingMenu({ r, actions }: { r: FeedRow; actions: RowActions }) {
+function PostingMenu({
+  r,
+  actions,
+  className,
+}: {
+  r: FeedRow;
+  actions: RowActions;
+  /** The Deck's dock (2026-11-13): a fixed 44px key at the row's end (FindDeck.css). */
+  className?: string;
+}) {
   // Not this company is picked in the menu (a portal): its feedback anchors on the trigger.
   const more = useRef<HTMLButtonElement>(null);
   const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
@@ -846,6 +835,7 @@ function PostingMenu({ r, actions }: { r: FeedRow; actions: RowActions }) {
           iconOnly
           iconLeft={<Icon icon={Ellipsis} />}
           label={`More actions: ${rowName(r)}`}
+          className={className}
         />
       </Menu.Trigger>
       <Menu.Content align="start">
@@ -968,15 +958,6 @@ function PostingCard({
           <Text variant="body" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>
             <CardTitleLink r={r} onOpen={onOpen} />
           </Text>
-        ) : !decide ? (
-          // The Deck (2026-11-12): More beside the title, as a job's More sits (#534, #546), not
-          // alone under "Read the full posting"; Save and Skip are the dock's.
-          <Stack direction="row" gap="tight" align="start" justify="space-between">
-            <Text variant="title" as="h3" weight="bold" tabIndex={-1} className="min-w-0">
-              {r.title}
-            </Text>
-            <PostingMenu r={r} actions={actions} />
-          </Stack>
         ) : (
           <Text variant="title" as="h3" weight="bold" tabIndex={-1}>
             {r.title}
@@ -1045,8 +1026,7 @@ function CardTitleLink({ r, onOpen }: { r: FeedRow; onOpen?: (r: FeedRow) => voi
 }
 
 /** One card at a time (#545): the same posting card, its text at once (7 lines) with "Read the
- *  full posting", More on the card for Not this company, and Skip (grey) and Save (filled, right)
- *  in the action dock (inline under the card at lg). "1 of N" is Find's caption, not a pager row;
+ *  full posting", and Skip (grey), Save (filled) and More (…, Not this company) in one row under it (inline under the card at lg). "1 of N" is Find's caption, not a pager row;
  *  a sideways swipe, or the arrow keys on the card, steps it. A decided card leaves the deck, so
  *  the next one takes its place. */
 function Deck({
@@ -1131,6 +1111,9 @@ function Deck({
       <ActionDock docked={false} row label={`Actions for ${rowName(r)}`}>
         <SkipKey r={r} actions={deckActions} from={from} />
         <SaveKey r={r} actions={deckActions} from={from} />
+        {/* More (Not this company) ends the row (Adrian 2026-11-13): beside the title it shrank as
+            the title wrapped; here it is a fixed 44px key and the title has the card's width. */}
+        <PostingMenu r={r} actions={deckActions} className="rjb-deck-more" />
       </ActionDock>
     </Stack>
   );

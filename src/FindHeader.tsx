@@ -3,14 +3,8 @@
 // 2026-11-13; nothing there in List). Find has no More menu since #694: Scan now (signed out) and
 // Search profile are the Account menu's, and when the sources were last scanned is Scan details'.
 import { Pagination, Stack, Text } from '@hirobius/design-system';
-import type { FeedSort } from './feed/feed';
 import type { DeckPlace } from './ReviewView';
 import { InPageBar } from './PageBar';
-
-export interface FindSort {
-  value: FeedSort;
-  onChange: (s: FeedSort) => void;
-}
 
 export function FindHeader({
   heading = true,

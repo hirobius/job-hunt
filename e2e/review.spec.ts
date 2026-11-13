@@ -240,7 +240,6 @@ for (const width of [390, 1440]) {
     await expect(card.locator('[data-tone="info"]')).toHaveCount(0);
     await expect(card.getByRole('heading', { level: 3 })).toBeVisible();
     // 2026-11-12: "‹ 1 of 2 ›" in the page bar (HDS compact pager, Previous off at the start).
-    // #617: Sort is there in the Deck too, its own key beside Browse | Deck.
     const pager = page.getByRole('navigation', { name: 'Postings in the deck' });
     await expect(pager.getByText('1 of 2')).toBeVisible();
     await expect(pager.getByRole('button', { name: /previous/i })).toBeDisabled();
@@ -251,13 +250,11 @@ for (const width of [390, 1440]) {
       Math.abs(navBox!.y + navBox!.height / 2 - (pagerBox!.y + pagerBox!.height / 2)),
     ).toBeLessThan(4);
     expect(pagerBox!.x).toBeGreaterThan(navBox!.x + navBox!.width);
-    await page.getByRole('button', { name: 'Sort: Newest' }).click();
-    await expect(page.getByRole('menuitemradio', { name: 'Newest' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    // More (Not this company) sits beside the card's title.
-    const moreBox = await card.getByRole('button', { name: /^More actions/ }).boundingBox();
-    const titleBox = await card.getByRole('heading', { level: 3 }).boundingBox();
-    expect(Math.abs(moreBox!.y - titleBox!.y)).toBeLessThan(24);
+    // No Sort on Find (2026-11-13).
+    await expect(page.getByRole('button', { name: /^Sort/ })).toHaveCount(0);
+    // Skip | Save | More in one row under the card (2026-11-13): More a fixed 44px key at the end,
+    // Skip and Save sharing the rest; the title has the card's width (no More beside it).
+    await expect(card.getByRole('button', { name: /^More actions/ })).toHaveCount(0);
     // Skip (grey) and Save (filled, right) sit in the dock: fixed at the bottom on a phone, one
     // row, each key 44px tall at least; inline under the card at lg.
     const dock = page.getByRole('group', { name: /^Actions for / });
@@ -271,7 +268,16 @@ for (const width of [390, 1440]) {
     const cardBox = (await page.locator('.rjb-deck article').boundingBox())!;
     expect(skipBox!.y).toBeGreaterThan(cardBox.y + cardBox.height - 1);
     expect(Math.abs(skipBox!.x - cardBox.x)).toBeLessThan(1);
-    expect(Math.abs(saveBox!.x + saveBox!.width - (cardBox.x + cardBox.width))).toBeLessThan(1);
+    const moreBox = (await dock.getByRole('button', { name: /^More actions/ }).boundingBox())!;
+    expect(Math.abs(moreBox.x + moreBox.width - (cardBox.x + cardBox.width))).toBeLessThan(1);
+    expect(moreBox.x).toBeGreaterThan(saveBox!.x + saveBox!.width);
+    expect(Math.round(moreBox.width)).toBe(44);
+    expect(Math.round(moreBox.height)).toBe(44);
+    expect(Math.abs(moreBox.y - skipBox!.y)).toBeLessThan(1);
+    expect(Math.abs(skipBox!.width - saveBox!.width)).toBeLessThan(1);
+    // The title has the card's width (nothing beside it).
+    const titleBox = (await card.getByRole('heading', { level: 3 }).boundingBox())!;
+    expect(cardBox.x + cardBox.width - (titleBox.x + titleBox.width)).toBeLessThan(40);
     if (width < 1024) expect(skipBox!.height).toBeGreaterThanOrEqual(44);
     await page.screenshot({ path: `test-results/review-deck-${width}.png`, fullPage: true });
     for (let left = 2; left > 0; left--) {
@@ -306,7 +312,7 @@ for (const width of [390, 1440]) {
 }
 
 // Find controls (2026-11-13): New (two-digit count) and Remote (no count) on the left, Browse | Deck,
-// List | Deck and Sort pinned at the right (no More since #694), one row at 375 and 390. Each key's 44px hit area is its own (elementFromPoint).
+// List | Deck pinned at the right (no More since #694, no Sort since 2026-11-13), one row at 375 and 390. Each key's 44px hit area is its own (elementFromPoint).
 for (const width of [375, 390]) {
   test(`the Review row: one line, the right group pinned, its own 44px hit areas (${width})`, async ({
     page,
@@ -350,20 +356,14 @@ for (const width of [375, 390]) {
     const chips = page.getByRole('group', { name: 'Filter postings' });
     await expect(chips.getByRole('button', { name: /^New \d\d$/ })).toBeVisible();
     await expect(chips.getByRole('button', { name: 'Remote', exact: true })).toBeVisible();
-    const sort = page.getByRole('button', { name: /^Sort: / });
     const view = page.getByRole('button', { name: /^View: / });
-    // No More on Find (#694): List | Deck, then Sort, end the row.
+    // No More on Find (#694) and no Sort (2026-11-13): List | Deck ends the row.
     await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
-    const [c, s, v] = [
-      await chips.boundingBox(),
-      await sort.boundingBox(),
-      await view.boundingBox(),
-    ];
-    expect(Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(4);
-    expect(Math.abs(v!.y + v!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(1);
-    expect(s!.x).toBeGreaterThan(v!.x + v!.width);
-    // Sort ends the row, inside the page gutter (20px).
-    expect(s!.x + s!.width).toBeLessThanOrEqual(width - 20);
+    await expect(page.getByRole('button', { name: /^Sort/ })).toHaveCount(0);
+    const [c, v] = [await chips.boundingBox(), await view.boundingBox()];
+    expect(Math.abs(c!.y + c!.height / 2 - (v!.y + v!.height / 2))).toBeLessThan(4);
+    // List | Deck ends the row, inside the page gutter (20px).
+    expect(v!.x + v!.width).toBeLessThanOrEqual(width - 20);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
     // lands on that key, never its neighbour.
     // A tap just inside the last chip's right edge is the chip's, not the List | Deck toggle's.
@@ -373,7 +373,7 @@ for (const width of [375, 390]) {
       return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
     });
     expect(onChip).toBe(true);
-    for (const name of [/^View: /, /^Sort: /]) {
+    for (const name of [/^View: /]) {
       const hit = await hitArea(page.getByRole('button', { name }));
       expect(hit.width).toBeGreaterThanOrEqual(44);
       expect(hit.height).toBeGreaterThanOrEqual(44);

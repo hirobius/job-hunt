@@ -187,7 +187,7 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
-  it('pins the Find Deck (#545, #617): keys under the card, "‹ 1 of N ›" in the page bar, Sort shows', () => {
+  it('pins the Find Deck (#545, #617): keys under the card, "‹ 1 of N ›" in the page bar, More in the key row', () => {
     expect(RULES).toMatch(/Find Deck \(#545, #617\)/);
     expect(RULES).toMatch(
       /Skip \(grey, left\) and Save \(filled,\s+right\) sit in one row right under the card, in flow/,
@@ -204,12 +204,17 @@ describe('FIGMA-RULES.md', () => {
     // 2026-11-12: the Deck's pager is HDS compact Pagination in the page bar; More by the title.
     expect(RULES).toContain('"‹ 1 of 4 ›"');
     expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).toContain('label="Postings in the deck"');
-    expect(RULES).toMatch(/More \(Not this\s+company\) sits beside the card's title/);
+    // 2026-11-13: More ends the key row as a fixed 44px key; the title has the card's width.
+    expect(RULES).toMatch(/then More \(…, Not this\s+company\) as a fixed 44 px icon key/);
+    expect(review).toContain('className="rjb-deck-more"');
+    expect(fs.readFileSync('src/FindDeck.css', 'utf8')).toMatch(/\.rjb-deck-more \{\s+flex: none;/);
   });
 
-  it("pins Find's one Review row (2026-11-12): no visible heading, chips left, view + Sort right", () => {
+  it("pins Find's one Review row (2026-11-12): no visible heading, chips left, view right, no Sort", () => {
     expect(RULES).toMatch(/No visible "Review" heading \(2026-11-12\)/);
-    expect(fs.readFileSync('src/FindSortMenu.tsx', 'utf8')).toContain('Sort: ${SORT_LABEL');
+    // No Sort on Find (Adrian 2026-11-13): newest first, always.
+    expect(fs.existsSync('src/FindSortMenu.tsx')).toBe(false);
+    expect(RULES).toMatch(/No Sort on Find \(2026-11-13\)/);
     expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Menu.RadioGroup');
     expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('titleHidden');
   });
