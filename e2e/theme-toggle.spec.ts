@@ -128,8 +128,10 @@ test('the logo keeps the old theme until the front reaches it', async ({ page })
     await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
   }
   const logo = page.getByRole('banner').locator('.rjb-logo-link');
-  const box = (await logo.boundingBox())!;
-  // Share of dark pixels in the logo's box: the name's ink on the light page, none once dark.
+  const b = (await logo.boundingBox())!;
+  // The name only (the logo's right part): the flame is blue in both themes.
+  const box = { x: b.x + b.width * 0.35, y: b.y, width: b.width * 0.65, height: b.height };
+  // Share of dark pixels there: the name's ink on the light page; none if it turned light early.
   const dark = async () => {
     const png = (await page.screenshot({ clip: box })).toString('base64');
     return page.evaluate(async (src) => {
@@ -153,7 +155,7 @@ test('the logo keeps the old theme until the front reaches it', async ({ page })
   await expect.poll(() => burning(page)).toBe(true);
   // The front starts at the button, far right; the logo at the far left is not reached yet.
   const mid = await dark();
-  expect(Math.abs(mid - before)).toBeLessThan(before * 0.5);
+  expect(mid).toBeGreaterThan(before * 0.5);
   await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
   expect(await dark()).toBeGreaterThan(0.5);
 });

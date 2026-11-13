@@ -67,7 +67,7 @@
   z-index: 5;
   animation: none;
 }
-.rjb-burn-logo-copy {
+.rjb-burn-logo-old > .rjb-burn-logo-copy.rjb-burn-logo-copy {
   position: absolute;
   left: calc(var(--rjb-burn-x) * 1px);
   top: calc(var(--rjb-burn-y) * 1px);
