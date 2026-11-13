@@ -39,11 +39,12 @@ const VIA_LABEL: Record<LeadSource, string> = {
   seed: 'the seed list',
 };
 
-/** Find's "No postings match yet" (#553): Scan now filled and Edit search profile grey (Scan
+/** Find's empty keys (#553, #694): Scan now filled and Edit search profile grey (Scan
  *  now is also in Find's More menu, #544). Signed in there is no Scan now (the
  *  server syncs, Adrian 2026-11-08), so Edit search profile is the one, filled key. Stop scan
- *  (quiet, as the heading's) while a scan runs. */
-export function NoResultsKeys() {
+ *  (quiet, as the heading's) while a scan runs. `caughtUp` ("You're all caught up"): signed out
+ *  Scan now alone; signed in the same filled Edit search profile, the one way to widen the feed. */
+export function NoResultsKeys({ caughtUp = false }: { caughtUp?: boolean } = {}) {
   // Read the context directly: Review new also renders on its own (tests), outside the provider.
   const user = useContext(CloudSyncContext)?.user;
   const { running } = useScan();
@@ -64,12 +65,14 @@ export function NoResultsKeys() {
             Scan now
           </Button>
         ))}
-      <Button
-        variant={user ? 'primary' : 'secondary'}
-        onClick={(e) => openSearchProfile(e.currentTarget)}
-      >
-        Edit search profile
-      </Button>
+      {(user || !caughtUp) && (
+        <Button
+          variant={user ? 'primary' : 'secondary'}
+          onClick={(e) => openSearchProfile(e.currentTarget)}
+        >
+          Edit search profile
+        </Button>
+      )}
     </Stack>
   );
 }

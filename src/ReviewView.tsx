@@ -38,6 +38,8 @@ import {
   MousePointerClick,
   Plus,
   SearchX,
+  CircleCheck,
+  ListFilter,
   Layers,
   List,
   type LucideIcon,
@@ -96,9 +98,14 @@ export const REVIEW_PAGE = 25;
 const FILTERS: FeedFilter[] = ['new', 'remote'];
 type Mode = 'browse' | 'deck';
 const VIEW_TOGGLE: { value: Mode; label: string; icon: LucideIcon }[] = [
-  { value: 'browse', label: 'Browse', icon: List },
+  { value: 'browse', label: 'List', icon: List },
   { value: 'deck', label: 'Deck', icon: Layers },
 ];
+
+/** "View: List, switch to Deck": the one toggle's name says the open view and what a press does. */
+function viewToggleName(mode: Mode): string {
+  return mode === 'deck' ? 'View: Deck, switch to List' : 'View: List, switch to Deck';
+}
 
 export default function ReviewView({
   label = 'New postings',
@@ -278,53 +285,47 @@ export default function ReviewView({
   const open = (r: FeedRow) => selectPosting(r.fingerprint, true);
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
-  const caughtUp =
-    'Every posting from your sources is saved or skipped. The next scan brings new ones.';
   // Sort is its own key in the Review row (2026-11-12); shown only while there is a list to sort.
   const sortTool: FindSort | null =
     view && view.rows.length > 0 ? { value: sort, onChange: changeSort } : null;
-  // No results (#553): the empty state's own keys (Scan now filled signed out, Edit search profile).
-  const noResults =
-    !feed.error &&
-    mode !== 'deck' &&
-    !!view &&
-    !listed.length &&
-    !on.length &&
-    !decidedAny(view.hidden);
+  // Find's one empty state (#694): List and Deck show the same one, picked by cause, not by view.
+  const emptyCause: EmptyCause = on.length
+    ? 'filtered'
+    : view && decidedAny(view.hidden)
+      ? 'caughtUp'
+      : 'none';
+  const empty = <FindEmpty cause={emptyCause} onClear={() => setOn([])} />;
   // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
   // (a compact two-icon segmented group) and Sort on the right; it wraps at narrow widths.
   const tools = (
     <Stack direction="row" gap="px16" align="center" className="rjb-review-tools">
-      {/* Browse | Deck as two icon-only toggle buttons (Adrian 2026-11-09): HDS SegmentedControl
-          takes text labels only, so an HDS icon Button pair with aria-pressed, each named and
-          with a tooltip; drawn as the top tabs' rail, the pressed one filled as the open tab. */}
-      <Stack
-        direction="row"
-        gap="hairline"
-        role="group"
-        aria-label="Review view"
-        className="rjb-segs rjb-view-segs"
-      >
-        {VIEW_TOGGLE.map(({ value, label: name, icon }, i) => (
-          <HdsTooltip key={value}>
-            <HdsTooltip.Trigger asChild>
-              <Button
-                size="sm"
-                variant="tertiary"
-                iconOnly
-                label={name}
-                aria-label={name}
-                aria-pressed={mode === value}
-                // Each grows its hit area on its outer side only (base.css .rjb-hit-44).
-                className={`rjb-seg-icon rjb-hit-44 ${i === 0 ? 'rjb-hit-start' : 'rjb-hit-end'}`}
-                onClick={() => setMode(value)}
-                iconLeft={<Icon icon={icon} />}
-              />
-            </HdsTooltip.Trigger>
-            <HdsTooltip.Content>{name}</HdsTooltip.Content>
-          </HdsTooltip>
-        ))}
-      </Stack>
+      {/* List | Deck as one toggle (Adrian 2026-11-13): one HDS Button over the whole track, a tap
+          anywhere flips to the other view (Space and Enter too). Both icons show, the open one
+          filled; its name says the open view and what a press does. 44px hit area (.rjb-hit-44). */}
+      <HdsTooltip>
+        <HdsTooltip.Trigger asChild>
+          <Button
+            size="sm"
+            variant="tertiary"
+            aria-label={viewToggleName(mode)}
+            className="rjb-segs rjb-view-segs rjb-view-toggle rjb-hit-44"
+            data-mode={mode}
+            onClick={() => setMode(mode === 'deck' ? 'browse' : 'deck')}
+          >
+            {VIEW_TOGGLE.map(({ value, icon }) => (
+              <span
+                key={value}
+                aria-hidden="true"
+                className="rjb-seg-icon"
+                data-on={mode === value ? '' : undefined}
+              >
+                <Icon icon={icon} />
+              </span>
+            ))}
+          </Button>
+        </HdsTooltip.Trigger>
+        <HdsTooltip.Content>{`Switch to ${mode === 'deck' ? 'List' : 'Deck'}`}</HdsTooltip.Content>
+      </HdsTooltip>
       {sortTool && <FindSortMenu sort={sortTool} />}
       {more}
     </Stack>
@@ -422,7 +423,7 @@ export default function ReviewView({
             onAt={setCard}
             now={feed.at}
             actions={actions}
-            empty={caughtUp}
+            empty={empty}
           />
         </PanelBody>
       ) : listed.length ? (
@@ -441,37 +442,7 @@ export default function ReviewView({
           selected={selectedFp}
         />
       ) : (
-        <EmptySection>
-          <EmptyState
-            centered
-            icon={SearchX}
-            titleId={EMPTY_TITLE_ID}
-            title={
-              on.length
-                ? 'Nothing matches these filters'
-                : decidedAny(view.hidden)
-                  ? 'You’re all caught up'
-                  : 'No postings match yet'
-            }
-            description={
-              on.length
-                ? 'Turn a filter off to see more.'
-                : decidedAny(view.hidden)
-                  ? caughtUp
-                  : 'No design-system posting from your sources right now. The next scan looks again.'
-            }
-            action={
-              on.length ? (
-                <Button variant="secondary" onClick={() => setOn([])}>
-                  Clear filters
-                </Button>
-              ) : !noResults ? undefined : (
-                // No results (#553): Scan now filled, Edit search profile the grey key.
-                <NoResultsKeys />
-              )
-            }
-          />
-        </EmptySection>
+        empty
       )}
     </Panel>
   );
@@ -565,16 +536,65 @@ function focusNextTitle(from: Element | null) {
 /** Review new's empty states (Adrian 2026-11-08): their own section under the toolbar, a hairline
  *  above and room around it, like the Apply list's (TrackerView), with the centred teaching empty
  *  (icon tile, centred text) of Apply's "Track your first job", on the page background (#553). */
-function EmptySection({ children }: { children: ReactNode }) {
+function EmptySection({ children, cause }: { children: ReactNode; cause: EmptyCause }) {
   return (
     <Box
       as="section"
       aria-label="No postings"
       data-empty-section=""
+      data-empty-cause={cause}
       sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}
     >
       <PanelBody>{children}</PanelBody>
     </Box>
+  );
+}
+
+/** Why Find has nothing to show (#694). One cause, one icon tile, one set of keys, in Browse and the
+ *  Deck alike: `none` nothing read or nothing matches, `caughtUp` every posting is saved or
+ *  skipped, `filtered` the filters hide them all. */
+type EmptyCause = 'none' | 'caughtUp' | 'filtered';
+
+const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; description: string }> = {
+  none: {
+    icon: SearchX,
+    title: 'No postings match yet',
+    description: 'No design-system posting from your sources right now. The next scan looks again.',
+  },
+  caughtUp: {
+    icon: CircleCheck,
+    title: 'You’re all caught up',
+    description:
+      'Every posting from your sources is saved or skipped. The next scan brings new ones.',
+  },
+  filtered: {
+    icon: ListFilter,
+    title: 'No postings with these filters',
+    description: 'Turn a filter off to see more.',
+  },
+};
+
+function FindEmpty({ cause, onClear }: { cause: EmptyCause; onClear: () => void }) {
+  const copy = EMPTY_COPY[cause];
+  return (
+    <EmptySection cause={cause}>
+      <EmptyState
+        onPage
+        icon={copy.icon}
+        titleId={EMPTY_TITLE_ID}
+        title={copy.title}
+        description={copy.description}
+        action={
+          cause === 'filtered' ? (
+            <Button variant="primary" onClick={onClear}>
+              Clear filters
+            </Button>
+          ) : (
+            <NoResultsKeys caughtUp={cause === 'caughtUp'} />
+          )
+        }
+      />
+    </EmptySection>
   );
 }
 
@@ -1045,7 +1065,8 @@ function Deck({
   onAt: (n: number) => void;
   now: number;
   actions: RowActions;
-  empty: string;
+  /** Find's shared empty state (`FindEmpty`), the same one Browse shows. */
+  empty: ReactNode;
 }) {
   const cardRef = useRef<HTMLDivElement | null>(null);
   // After Save, Skip or Not this company the decided card leaves: focus goes to the title of the
@@ -1080,18 +1101,7 @@ function Deck({
       actions.mute(row, from);
     },
   };
-  if (!rows.length)
-    return (
-      <EmptySection>
-        <EmptyState
-          centered
-          icon={SearchX}
-          titleId={EMPTY_TITLE_ID}
-          title="You’re all caught up"
-          description={empty}
-        />
-      </EmptySection>
-    );
+  if (!rows.length) return <>{empty}</>;
   const r = rows[at];
   const step = (d: -1 | 1) => {
     const to = at + d;

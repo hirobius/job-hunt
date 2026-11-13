@@ -53,7 +53,7 @@ for (const width of [390, 1440]) {
     await fakeSupabase(page, new Date(Date.now() - 4 * 60_000).toISOString());
     await signIn(page);
     await page.goto('/#/find');
-    await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: /^View: / })).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(1500);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
     await expect(
@@ -79,7 +79,7 @@ test('signed out: Scan now is in the header’s More menu, beside the h1 (390)',
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/find');
   const review = page.getByRole('region', { name: /^New postings$/ });
-  await expect(review.getByRole('button', { name: 'Browse' })).toBeVisible({ timeout: 15_000 });
+  await expect(review.getByRole('button', { name: /^View: / })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(0);
   // The h1 stays for screen readers (sr-only); More sits on the page bar's row, right of Find / Apply.
   await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toHaveClass(/sr-only/);

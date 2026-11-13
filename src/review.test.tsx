@@ -134,7 +134,7 @@ describe('Review new: no board progress on the page (Adrian 2026-11-08)', () => 
         }),
     );
     renderReview();
-    await screen.findByRole('button', { name: 'Browse' });
+    await screen.findByRole('button', { name: /^View: / });
     // Past the 1 s repaint that would show progress.
     await new Promise((r) => setTimeout(r, 1500));
     expect(screen.queryByText(/^Read \d+ of \d+ boards$/)).toBeNull();
@@ -336,30 +336,35 @@ describe('Review new: Browse', () => {
 });
 
 describe('Review new: Deck', () => {
-  it('Browse | Deck is two icon-only toggle buttons, named, one pressed (Adrian 2026-11-09)', async () => {
+  it('List | Deck is one toggle: a press flips the view, both icons show (Adrian 2026-11-13)', async () => {
     const user = userEvent.setup();
     renderReview();
     await list();
-    const group = screen.getByRole('group', { name: 'Review view' });
-    // Drawn as the Find | Apply rail (2026-11-13): .rjb-segs, each key a .rjb-seg-icon.
-    expect(group).toHaveClass('rjb-segs', 'rjb-view-segs');
-    const browse = within(group).getByRole('button', { name: 'Browse' });
-    const deck = within(group).getByRole('button', { name: 'Deck' });
-    expect(browse).toHaveAttribute('aria-pressed', 'true');
-    expect(deck).toHaveAttribute('aria-pressed', 'false');
-    // Icon only: no visible text in the button.
-    expect(browse.textContent).toBe('');
-    await user.click(deck);
-    expect(deck).toHaveAttribute('aria-pressed', 'true');
-    expect(browse).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByRole('radio', { name: 'Deck' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Review view' })).toBeNull();
+    const toggle = screen.getByRole('button', { name: 'View: List, switch to Deck' });
+    // Drawn as the Find | Apply rail: .rjb-segs, both icons inside, the open one marked.
+    expect(toggle).toHaveClass('rjb-segs', 'rjb-view-segs', 'rjb-hit-44');
+    const icons = toggle.querySelectorAll('.rjb-seg-icon');
+    expect(icons).toHaveLength(2);
+    expect(icons[0]).toHaveAttribute('data-on');
+    expect(icons[1]).not.toHaveAttribute('data-on');
+    expect(toggle.textContent).toBe('');
+    await user.click(toggle);
+    expect(toggle).toHaveAccessibleName('View: Deck, switch to List');
+    expect(icons[1]).toHaveAttribute('data-on');
+    // Space and Enter flip it too.
+    toggle.focus();
+    await user.keyboard(' ');
+    expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
+    await user.keyboard('{Enter}');
+    expect(toggle).toHaveAccessibleName('View: Deck, switch to List');
   });
 
   it('shows one card at a time; a decided card makes way for the next', async () => {
     const user = userEvent.setup();
     renderReview();
     await list();
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     const first = screen.getByRole('article');
     const name = first.getAttribute('aria-label');
     // Skip is in the action dock (#545), not on the card.
@@ -388,7 +393,7 @@ describe('Review new: Deck', () => {
       </ToastProvider>,
     );
     await list();
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     const first = deckTitle();
     await user.click(screen.getByRole('button', { name: `Skip ${first}` }));
     // The next card's title takes focus, not the dock key or <body>.
@@ -410,7 +415,7 @@ describe('Review new: Deck', () => {
     feed.fetchFeed.mockResolvedValue(result(BASIC.slice(0, 1)));
     renderFind();
     await list();
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     await user.click(screen.getByRole('button', { name: `Skip ${deckTitle()}` }));
     // The two columns go with the last posting: the new heading node takes the focus.
     await waitFor(() =>
@@ -433,7 +438,7 @@ describe('Review new: Deck', () => {
     );
     await list();
     expect(screen.getByTestId('caption')).toHaveTextContent('no place');
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     expect(screen.queryByRole('navigation', { name: 'Postings' })).toBeNull();
     expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
     // The arrow keys on the card step it, like a swipe.
@@ -448,7 +453,7 @@ describe('Review new: Deck', () => {
     const user = userEvent.setup();
     renderReview();
     await list();
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     const first = deckTitle();
     const swipe = (dx: number, dy = 0) => {
       const el = within(screen.getByRole('article')).getByRole('heading', { level: 3 });
@@ -501,7 +506,7 @@ describe('Review new: Deck', () => {
       </ToastProvider>,
     );
     await list();
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     // Newest first: Zeta's posting, 1 of 3.
     expect(deckTitle()).toBe('Design Systems Designer at Zeta');
     expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
@@ -584,7 +589,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
     const user = userEvent.setup();
     renderReview();
     await list();
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     return screen.getByRole('article');
   };
   const before = (a: Node, b: Node) =>
@@ -715,7 +720,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(within(ul).getAllByRole('article', { current: true })).toHaveLength(1);
     expect(screen.queryByText('Pick a posting')).toBeNull();
     // The Deck walks its own card: the selection goes and Find's header shows again.
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     await waitFor(() => expect(window.location.hash).toBe('#/find'));
     expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
   });
@@ -759,7 +764,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
     renderReview();
     const ul = await list();
     expect(within(ul).getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     expect(screen.getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
   });
 
@@ -920,7 +925,7 @@ describe('Review new: the caught-up empty state (Adrian 2026-11-08)', () => {
     expect(within(section).getByText(/saved or skipped/)).toBeInTheDocument();
     expect(section.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
     // The Deck's caught-up state is the same section.
-    await user.click(screen.getByRole('button', { name: 'Deck' }));
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
     expect(
       (await screen.findByText('You’re all caught up')).closest('[data-empty-section]'),
     ).not.toBeNull();
@@ -1068,5 +1073,66 @@ describe('Review new: every design-system posting, no tiers', () => {
       terms: [],
       boardUrls: ['https://jobs.ashbyhq.com/zeta'],
     });
+  });
+});
+
+describe('Find: one empty state, picked by cause, the same in List and Deck (#694)', () => {
+  const shape = async () => {
+    const section = (await screen.findByRole('region', { name: 'No postings' })) as HTMLElement;
+    return {
+      cause: section.getAttribute('data-empty-cause'),
+      title: section.querySelector(`#${CSS.escape('rjb-review-empty-title')}`)?.textContent ?? null,
+      text: section.textContent,
+      keys: within(section)
+        .queryAllByRole('button')
+        .map((b) => `${b.textContent}`),
+      icon: section.querySelector('[aria-hidden="true"] svg')?.getAttribute('class'),
+    };
+  };
+  const both = async (user: ReturnType<typeof userEvent.setup>) => {
+    const inList = await shape();
+    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
+    await screen.findByRole('button', { name: 'View: Deck, switch to List' });
+    const inDeck = await shape();
+    expect(inDeck).toEqual(inList);
+    return inList;
+  };
+
+  it('nothing matches: "No postings match yet" with Scan now and Edit search profile', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([]));
+    renderReview();
+    const s = await both(user);
+    expect(s.cause).toBe('none');
+    expect(s.text).toContain('No postings match yet');
+    expect(s.keys).toEqual(['Scan now', 'Edit search profile']);
+    expect(s.icon).toContain('search-x');
+  });
+
+  it('all saved or skipped: "You’re all caught up" with Scan now and a check-circle tile', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(result([BASIC[0]]));
+    renderReview();
+    const ul = await list();
+    await user.click(within(ul).getByRole('button', { name: /^Skip / }));
+    const s = await both(user);
+    expect(s.cause).toBe('caughtUp');
+    expect(s.text).toContain('You’re all caught up');
+    expect(s.keys).toEqual(['Scan now']);
+    expect(s.icon).toMatch(/circle-check|check-circle/);
+  });
+
+  it('filters hide everything: "No postings with these filters" with Clear filters', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue(
+      result([post('hn:9', 'Design Systems Designer', 'Acme', { location: '', mode: undefined })]),
+    );
+    renderReview();
+    await list();
+    await user.click(screen.getByRole('button', { name: /^Remote/ }));
+    const s = await both(user);
+    expect(s.cause).toBe('filtered');
+    expect(s.text).toContain('No postings with these filters');
+    expect(s.keys).toEqual(['Clear filters']);
   });
 });

@@ -152,7 +152,7 @@ describe('the auto-scan', () => {
     window.location.hash = '#/find';
     renderApp();
     const review = await screen.findByRole('region', { name: /^New postings$/ });
-    await within(review).findByRole('button', { name: 'Browse' });
+    await within(review).findByRole('button', { name: /^View: / });
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
     // No date line and no visible caption: More's label says when the sources were scanned
     // (Find controls, 2026-11-13), and no count (the chip has it).

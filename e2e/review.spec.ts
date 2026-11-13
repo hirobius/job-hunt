@@ -90,7 +90,7 @@ async function setUp(page: Page) {
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
-  await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
   const since = await page.evaluate(() => Date.now());
   // Scan now is Find's More menu (#544).
   await findMenuItem(page, 'Scan now');
@@ -226,9 +226,9 @@ for (const width of [390, 1440]) {
     // The deck: one card at a time, Skip each of the two left. Past the double-tap guard first: it
     // swallows any press inside the page for 700 ms after Save, Deck's too.
     await page.waitForTimeout(800);
-    const deck = page.getByRole('button', { name: 'Deck' });
+    const deck = page.getByRole('button', { name: 'View: List, switch to Deck' });
     await deck.click();
-    await expect(deck).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'View: Deck, switch to List' })).toBeVisible();
     // The Deck keeps no selection (#546): Find's header shows again, with its "1 of N" caption.
     await expect(page).toHaveURL(/#\/find$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
@@ -343,7 +343,7 @@ for (const width of [375, 390]) {
       });
     });
     await page.goto('/#/find');
-    await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
     const since = await page.evaluate(() => Date.now());
     await findMenuItem(page, 'Scan now');
     await scanFinished(page, since);
@@ -364,14 +364,14 @@ for (const width of [375, 390]) {
     expect(m!.x + m!.width).toBeLessThanOrEqual(width - 20);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
     // lands on that key, never its neighbour.
-    // A tap just inside the last chip's right edge is the chip's, not Browse's.
+    // A tap just inside the last chip's right edge is the chip's, not the List | Deck toggle's.
     const remote = chips.getByRole('button', { name: 'Remote', exact: true });
     const onChip = await remote.evaluate((el) => {
       const r = el.getBoundingClientRect();
       return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
     });
     expect(onChip).toBe(true);
-    for (const name of ['Browse', 'Deck', /^Sort: /, 'More: scan and search profile']) {
+    for (const name of [/^View: /, /^Sort: /, 'More: scan and search profile']) {
       const hit = await hitArea(page.getByRole('button', { name }));
       expect(hit.width).toBeGreaterThanOrEqual(44);
       expect(hit.height).toBeGreaterThanOrEqual(44);

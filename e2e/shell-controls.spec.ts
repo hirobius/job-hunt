@@ -1,9 +1,10 @@
+import { hitArea } from './hitArea';
 import { test, expect } from '@playwright/test';
 import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
-// segmented control but still a nav of links (routing, Back, deep links); Browse / Deck as two
-// icon-only toggle buttons with tooltips; Apply's Remote only switch, per device, that narrows the
+// segmented control but still a nav of links (routing, Back, deep links); List / Deck as one
+// toggle with a tooltip (#694); Apply's Remote only switch, per device, that narrows the
 // pager's "n of N" and the All jobs sheet. Since #548 Find / Apply sit in the app bar's one row at
 // every width, each with its count.
 for (const width of [390, 1440]) {
@@ -56,24 +57,31 @@ for (const width of [390, 1440]) {
       await expect(nav.getByRole('link', { name: /^Find/ })).toHaveAccessibleName('Find');
     });
 
-    test('Browse / Deck: icon-only toggle buttons with names and tooltips', async ({ page }) => {
+    test('List / Deck: one toggle over the whole track, with a tooltip', async ({ page }) => {
       await seed(page);
       await page.goto('/#/find');
-      const group = page.getByRole('group', { name: 'Review view' });
-      const browse = group.getByRole('button', { name: 'Browse' });
-      const deck = group.getByRole('button', { name: 'Deck' });
-      await expect(browse).toHaveAttribute('aria-pressed', 'true');
-      await expect(browse).toHaveText('');
+      const toggle = page.getByRole('button', { name: /^View: / });
+      await expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
+      await expect(toggle).toHaveText('');
+      await expect(toggle.locator('.rjb-seg-icon')).toHaveCount(2);
+      // The whole track is its 44px target, all of it this one key.
+      const hit = await hitArea(toggle);
+      expect(hit.height).toBeGreaterThanOrEqual(44);
+      expect(hit.misses).toEqual([]);
       // The seed's "Added to Apply" toast can land under the pointer and close the tooltip at
       // 1440: hover again until it shows.
       await expect(async () => {
         await page.mouse.move(0, 0);
-        await deck.hover();
-        await expect(page.getByRole('tooltip')).toHaveText('Deck', { timeout: 1500 });
+        await toggle.hover();
+        await expect(page.getByRole('tooltip')).toHaveText('Switch to Deck', { timeout: 1500 });
       }).toPass({ timeout: 10_000 });
-      await deck.click();
-      await expect(deck).toHaveAttribute('aria-pressed', 'true');
-      await expect(browse).toHaveAttribute('aria-pressed', 'false');
+      // A tap on the open (List) icon still flips: the whole track is the button.
+      const box = (await toggle.boundingBox())!;
+      await page.mouse.click(box.x + 6, box.y + box.height / 2);
+      await expect(toggle).toHaveAccessibleName('View: Deck, switch to List');
+      await toggle.focus();
+      await page.keyboard.press('Space');
+      await expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
     });
 
     test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({

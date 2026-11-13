@@ -152,7 +152,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   "Track your first job" (Add job | Try with sample data), the load error (Try again), Documents' "No documents
   yet" (Add starter messages | Start from scratch, grey), Find's "No postings match yet" (`AutoScanViews.tsx` `NoResultsKeys`: signed out Scan now | Edit
   search profile (Scan now is also in Find's More menu, #544); signed in Edit search profile alone, filled, as
-  there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Done:**
+  there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Find has one empty state, picked by cause, never by view (#694):** `ReviewView.tsx` `FindEmpty`, the same in List and Deck (`data-empty-cause`): `none` (nothing read or nothing matches; search-x) "No postings match yet" with those keys; `caughtUp` (all saved or skipped; CircleCheck) "You’re all caught up", signed out Scan now alone, signed in Edit search profile filled (`NoResultsKeys caughtUp`); `filtered` (ListFilter) "No postings with these filters", Clear filters filled. After the Deck's last decision focus still goes to Find's h1. **Done:**
   with nothing left to apply to at all (To apply view, no search; Remote only aside) the Apply tab is
   `TrackerView` `DonePage`: the h1, then `ApplyDone.tsx` (the standard `hds-gaps/EmptyState` `centered` icon tile,
   `ListChecks`, no flame since 2026-11-13; "That is the list" (its title, not a heading); `applyDone.ts` `weekLine`: applied
@@ -405,8 +405,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the sort and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
   (was "Review new", #615: no count on the heading since #660; labels only)
   = `ReviewView` itself (`label="New postings" scanStatus`; **no visible heading since 2026-11-12**: an sr-only h2
-  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (New's count Badge capped at "99+" by `CountBadge.tsx`; its name keeps the full count, "New 140"; Remote has no count since 2026-11-13), then pinned at the right Browse | Deck
-  (`.rjb-segs .rjb-view-segs`, 2026-11-13: the Find | Apply rail on a 2px pad so it is the chips' 32px, 28px icon keys, the pressed one the open tab's fill, edge and text colour; `aria-pressed`; in `FindDeck.css`, off base.css) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
+  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (New's count Badge capped at "99+" by `CountBadge.tsx`; its name keeps the full count, "New 140"; Remote has no count since 2026-11-13), then pinned at the right List | Deck
+  (`.rjb-segs .rjb-view-segs`, 2026-11-13: one toggle button drawn as the Find | Apply rail on a 2px pad so it is the chips' 32px, two 28px icon pills, the open one the open tab's fill, edge and text colour; its name says the view, #694; in `FindDeck.css`, off base.css) and **Sort** (`FindSortMenu.tsx`: an HDS `Button iconOnly`
   ArrowUpDown named "Sort: Newest" / "Sort: Best match" / "Sort: Company", Tooltip "Sort", a Menu of radio items; only
   while there is a list to sort) and More, one line at 375 and 390 (the right group never wraps or moves, the chips wrap; Adrian 2026-11-12: its keys 28-32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
@@ -510,8 +510,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the To apply view chip Apply's; the bar wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
   `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label alone ("Apply"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
-  a tab tap, which reopens where the tab was left. Browse / Deck is two HDS `Button iconOnly` (List, Layers) with
-  `aria-pressed` in a `role="group"` "Review view", each with an HDS Tooltip. Apply's **Remote only** HDS `Toggle`
+  a tab tap, which reopens where the tab was left. List / Deck is **one toggle** (#694): one HDS `Button` drawn as the `.rjb-segs` track, both icons (List,
+  Layers) shown, the open one filled; a press anywhere (or Space / Enter) flips it; named "View: List, switch to Deck" /
+  "View: Deck, switch to List", an HDS Tooltip "Switch to …", a 44px hit area over the whole track. Segment pills
+  nest in their track (`--seg-inner-radius` = rail radius less its pad) and draw the ledge as an inset shadow so it
+  follows the radius. The app bar's theme switch (`ThemeBurnToggle`) draws its icon at 28px to match the Account
+  Avatar's 32px disc in the same 44px box (a base.css gap, registered in `docs/hds-upstream-asks-0.9.md`). Apply's **Remote only** HDS `Toggle`
   (`RemoteOnlySwitch.tsx`, the lg job rail; the phone's All jobs sheet shows it as a chip, #543) sets `PipelineView.remoteOnly`, kept per
   device (`rjb_apply_remote_only`); `visibleJobs` keeps `isRemoteJob` (#614: the job's mode when set, else
   `inferMode` on title + location, where a list offering remote among places, "Portland, OR, or Remote within
