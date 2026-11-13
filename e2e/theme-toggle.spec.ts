@@ -116,3 +116,94 @@ test.describe('Account sheet focus', () => {
     await expect.poll(() => ringed(page)).toHaveLength(1);
   });
 });
+
+// Adrian's recording (#695): the app-bar logo turned at once. Its old-theme copy is clipped to the
+// unburnt side, so mid-burn the logo, far from the press, still reads in the old theme.
+test('the logo keeps the old theme until the front reaches it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'no-preference', colorScheme: 'light' });
+  const toggle = await open(page);
+  if ((await theme(page)) === 'dark') {
+    await toggle.click();
+    await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
+  }
+  const logo = page.getByRole('banner').locator('.rjb-logo-link');
+  const b = (await logo.boundingBox())!;
+  // The name only (the logo's right part): the flame is blue in both themes.
+  const box = { x: b.x + b.width * 0.35, y: b.y, width: b.width * 0.65, height: b.height };
+  // Share of dark pixels there: the name's ink on the light page; none if it turned light early.
+  const dark = async () => {
+    const png = (await page.screenshot({ clip: box })).toString('base64');
+    return page.evaluate(async (src) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${src}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const g = c.getContext('2d')!;
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] < 240) n++;
+      return n / (d.length / 4);
+    }, png);
+  };
+  const before = await dark();
+  expect(before).toBeGreaterThan(0.02);
+  await page.getByRole('banner').getByRole('button', { name: 'Switch to dark theme' }).click();
+  await expect.poll(() => burning(page)).toBe(true);
+  // The front starts at the button, far right; the logo at the far left is not reached yet.
+  const mid = await dark();
+  expect(mid).toBeGreaterThan(before * 0.5);
+  await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
+  expect(await dark()).toBeGreaterThan(0.5);
+});
+
+// #695: nothing fades to the new theme behind the front. A control right beside the press (the
+// open top tab, whose background has a transition) already has its final colour mid-burn.
+test('behind the front, controls are in the new colours at once (no transition)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const toggle = await open(page);
+  const tab = page.locator('nav[aria-label="Sections"] a[aria-current="page"]');
+  const bg = () =>
+    tab.evaluate((e) => getComputedStyle(e).backgroundColor + getComputedStyle(e).color);
+  const start = await bg();
+  await toggle.click();
+  await expect.poll(() => burning(page)).toBe(true);
+  // Mid-burn: the switching class is on and the tab already reads its final colours.
+  expect(
+    await page.evaluate(() => document.documentElement.classList.contains('rjb-theme-switching')),
+  ).toBe(true);
+  const mid = await bg();
+  await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.documentElement.classList.contains('rjb-theme-switching')),
+    )
+    .toBe(false);
+  const end = await bg();
+  expect(end).not.toBe(start);
+  expect(mid).toBe(end);
+});
+
+// #695 (Adrian): the switch itself answers the tap at once: its icon state flips within a frame.
+test('the theme switch flips its icon within one frame of the press', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await open(page);
+  const flipped = await page.evaluate(
+    () =>
+      new Promise<[string | null, string | null]>((done) => {
+        const b = document.querySelector<HTMLButtonElement>('header .rjb-theme-toggle')!;
+        const before = b.getAttribute('aria-label');
+        b.click();
+        requestAnimationFrame(() => done([before, b.getAttribute('aria-label')]));
+      }),
+  );
+  expect(flipped[0]).not.toBe(flipped[1]);
+  await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
+});
