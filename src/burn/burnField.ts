@@ -1,10 +1,11 @@
 // The theme burn's reveal front (#688). Pure and Node-safe. One fixed field is built once per
 // burn: the distance from the origin (normalised to 0..1 over the box) plus a seeded multi-octave
-// noise (burnt paper's outline). Each frame contours the field at one threshold t, so the edge only
+// noise (burnt paper's outline). Each burn picks a fresh seed and a small variation (pickVariant)
+// unless BURN.seed is a number. Each frame contours the field at one threshold t, so the edge only
 // moves continuously: no re-randomising, no flicker. The hole (F < t) shows the new theme; the thin
 // char band (t <= F < t + char) darkens the old one just ahead of the edge. The settings are locked
 // (BURN); the cost per frame is one pass over a reused grid per contour.
-import { curve, noise, simplify } from '../brand/flameEngine';
+import { curve, noisePlane, simplify } from '../brand/flameEngine';
 
 /** offtone: the old surface darkened; cobalt: flame layer 1; flame: flame layer 2. */
 export type EdgeColor = 'offtone' | 'cobalt' | 'flame';
@@ -32,28 +33,30 @@ export type BurnSettings = {
   easing: Easing;
   /** Field grid cell, px. */
   cell: number;
-  seed: number;
+  /** Noise seed. null (the app) = a fresh random seed and a small random variation per burn; a
+   *  number (tests, the tuner, the recording script) = the same field every run. */
+  seed: number | null;
   /** Frames per second of the front's progress: each step is held 1/fps. */
   fps: number;
 };
 
 /** Locked by Adrian (2026-11-13). Do not tune here without his say. */
 export const BURN: Readonly<BurnSettings> = Object.freeze({
-  themeMs: 970,
-  cardMs: 450,
-  rough: 0.7,
+  themeMs: 1770,
+  cardMs: 330,
+  rough: 1,
   scale: 140,
-  octaves: 5,
-  gain: 0.48,
-  char: 35,
-  charStrength: 0.35,
-  easing: 'inOutSine',
-  cell: 6.5,
-  seed: 7,
-  fps: 10,
+  octaves: 7,
+  gain: 0.47,
+  char: 25,
+  charStrength: 1,
+  easing: 'linear',
+  cell: 2,
+  seed: null,
+  fps: 22,
   charOn: true,
-  edgeColor: 'offtone',
-  edgeOpacity: 0.35,
+  edgeColor: 'cobalt',
+  edgeOpacity: 1,
 });
 
 export const EASE: Record<Easing, (t: number) => number> = {
@@ -63,12 +66,73 @@ export const EASE: Record<Easing, (t: number) => number> = {
   linear: (t) => t,
 };
 
+/** One burn's shape: its seed and a small variation on the locked settings. Fixed for the whole
+ *  burn (the field is built once), so the edge never flickers. */
+export type BurnVariant = {
+  seed: number;
+  /** Noise offset, px, and rotation of the noise, radians. */
+  dx: number;
+  dy: number;
+  rot: number;
+  /** Multipliers on scale and gain, each in [1 - VARY, 1 + VARY]. */
+  scaleK: number;
+  gainK: number;
+};
+
+/** Per-burn variation on scale and gain: ±10%. */
+export const VARY = 0.1;
+/** Largest noise offset, px. */
+export const MAX_OFFSET = 10000;
+
+/** A uniform number in [0, 1): crypto.getRandomValues, else Math.random. */
+export function random01(): number {
+  try {
+    const c = globalThis.crypto;
+    if (c?.getRandomValues) return c.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
+  } catch {
+    /* fall back */
+  }
+  return Math.random();
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** The burn's shape: with a numeric seed the plain locked field (no variation), else a fresh
+ *  random seed, offset, rotation and ±VARY on scale and gain, all clamped to safe ranges. */
+export function pickVariant(
+  S: Pick<BurnSettings, 'seed'>,
+  rand: () => number = random01,
+): BurnVariant {
+  if (S.seed !== null) return { seed: S.seed, dx: 0, dy: 0, rot: 0, scaleK: 1, gainK: 1 };
+  const r = () => clamp(rand(), 0, 1);
+  return {
+    seed: Math.floor(r() * 1e9),
+    dx: (r() * 2 - 1) * MAX_OFFSET,
+    dy: (r() * 2 - 1) * MAX_OFFSET,
+    rot: r() * 2 * Math.PI,
+    scaleK: clamp(1 + (r() * 2 - 1) * VARY, 1 - VARY, 1 + VARY),
+    gainK: clamp(1 + (r() * 2 - 1) * VARY, 1 - VARY, 1 + VARY),
+  };
+}
+
 export type BurnFrame = { hole: string; char: string };
 type Pt = [number, number];
 
 /** Build the field for a w×h box burning from (ox, oy); returns frame(p), p in 0..1 (linear time). */
-export function createBurn(S: BurnSettings, w: number, h: number, ox: number, oy: number) {
+export function createBurn(
+  S: BurnSettings,
+  w: number,
+  h: number,
+  ox: number,
+  oy: number,
+  shape: BurnVariant = pickVariant(S),
+) {
   const c = S.cell;
+  // gain stays below 1 so the octave sum (and the field's range) stays bounded.
+  const gain = clamp(S.gain * shape.gainK, 0.05, 0.95);
+  const scale = S.scale * shape.scaleK;
+  const cr = Math.cos(shape.rot),
+    sr = Math.sin(shape.rot);
   // Two cells of margin, forced unburnt on the rim, so every loop closes and the end covers the box.
   const W = Math.ceil(w / c) + 5,
     H = Math.ceil(h / c) + 5;
@@ -83,14 +147,16 @@ export function createBurn(S: BurnSettings, w: number, h: number, ox: number, oy
     ) || 1;
   const F = new Float32Array(W * H);
   let norm = 0;
-  for (let o = 0, a = 1; o < S.octaves; o++, a *= S.gain) norm += a;
+  for (let o = 0, a = 1; o < S.octaves; o++, a *= gain) norm += a;
   const amp = (S.rough * 2) / norm;
   // Per-octave frequencies and amplitudes, computed once.
   const ks: number[] = [],
-    as: number[] = [];
-  for (let o = 0, a = 1, k = 1 / Math.max(4, S.scale); o < S.octaves; o++, a *= S.gain, k *= 2) {
+    as: number[] = [],
+    planes: ((x: number, y: number) => number)[] = [];
+  for (let o = 0, a = 1, k = 1 / Math.max(4, scale); o < S.octaves; o++, a *= gain, k *= 2) {
     ks.push(k);
     as.push(a);
+    planes.push(noisePlane(o * 3.1, shape.seed + o));
   }
   let lo = Infinity,
     hi = -Infinity;
@@ -99,9 +165,13 @@ export function createBurn(S: BurnSettings, w: number, h: number, ox: number, oy
       dy = y - oy;
     for (let i = 0; i < W; i++) {
       const x = x0 + i * c;
+      // The noise is sampled in a rotated, offset frame; the distance term is not, so the front
+      // still starts at the tap point and covers the box by the end.
+      const nx = cr * x - sr * y + shape.dx,
+        ny = sr * x + cr * y + shape.dy;
       let n = 0;
       for (let o = 0; o < ks.length; o++)
-        n += as[o] * noise(x * ks[o], y * ks[o], o * 3.1, S.seed + o);
+        n += as[o] * planes[o](nx * ks[o], ny * ks[o]);
       const v = Math.hypot(x - ox, dy) / D + amp * n - S.rough;
       F[j * W + i] = v;
       if (v < lo) lo = v;
@@ -163,6 +233,29 @@ function marcher(F: Float32Array, W: number, H: number, c: number, ox: number, o
   const stamp = new Uint32Array(N); // a key's point is set in this frame when stamp === frame
   const used = new Uint32Array(N);
   const starts = new Int32Array(N);
+  // The field is fixed, so each B×B block of cells keeps its low and high corner value: a block the
+  // cut cannot cross (all inside or all outside) is skipped whole. The scan order is unchanged, so
+  // the loops come out exactly as a full scan gives them (perf check, #688).
+  const B = 8;
+  const BW = Math.ceil((W - 1) / B),
+    BH = Math.ceil((H - 1) / B);
+  const bLo = new Float32Array(BW * BH),
+    bHi = new Float32Array(BW * BH);
+  for (let bj = 0; bj < BH; bj++)
+    for (let bi = 0; bi < BW; bi++) {
+      let lo = Infinity,
+        hi = -Infinity;
+      for (let j = bj * B; j <= Math.min(H - 1, bj * B + B); j++)
+        for (let i = bi * B; i <= Math.min(W - 1, bi * B + B); i++) {
+          const v = F[j * W + i];
+          if (v < lo) lo = v;
+          if (v > hi) hi = v;
+        }
+      // The rim is rewritten every frame (just above the cut), so a block on it is always scanned.
+      const onRim = bi === 0 || bj === 0 || (bi + 1) * B >= W - 1 || (bj + 1) * B >= H - 1;
+      bLo[bj * BW + bi] = onRim ? -Infinity : lo;
+      bHi[bj * BW + bi] = onRim ? Infinity : hi;
+    }
   let frame = 0;
   return (t: number): Pt[][] => {
     frame++;
@@ -170,6 +263,14 @@ function marcher(F: Float32Array, W: number, H: number, c: number, ox: number, o
     const f = (a: number, b: number) => (a - t) / (a - b);
     for (let j = 0; j < H - 1; j++)
       for (let i = 0; i < W - 1; i++) {
+        if ((i & 7) === 0) {
+          const b = (j >> 3) * BW + (i >> 3);
+          // All corners inside (< t) or none: no cell here is cut.
+          if (bHi[b] < t || bLo[b] >= t) {
+            i += B - 1;
+            continue;
+          }
+        }
         const n = j * W + i;
         const a = F[n],
           b = F[n + 1],

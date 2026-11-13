@@ -34,11 +34,11 @@ const ColorModeContext = createContext<{
   mode: ColorMode;
   toggle: () => void;
   /** Toggle with the burn from a point (viewport px); an instant swap where the burn can't run. */
-  burnToggle: (at: { x: number; y: number }) => void;
+  burnToggle: (at: { x: number; y: number }) => boolean;
 }>({
   mode: 'dark',
   toggle: () => {},
-  burnToggle: () => {},
+  burnToggle: () => false,
 });
 
 export const useColorMode = () => useContext(ColorModeContext);
@@ -115,8 +115,11 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
       flushSync(toggle);
     };
     const burnToggle = (at: { x: number; y: number }) => {
-      if (!burnAvailable()) return toggle();
-      if (burning) return;
+      if (!burnAvailable()) {
+        toggle();
+        return true;
+      }
+      if (burning) return false;
       burning = true;
       void loadBurn()
         .then((b) => b.burnTheme(at, swap))
@@ -130,6 +133,7 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
         .finally(() => {
           burning = false;
         });
+      return true;
     };
     return { mode, toggle, burnToggle };
   }, [mode]);

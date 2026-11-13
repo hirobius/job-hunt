@@ -29,6 +29,66 @@ function overlay(w: number, h: number, tone: string) {
   return { svg, show: (f: BurnFrame) => p.setAttribute('d', f.char ? f.char + f.hole : '') };
 }
 
+/** The app bar's logo in the old theme, live, over the real one (which is in the new theme from the
+ *  first frame), clipped to what the front has not reached yet: the logo turns only where and when
+ *  the front passes, and its flame keeps moving on both sides. A full-viewport box holding a copy at
+ *  the logo's place, so the copy takes the page's clip in page coordinates. The copy's colours are
+ *  the old theme's, read before the swap and set inline; its flame follows the real one's paths. */
+function oldLogo(w: number, h: number) {
+  const logo = document.querySelector<HTMLElement>('header .rjb-logo-link');
+  if (!logo) return null;
+  const r = logo.getBoundingClientRect();
+  const box = document.createElement('div');
+  box.className = 'rjb-burn-logo-old';
+  box.setAttribute('aria-hidden', 'true');
+  box.inert = true;
+  const copy = logo.cloneNode(true) as HTMLElement;
+  copy.removeAttribute('href');
+  copy.removeAttribute('id');
+  copy.tabIndex = -1;
+  copy.classList.add('rjb-burn-logo-copy');
+  // The logo's box, in px (burn.css multiplies them out).
+  copy.style.setProperty('--rjb-burn-x', String(r.left));
+  copy.style.setProperty('--rjb-burn-y', String(r.top));
+  copy.style.setProperty('--rjb-burn-w', String(r.width));
+  copy.style.setProperty('--rjb-burn-h', String(r.height));
+  const from = [logo, ...logo.querySelectorAll<Element>('*')];
+  const to = [copy, ...copy.querySelectorAll<Element>('*')];
+  from.forEach((el, i) => {
+    const cs = getComputedStyle(el);
+    const t = (to[i] as HTMLElement | SVGElement | undefined)?.style;
+    if (!t) return;
+    t.setProperty('color', cs.color);
+    t.setProperty('fill', cs.fill);
+    t.setProperty('stroke', cs.stroke);
+  });
+  box.append(copy);
+  const mo = new MutationObserver((ms) => {
+    for (const m of ms) {
+      const i = from.indexOf(m.target as Element);
+      const el = to[i];
+      if (i < 0 || !el || !m.attributeName) continue;
+      const v = (m.target as Element).getAttribute(m.attributeName);
+      if (m.attributeName === 'style' || m.attributeName === 'class') continue;
+      if (v === null) el.removeAttribute(m.attributeName);
+      else el.setAttribute(m.attributeName, v);
+    }
+  });
+  mo.observe(logo, { attributes: true, subtree: true, attributeFilter: ['d', 'transform'] });
+  return {
+    box,
+    clip: (hole: string) =>
+      box.style.setProperty(
+        'clip-path',
+        `path(evenodd, 'M-40,-40H${w + 40}V${h + 40}H-40Z${hole}')`,
+      ),
+    remove: () => {
+      mo.disconnect();
+      box.remove();
+    },
+  };
+}
+
 /** The hole alone: the new theme shows through it. Set synchronously each step (no image mask,
  *  which decodes late and blanks a frame). */
 export const holeClip = (hole: string) => (hole ? `path(evenodd, '${hole}')` : 'inset(50%)');
@@ -39,8 +99,7 @@ const stats = ((globalThis as { __burnStats?: number[][] }).__burnStats ??= []);
 /** Run the burn over a w×h box from `at` for `ms`: the contour steps at BURN.fps. Each step's
  *  contour is computed in its own task right after the previous step is applied, so a frame never
  *  carries both the maths and the repaint of the new clip (perf check, #688). */
-function runBurn(w: number, h: number, at: Pt, ms: number, apply: (f: BurnFrame) => void) {
-  const frame = createBurn(BURN, w, h, at.x, at.y);
+function runBurn(frame: (p: number) => BurnFrame, ms: number, apply: (f: BurnFrame) => void) {
   const times: number[] = [];
   stats.push(times);
   const step = 1000 / Math.min(60, Math.max(4, BURN.fps));
@@ -71,6 +130,27 @@ function runBurn(w: number, h: number, at: Pt, ms: number, apply: (f: BurnFrame)
   });
 }
 
+/** Which burn holds the no-transition class: only the latest one's end removes it, so a burn
+ *  started inside an earlier one's two-frame tail keeps it (#695). */
+let switching = 0;
+
+/** Put the no-transition class on; returns this burn's generation for endSwitching. */
+export function startSwitching(): number {
+  document.documentElement.classList.add('rjb-theme-switching');
+  return ++switching;
+}
+
+/** Drop the no-transition class `frames` animation frames from now (0: at once), unless a later
+ *  burn has taken it since. */
+export function endSwitching(gen: number, frames: number) {
+  const root = document.documentElement;
+  const done = () => {
+    if (gen === switching) root.classList.remove('rjb-theme-switching');
+  };
+  if (!frames || typeof requestAnimationFrame !== 'function') return done();
+  requestAnimationFrame(() => (frames > 1 ? requestAnimationFrame(done) : done()));
+}
+
 /** Reveal the new theme over the old from `at`; `swap` flips the theme synchronously. False (and
  *  nothing done) under Pause animations: the caller swaps at once. */
 export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
@@ -78,15 +158,34 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
   const root = document.documentElement;
   const w = innerWidth,
     h = innerHeight;
+  // The field is built here, on the tap, before the transition: not after `ready` (#695: ~200 ms
+  // at 1440x900 there stalled the first frame).
+  const frame = createBurn(BURN, w, h, at.x, at.y);
   const { svg, show } = overlay(w, h, getComputedStyle(document.body).backgroundColor);
   svg.dataset.root = '';
+  const old = oldLogo(w, h);
+  old?.clip('');
   root.setAttribute('data-rjb-burning', '');
+  // No transitions while the theme flips (#695): colours behind the front are final at once.
+  const gen = startSwitching();
   root.style.setProperty('--rjb-burn-clip', 'inset(50%)');
-  const vt = document.startViewTransition(() => {
-    swap();
-    syncThemeColor();
-    document.body.append(svg);
-  });
+  let vt: ViewTransition;
+  try {
+    vt = document.startViewTransition(() => {
+      swap();
+      syncThemeColor();
+      document.body.append(svg);
+      if (old) document.body.append(old.box);
+    });
+  } catch (e) {
+    endSwitching(gen, 0);
+    svg.remove();
+    old?.remove();
+    root.removeAttribute('data-rjb-burning');
+    root.style.removeProperty('--rjb-burn-clip');
+    throw e;
+  }
+  let ok = false;
   try {
     await vt.ready;
     // Hold the transition open for the whole burn (its own animations are off, so it would end at once).
@@ -94,14 +193,18 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
       duration: BURN.themeMs + 50,
       pseudoElement: '::view-transition-new(root)',
     });
-    await runBurn(w, h, at, BURN.themeMs, (f) => {
+    await runBurn(frame, BURN.themeMs, (f) => {
       show(f);
       root.style.setProperty('--rjb-burn-clip', holeClip(f.hole));
+      old?.clip(f.hole);
     });
     await vt.finished;
+    ok = true;
     return true;
   } finally {
+    endSwitching(gen, ok ? 2 : 0);
     svg.remove();
+    old?.remove();
     root.removeAttribute('data-rjb-burning');
     root.style.removeProperty('--rjb-burn-clip');
   }
