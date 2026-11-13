@@ -1,0 +1,4 @@
+{
+  "$comment": "#596: migrations that must run AFTER sync-postings is deployed (scripts/supabase-deploy.ts). Every other new migration runs before the deploy, in file-name order. Add a file here in the PR that adds it when its cron or SQL needs the new function (like #583's 20261111100100). Remove it after it is deployed.",
+  "afterFunction": []
+}
