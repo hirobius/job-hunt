@@ -95,7 +95,7 @@ p {
   border-top: thin solid var(--semantic-color-border-default);
 }
 
-/* The swipe area of the Apply job and the Find Deck (Proposal A, #545; SwipeArea.tsx): the page
+/* The swipe area of the Apply job (Proposal A; SwipeArea.tsx): the page
    still scrolls up and down; a sideways move is the swipe's, never the browser's own. */
 .rjb-swipe {
   touch-action: pan-y;

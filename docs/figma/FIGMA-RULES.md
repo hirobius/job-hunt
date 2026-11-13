@@ -43,8 +43,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   badge (#557). From 1024 px: the list on the left (about 26 rem) and the selected posting's detail on the
   right; the first posting is selected, so the detail is never empty; ↑ / ↓ move the selection. Below
   1024 px: the list alone, with one pager row above it, "[‹][›] 1 of N" at the left (each arrow a
-  44 px key of its own, the count after them). The arrows step a current card to the top and focus its
-  title; scrolling moves the current card too, so the count stays true. No pager from 1024 px.
+  44 px key of its own, the count after them). The arrows step a current card to the top (focus stays on
+  the arrow); scrolling moves the current card too, so the count stays true. No pager from 1024 px.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 

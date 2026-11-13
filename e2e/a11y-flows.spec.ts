@@ -241,7 +241,7 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     });
   // The top tabs' names end in their count when they show one ("Apply 12", #548).
   for (const [role, name] of [
-    // The phone pager's Next posting (2026-11-13): its title takes focus as a heading, no ring.
+    // The phone pager's Next posting (2026-11-13): focus stays on the pager, no ring after a click.
     ['button', 'Next posting'],
     ['link', 'Apply'],
     ['link', 'Find'],

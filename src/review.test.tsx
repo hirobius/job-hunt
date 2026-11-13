@@ -159,7 +159,9 @@ describe('Review new: Browse', () => {
     const ul = await list();
     expect(titles(ul)).toHaveLength(3);
     // Said to a screen reader only: no status text above the list (Adrian 2026-11-08).
-    expect(screen.getByRole('status')).toHaveTextContent('3 new today from 2 sources');
+    expect(
+      screen.getAllByRole('status').some((e) => e.textContent === '3 new today from 2 sources'),
+    ).toBe(true);
     // Sources that didn't answer are the Account menu's Scan details, not a line on the page.
     expect(screen.queryByText(/source unavailable/)).toBeNull();
     expect(getScanDetails()?.failed.map((f) => f.label)).toEqual([
@@ -336,7 +338,7 @@ describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
     expect(document.querySelector('.rjb-deck, .rjb-deck-excerpt')).toBeNull();
   });
 
-  it('below lg, "‹ › 1 of N": the arrows step a current card and focus its title', async () => {
+  it('below lg, "‹ › 1 of N": the arrows step a current card; focus stays on the arrow', async () => {
     const user = userEvent.setup();
     const scrolled = vi.fn();
     Element.prototype.scrollIntoView = scrolled;
@@ -352,12 +354,19 @@ describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
     expect(prev).toBeDisabled();
     await user.click(next);
     expect(pager).toHaveTextContent('2 of 3');
+    // Review of #714: focus stays on the arrow, so it can be pressed again; the step is said once,
+    // politely, and the visible count is not a live region (it follows the scroll).
+    expect(next).toHaveFocus();
     const second = within(ul).getAllByRole('heading', { level: 3 })[1];
-    await waitFor(() => expect(second).toHaveFocus());
-    expect(scrolled).toHaveBeenCalled();
+    const said = screen.getAllByRole('status').find((e) => /^2 of 3: /.test(e.textContent ?? ''));
+    expect(said?.textContent).toContain(second.textContent!.split('\u2060')[0]);
+    expect(pager.querySelector('[aria-live]')).toBeNull();
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
     await user.click(next);
     expect(pager).toHaveTextContent('3 of 3');
     expect(next).toBeDisabled();
+    // At the end, focus moves to the arrow that is still on.
+    await waitFor(() => expect(prev).toHaveFocus());
     await user.click(prev);
     expect(pager).toHaveTextContent('2 of 3');
   });
@@ -375,6 +384,27 @@ describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
       window.dispatchEvent(new Event('scroll'));
     });
     await waitFor(() => expect(pager).toHaveTextContent('2 of 3'));
+  });
+
+  it('↓ past the pages shown shows the next page, so its card is there (review of #714)', async () => {
+    const many = Array.from({ length: REVIEW_PAGE + 3 }, (_, i) =>
+      post(`hn:${i + 100}`, `Design Systems Designer ${i}`, `Co ${i}`, {
+        postedAt: new Date(Date.now() - i * 864e5).toISOString(),
+      }),
+    );
+    feed.fetchFeed.mockResolvedValue(result(many));
+    Element.prototype.scrollIntoView = vi.fn();
+    const user = userEvent.setup();
+    renderFind();
+    const ul = await list();
+    await screen.findByRole('heading', { level: 1, name: 'Design Systems Designer 0' });
+    const firstPage = titles(ul);
+    expect(firstPage).toHaveLength(REVIEW_PAGE);
+    await user.keyboard('{ArrowDown}'.repeat(REVIEW_PAGE));
+    // The selection went past the first page, and its card is in the list now, to scroll to.
+    const h1 = screen.getAllByRole('heading', { level: 1 })[0].textContent!;
+    expect(firstPage).not.toContain(h1);
+    await waitFor(() => expect(titles(ul)).toContain(h1));
   });
 
   it('at lg there is no pager; ↑ / ↓ move the selection, never from a text field', async () => {

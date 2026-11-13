@@ -8,7 +8,15 @@
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { hiddenParts, setScanDetails } from './feed/scanDetails';
 import {
   Badge,
@@ -115,6 +123,21 @@ export default function ReviewView({
   // No filters on Review (Adrian 2026-11-13): it follows the Search profile's work mode only
   // (remote by default); an older remembered New or Remote filter is not read.
   const [shown, setShown] = useRemembered(kept('shown'), REVIEW_PAGE);
+  // A step past the pages shown (↑ / ↓ at lg, the phone pager) shows enough pages first, so its
+  // card is in the list to scroll to (review of #714).
+  const shownRef = useRef(shown);
+  useEffect(() => {
+    shownRef.current = shown;
+  }, [shown]);
+  const showUpTo = useCallback(
+    (at: number) => {
+      if (at < shownRef.current) return;
+      const n = Math.ceil((at + 1) / REVIEW_PAGE) * REVIEW_PAGE;
+      shownRef.current = n;
+      setShown(n);
+    },
+    [setShown],
+  );
 
   // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
   const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
@@ -192,12 +215,13 @@ export default function ReviewView({
       const to = rows[at < 0 ? 0 : at + (e.key === 'ArrowDown' ? 1 : -1)];
       if (!to) return;
       e.preventDefault();
+      showUpTo(rows.indexOf(to));
       selectPosting(to.fingerprint, true);
-      requestAnimationFrame(() => cardEl(to.fingerprint)?.scrollIntoView({ block: 'nearest' }));
+      scrollWhenMounted(to.fingerprint, 'nearest');
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [columns]);
+  }, [columns, showUpTo]);
 
   // Below lg (Adrian 2026-11-13): "‹ › 1 of N" steps a current card through the list. An arrow
   // scrolls its card to the top and focuses its title; scrolling moves the current card with it
@@ -210,24 +234,23 @@ export default function ReviewView({
       : Math.min(cur.at, listed.length - 1)
     : 0;
   const stepping = useRef(0);
+  // What an arrow press says (polite): the count alone would speak on every scroll (review of #714).
+  const [stepSaid, setStepSaid] = useState('');
+  const prevKey = useRef<HTMLButtonElement>(null);
+  const nextKey = useRef<HTMLButtonElement>(null);
   const step = (d: -1 | 1) => {
-    const to = listed[curAt + d];
+    const at = curAt + d;
+    const to = listed[at];
     if (!to) return;
     stepping.current = Date.now();
-    setCur({ fp: to.fingerprint, at: curAt + d });
-    let frames = 30;
-    const tick = () => {
-      const el = cardEl(to.fingerprint);
-      if (!el) {
-        if (frames-- > 0) requestAnimationFrame(tick);
-        return;
-      }
-      stepping.current = Date.now();
-      el.scrollIntoView({ block: 'start' });
-      const title = el.querySelector<HTMLElement>('h3');
-      if (title) focusAsHeading(title);
-    };
-    requestAnimationFrame(tick);
+    showUpTo(at);
+    setCur({ fp: to.fingerprint, at });
+    setStepSaid(`${at + 1} of ${listed.length}: ${rowName(to)}`);
+    // Focus stays on the arrow, so it can be pressed again (review of #714); at an end, where that
+    // arrow turns off, it moves to the other one.
+    if (at <= 0) requestAnimationFrame(() => nextKey.current?.focus());
+    else if (at >= listed.length - 1) requestAnimationFrame(() => prevKey.current?.focus());
+    scrollWhenMounted(to.fingerprint, 'start', () => (stepping.current = Date.now()));
   };
   const pager = !wide && !!view && listed.length > 0 && !feed.error;
   useEffect(() => {
@@ -346,6 +369,7 @@ export default function ReviewView({
           className="rjb-find-pager"
         >
           <Button
+            ref={prevKey}
             variant="tertiary"
             iconOnly
             label="Previous posting"
@@ -354,6 +378,7 @@ export default function ReviewView({
             onClick={() => step(-1)}
           />
           <Button
+            ref={nextKey}
             variant="tertiary"
             iconOnly
             label="Next posting"
@@ -361,10 +386,16 @@ export default function ReviewView({
             disabled={curAt >= listed.length - 1}
             onClick={() => step(1)}
           />
-          <Text variant="ui" as="span" aria-live="polite" className="rjb-find-pager-count">
+          {/* Not live: it follows the scroll. An arrow press is said once, below. */}
+          <Text variant="ui" as="span" className="rjb-find-pager-count">
             {`${curAt + 1} of ${listed.length}`}
           </Text>
         </Stack>
+      )}
+      {pager && (
+        <VisuallyHidden as="p" role="status" aria-live="polite">
+          {stepSaid}
+        </VisuallyHidden>
       )}
       {feed.error ? (
         <PanelBody>
@@ -464,6 +495,21 @@ const goneWith = (r: FeedRow, mute: boolean) => (x: FeedRow) =>
 const EMPTY_TITLE_ID = 'rjb-review-empty-title';
 
 /** The mounted card of a posting in Find's list, if any. */
+/** Scroll a card into view once it is mounted (a page just shown mounts it a frame or two later). */
+function scrollWhenMounted(fp: string, block: ScrollLogicalPosition, onScroll?: () => void) {
+  let frames = 30;
+  const tick = () => {
+    const el = cardEl(fp);
+    if (!el) {
+      if (frames-- > 0) requestAnimationFrame(tick);
+      return;
+    }
+    onScroll?.();
+    el.scrollIntoView({ block });
+  };
+  requestAnimationFrame(tick);
+}
+
 function cardEl(fp: string): HTMLElement | null {
   for (const el of document.querySelectorAll<HTMLElement>('.rjb-find-list > li[data-window-key]'))
     if (el.dataset.windowKey === fp) return el;

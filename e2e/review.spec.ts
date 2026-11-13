@@ -239,12 +239,17 @@ for (const width of [390, 1440]) {
       await page.keyboard.press('ArrowUp');
       await expect(page.getByRole('heading', { level: 1, name: names[0] })).toBeVisible();
     } else {
-      // "‹ › 1 of 2": the arrows step a current card and its title takes focus.
+      // "‹ › 1 of 2": the arrows step a current card. Focus stays on the pager (review of #714), so
+      // an arrow can be pressed again; at the end the arrow that turns off hands focus to the other.
       await expect(pager.getByText('1 of 2', { exact: true })).toBeVisible();
-      await pager.getByRole('button', { name: 'Next posting' }).click();
+      await pager.getByRole('button', { name: 'Next posting' }).focus();
+      await page.keyboard.press('Enter');
       await expect(pager.getByText('2 of 2', { exact: true })).toBeVisible();
-      await expect(list.getByRole('heading', { level: 3 }).nth(1)).toBeFocused();
       await expect(pager.getByRole('button', { name: 'Next posting' })).toBeDisabled();
+      await expect(pager.getByRole('button', { name: 'Previous posting' })).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(pager.getByText('1 of 2', { exact: true })).toBeVisible();
+      await expect(pager.getByRole('button', { name: 'Next posting' })).toBeFocused();
     }
     for (let left = 2; left > 0; left--) {
       await page.waitForTimeout(800);
@@ -328,12 +333,14 @@ for (const width of [375, 390]) {
     const next = pager.getByRole('button', { name: 'Next posting' });
     const count = pager.getByText(/^\d+ of 12$/);
     await expect(count).toHaveText('1 of 12');
-    // The arrows step the current card into view and focus its title.
+    // The arrows step the current card into view; focus stays on the arrow (review of #714), so a
+    // second press needs no hunting for it.
     await next.click();
+    await expect(next).toBeFocused();
     await next.click();
     await expect(count).toHaveText('3 of 12');
     const third = list.getByRole('listitem').nth(2);
-    await expect(third.getByRole('heading', { level: 3 })).toBeFocused();
+    await expect(next).toBeFocused();
     // The card sits just under the pager row, which stays stuck at the top (2026-11-13).
     const [cardTop, bar] = [(await third.boundingBox())!.y, (await pager.boundingBox())!];
     expect(Math.abs(bar.y)).toBeLessThan(1);

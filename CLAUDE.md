@@ -410,7 +410,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (`ReviewView` `pager`, `FindList.css` `.rjb-find-pager`, group "Postings in the list"): "[‹][›] 1 of N" at the left,
   each arrow an HDS icon-only tertiary sized to a 44px box of its own (`--rjb-touch`), a gap between them, so the hit
   areas never overlap. The arrows move a **current** posting (local state, `{ fp, at }`, kept mounted by the windowed
-  list) and scroll its card to the top (`scroll-margin-top`), focusing its title (`focusAsHeading`); **the current
+  list) and scroll its card to the top (`scroll-margin-top`); **focus stays on the arrow** (review of #714: so it can be pressed
+  again; at an end the arrow that turns off hands focus to the other), and the step is said once in a polite status
+  ("3 of 40: <title> at <company>"; the visible count is not live, as it follows the scroll); a step past the pages
+  shown shows enough pages first (`showUpTo`, also for ↑ / ↓ at lg), so its card is there to scroll to; **the current
   posting follows scrolling** (a passive, rAF-throttled scroll listener: the first mounted card whose bottom is past a
   quarter of the viewport; an arrow's own scroll is ignored for 600 ms), so the count stays true. **At lg** ↑ / ↓ move
   the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
@@ -510,8 +513,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   logo · Find / Apply · Account (the phone's 52px second row is gone; below sm the segments' sides narrow to 6 and the
   row's minimum gap is 4, so it fits at 375 and 390; where it cannot fit, a 320 screen, it wraps the tabs under the logo). Concentric corners (hds#1470): `.rjb-segs` sets
   `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. The tabs
-  show **no counts** (Find controls, 2026-11-13: `TopTabCount.tsx` is deleted; the New chip keeps Find's number and
-  the To apply view chip Apply's; the bar wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
+  show **no counts** (Find controls, 2026-11-13: `TopTabCount.tsx` is deleted; the To apply view chip keeps Apply's number,
+  and Find shows none since the New chip went (#714); the bar wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
   `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label alone ("Apply"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
   a tab tap, which reopens where the tab was left. Find has no List / Deck switch since 2026-11-13 (list only). Segment pills

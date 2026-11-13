@@ -1,5 +1,5 @@
 // A sideways swipe that steps a walk (Proposal A: "swipe left and right on the card"): the Apply
-// job's pager and the Find Deck (#545). Only a clear sideways swipe of 64px or more counts, never one
+// job's pager (the Find Deck that shared it went in #714). Only a clear sideways swipe of 64px or more counts, never one
 // that starts in a field or in something that scrolls sideways itself. `.rjb-swipe` (base.css) keeps
 // the page's own up-and-down scroll.
 import { useRef, type ReactNode, type TouchEvent } from 'react';
