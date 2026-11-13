@@ -36,7 +36,7 @@
     "learned:check": "node scripts/check-learned-trailer.mjs"
   },
   "dependencies": {
-    "@hirobius/design-system": "0.41.0",
+    "@hirobius/design-system": "0.43.0",
     "@supabase/supabase-js": "2.118.0",
     "@vercel/analytics": "2.0.1",
     "react": "19.3.1",
