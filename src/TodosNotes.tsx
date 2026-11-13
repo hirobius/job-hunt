@@ -55,7 +55,7 @@ function NotesField({ job }: { job: Job }) {
     };
   }, [flush]);
   return (
-    <Stack gap="tight">
+    <Box>
       <Textarea
         aria-label="Notes"
         rows={3}
@@ -70,11 +70,14 @@ function NotesField({ job }: { job: Job }) {
         }}
         onBlur={flush}
       />
-      {/* Polite: it never interrupts typing. Empty until the first edit. */}
-      <Text variant="caption" as="p" tone="secondary" role="status" aria-live="polite">
-        {NOTES_STATUS[state]}
-      </Text>
-    </Stack>
+      {/* Polite: it never interrupts typing. Empty (no height) until the first edit, so the
+          page does not change before one. */}
+      <Box role="status" aria-live="polite" sx={{ pt: state === 'idle' ? 0 : 'xs' }}>
+        <Text variant="caption" as="p" tone="secondary">
+          {NOTES_STATUS[state]}
+        </Text>
+      </Box>
+    </Box>
   );
 }
 
