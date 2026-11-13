@@ -277,7 +277,12 @@ export default function ReviewView({
   const empty = <FindEmpty cause={emptyCause} onClear={() => setOn([])} />;
   // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
   // (a compact two-icon segmented group) on the right; it wraps at narrow widths.
-  const tools = (
+  // The toggle shows only beside postings (Adrian 2026-11-13): no cards on screen (nothing read
+  // yet, loading, an error, or FindEmpty: none / caughtUp / filtered, incl. a Deck emptied by its
+  // last decision) and it hides, so it never floats alone. Where it shows, it stays put.
+  const showToggle = listed.length > 0 && !feed.error;
+  const showChips = !!view && view.rows.length > 0;
+  const tools = showToggle && (
     <Stack direction="row" gap="px16" align="center" className="rjb-review-tools">
       {/* List | Deck as one toggle (Adrian 2026-11-13): one HDS Button over the whole track, a tap
           anywhere flips to the other view (Space and Enter too). Both icons show, the open one
@@ -325,46 +330,48 @@ export default function ReviewView({
                     ? `${listed.length} postings, ${counts.new} new`
                     : ''))}
           </VisuallyHidden>
-          <Stack
-            direction="row"
-            gap="px8"
-            align="center"
-            justify="space-between"
-            className="rjb-review-row"
-          >
-            {view && view.rows.length > 0 && (
-              <Stack
-                direction="row"
-                wrap="wrap"
-                gap="xs"
-                role="group"
-                aria-label="Filter postings"
-                className="rjb-review-chips"
-              >
-                {FILTERS.map((f) => (
-                  <Tag
-                    key={f}
-                    active={on.includes(f)}
-                    aria-pressed={on.includes(f)}
-                    // New keeps its count; Remote is a plain toggle (Find controls, 2026-11-13). The
-                    // name says what is shown, label then count (axe label-content-name-mismatch).
-                    aria-label={f === 'new' ? `${FILTER_LABEL[f]} ${counts[f]}` : FILTER_LABEL[f]}
-                    onClick={() => toggle(f)}
-                  >
-                    {f === 'new' ? (
-                      <Stack as="span" direction="row" gap="px4" align="center">
-                        {FILTER_LABEL[f]}{' '}
-                        <CountBadge count={counts[f]} className="rjb-chip-count" />
-                      </Stack>
-                    ) : (
-                      FILTER_LABEL[f]
-                    )}
-                  </Tag>
-                ))}
-              </Stack>
-            )}
-            {tools}
-          </Stack>
+          {(showChips || showToggle) && (
+            <Stack
+              direction="row"
+              gap="px8"
+              align="center"
+              justify="space-between"
+              className="rjb-review-row"
+            >
+              {showChips && (
+                <Stack
+                  direction="row"
+                  wrap="wrap"
+                  gap="xs"
+                  role="group"
+                  aria-label="Filter postings"
+                  className="rjb-review-chips"
+                >
+                  {FILTERS.map((f) => (
+                    <Tag
+                      key={f}
+                      active={on.includes(f)}
+                      aria-pressed={on.includes(f)}
+                      // New keeps its count; Remote is a plain toggle (Find controls, 2026-11-13). The
+                      // name says what is shown, label then count (axe label-content-name-mismatch).
+                      aria-label={f === 'new' ? `${FILTER_LABEL[f]} ${counts[f]}` : FILTER_LABEL[f]}
+                      onClick={() => toggle(f)}
+                    >
+                      {f === 'new' ? (
+                        <Stack as="span" direction="row" gap="px4" align="center">
+                          {FILTER_LABEL[f]}{' '}
+                          <CountBadge count={counts[f]} className="rjb-chip-count" />
+                        </Stack>
+                      ) : (
+                        FILTER_LABEL[f]
+                      )}
+                    </Tag>
+                  ))}
+                </Stack>
+              )}
+              {tools}
+            </Stack>
+          )}
         </Stack>
       </PanelBody>
       {feed.error ? (
