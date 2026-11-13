@@ -149,7 +149,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   the page bar, 2026-11-12). No second row on a phone. The tabs show no counts (Find controls, 2026-11-13). Find and Apply
   are two equal segments, the label centred, the whole segment the target (44 px tall on a phone). Segment corners are concentric: the
   inner radius is the rail's radius less its padding, and the open segment's 3 px bottom edge follows that radius. The
-  app bar's sun/moon and the Account button match: a 44 px box, a 28 px icon (#694). Account is a ghost icon button: the
+  app bar's sun/moon and the Account button match: a 44 px box, a 28 px icon (#694). Account is a ghost icon button:
   a filled 28 px circle (content primary) with a person knocked out signed out, your initial knocked out signed in (the bar shows through) (no grey avatar disc, never a menu icon).
 - **The logo is the home link (#620).** A tap on the logo opens Find at its root. Its target is 44 px.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
