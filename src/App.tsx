@@ -53,6 +53,8 @@ import DialogHold from './DialogHold';
 // loaded, so moving between them never flashes a skeleton).
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 // The count beside each top tab (#548): its own chunk (pipelineView is not in the entry).
+// The app bar's theme switch and its burn (#688): its own chunk.
+const ThemeBurnToggle = lazy(importFresh(() => import('./burn/ThemeBurnToggle')));
 const TopTabCount = lazy(importFresh(() => import('./TopTabCount')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
 // The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan
@@ -337,7 +339,14 @@ export default function App() {
                   >
                     <BrandLogo fontSize={19} />
                   </a>
-                  <AccountMenu />
+                  <Stack direction="row" gap="px4" align="center">
+                    <Suspense
+                      fallback={<span className="rjb-theme-toggle-hold" aria-hidden="true" />}
+                    >
+                      <ThemeBurnToggle />
+                    </Suspense>
+                    <AccountMenu />
+                  </Stack>
                 </Stack>
               </Box>
               <Box as="main" className="rjb-main">

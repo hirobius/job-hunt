@@ -298,11 +298,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
-  (**9 items in 4 groups, redesign §5.9, #549**: who | things | display | about. Signed out: "On this device only. Sign in to sync across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
+  (**8 items in 4 groups, redesign §5.9, #549**; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Signed out: "On this device only. Sign in to sync across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
   in" as a grey key** (`signInCopy.ts` `SIGN_IN_ITEM`; HDS secondary `Button` as the
   `Menu.Item`, `.rjb-menu-key`); signed in: "Signed in as <email>" + sync line as labels, Retry sync when it failed, and
-  Sign out. Things = Documents, Search profile, Companies, Data. Display = **Dark theme** and **Pause animations**,
-  toggles that show their state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role
+  Sign out. Things = Documents, Search profile, Companies, Data. Display = **Pause animations**,
+  a toggle that shows its state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role
   `menuitemcheckbox` + `aria-checked` and a drawn switch, `.rjb-menu-switch` in late.css; G9 hds#1440). About = Send
   feedback, Privacy and terms. Every row has a 16px icon; rows are 44px on a phone (HDS `hds-touch-row`) and 38px from
   sm (late.css). **Scan details moved into the Search profile** (a closed HDS Disclosure row at its end, `ScanDetails.tsx`).
@@ -478,6 +478,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/hds-gaps/FactLines.tsx` (hds#1509)
   (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
   (inline) in `DetailTitleBlock`, the posting cards and Daily picks. Both are in the HDS gap registry.
+- **Theme toggle + burn (#688):** the app bar's HDS `ThemeToggle` (left of the Account avatar, 44px; its own name
+  "Switch to dark/light theme", no aria-pressed, HDS's contract) is the one theme switch; `src/burn/ThemeBurnToggle.tsx`,
+  a lazy chunk with a 44px hold (`.rjb-theme-toggle-hold`). `ColorMode.burnToggle(at)` reveals the new theme from the
+  tap point (the button's centre from the keyboard): `src/burn/burn.ts` (lazy, `importFresh`) runs a View Transition,
+  holds it open and clips the new snapshot to `burnField.ts`'s front (`clip-path: path()`, a thin char band ahead of it).
+  `BURN` is **locked** (Adrian 2026-11-12: 2000 ms, cell 2, fps 11…; `burnField.test.ts`). No View Transitions,
+  reduced motion or Pause animations = an instant swap. Both theme-color metas take the page background on every
+  swap (`ColorMode.syncThemeColor`). Save on Find flies the card to the Apply tab, which pulses (`saveFlight.ts`
+  `saveRow`); the card burn is off (open choice). The Account sheet shows no focus ring on a row the pointer or a
+  tap highlights (late.css); opened by the keyboard, the first row takes focus with its ring, also when the rows'
+  chunk lands late. Pinned in `burnField.test.ts`, `colorModeBurn.test.tsx`, `shell.test.tsx`, `e2e/theme-toggle.spec.ts`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`, G7 hds#1438); **one app-bar row at every width (#548):**

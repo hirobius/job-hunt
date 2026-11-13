@@ -1,5 +1,5 @@
-// A Menu row that is an on/off toggle (redesign §5.9, #549): the Account menu's Dark theme and
-// Pause animations. HDS Menu has a CheckboxItem (a check mark on the left) but no row with a switch
+// A Menu row that is an on/off toggle (redesign §5.9, #549): the Account menu's Pause
+// animations (Dark theme left for the app bar's ThemeToggle, #688). HDS Menu has a CheckboxItem (a check mark on the left) but no row with a switch
 // on its end and a fixed label. This is an HDS Menu.Item with the checkbox item's role and state
 // (`menuitemcheckbox`, `aria-checked`, as Radix's CheckboxItem sets them), a 16px icon, the label
 // and a switch drawn on the right (`.rjb-menu-switch`, theme/late.css; decorative, the state is

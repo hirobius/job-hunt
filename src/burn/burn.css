@@ -1,0 +1,31 @@
+/* The theme burn (burn.ts, lazy). No colour of its own: the char band is the old page colour
+   (--rjb-burn-tone, read before the swap) darkened. */
+.rjb-burn-rim {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+.rjb-burn-char {
+  fill: color-mix(in srgb, var(--rjb-burn-tone) 55%, black);
+  fill-opacity: var(--rjb-burn-char);
+}
+:root[data-rjb-burning]::view-transition-old(root),
+:root[data-rjb-burning]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root[data-rjb-burning]::view-transition-new(root) {
+  z-index: 2;
+  clip-path: var(--rjb-burn-clip);
+}
+:root[data-rjb-burning]::view-transition-group(rjb-burn-rim) {
+  z-index: 3;
+  animation: none;
+}
+.rjb-burn-rim[data-root] {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  view-transition-name: rjb-burn-rim;
+}

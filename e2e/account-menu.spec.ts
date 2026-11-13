@@ -99,8 +99,9 @@ test('the Data dialog is a centred dialog on a desktop', async ({ page }) => {
   await expect(dialog.locator('.rjb-sheet-handle')).toBeHidden();
 });
 
-// #549: 9 items in 4 groups. Each row has a 16px icon; rows are 44px on a phone and 38px on a
-// desktop; Dark theme and Pause animations are toggles that show their state; Sign in is a grey key.
+// #549: 8 items in 4 groups (#688: the theme is the app bar's ThemeToggle). Each row has a 16px
+// icon; rows are 44px on a phone and 38px on a desktop; Pause animations is a toggle that shows its
+// state; Sign in is a grey key.
 for (const [width, height, row] of [
   [390, 844, 44],
   [1440, 900, 38],
@@ -114,7 +115,8 @@ for (const [width, height, row] of [
       menu.getByText('On this device only. Sign in to sync across devices.', { exact: true }),
     ).toBeVisible();
     const rows = menu.locator('[role="menuitem"]:not(.rjb-menu-key), [role="menuitemcheckbox"]');
-    await expect(rows).toHaveCount(8);
+    await expect(rows).toHaveCount(7);
+    await expect(menu.getByRole('menuitemcheckbox', { name: 'Dark theme' })).toHaveCount(0);
     for (const r of await rows.all()) {
       const b = (await r.boundingBox())!;
       expect(Math.round(b.height), await r.innerText()).toBe(row);
@@ -129,18 +131,15 @@ for (const [width, height, row] of [
     const bg = await key.evaluate((n) => getComputedStyle(n).backgroundColor);
     expect(bg).not.toBe('rgba(0, 0, 0, 0)');
     if (width === 390) expect((await key.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    // Dark theme flips in place: the menu stays open and the switch moves.
-    const dark = menu.getByRole('menuitemcheckbox', { name: 'Dark theme' });
-    const was = await dark.getAttribute('aria-checked');
-    const sw = dark.locator('.rjb-menu-switch');
+    // Pause animations flips in place: the menu stays open and the switch moves.
+    const pause = menu.getByRole('menuitemcheckbox', { name: 'Pause animations' });
+    const was = await pause.getAttribute('aria-checked');
+    const sw = pause.locator('.rjb-menu-switch');
     const before = (await sw.evaluate((n) => getComputedStyle(n).backgroundColor)) as string;
-    await dark.click();
+    await pause.click();
     await expect(menu).toBeVisible();
-    await expect(dark).toHaveAttribute('aria-checked', was === 'true' ? 'false' : 'true');
+    await expect(pause).toHaveAttribute('aria-checked', was === 'true' ? 'false' : 'true');
     await expect
       .poll(() => sw.evaluate((n) => getComputedStyle(n).backgroundColor))
       .not.toBe(before);
-    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(
-      was === 'true' ? 'light' : 'dark',
-    );
   });

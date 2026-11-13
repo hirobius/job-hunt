@@ -109,3 +109,18 @@
     background: var(--semantic-color-border-strong);
   }
 }
+
+/* #688: a row the pointer (or a phone's emulated mouse, as the sheet slides up under the finger)
+   highlights draws no focus ring; HDS rings every highlighted row (.hds-focus-inset[data-highlighted]).
+   Opened by keyboard, Radix focuses the first row and arrows move it: :focus-visible, so the ring
+   stays. On a touch screen the hover fill goes too, so nothing mid-list looks picked. */
+[data-hds] .rjb-menu-sheet [role^='menuitem'][data-highlighted]:not(:focus-visible) {
+  outline: none;
+}
+@media (hover: none) {
+  [data-hds]
+    .rjb-menu-sheet
+    [role^='menuitem']:not(.rjb-menu-key)[data-highlighted]:not(:focus-visible) {
+    background-color: transparent;
+  }
+}

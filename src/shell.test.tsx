@@ -207,7 +207,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.lastElementChild).toHaveTextContent(BRAND.name);
   });
 
-  it('signed out, the account menu is 9 items in 4 groups: who | things | display | about (#549)', async () => {
+  it('signed out, the account menu is 8 items in 4 groups: who | things | display | about (#549)', async () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
@@ -220,7 +220,6 @@ describe('app shell (#115 Phase 1)', () => {
       // Data (#550): back up, restore, export and the repairs, in one lazy dialog.
       'item:Data',
       '---',
-      'toggle:Dark theme',
       // WCAG 2.2.2 (#516): the app bar's flame loops on; this stops it.
       'toggle:Pause animations',
       '---',
@@ -334,15 +333,27 @@ describe('app shell (#115 Phase 1)', () => {
     ).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('Dark theme is a toggle that flips the colour mode and shows it', async () => {
+  it("the app bar's HDS ThemeToggle flips the colour mode at once where the burn cannot run", async () => {
     renderApp();
     const before = document.documentElement.dataset.theme;
+    const next = before === 'dark' ? 'light' : 'dark';
+    const header = screen.getByRole('banner');
+    const toggle = await within(header).findByRole('button', { name: `Switch to ${next} theme` });
+    // HDS's contract: the name says what happens next; the state is not repeated as aria-pressed.
+    expect(toggle).not.toHaveAttribute('aria-pressed');
+    // It sits left of the Account button.
+    const account = within(header).getByRole('button', { name: 'Account' });
+    expect(toggle.compareDocumentPosition(account) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // jsdom has no View Transitions and no matchMedia: the swap is instant.
+    await userEvent.click(toggle);
+    expect(document.documentElement.dataset.theme).toBe(next);
+    expect(localStorage.getItem('rjb_color_mode')).toBe(next);
+    expect(
+      within(header).getByRole('button', { name: `Switch to ${before} theme` }),
+    ).toBeInTheDocument();
+    // No Dark theme row in the Account menu any more (#688).
     const menu = await openAccount();
-    const dark = within(menu).getByRole('menuitemcheckbox', { name: 'Dark theme' });
-    expect(dark).toHaveAttribute('aria-checked', String(before === 'dark'));
-    await userEvent.click(dark);
-    expect(document.documentElement.dataset.theme).not.toBe(before);
-    expect(dark).toHaveAttribute('aria-checked', String(before !== 'dark'));
+    expect(within(menu).queryByRole('menuitemcheckbox', { name: 'Dark theme' })).toBeNull();
   });
 
   it('Back up in the menu downloads a backup file', async () => {
@@ -433,7 +444,6 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'item:Companies',
       'item:Data',
       '---',
-      'toggle:Dark theme',
       'toggle:Pause animations',
       '---',
       'item:Send feedback',

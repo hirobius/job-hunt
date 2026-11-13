@@ -107,11 +107,11 @@ describe('FIGMA-RULES.md', () => {
     expect(old.every((l) => /renamed Find · Apply/.test(l))).toBe(true);
   });
 
-  it('pins the Account menu (#549): 9 items in 4 groups, toggles that show their state', () => {
-    expect(RULES).toMatch(/\*\*The Account menu \(#549\): 9 items in 4 groups\.\*\*/);
-    expect(CLAUDE).toMatch(/9 items in 4 groups, redesign §5\.9, #549/);
+  it('pins the Account menu (#549): 8 items in 4 groups, toggles that show their state', () => {
+    expect(RULES).toMatch(/\*\*The Account menu \(#549\): 8 items in 4 groups\.\*\*/);
+    expect(CLAUDE).toMatch(/8 items in 4 groups, redesign §5\.9, #549/);
     const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
-    for (const name of ['SIGN_IN_LABEL', 'SIGN_IN_ITEM', 'Dark theme'])
+    for (const name of ['SIGN_IN_LABEL', 'SIGN_IN_ITEM', 'Pause animations'])
       expect(menu).toContain(name);
     // The signed-out group: a short label with the benefit, then the key "Sign in".
     const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');

@@ -83,6 +83,7 @@ import { addJobDetailed } from './store';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
+import { saveRow } from './saveFlight';
 import { usePostingText } from './feed/postingText';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
@@ -574,7 +575,7 @@ interface RowActions {
 const rowActions: RowActions = {
   // The row collapses first, then the job is saved (a saved posting leaves the list).
   save: (r, from) =>
-    collapseRow(from, () => {
+    saveRow(from, () => {
       // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
       if (alreadyInApply(r.url)) return;
       const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
