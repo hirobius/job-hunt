@@ -177,10 +177,8 @@ function marcher(F: Float32Array, W: number, H: number, c: number, ox: number, o
             s === 0 ? n * 2 : s === 1 ? (n + 1) * 2 + 1 : s === 2 ? (n + W) * 2 : n * 2 + 1;
           if (stamp[key] !== frame) {
             stamp[key] = frame;
-            if (s === 0) ((px[key] = x + c * f(a, b)), (py[key] = y));
-            else if (s === 1) ((px[key] = x + c), (py[key] = y + c * f(b, d)));
-            else if (s === 2) ((px[key] = x + c * f(e, d)), (py[key] = y + c));
-            else ((px[key] = x), (py[key] = y + c * f(a, e)));
+            px[key] = s === 0 ? x + c * f(a, b) : s === 1 ? x + c : s === 2 ? x + c * f(e, d) : x;
+            py[key] = s === 0 ? y : s === 1 ? y + c * f(b, d) : s === 2 ? y + c : y + c * f(a, e);
           }
           if ((k & 1) === 0) {
             const s2 = tb[k + 1];
