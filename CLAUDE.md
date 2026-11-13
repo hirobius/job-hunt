@@ -501,6 +501,20 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `saveRow`); the card burn is off (open choice). The Account sheet shows no focus ring on a row the pointer or a
   tap highlights (late.css); opened by the keyboard, the first row takes focus with its ring, also when the rows'
   chunk lands late. Pinned in `burnField.test.ts`, `colorModeBurn.test.tsx`, `shell.test.tsx`, `e2e/theme-toggle.spec.ts`.
+- **Full description in Find's detail (2026-11-13, Adrian on Ramp's Ashby postings):** the detail's Description is
+  `src/PostingDescription.tsx` (in Find's chunk, never the entry): the WHOLE text, never cut ("…" stays on list
+  cards' excerpts only). `feed/postingBody.ts` `usePostingBody` reads the source's HTML again, because a held text
+  may be a cut (the auto-scan's 1500 `TEXT_MAX`, the server's match_text, a light read): Greenhouse's single job,
+  Lever's single posting, Ashby's board list (the Feed's 1 h cache); only hosts the Feed already reads (no CSP or
+  `legal.ts` change); a Skeleton until it lands, the held text on a failed read. `feed/richText.ts` turns it into a
+  tree by an allow-list walk over DOMParser (p, br, ul, ol, li, strong/b, em/i, h1 to h6, and an `a` only with an
+  http(s) `httpUrl` href; script, style, iframe, img, svg, forms dropped with their content; no attribute kept),
+  rendered as React elements (no innerHTML). Headings sit under the panel's h2: h1/h2 → h3 (`Text body bold`),
+  h3 to h6 → h4 (`Text ui bold`); an all-caps line alone (Ashby's `<p><strong>ABOUT RAMP</strong></p>`) is an h4.
+  All-caps headings go to sentence case (`sentenceCase`): acronyms in `ACRONYMS` (UX, API, US, EU…) or with a digit
+  stay, the company's own words keep their casing ("About Ramp"). Plain text falls back to paragraphs, "-"/"•"/"1."
+  bullet lists and caps headings (`textToBlocks`). Pinned in `feed/richText.test.ts`, `postingDescription.test.tsx`,
+  `e2e/full-description.spec.ts`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`, G7 hds#1438); **one app-bar row at every width (#548):**
