@@ -241,8 +241,8 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).not.toMatch(/fit first/);
   });
 
-  it('pins Copy into the form (#539)', () => {
-    expect(RULES).toMatch(/Copy into the form/);
+  it('pins no Application kit on a job (2026-11-13)', () => {
+    expect(RULES).toMatch(/No Application kit on a job/);
     const base = fs.readFileSync('src/theme/base.css', 'utf8');
     expect(base).not.toMatch(/^\.rjb-blank \{/m);
     expect(base).not.toContain('.rjb-template-row');

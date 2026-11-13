@@ -1,4 +1,4 @@
-import { JOB_LINK, openApply, currentTab } from './routes';
+import { JOB_LINK, openApply, currentTab, accountMenuItem } from './routes';
 import { test, expect } from '@playwright/test';
 
 // The Documents library end to end (#227, #230): it opens from the Menu, an edited Outreach message
@@ -49,11 +49,13 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await docs.getByRole('button', { name: 'Close' }).click();
   await expect(docs).toBeHidden();
   await openApply(page);
-  // Documents opens as a dialog over this job (#471 slice 4), so closing it or a Save comes back here.
-  await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
-    'href',
-    /^#\/apply\/[^?]+\?documents=$/,
-  );
+  // Documents opens as a dialog over this job (#471 slice 4), so closing it comes back here.
+  await accountMenuItem(page, 'Documents');
+  await expect(page).toHaveURL(/#\/apply\/[^?]+\?documents=$/);
+  await page
+    .getByRole('dialog', { name: 'Documents' })
+    .getByRole('button', { name: 'Close' })
+    .click();
 
   // The job page links its company to the Company page, which links back to the job.
   await page.evaluate(() => (location.hash = '#/apply'));

@@ -8,7 +8,7 @@
 // for one key and two for more (`data-rows`). When a key with focus leaves (the job's state
 // changed, e.g. a sync from another device), focus goes to the new filled key, or to `onKeysGone`
 // when no key is left (#540 contract, #593); a key that stays keeps its focus. `row` puts every key
-// in one row, in order (the Find Deck, #545: Skip grey, Save filled on the right).
+// in one row, in order.
 // Delete this when HDS ships a bottom action bar.
 // hds-gap: hirobius/hds#1432 (G1: a bottom dock that hides while a field has focus)
 import { Children, useCallback, useLayoutEffect, useRef, type ReactNode } from 'react';

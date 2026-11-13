@@ -158,7 +158,7 @@ describe('Review new: Browse', () => {
     const { container } = renderReview();
     const ul = await list();
     expect(titles(ul)).toHaveLength(3);
-    // Said to a screen reader only: no status text above Browse / Deck (Adrian 2026-11-08).
+    // Said to a screen reader only: no status text above the list (Adrian 2026-11-08).
     expect(screen.getByRole('status')).toHaveTextContent('3 new today from 2 sources');
     // Sources that didn't answer are the Account menu's Scan details, not a line on the page.
     expect(screen.queryByText(/source unavailable/)).toBeNull();

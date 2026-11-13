@@ -53,7 +53,7 @@ copy, max 4 s.
 **Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (flameEngine's flame + the flickering name, kept as
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
-(`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523; **mass-centred, #556:** the stacked flame moves right by `STACKED_FLAME_NUDGE_EM`, the name's ink offset (`NAME_INK_OFFSET_EM`, measured again in `e2e/brand.spec.ts`) less the flame's mean mass offset (`FLAME_MASS`, measured again over 300 frames in `flameEngine.test.ts`, which fails on a tuning that moves it); the app bar row drops by `INLINE_FLAME_NUDGE_EM` (0.152em, #639) so the flame's mass sits on Sora 800's x-height centre (`X_HEIGHT_CENTRE_EM`, measured again in `e2e/brand.spec.ts`), within 1.5px at 19px (`flameEngine.test.ts`); both are transforms, so no box moves). **Sign-in copy (redesign §5.8, #555):** under the wordmark, the benefit: "Sign in to see your jobs on any device." (body, primary), which describes the form step; "We email you a sign-in link. No password needed." is the Email field's HDS `helperText` (caption, secondary, its description; Adrian 2026-11-12) (`account/signInCopy.ts`); Continue with Google / LinkedIn are HDS secondary `shadow="none"` (HDS 0.41 names it `shadow`, not `depth`) so Send link leads; the Account menu's signed-out group is shorter (Adrian's phone test, 2026-11-12): the label "On this device only. Sign in to sync across devices." then the grey key "Sign in" (`SIGN_IN_LABEL`, `SIGN_IN_ITEM`); the top right control is Pause animations with its icon; Continue without an account stays the underlined exit. Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
+(`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523; **mass-centred, #556:** the stacked flame moves right by `STACKED_FLAME_NUDGE_EM`, the name's ink offset (`NAME_INK_OFFSET_EM`, measured again in `e2e/brand.spec.ts`) less the flame's mean mass offset (`FLAME_MASS`, measured again over 300 frames in `flameEngine.test.ts`, which fails on a tuning that moves it); the app bar row drops by `INLINE_FLAME_NUDGE_EM` (0.123em, #639; was 0.152em on the x-height centre, which read low, Adrian 2026-11-13) so the flame's mass sits on the word's optical centre, the ink centroid of "roleflame" in Sora 800 (`WORD_INK_CENTRE_EM` 0.031em: the x-height band, the f and l ascenders counting by their area; `X_HEIGHT_CENTRE_EM` 0.06 stays as the lower bound; both measured again in `e2e/brand.spec.ts`), within 0.5px at 19px (`flameEngine.test.ts`); both are transforms, so no box moves). **Sign-in copy (redesign §5.8, #555):** under the wordmark, the benefit: "Sign in to see your jobs on any device." (body, primary), which describes the form step; "We email you a sign-in link. No password needed." is the Email field's HDS `helperText` (caption, secondary, its description; Adrian 2026-11-12) (`account/signInCopy.ts`); Continue with Google / LinkedIn are HDS secondary `shadow="none"` (HDS 0.41 names it `shadow`, not `depth`) so Send link leads; the Account menu's signed-out group is shorter (Adrian's phone test, 2026-11-12): the label "On this device only. Sign in to sync across devices." then the grey key "Sign in" (`SIGN_IN_LABEL`, `SIGN_IN_ITEM`); the top right control is Pause animations with its icon; Continue without an account stays the underlined exit. **One legal line at the foot** (Adrian 2026-11-13, after Tailscale's login page): "By signing in, you agree to <BRAND>’s Terms of use and Privacy policy.", a caption whose two HDS InlineLinks are the page's hash with `?legal=terms|privacy` (`route.legalHash`), so Privacy and terms opens on its tab over the screen and Escape / Back return to it; the screen's only legal links (`SIGN_IN_AGREE`, pinned in `SignInDialog.test.tsx`, `e2e/sign-in.spec.ts`). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: the HDS variable Sora covers 400–700 and the logo keeps its own Sora 800; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
 inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** toggle (WCAG 2.2.2;
@@ -95,14 +95,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   application; `checkJobLink` in `store.ts` refuses a link a browser cannot open or another job's before anything is
   saved, #593), follow-up due (Copy follow-up, then Mark followed up and Close out, those two with Undo, in `applyActions.ts`;
   More keeps "Follow up…" for the dialog), Interviewing (Add interview), else no dock. The "Templates (N)"
-  disclosure (`ApplyTemplates`, `templatesOpen.ts`, `.rjb-template-row`, `ApplySheet.css`) is deleted; the kit links
-  to Documents and, with no messages, shows no message rows. Pinned in `dockKeys.test.ts`, `jobPage.test.tsx`,
+  disclosure (`ApplyTemplates`, `templatesOpen.ts`, `.rjb-template-row`, `ApplySheet.css`) is deleted. Pinned in `dockKeys.test.ts`, `jobPage.test.tsx`,
   `e2e/job-states.spec.ts`.
-- **Copy into the form (redesign §5.5, #539):** the Application kit panel is "Copy into the form": filled fields
-  are HDS `Tag` chips with a copy icon (`CopyChip` in `ApplySheet.tsx`, G4 hds#1435), "Copied" for 1.5 s and a
-  polite status; empty fields fold into "N more fields are empty. Add them"; Edit (aria-expanded) opens the field
-  rows. A failed copy toasts the text itself (`copyFailed`, `templateCopy.ts`). `.rjb-blank` moved to
-  `BlankText.css` (lazy, off base.css); `.rjb-template-row` went with the Templates disclosure (#540). Pinned in `e2e/copy-chips.spec.ts`.
+- **No Application kit on the job view (Adrian 2026-11-13):** the "Copy into the form" panel (`ApplySheet.tsx`,
+  #539's copy chips, the kit's message rows and Custom answers) is deleted. The kit's data is kept: `applyKit.ts`
+  (`rjb_apply_kit`, blob v6) stays in storage, sync, Back up and the merge, and its name still fills `[Your name]`.
+  A stale template pick is no longer cleared (nothing reads it on screen). Pinned in `rapidApply.test.tsx`.
 - **One saved list (redesign §5.3, #534):** Apply is the saved list. Find's Save (primary, plus icon) toasts
   "Added to Apply: <title>" with Open and Undo; a double Save is a no-op (`alreadyInApply`); Undo toasts survive
   navigation for their full timeout (no route dismissal in `saveNotice.ts`). The star
@@ -170,7 +168,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.41.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.43.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `package.json` pins it by its full tarball URL and `.npmrc` keeps only the auth line (no `@hirobius` scope
   mapping, job-hunt#567), so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`) and design-system
@@ -244,7 +242,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `#/apply`, `#/queue/<id>` → `#/apply/<id>` (origin and section kept); an old `?from=` reads as its new route
   (`originOf`, `routeLabel`). **There is no Apply mode, To apply panel or Start applying on Apply:** the tab is
   the walk. One job view (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`;
-  a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then `ApplySheet.tsx` Templates + Application kit, then Details,
+  a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then (no Application kit since 2026-11-13) Details,
   Notes, Documents, Decks). Mark applied / Not a fit open the next job in the list as it shows (in place, before
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
@@ -271,8 +269,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   job page's header and More have them). Follow up and Next 7 days stay under the lg column only.
   `ApplyFilterBar`, `ApplyQueueSummary` and `JobListCard` are deleted. A pick pops the sheet's entry, then replaces the page's, so Back leaves
   the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
-  elsewhere keeps its "← Back". The **Templates** disclosure is gone (#540): the job's messages are rows in Copy into the
-  form (only when there are messages), with Edit documents beside them. No posting
+  elsewhere keeps its "← Back". The **Templates** disclosure is gone (#540), and the Application kit with it (2026-11-13):
+  templates live in Documents. No posting
   glyph by a title on Apply (the header's Open application, or the menu's Open posting). A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
@@ -476,8 +474,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
 - **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/hds-gaps/DisclosureRow.tsx` (hds#1508) wraps HDS
-  `Disclosure variant="row"` (Copy into the form's Why this company / Cover note / Custom answers, Daily
-  picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
+  `Disclosure variant="row"` (Daily picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
   body starts a height tween, so rows jumped; here the gap stays 0, the body pads itself and opens at once.
   BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/hds-gaps/FactLines.tsx` (hds#1509)
   (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
@@ -493,6 +490,20 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `saveRow`); the card burn is off (open choice). The Account sheet shows no focus ring on a row the pointer or a
   tap highlights (late.css); opened by the keyboard, the first row takes focus with its ring, also when the rows'
   chunk lands late. Pinned in `burnField.test.ts`, `colorModeBurn.test.tsx`, `shell.test.tsx`, `e2e/theme-toggle.spec.ts`.
+- **Full description in Find's detail (2026-11-13, Adrian on Ramp's Ashby postings):** the detail's Description is
+  `src/PostingDescription.tsx` (in Find's chunk, never the entry): the WHOLE text, never cut ("…" stays on list
+  cards' excerpts only). `feed/postingBody.ts` `usePostingBody` reads the source's HTML again, because a held text
+  may be a cut (the auto-scan's 1500 `TEXT_MAX`, the server's match_text, a light read): Greenhouse's single job,
+  Lever's single posting, Ashby's board list (the Feed's 1 h cache); only hosts the Feed already reads (no CSP or
+  `legal.ts` change); a Skeleton until it lands, the held text on a failed read. `feed/richText.ts` turns it into a
+  tree by an allow-list walk over DOMParser (p, br, ul, ol, li, strong/b, em/i, h1 to h6, and an `a` only with an
+  http(s) `httpUrl` href; script, style, iframe, img, svg, forms dropped with their content; no attribute kept),
+  rendered as React elements (no innerHTML). Headings sit under the panel's h2: h1/h2 → h3 (`Text body bold`),
+  h3 to h6 → h4 (`Text ui bold`); an all-caps line alone (Ashby's `<p><strong>ABOUT RAMP</strong></p>`) is an h4.
+  All-caps headings go to sentence case (`sentenceCase`): acronyms in `ACRONYMS` (UX, API, US, EU…) or with a digit
+  stay, the company's own words keep their casing ("About Ramp"). Plain text falls back to paragraphs, "-"/"•"/"1."
+  bullet lists and caps headings (`textToBlocks`). Pinned in `feed/richText.test.ts`, `postingDescription.test.tsx`,
+  `e2e/full-description.spec.ts`.
 - **Shell controls (Adrian 2026-11-09):** Find / Apply look like an HDS SegmentedControl (`.rjb-segs` / `.rjb-seg`
   in base.css, HDS tokens) but stay a `nav` of links with `aria-current="page"`, because HDS SegmentedControl is a
   radio group (ask: `docs/hds-upstream-asks/segmented-nav.md`, G7 hds#1438); **one app-bar row at every width (#548):**
@@ -560,7 +571,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   steps back. Close, Escape and the browser's Back shut it on the page (a pop when the dialog-less entry
   is just behind, else in place); opened over a job, a Save closes it there. Old `#/copy-deck[/<id>]`
   links redirect in place to their `?from=` page (else Find) with the dialog open. Reached from the
-  Account menu's Documents item and the Apply sheet's Edit documents link. Headings in it are h2 (the
+  Account menu's Documents item (the job view's Edit documents link went with the Application kit, 2026-11-13). Headings in it are h2 (the
   page keeps its h1). **Grouped lists, one New menu, a blanks count (redesign §5.10, #552):** `DocumentsLibrary`
   is a flat `Panel` per kind on the dialog's one surface, ordered by use (Messages, Cover letters, Résumés, then
   Notes), each with its count; **one New key** heads the library, a Menu of Message, Cover letter, Résumé, Note
@@ -583,8 +594,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   synced snippet store, so a deleted message never comes back and a second device adds nothing.
   "Restore starter messages" re-adds missing `tpl-*` (`restoreStarterOutreach`). **Every fill path reads
   `useOutreachTemplates()`** (latest Version text, values, pinned first; a moved message keeps its
-  snippet id, so `tpl-followup` and the kit's picks still match): Use template, `FollowUp`, the Apply
-  sheet and the kit's letters, all through `templateFill.fillSnippet`. Editor menus are
+  snippet id, so `tpl-followup` and the kit's picks still match): Use template and `FollowUp`, all through `templateFill.fillSnippet`. Editor menus are
   `modal={false}` (a modal menu plus the dialog left the page unclickable). Pinned in
   `documentsRoute.test.tsx`, `documentsLibrary.test.tsx`, `outreachTemplates.test.ts`; E2E
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
@@ -932,7 +942,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   no starter messages are migrated in on a first run or a new device; `AddStarterMessages`
   (`StarterMessages.tsx` → `addStarters.ts` → `restoreStarterOutreach`) adds them in one tap from
   Documents' empty state ("No documents yet": Add starter messages | Start from scratch), the
-  follow-up dialog (an empty message box until then), the Apply sheet and the kit's letters. Sample
+  follow-up dialog (an empty message box until then). Sample
   data stays opt-in and adds no messages. The Search profile form prefills only the design-system titles
   (onboarding, #388) and adds nothing else the user did not finish. Documents'
   empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,

@@ -340,3 +340,32 @@ test('the sign-in copy gives way on a short screen, and still describes it', asy
   await expect(dialog.getByText('Sign in to see your jobs on any device.')).toBeHidden();
   await expect(dialog).toHaveAccessibleDescription(/^Sign in to see your jobs on any device\./);
 });
+
+// Adrian 2026-11-13 (after Tailscale's login page): one legal line at the foot of the sign-in
+// screen. Each link opens Privacy and terms on its tab over the screen; closing it (Escape or the
+// browser's Back) returns to the sign-in screen as it was.
+test('the legal line opens Privacy and terms on its tab, over the sign-in screen', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dialog = await openSignIn(page);
+  await expect(dialog.getByText(/^By signing in, you agree to/)).toBeVisible();
+  await dialog.getByRole('link', { name: 'Terms of use' }).click();
+  const legal = page.getByRole('dialog', { name: 'Privacy and terms' });
+  await expect(legal.getByRole('tab', { name: 'Terms of use' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(legal).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('link', { name: 'Privacy policy' }).click();
+  await expect(legal.getByRole('tab', { name: 'Privacy policy' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.goBack();
+  await expect(legal).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(/#\/apply$/);
+});
