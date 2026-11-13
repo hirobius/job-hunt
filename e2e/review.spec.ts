@@ -244,6 +244,13 @@ for (const width of [390, 1440]) {
     const pager = page.getByRole('navigation', { name: 'Postings in the deck' });
     await expect(pager.getByText('1 of 2')).toBeVisible();
     await expect(pager.getByRole('button', { name: /previous/i })).toBeDisabled();
+    // Find controls (2026-11-13): the pager sits at the right of the Find | Apply row.
+    const navBox = await page.getByRole('navigation', { name: 'Sections' }).boundingBox();
+    const pagerBox = await pager.boundingBox();
+    expect(
+      Math.abs(navBox!.y + navBox!.height / 2 - (pagerBox!.y + pagerBox!.height / 2)),
+    ).toBeLessThan(4);
+    expect(pagerBox!.x).toBeGreaterThan(navBox!.x + navBox!.width);
     await page.getByRole('button', { name: 'Sort: Newest' }).click();
     await expect(page.getByRole('menuitemradio', { name: 'Newest' })).toBeVisible();
     await page.keyboard.press('Escape');
@@ -298,10 +305,12 @@ for (const width of [390, 1440]) {
   });
 }
 
-// Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 390;
-// at 375 the tools may wrap under the chips. At both widths each key's 44px hit area is its own (elementFromPoint).
+// Find controls (2026-11-13): New (two-digit count) and Remote (no count) on the left, Browse | Deck,
+// Sort and More pinned at the right, one row at 375 and 390. Each key's 44px hit area is its own (elementFromPoint).
 for (const width of [375, 390]) {
-  test(`the Review row: one line at 390, its own 44px hit areas (${width})`, async ({ page }) => {
+  test(`the Review row: one line, the right group pinned, its own 44px hit areas (${width})`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => {
       const url = r.request().url();
@@ -340,23 +349,29 @@ for (const width of [375, 390]) {
     await scanFinished(page, since);
     const chips = page.getByRole('group', { name: 'Filter postings' });
     await expect(chips.getByRole('button', { name: /^New \d\d$/ })).toBeVisible();
-    await expect(chips.getByRole('button', { name: /^Remote \d\d$/ })).toBeVisible();
+    await expect(chips.getByRole('button', { name: 'Remote', exact: true })).toBeVisible();
     const sort = page.getByRole('button', { name: /^Sort: / });
-    const [c, s] = [await chips.boundingBox(), await sort.boundingBox()];
-    const sameLine = Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2)) < 4;
-    // One line at 390 is required; at 375 the tools may wrap under the chips (the agreed rule).
-    expect(sameLine).toBe(width >= 390);
-    expect(s!.x + s!.width).toBeLessThanOrEqual(width);
+    const more = page.getByRole('button', { name: 'More: scan and search profile' });
+    const [c, s, m] = [
+      await chips.boundingBox(),
+      await sort.boundingBox(),
+      await more.boundingBox(),
+    ];
+    expect(Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(4);
+    expect(Math.abs(m!.y - s!.y)).toBeLessThan(1);
+    expect(m!.x).toBeGreaterThan(s!.x);
+    // More ends the row, inside the page gutter (20px).
+    expect(m!.x + m!.width).toBeLessThanOrEqual(width - 20);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
     // lands on that key, never its neighbour.
     // A tap just inside the last chip's right edge is the chip's, not Browse's.
-    const remote = chips.getByRole('button', { name: /^Remote / });
+    const remote = chips.getByRole('button', { name: 'Remote', exact: true });
     const onChip = await remote.evaluate((el) => {
       const r = el.getBoundingClientRect();
       return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
     });
     expect(onChip).toBe(true);
-    for (const name of ['Browse', 'Deck', /^Sort: /]) {
+    for (const name of ['Browse', 'Deck', /^Sort: /, 'More: scan and search profile']) {
       const hit = await hitArea(page.getByRole('button', { name }));
       expect(hit.width).toBeGreaterThanOrEqual(44);
       expect(hit.height).toBeGreaterThanOrEqual(44);

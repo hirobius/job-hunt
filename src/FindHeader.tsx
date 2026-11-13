@@ -86,6 +86,8 @@ export function FindMore() {
             iconOnly
             iconLeft={<Icon icon={Ellipsis} />}
             label="More: scan and search profile"
+            // Its 44px hit area grows to its right, past Sort's (base.css .rjb-hit-44).
+            className="rjb-hit-44 rjb-hit-end"
           />
         </Menu.Trigger>
         <Menu.Content align="end">

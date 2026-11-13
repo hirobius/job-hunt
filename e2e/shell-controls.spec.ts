@@ -48,23 +48,12 @@ for (const width of [390, 1440]) {
       await expect(topTab(page, 'Apply')).toHaveAttribute('aria-current', 'page');
     });
 
-    test('Apply shows its To apply count (#548)', async ({ page }) => {
+    test('the top tabs show no counts (2026-11-13)', async ({ page }) => {
       await seed(page);
       await page.goto('/#/apply');
-      const apply = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', {
-        name: /^Apply/,
-      });
-      await expect(apply).toHaveAccessibleName(/^Apply \d+$/);
-      // Below lg the list's status line is the All jobs sheet's description (#543).
-      const scope = (page.viewportSize()?.width ?? 0) < 1024 ? await listScope(page) : page;
-      const status = await scope
-        .getByText(/^To apply · \d+ jobs?/)
-        .first()
-        .textContent();
-      const n = status!.match(/(\d+) jobs?/)![1];
-      // The sheet is modal: close it so the app bar is reachable again.
-      if (scope !== page) await page.keyboard.press('Escape');
-      await expect(apply).toHaveAccessibleName(`Apply ${n}`);
+      const nav = page.getByRole('navigation', { name: 'Sections' });
+      await expect(nav.getByRole('link', { name: /^Apply/ })).toHaveAccessibleName('Apply');
+      await expect(nav.getByRole('link', { name: /^Find/ })).toHaveAccessibleName('Find');
     });
 
     test('Browse / Deck: icon-only toggle buttons with names and tooltips', async ({ page }) => {

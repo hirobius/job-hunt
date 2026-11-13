@@ -348,7 +348,6 @@ export default function ReviewView({
           </VisuallyHidden>
           <Stack
             direction="row"
-            wrap="wrap"
             gap="px8"
             align="center"
             justify="space-between"
