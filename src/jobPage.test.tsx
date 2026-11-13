@@ -350,6 +350,26 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
     expect(screen.getByText(/From when you saved it: Found in Live postings/)).toBeInTheDocument();
   });
 
+  it('drops the older note when Notes already repeats it', () => {
+    addJob(URL_A, 'Design Engineer', 'Recruiter screen');
+    updateJob(URL_A, { company: 'Acme', notes: 'Recruiter screen. Then a panel on Friday.' });
+    openJobPage();
+    expect(screen.queryByText(/From when you saved it/)).toBeNull();
+  });
+
+  it('saves while typing and says so politely under the field', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const notes = screen.getByRole('textbox', { name: 'Notes' });
+    const status = () => within(screen.getByRole('region', { name: 'Notes' })).getByRole('status');
+    expect(status()).toHaveTextContent('');
+    await userEvent.type(notes, 'Hi');
+    expect(status()).toHaveTextContent('Saving…');
+    await waitFor(() => expect(status()).toHaveTextContent('Saved to this job'));
+    expect(status()).toHaveAttribute('aria-live', 'polite');
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Hi');
+  });
+
   it('with only the older note, the Notes field shows it and no duplicate line', () => {
     addJob(URL_A, 'Design Engineer', 'Recruiter screen');
     updateJob(URL_A, { company: 'Acme' });
