@@ -87,7 +87,7 @@ export function JobTitleBlock({ job }: { job: Job }) {
       title={titleOf(job)}
       company={company}
       noCompany="Company not stated"
-      logo={company && <CompanyLogo company={company} postings={[job.url]} />}
+      logo={company && <CompanyLogo inline company={company} postings={[job.url]} />}
       facts={facts}
       badges={badges || undefined}
     />
