@@ -867,11 +867,3 @@ p {
   block-size: 2.75rem;
   flex-shrink: 0;
 }
-
-/* HDS sets `overflow-x: hidden` on html and body. With both set, body becomes a scroll container
- * that never scrolls (the viewport does), so `position: sticky` never sticks (Find's phone pager,
- * Apply's pager). `clip` stops sideways scroll the same way without making a scroll container. */
-html,
-body[data-hds] {
-  overflow-x: clip;
-}

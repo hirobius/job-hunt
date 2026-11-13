@@ -29,3 +29,12 @@
 .rjb-find-list > li {
   scroll-margin-top: calc(var(--rjb-touch) + var(--primitive-space-4));
 }
+
+/* HDS sets `overflow-x: hidden` on html and body. With both set, body is a scroll container that
+ * never scrolls (the viewport does), so `position: sticky` never sticks. While Find's pager shows,
+ * `clip` stops sideways scroll the same way without a scroll container. Scoped to that page only:
+ * elsewhere the change moved right-aligned keys a few px in the baselines. */
+html:has(.rjb-find-pager),
+body[data-hds]:has(.rjb-find-pager) {
+  overflow-x: clip;
+}
