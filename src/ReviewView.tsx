@@ -360,13 +360,7 @@ export default function ReviewView({
                     onClick={() => toggle(f)}
                   >
                     <Stack as="span" direction="row" gap="px4" align="center">
-                      {FILTER_LABEL[f]}
-                      {f !== 'new' && (
-                        <>
-                          {' '}
-                          <CountBadge count={counts[f]} />
-                        </>
-                      )}
+                      {FILTER_LABEL[f]} <CountBadge count={counts[f]} />
                     </Stack>
                   </Tag>
                 ))}

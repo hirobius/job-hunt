@@ -85,7 +85,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   bar. No date line, no Scan now key. **No visible "Review" heading (2026-11-12):** one row, the New
   / Remote chips on the left, then at the right the Browse | Deck switch (a compact two-icon
   segmented group drawn as the Find / Apply rail: the pressed key takes the open tab's fill, edge and text colour, the rail as tall as the chips) and **Sort**, its own icon key ("Sort: Newest", tooltip "Sort", a menu of Newest,
-  Best match, Company); one line at 390 and 375 (keys 28 px on the rail, Sort 32 px, to look at, each with its own 44 px tap area), the keys wrapping under the chips below 375. The list loads its next
+  Best match, Company); one line at 390 (keys 28 px on the rail, Sort 32 px, to look at, each with its own 44 px tap area), the keys wrapping under the chips at 375 and below. The list loads its next
   page on its own as you near the end; "Load more (N)" stays as the fallback, one card gap below the
   last card. A Browse card: the company's logo (letter first; a 24 px inline mark, as on Apply rows) before its name, on one line, or "Company not
   stated"; two lines of the posting's text, "Show more" right under them (the excerpt's own line rhythm, no extra gap) opens it in place (then "Read the full

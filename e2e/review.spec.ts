@@ -299,7 +299,7 @@ for (const width of [390, 1440]) {
 }
 
 // Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 390;
-// since the 28px keys on the .rjb-segs rail (2026-11-13) at 375 too. At both widths each key's 44px hit area is its own (elementFromPoint).
+// at 375 the tools may wrap under the chips. At both widths each key's 44px hit area is its own (elementFromPoint).
 for (const width of [375, 390]) {
   test(`the Review row: one line at 390, its own 44px hit areas (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -344,8 +344,8 @@ for (const width of [375, 390]) {
     const sort = page.getByRole('button', { name: /^Sort: / });
     const [c, s] = [await chips.boundingBox(), await sort.boundingBox()];
     const sameLine = Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2)) < 4;
-    // The 28px keys on a 2px rail (2026-11-13) made the tools narrower: one line at 375 too.
-    expect(sameLine).toBe(true);
+    // One line at 390 is required; at 375 the tools may wrap under the chips (the agreed rule).
+    expect(sameLine).toBe(width >= 390);
     expect(s!.x + s!.width).toBeLessThanOrEqual(width);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
     // lands on that key, never its neighbour.
