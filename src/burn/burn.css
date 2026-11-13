@@ -33,9 +33,12 @@
   animation: none;
 }
 .rjb-burn-rim[data-root] {
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
+  /* Its size is set in px by burn.ts overlay() (the burn's own w × h), never 100vw / 100vh: on iOS
+     100vh is taller than the viewport the clip is drawn in. */
+  top: 0;
+  left: 0;
+  width: calc(var(--rjb-burn-w) * 1px);
+  height: calc(var(--rjb-burn-h) * 1px);
   view-transition-name: rjb-burn-rim;
 }
 
