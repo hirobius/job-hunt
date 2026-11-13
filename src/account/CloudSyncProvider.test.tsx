@@ -215,8 +215,11 @@ describe('CloudSyncProvider (via the account menu)', () => {
       ];
     // The one call does it all: a per-table delete is never sent.
     fake().failNext('groups', 'delete');
+    const signOut = vi.spyOn(fake().client.auth, 'signOut');
     await chooseDataAction('Delete my data');
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    // The server deleted the auth user and its sessions too: sign out on this device only.
+    await waitFor(() => expect(signOut).toHaveBeenCalledWith({ scope: 'local' }));
     for (const t of ['watched_companies', 'postings', 'skips', 'sync_log'])
       expect(
         fake().tables[t].map((r) => r.user_id),

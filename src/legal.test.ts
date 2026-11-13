@@ -90,7 +90,7 @@ describe('legal pages (#43)', () => {
       expect(text(doc)).toContain(OPERATOR);
       expect(text(doc)).toContain(CONTACT_EMAIL);
     }
-    expect(CONTACT_EMAIL).toBe('hello@hirobius.com');
+    expect(CONTACT_EMAIL).toBe('info@hirobius.com'); // pii-allow
   });
 
   it('public copy never links the GitHub org or the npm package', () => {

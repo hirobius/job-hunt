@@ -88,6 +88,17 @@ describe('delete_my_data covers every per-user table', () => {
     );
   });
 
+  it('deletes the sign-in too: the caller’s auth user, after every table (2026-11-13)', () => {
+    const auth = body.search(/delete from auth\.users where id = uid;/);
+    expect(auth).toBeGreaterThan(-1);
+    const lastTable = body.lastIndexOf('delete from public.');
+    expect(auth).toBeGreaterThan(lastTable);
+    // Only the caller's own row, never by any other key.
+    expect(body.match(/delete from auth\.users[^;]*;/g)).toEqual([
+      'delete from auth.users where id = uid;',
+    ]);
+  });
+
   it('the fallback (no function yet) still deletes the tables the app writes', () => {
     expect([...DELETE_ORDER].sort()).toEqual(['categories', 'groups', 'tiles', 'tracker']);
   });

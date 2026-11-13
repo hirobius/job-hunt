@@ -685,7 +685,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (!user || (tabFrozen() && tabFrozen() !== 'newerVersion')) return;
     if (
       !window.confirm(
-        'Delete all your synced data (jobs, tracks, boards, watched companies and scored postings) from the cloud and this device? This cannot be undone.',
+        'Delete all your synced data (jobs, tracks, boards, watched companies and scored postings) and your sign-in from the cloud, and your data from this device? This cannot be undone.',
       )
     )
       return;
@@ -718,7 +718,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     clearLocalData();
     setTabAccount(null);
     handled.current = null;
-    await (await loadSupabase()).auth.signOut();
+    // delete_my_data removed the auth user and its sessions (2026-11-13): end the session on this
+    // device only; a global sign-out would ask the server about a user that is gone.
+    await (await loadSupabase()).auth.signOut({ scope: 'local' });
     location.reload();
   };
 

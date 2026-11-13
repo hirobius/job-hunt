@@ -6,12 +6,16 @@ import { BRAND } from './brand';
 import { LEGAL_TITLES } from './legalRoute';
 
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
- *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. The server job
- *  searches entry (2026-10-29) is waiting for his review. */
-export const LEGAL_DRAFT = false;
-export const LEGAL_UPDATED = '29 October 2026';
+ *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. The legal gaps
+ *  revision (2026-11-13: privacy contact, erasure of the sign-in, processors and region, retention)
+ *  waits for his review. */
+export const LEGAL_DRAFT = true;
+export const LEGAL_UPDATED = '13 November 2026';
 export const OPERATOR = 'Hirobius';
-export const CONTACT_EMAIL = 'hello@hirobius.com';
+/** The one contact for privacy requests and questions (Adrian 2026-11-13: a public business address). */
+export const CONTACT_EMAIL = 'info@hirobius.com'; // pii-allow: public business address (Adrian 2026-11-13)
+/** Where Supabase keeps account data (the project's region, read 2026-11-13). */
+export const DATA_REGION = 'the United States (AWS us-east-2, Ohio)';
 
 export type LegalSlug = 'privacy' | 'terms';
 
@@ -40,14 +44,13 @@ export interface ThirdParty {
 export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Supabase',
-    purpose:
-      'Sign-in, cloud sync and crash reports. If you sign in, it stores your email address and a copy of your data so it can sync between your devices. It also stores the anonymous crash reports described above.',
+    purpose: `Sign-in, cloud sync and crash reports, as our processor. If you sign in, it stores your email address and a copy of your data so it can sync between your devices. It also stores the anonymous crash reports described above. Your data is stored in ${DATA_REGION}.`,
     hosts: ['https://nelrcmbkimjjmfmgnixj.supabase.co', 'wss://nelrcmbkimjjmfmgnixj.supabase.co'],
   },
   {
     name: 'Vercel',
     purpose:
-      'Hosting, and Web Analytics that counts page views without cookies. Like any web host, it sees your IP address and browser details when you load the app.',
+      'Hosting and Web Analytics, as our processor. It serves the app from its global network and counts page views without cookies. Like any web host, it sees your IP address and browser details when you load the app.',
     hosts: [],
   },
   {
@@ -149,14 +152,20 @@ export const PRIVACY: LegalDoc = {
       heading: 'Your choices',
       paragraphs: [
         'Export: Back up (Account menu, Data) downloads everything as one file, and Export CSV downloads your jobs as a spreadsheet.',
-        'Erasure: when signed in, Delete my data (Account menu, Data) removes your synced data from the cloud and from this device. Your sign-in email stays with Supabase until you ask us to remove it; email us and we will.',
+        'Erasure: when signed in, Delete my data (Account menu, Data) removes your synced data and your sign-in, including your email address, from the cloud, and your data from this device.',
+        `Privacy requests: to ask what we hold about you, to correct it or to have it erased, email ${CONTACT_EMAIL}. We answer within 30 days.`,
         'Signed out, clearing this site’s data in your browser removes everything.',
       ],
     },
     {
       heading: 'How long we keep it',
       paragraphs: [
-        'We keep your synced data until you delete it or ask us to. Crash reports are deleted after 90 days. Page-view counts are kept as totals and are not tied to you.',
+        'Your account and synced data: until you delete them or ask us to.',
+        'Recently removed: a job you remove stays there for 30 days so you can restore it, then it is deleted.',
+        'Crash reports: deleted after 90 days.',
+        'Rate-limit records: to stop floods of crash reports we keep a scrambled code made from your network address, never your address itself, for 2 days.',
+        'Daily picks: deleted after 60 days.',
+        'Page-view counts: kept as totals and not tied to you.',
       ],
     },
     {
