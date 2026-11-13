@@ -152,14 +152,17 @@ describe('the auto-scan', () => {
     window.location.hash = '#/find';
     renderApp();
     const review = await screen.findByRole('region', { name: /^New postings$/ });
-    await within(review).findByRole('button', { name: 'Browse' });
+    await within(review).findByRole('button', { name: /^View: / });
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
-    // No date line: the caption says when the sources were scanned, and no count (the chip has it).
-    expect(screen.getByText('Scanned 2 h ago')).toBeInTheDocument();
+    // No date line, no caption and no More (#694): when the sources were scanned is Scan details',
+    // and no count (the chip has it). Scan now and Search profile are the Account menu's.
+    expect(screen.queryByText('Scanned 2 h ago')).toBeNull();
     expect(screen.queryByText(/^(\d+ new|Nothing new)$/)).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'More: scan and search profile' }));
+    expect(screen.queryByRole('button', { name: /^More: scan/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: /^Account/ }));
     expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
+    expect(screen.queryByText('Scanned 2 h ago')).toBeNull();
     await user.keyboard('{Escape}');
     // Adrian 2026-11-08: the scan's line, the sources unavailable and the "not shown" counts are the
     // Account menu's Scan details.

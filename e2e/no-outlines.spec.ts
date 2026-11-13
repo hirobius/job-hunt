@@ -63,7 +63,8 @@ function probe(page: Page) {
       '[data-sonner-toast]',
       // HDS toasts float over the page (an overlay); since #534 they survive navigation.
       '.hds-toast',
-      '.rjb-avatar',
+      // The Account initial's ring is its glyph's stroke, like CircleUser's (#694).
+      '.rjb-account-initial',
     ].join(',');
     for (const el of document.querySelectorAll('body *')) {
       if (!shown(el)) continue;

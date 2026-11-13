@@ -55,7 +55,6 @@ const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 // The count beside each top tab (#548): its own chunk (pipelineView is not in the entry).
 // The app bar's theme switch and its burn (#688): its own chunk.
 const ThemeBurnToggle = lazy(importFresh(() => import('./burn/ThemeBurnToggle')));
-const TopTabCount = lazy(importFresh(() => import('./TopTabCount')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
 // The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan
 // (importFresh still raises the new-version notice).
@@ -202,22 +201,12 @@ export default function App() {
   // every width (#548: the phone's second row went). HDS SegmentedControl is a radio group (Radix
   // toggle group; arrow keys select), so it cannot be a nav: these stay links in a nav, the open one
   // aria-current="page", drawn with its tokens (base.css .rjb-segs). Upstream ask:
-  // docs/hds-upstream-asks/segmented-nav.md (G7, hds#1438). Each shows its count (TopTabCount).
+  // docs/hds-upstream-asks/segmented-nav.md (G7, hds#1438). No counts on the tabs (Find controls, 2026-11-13).
   const [barSlot, setBarSlot] = useState<HTMLDivElement | null>(null);
   const sections = (
     <Box as="nav" aria-label="Sections" className="rjb-segs">
-      <a {...tabLink(FIND_TAB)}>
-        Find
-        <Suspense fallback={null}>
-          <TopTabCount tab={FIND_TAB} />
-        </Suspense>
-      </a>
-      <a {...tabLink(APPLY_TAB)}>
-        Apply
-        <Suspense fallback={null}>
-          <TopTabCount tab={APPLY_TAB} />
-        </Suspense>
-      </a>
+      <a {...tabLink(FIND_TAB)}>Find</a>
+      <a {...tabLink(APPLY_TAB)}>Apply</a>
     </Box>
   );
 

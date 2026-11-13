@@ -26,8 +26,6 @@ import { currentTab, queryCurrentTab, topTab, topTabs } from './test/topTabs';
 import { BRAND } from './brand';
 import { setScanDetails } from './feed/scanDetails';
 import { addJob, getAllJobs, removeJob } from './store';
-import { setPipelineView } from './pipelineView';
-import { act } from '@testing-library/react';
 
 beforeEach(() => {
   window.location.hash = '';
@@ -159,8 +157,7 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
 });
 
 // One app-bar row at every width (redesign §5.1, #548): the logo and Account; Find / Apply moved into
-// the page bar, the first row of main at top left (2026-11-12), each tab with its count. Find: the new postings Review new last read. Apply: its To apply count, whatever
-// view is open (prod audit 2026-11-12).
+// the page bar, the first row of main at top left (2026-11-12), no counts on the tabs (2026-11-13).
 describe('the one-row app bar (#548)', () => {
   it('the app bar is one row (logo, Account); Find and Apply open the page bar at top left of main', () => {
     renderApp();
@@ -181,35 +178,15 @@ describe('the one-row app bar (#548)', () => {
     expect(screen.getAllByRole('navigation', { name: 'Sections' })).toHaveLength(1);
   });
 
-  it('Apply shows the count of jobs in its list, Find the new postings', async () => {
+  it('the tabs show no counts (Find controls, 2026-11-13)', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    addJob('https://acme.example/jobs/2', 'Design Technologist');
     setScanDetails({ failed: [], hidden: [], newToday: 7, sourcesRead: 3 });
     window.location.hash = '#/apply';
     renderApp();
-    await vi.waitFor(() => expect(topTab('Apply')).toHaveAccessibleName('Apply 2'));
-    expect(topTab('Find')).toHaveAccessibleName('Find 7');
-  });
-
-  it("Apply's count is the To apply count and does not change with the view", async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    addJob('https://acme.example/jobs/2', 'Design Technologist');
-    window.location.hash = '#/apply';
-    renderApp();
-    await vi.waitFor(() => expect(topTab('Apply')).toHaveAccessibleName('Apply 2'));
-    act(() => setPipelineView({ filter: 'closed' }));
-    expect(topTab('Apply')).toHaveAccessibleName('Apply 2');
-    act(() => setPipelineView({ filter: 'applied' }));
-    expect(topTab('Apply')).toHaveAccessibleName('Apply 2');
-  });
-
-  it('no count while it is 0 or not known yet (Find before Review new has read)', async () => {
-    window.location.hash = '#/apply';
-    renderApp();
-    // The count's chunk has landed: a job added now shows at once.
-    addJob('https://acme.example/jobs/3', 'Design Engineer');
-    await vi.waitFor(() => expect(topTab('Apply')).toHaveAccessibleName('Apply 1'));
+    await screen.findByRole('navigation', { name: 'Sections' });
+    expect(topTab('Apply')).toHaveAccessibleName('Apply');
     expect(topTab('Find')).toHaveAccessibleName('Find');
     expect(topTab('Find').textContent).toBe('Find');
+    expect(topTab('Apply').textContent).toBe('Apply');
   });
 });

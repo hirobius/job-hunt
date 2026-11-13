@@ -1,4 +1,4 @@
-// The To apply view's done state (#554): every job applied to, the Apply tab shows the flame,
+// The To apply view's done state (#554): every job applied to, the Apply tab shows the empty-state icon tile,
 // "That is the list", the week's line, one filled key for the next step and the grey All jobs key.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
@@ -52,12 +52,14 @@ afterEach(() => {
 });
 
 describe('Apply done state (#554)', () => {
-  it('shows the flame, the week and two keys, on the page background', async () => {
+  it('shows the icon tile (no flame), the week and two keys, on the page background', async () => {
     renderApp();
     const done = await screen.findByRole('region', { name: 'That is the list' });
-    expect(within(done).getByRole('heading', { name: 'That is the list' })).toBeTruthy();
+    expect(within(done).getByText('That is the list')).toBeTruthy();
     expect(within(done).getByText('You applied to 2 jobs this week.')).toBeTruthy();
-    expect(done.querySelector('.rjb-flame svg')).toBeTruthy();
+    // The standard EmptyState icon tile (2026-11-13), no flame.
+    expect(done.querySelector('[aria-hidden="true"] svg')).toBeTruthy();
+    expect(done.querySelector('.rjb-flame')).toBeNull();
     // No card around it (#553).
     expect(done.closest('[data-padding][data-variant]')).toBeNull();
     const next = within(done).getByRole('button', { name: 'Find more jobs' });

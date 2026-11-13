@@ -311,27 +311,27 @@ p {
   --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
 }
 
-/* The Account avatar (rev-3 P, mock #s-account-menu): a 32px circle with a hairline, and the
- * unsynced Badge sitting on its rim with a page-colour ring. HDS's phone touch-size rule
- * (`.h-8 { min-height }`, `.w-8[class*=h-8] { min-width }` below 640) also hits the Avatar span,
- * which is not a control, inflating it to 44px inside its 40px button and pushing the badge off
- * the circle. Upstream ask: the touch-size rule must not target Avatar (docs/hds-upstream-asks-0.9.md). */
-/* The same rule widens the icon button to 44 on a phone: the app's phone target since 2026-11-08. */
-
-[data-hds] .rjb-avatar {
-  min-width: 0;
-  min-height: 0;
-  border: thin solid var(--semantic-color-border-default);
+/* The Account button (#694): an HDS tertiary icon Button in the ThemeToggle's 44px box, its icon the
+ * toggle's 28px (CircleUser signed out, HDS Icon size). Signed in, the initial sits in a 24px ring drawn in the
+ * icon's colour and stroke, no grey Avatar disc. */
+[data-hds] .rjb-account {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  min-inline-size: 2.75rem;
+  min-height: 2.75rem;
 }
-
-[data-hds] .rjb-avatar > .absolute {
-  top: 1px;
-  right: 1px;
-  width: var(--primitive-space-px10);
-  height: var(--primitive-space-px10);
-  min-width: 0;
-  min-height: 0;
-  box-shadow: 0 0 0 2px var(--semantic-color-surface-page);
+.rjb-account-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--primitive-space-6);
+  block-size: var(--primitive-space-6);
+  border: var(--primitive-space-px2) solid currentColor;
+  border-radius: var(--hds-radius-full);
+  color: var(--semantic-color-content-primary);
+  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-caption-font-size) / 1
+    var(--semantic-typography-ui-font-family);
+  font-weight: 700;
 }
 
 /* The shell's top tabs, Find / Apply (Adrian 2026-11-09): HDS SegmentedControl's look (muted rail,
@@ -339,11 +339,11 @@ p {
  * aria-current="page": HDS SegmentedControl is a radio group (docs/hds-upstream-asks/segmented-nav.md). */
 .rjb-segs {
   --rjb-seg-ledge: 3px;
-  /* Concentric corners (hds#1470): the inner radius is the rail's less its padding and the 1px gap;
+  /* Concentric corners (hds#1470): the inner radius is the rail's less its padding (#694);
    * --seg-rail-pad must stay the real padding. */
   --seg-rail-radius: calc(var(--role-radius) + min(var(--role-radius), var(--primitive-space-1)));
   --seg-rail-pad: var(--primitive-space-1); /* 4px */
-  --seg-inner-radius: max(0px, calc(var(--seg-rail-radius) - var(--seg-rail-pad) - 1px));
+  --seg-inner-radius: max(0px, calc(var(--seg-rail-radius) - var(--seg-rail-pad)));
   /* Two equal segments (2026-11-12): the wider label sets both, each label centred. */
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -356,7 +356,6 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* The label, then its count pill (TopTabCount, an HDS Badge). */
   gap: var(--primitive-space-px6);
   white-space: nowrap;
   min-height: 30px;
@@ -375,7 +374,8 @@ p {
 }
 .rjb-seg[aria-current='page'] {
   color: var(--semantic-color-content-onAccent);
-  /* The 3px edge as a gradient, not a box shadow: the focus ring stays the one ring. */
+  /* The 3px edge as a gradient, not a box shadow: the focus ring stays the one ring, and the fill
+   * is clipped by the pill's own radius, so the edge follows it (#694). */
   background: linear-gradient(
     to top,
     var(--hds-edge-primary) var(--rjb-seg-ledge),
@@ -885,6 +885,14 @@ p {
   block-size: var(--primitive-space-8);
   min-inline-size: var(--primitive-space-8);
   min-height: var(--primitive-space-8);
+}
+
+/* The app bar's theme switch and the Account button match (#694): HDS ThemeToggle is a 44px box
+   whose sun/moon is fixed at 24px, with no size option; it takes 28px, the Account icon's size
+   (hds-gap: ThemeToggle size, docs/hds-upstream-asks-0.9.md). */
+[data-hds] .rjb-theme-toggle .hds-theme-toggle__icon {
+  inline-size: var(--primitive-space-7);
+  block-size: var(--primitive-space-7);
 }
 
 /* The app bar's theme switch holds its 44px place while its chunk loads (#688), so nothing in

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findMenuItem, openScanDetails } from './routes';
+import { accountMenuItem, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
 import { hitArea } from './hitArea';
 
@@ -90,10 +90,10 @@ async function setUp(page: Page) {
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
   // The profile has landed (Review new's own controls show), so the page no longer swaps under
   // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
-  await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
   const since = await page.evaluate(() => Date.now());
-  // Scan now is Find's More menu (#544).
-  await findMenuItem(page, 'Scan now');
+  // Scan now is the Account menu's (#694).
+  await accountMenuItem(page, 'Scan now');
   await scanFinished(page, since);
 }
 
@@ -226,9 +226,9 @@ for (const width of [390, 1440]) {
     // The deck: one card at a time, Skip each of the two left. Past the double-tap guard first: it
     // swallows any press inside the page for 700 ms after Save, Deck's too.
     await page.waitForTimeout(800);
-    const deck = page.getByRole('button', { name: 'Deck' });
+    const deck = page.getByRole('button', { name: 'View: List, switch to Deck' });
     await deck.click();
-    await expect(deck).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'View: Deck, switch to List' })).toBeVisible();
     // The Deck keeps no selection (#546): Find's header shows again, with its "1 of N" caption.
     await expect(page).toHaveURL(/#\/find$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
@@ -244,6 +244,13 @@ for (const width of [390, 1440]) {
     const pager = page.getByRole('navigation', { name: 'Postings in the deck' });
     await expect(pager.getByText('1 of 2')).toBeVisible();
     await expect(pager.getByRole('button', { name: /previous/i })).toBeDisabled();
+    // Find controls (2026-11-13): the pager sits at the right of the Find | Apply row.
+    const navBox = await page.getByRole('navigation', { name: 'Sections' }).boundingBox();
+    const pagerBox = await pager.boundingBox();
+    expect(
+      Math.abs(navBox!.y + navBox!.height / 2 - (pagerBox!.y + pagerBox!.height / 2)),
+    ).toBeLessThan(4);
+    expect(pagerBox!.x).toBeGreaterThan(navBox!.x + navBox!.width);
     await page.getByRole('button', { name: 'Sort: Newest' }).click();
     await expect(page.getByRole('menuitemradio', { name: 'Newest' })).toBeVisible();
     await page.keyboard.press('Escape');
@@ -298,10 +305,12 @@ for (const width of [390, 1440]) {
   });
 }
 
-// Adrian 2026-11-12: the chips (two-digit counts) and Browse | Deck + Sort fit on one row at 390;
-// at 375 the tools may wrap under the chips. At both widths each key's 44px hit area is its own (elementFromPoint).
+// Find controls (2026-11-13): New (two-digit count) and Remote (no count) on the left, Browse | Deck,
+// List | Deck and Sort pinned at the right (no More since #694), one row at 375 and 390. Each key's 44px hit area is its own (elementFromPoint).
 for (const width of [375, 390]) {
-  test(`the Review row: one line at 390, its own 44px hit areas (${width})`, async ({ page }) => {
+  test(`the Review row: one line, the right group pinned, its own 44px hit areas (${width})`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => {
       const url = r.request().url();
@@ -334,29 +343,37 @@ for (const width of [375, 390]) {
       });
     });
     await page.goto('/#/find');
-    await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
     const since = await page.evaluate(() => Date.now());
-    await findMenuItem(page, 'Scan now');
+    await accountMenuItem(page, 'Scan now');
     await scanFinished(page, since);
     const chips = page.getByRole('group', { name: 'Filter postings' });
     await expect(chips.getByRole('button', { name: /^New \d\d$/ })).toBeVisible();
-    await expect(chips.getByRole('button', { name: /^Remote \d\d$/ })).toBeVisible();
+    await expect(chips.getByRole('button', { name: 'Remote', exact: true })).toBeVisible();
     const sort = page.getByRole('button', { name: /^Sort: / });
-    const [c, s] = [await chips.boundingBox(), await sort.boundingBox()];
-    const sameLine = Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2)) < 4;
-    // One line at 390 is required; at 375 the tools may wrap under the chips (the agreed rule).
-    expect(sameLine).toBe(width >= 390);
-    expect(s!.x + s!.width).toBeLessThanOrEqual(width);
+    const view = page.getByRole('button', { name: /^View: / });
+    // No More on Find (#694): List | Deck, then Sort, end the row.
+    await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
+    const [c, s, v] = [
+      await chips.boundingBox(),
+      await sort.boundingBox(),
+      await view.boundingBox(),
+    ];
+    expect(Math.abs(c!.y + c!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(4);
+    expect(Math.abs(v!.y + v!.height / 2 - (s!.y + s!.height / 2))).toBeLessThan(1);
+    expect(s!.x).toBeGreaterThan(v!.x + v!.width);
+    // Sort ends the row, inside the page gutter (20px).
+    expect(s!.x + s!.width).toBeLessThanOrEqual(width - 20);
     // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
     // lands on that key, never its neighbour.
-    // A tap just inside the last chip's right edge is the chip's, not Browse's.
-    const remote = chips.getByRole('button', { name: /^Remote / });
+    // A tap just inside the last chip's right edge is the chip's, not the List | Deck toggle's.
+    const remote = chips.getByRole('button', { name: 'Remote', exact: true });
     const onChip = await remote.evaluate((el) => {
       const r = el.getBoundingClientRect();
       return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
     });
     expect(onChip).toBe(true);
-    for (const name of ['Browse', 'Deck', /^Sort: /]) {
+    for (const name of [/^View: /, /^Sort: /]) {
       const hit = await hitArea(page.getByRole('button', { name }));
       expect(hit.width).toBeGreaterThanOrEqual(44);
       expect(hit.height).toBeGreaterThanOrEqual(44);

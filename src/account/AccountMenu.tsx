@@ -10,7 +10,8 @@
 // Every row has a 16px icon; rows are 44px on a phone, 38px from sm (theme/late.css). The rows live
 // in AccountMenuRows.tsx, a lazy chunk; this file keeps the trigger, the sheet and the dialogs.
 import { Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Avatar, Button, Dialog, Menu } from '@hirobius/design-system';
+import { Button, Dialog, Icon, Menu } from '@hirobius/design-system';
+import { CircleUser } from 'lucide-react';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { useBackCloses } from '../useBackCloses';
 import {
@@ -85,8 +86,9 @@ export default function AccountMenu() {
     setReturnFocus(triggerRef.current);
     open();
   };
-  // The trigger is the HDS Avatar (rev-3 P): your initial when signed in, a neutral person icon
-  // when not. No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
+  // The trigger is an HDS icon Button (#694), the ThemeToggle's 44px box and 28px icon beside it:
+  // CircleUser signed out, your initial in a 24px ring signed in (no grey Avatar disc; never a
+  // menu icon). No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
   const initial = sync.user?.email?.trim()[0]?.toUpperCase();
 
   return (
@@ -102,13 +104,13 @@ export default function AccountMenu() {
             variant="tertiary"
             iconOnly
             iconLeft={
-              <Avatar
-                size="sm"
-                alt=""
-                initials={initial}
-                fallback={initial ? 'initials' : 'icon'}
-                className="rjb-avatar"
-              />
+              initial ? (
+                <span aria-hidden="true" className="rjb-account-initial">
+                  {initial}
+                </span>
+              ) : (
+                <Icon icon={CircleUser} size="var(--primitive-space-7)" />
+              )
             }
             label="Account"
             className="rjb-account"

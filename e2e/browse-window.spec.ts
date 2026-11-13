@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findMenuItem, PROD_URL, topTab } from './routes';
+import { accountMenuItem, PROD_URL, topTab } from './routes';
 
 // Browse renders a window of ~100 cards (memory audit 2026-11-13, useWindowedList): with 320
 // postings loaded the DOM holds at most ~120 cards, the page's height holds (spacers), scroll comes
@@ -66,7 +66,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
   test.setTimeout(180_000);
   await feed(page);
   await page.goto(`${PROD_URL}/#/find`);
-  await findMenuItem(page, 'Scan now');
+  await accountMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
   await expect(list.getByRole('link', { name: /Design Systems Engineer 0\b/ })).toBeVisible({
     timeout: 60_000,

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { findMenuItem, PROD_URL } from './routes';
+import { accountMenuItem, PROD_URL } from './routes';
 
 // Find at 390 never scrolls sideways (Adrian 2026-11-12): with a posting whose title is one long
 // unbroken run and whose place is a long list, the page is no wider than the screen and no card is
@@ -59,8 +59,8 @@ test('Find at 390: no sideways scroll and no card wider than the screen, long ti
 }) => {
   await feed(page);
   await page.goto(`${PROD_URL}/#/find`);
-  await expect(page.getByRole('button', { name: 'Browse' })).toBeVisible();
-  await findMenuItem(page, 'Scan now');
+  await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
+  await accountMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
   await expect(list.getByRole('link', { name: /Prime Design Systems/ })).toBeVisible({
     timeout: 60_000,

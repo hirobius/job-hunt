@@ -108,7 +108,9 @@ describe('FIGMA-RULES.md', () => {
   });
 
   it('pins the Account menu (#549): 8 items in 4 groups, toggles that show their state', () => {
-    expect(RULES).toMatch(/\*\*The Account menu \(#549\): 8 items in 4 groups\.\*\*/);
+    expect(RULES).toMatch(
+      /\*\*The Account menu \(#549\): 8 items in 4 groups \(9 signed out\)\.\*\*/,
+    );
     expect(CLAUDE).toMatch(/8 items in 4 groups, redesign §5\.9, #549/);
     const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
     for (const name of ['SIGN_IN_LABEL', 'SIGN_IN_ITEM', 'Pause animations'])
@@ -212,9 +214,9 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('titleHidden');
   });
 
-  it("pins the top tabs' count Badges and equal segments (2026-11-12)", () => {
-    expect(RULES).toMatch(/count\s+Badge after its label/);
-    expect(fs.readFileSync('src/TopTabCount.tsx', 'utf8')).toContain('<CountBadge count={n}');
+  it('pins the top tabs: no counts, equal segments (2026-11-13)', () => {
+    expect(RULES).toMatch(/The tabs show no counts/);
+    expect(fs.existsSync('src/TopTabCount.tsx')).toBe(false);
     expect(fs.readFileSync('src/CountBadge.tsx', 'utf8')).toContain(
       '<Badge count={count} max={COUNT_MAX}',
     );
@@ -331,7 +333,8 @@ describe('FIGMA-RULES.md', () => {
     expect(review).toContain('lineClamp={3}');
     expect(review).toContain('openKey={!compact}');
     const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
-    expect(head).toContain('More: scan and search profile');
+    // No More menu on Find (#694): Scan now and Search profile are the Account menu's.
+    expect(head).not.toContain('Menu');
     // No visible "Find" title: the h1 is .sr-only and the tools sit in the page bar (2026-11-12).
     expect(head).toContain('className="sr-only"');
     expect(head).toContain('<InPageBar>');
@@ -340,11 +343,9 @@ describe('FIGMA-RULES.md', () => {
   });
 
   it('pins no duplicate counts at the top of Find: the chips hold them', () => {
-    expect(RULES).toContain('"Scanned 2 h ago" (no count');
+    expect(RULES).toContain('"Scanned 2 h ago" lives only in Scan details');
     expect(RULES).not.toContain('4 new · scanned');
     expect(CLAUDE).not.toContain('4 new · scanned');
-    const caption = fs.readFileSync('src/findCaption.ts', 'utf8');
-    expect(caption).not.toMatch(/ new`/);
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
     expect(review).not.toContain('countLabel={`${listed.length} postings`}');
     expect(review).toContain('role="status" aria-live="polite"');
