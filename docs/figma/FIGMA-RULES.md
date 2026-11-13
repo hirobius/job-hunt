@@ -150,7 +150,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   are two equal segments, the label centred, the whole segment the target (44 px tall on a phone). Segment corners are concentric: the
   inner radius is the rail's radius less its padding, and the open segment's 3 px bottom edge follows that radius. The
   app bar's sun/moon and the Account button match: a 44 px box, a 28 px icon (#694). Account is a ghost icon button: the
-  CircleUser icon signed out, your initial in a 24 px ring signed in (no grey avatar disc, never a menu icon).
+  a filled 28 px circle (content primary) with a person knocked out signed out, your initial knocked out signed in (the bar shows through) (no grey avatar disc, never a menu icon).
 - **The logo is the home link (#620).** A tap on the logo opens Find at its root. Its target is 44 px.
 - Each page has one `h1`, its own name. The wordmark is never a heading.
 - Touch targets are at least 44 px on a phone. Text contrast is AA (4.5) in light and dark.

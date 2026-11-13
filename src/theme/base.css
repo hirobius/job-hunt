@@ -311,26 +311,26 @@ p {
   --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
 }
 
-/* The Account button (#694): an HDS tertiary icon Button in the ThemeToggle's 44px box, its icon the
- * toggle's 28px (CircleUser signed out, HDS Icon size). Signed in, the initial sits in a 24px ring drawn in the
- * icon's colour and stroke, no grey Avatar disc. */
+/* The Account button (#694; filled, Adrian 2026-11-13): an HDS tertiary icon Button in the
+ * ThemeToggle's 44px box, its glyph the toggle's 28px: a solid content-primary circle with a person
+ * (signed out) or your initial (signed in) knocked out by an SVG mask (AccountGlyph.tsx), so the hole
+ * shows the bar's surface in either theme. Content-primary on the page surface is the body text pair,
+ * far over 3:1 in both themes (theme.contrast.test.ts). */
 [data-hds] .rjb-account {
   inline-size: 2.75rem;
   block-size: 2.75rem;
   min-inline-size: 2.75rem;
   min-height: 2.75rem;
 }
-.rjb-account-initial {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: var(--primitive-space-6);
-  block-size: var(--primitive-space-6);
-  border: var(--primitive-space-px2) solid currentColor;
-  border-radius: var(--hds-radius-full);
+.rjb-account-glyph {
+  inline-size: var(--primitive-space-7);
+  block-size: var(--primitive-space-7);
+  flex-shrink: 0;
   color: var(--semantic-color-content-primary);
-  font: var(--semantic-typography-ui-font-weight) var(--semantic-typography-caption-font-size) / 1
-    var(--semantic-typography-ui-font-family);
+}
+.rjb-account-initial {
+  font-family: var(--semantic-typography-ui-font-family);
+  font-size: 13px; /* hds-allow: SVG user units in a 24-unit viewBox (about 15px at 28px) */
   font-weight: 700;
 }
 
