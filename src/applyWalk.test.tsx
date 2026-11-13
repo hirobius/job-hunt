@@ -134,7 +134,7 @@ describe('the walk row on a phone', () => {
 });
 
 describe('an empty view on a phone (prod audit 2026-11-12)', () => {
-  it("shows the view's empty state, not the last job under \"Not in this filter\"", async () => {
+  it('shows the view\'s empty state, not the last job under "Not in this filter"', async () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(await screen.findByRole('button', { name: 'View: To apply' }));

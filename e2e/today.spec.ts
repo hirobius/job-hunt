@@ -13,11 +13,11 @@ for (const width of [390, 1440]) {
     await seed(page);
     // A fresh load with no route lands on Find; an old Today or Companies link does too.
     await page.goto('/');
-    await expect(page).toHaveURL(/#\/find$/);
+    await expect(page).toHaveURL(/#\/review$/);
     await page.goto('/#/today');
-    await expect(page).toHaveURL(/#\/find$/);
+    await expect(page).toHaveURL(/#\/review$/);
     await page.goto('/#/discover/live');
-    await expect(page).toHaveURL(/#\/find$/);
+    await expect(page).toHaveURL(/#\/review$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
     // Each tab's label, then its count when it shows one (#548).
     await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link')).toHaveText([
@@ -68,6 +68,6 @@ for (const width of [390, 1440]) {
     if (await page.getByRole('dialog').count()) await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await topTab(page, 'Review').click();
-    await expect(page).toHaveURL(/#\/find$/);
+    await expect(page).toHaveURL(/#\/review$/);
   });
 }

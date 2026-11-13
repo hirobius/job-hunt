@@ -95,7 +95,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
   await page.waitForTimeout(200);
   await expect(first).toBeFocused();
 
-  // Scroll comes back exactly after Find → Apply → Find.
+  // Scroll comes back exactly after Review → Apply → Review.
   await page.evaluate(() => window.scrollTo(0, 18_000));
   // Wait until scrollMemory has kept this position (a busy machine can be slow to).
   await expect
@@ -105,7 +105,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
           const kept = new Map<string, number>(
             JSON.parse(sessionStorage.getItem('rjb_scroll') || '[]'),
           );
-          return [...kept].some(([k, y]) => k.includes('find') && y === window.scrollY);
+          return [...kept].some(([k, y]) => k.includes('review') && y === window.scrollY);
         }),
       { timeout: 10_000 },
     )

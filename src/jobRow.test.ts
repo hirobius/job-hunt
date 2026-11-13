@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  appliedAgo,
-  followUpOf,
-  primaryAction,
-  rowView,
-} from './jobRow';
+import { appliedAgo, followUpOf, primaryAction, rowView } from './jobRow';
 import type { Job } from './types';
 
 const NOW = new Date(2026, 9, 14, 12);

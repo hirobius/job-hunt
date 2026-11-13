@@ -389,7 +389,7 @@ for (const width of [390, 1440] as const) {
       // A top tab keeps focus on the tab (it is still there).
       await topTab(page, 'Review').focus();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
       await expect.poll(() => focused(page)).toBe('A Review');
     });
 

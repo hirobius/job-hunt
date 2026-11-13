@@ -64,7 +64,7 @@ for (const width of [390, 800] as const) {
       await expect(page).toHaveURL(/#\/apply\/[^/?]+$/);
       await expect.poll(() => scrollY(page)).toBe(0);
       await page.goBack();
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
     });
 
     test('Mark applied moves on to the next job in place; Back leaves in one step', async ({
@@ -81,7 +81,7 @@ for (const width of [390, 800] as const) {
       await expect.poll(() => page.url()).not.toBe(shown);
       await expect(h1(page)).not.toHaveText(first);
       await page.goBack();
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
     });
 
     test('a job and its Company page each name the other on their Back', async ({ page }) => {
@@ -129,7 +129,7 @@ for (const width of [390, 800] as const) {
       await expect(page.getByRole('heading', { level: 1, name: job })).toBeVisible();
       // In place: one Back leaves the job for the page before the tab.
       await page.goBack();
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
     });
 
     test('the browser Back closes a sheet and keeps the page under it', async ({ page }) => {
@@ -235,9 +235,9 @@ for (const width of [390, 800] as const) {
       await go(page, `#/apply/${id}?from=%2Ffind`);
       await expect(page.getByRole('heading', { level: 1, name: nextTitle })).toBeVisible();
       await removeOpenJob(nextTitle);
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
       await page.waitForTimeout(600);
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
       await topTab(page, 'Apply').click();
       await expect(page).toHaveURL(/#\/apply$/);
       await expect(h1(page)).toBeVisible();
@@ -356,7 +356,7 @@ for (const width of [390, 800] as const) {
       await stepPager(page);
       const title = (await h1(page).textContent())!.trim();
       await topTab(page, 'Review').click();
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
       await topTab(page, 'Apply').click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       // The open tab, tapped again, goes to its root.
@@ -419,7 +419,7 @@ test.describe('return paths at 1440', () => {
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     }
     await page.goBack();
-    await expect(page).toHaveURL(/#\/find$/);
+    await expect(page).toHaveURL(/#\/review$/);
   });
 
   test('the Jobs tab reopens on the job it was left on; tapped again, its first job to apply', async ({
@@ -431,7 +431,7 @@ test.describe('return paths at 1440', () => {
     await rows(page).nth(1).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await topTab(page, 'Review').click();
-    await expect(page).toHaveURL(/#\/find$/);
+    await expect(page).toHaveURL(/#\/review$/);
     await topTab(page, 'Apply').click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await topTab(page, 'Apply').click();

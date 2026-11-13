@@ -15,6 +15,9 @@
 @media (max-width: 399.98px) {
   [data-hds] .rjb-seg .rjb-seg-count {
     position: absolute;
+    min-inline-size: 0;
+    padding: 0;
+    border: 0;
     inline-size: 1px;
     block-size: 1px;
     overflow: hidden;

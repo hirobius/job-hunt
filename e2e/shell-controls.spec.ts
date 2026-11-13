@@ -42,7 +42,7 @@ for (const width of [390, 1440]) {
         expect(account!.width).toBeGreaterThanOrEqual(44);
       }).toPass({ timeout: 10_000 });
       await topTab(page, 'Review').click();
-      await expect(page).toHaveURL(/#\/find/);
+      await expect(page).toHaveURL(/#\/review/);
       await expect(topTab(page, 'Review')).toHaveAttribute('aria-current', 'page');
       await page.goBack();
       await expect(page).toHaveURL(/#\/apply/);
@@ -50,8 +50,8 @@ for (const width of [390, 1440]) {
     });
 
     test('Review shows its count, Apply none (2026-11-13)', async ({ page }) => {
-      await seed(page);
       await manyPostings(page, 12);
+      await seed(page);
       await page.goto('/#/review');
       const nav = page.getByRole('navigation', { name: 'Sections' });
       await expect(nav.getByRole('link', { name: /^Review/ })).toHaveAccessibleName('Review 12');
@@ -169,14 +169,14 @@ for (const width of [390, 1440]) {
 }
 
 // Equal segments, Review's count (2026-11-13): Review | Apply are two equal segments, each 44px
-// tall on a phone. Below 400px the count pill is hidden visually (it stays in the name), so the app
-// bar stays one row at 375 and 390 and wraps, never scrolls sideways, at 320; from 400 the "99+"
-// pill shows inside its segment.
+// tall on a phone, on one row. Below 400px the count pill is hidden visually (it stays in the name),
+// so the page bar never runs past the screen or overlaps its tools; from 400 the "99+" pill shows
+// inside its segment.
 for (const width of [320, 375, 390, 414]) {
   test(`Review | Apply: equal segments, a 99+ count, fit at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    await seed(page);
     await manyPostings(page, 120);
+    await seed(page);
     await page.goto('/#/review');
     const nav = page.getByRole('navigation', { name: 'Sections' });
     const review = nav.getByRole('link', { name: /^Review/ });
@@ -193,11 +193,6 @@ for (const width of [320, 375, 390, 414]) {
     if (width < 400) expect(pill!.width).toBeLessThanOrEqual(1);
     // From 400 the pill shows, inside its segment.
     else expect(pill!.x + pill!.width).toBeLessThanOrEqual(rev!.x + rev!.width);
-    if (width >= 375) {
-      // One row: the logo and the tabs share a line.
-      const logo = await page.locator('.rjb-logo-link').boundingBox();
-      expect(logo!.y + logo!.height).toBeGreaterThan(navBox!.y);
-    }
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);

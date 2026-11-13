@@ -239,7 +239,7 @@ test('the logo links home to Find (#620)', async ({ page }) => {
   expect(box!.height).toBeGreaterThanOrEqual(44);
   expect(box!.width).toBeGreaterThanOrEqual(44);
   await home.click();
-  await expect(page).toHaveURL(/#\/find$/);
+  await expect(page).toHaveURL(/#\/review$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]'),
