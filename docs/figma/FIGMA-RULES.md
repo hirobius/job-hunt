@@ -164,8 +164,9 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   then the benefit: "Sign in to see your jobs on any device." (body, primary). Continue with Google
   and LinkedIn are secondary with no raised edge (shadow none), so Send link leads. Then the email
   field with its helper under it, "We email you a sign-in link. No password needed." (caption,
-  secondary), Send link (filled) and Continue without an account (underlined exit). Top right: Pause
-  animations, an icon key.
+  secondary), Send link (filled) and Continue without an account (underlined exit). At the foot, one
+  centred caption: "By signing in, you agree to roleflame’s Terms of use and Privacy policy.", the two
+  names inline links (the only legal links there). Top right: Pause animations, an icon key.
 - **Empty, error and done states sit on the page background (#553):** centred icon tile, bold title,
   one line, then one filled key and one grey key. Never a card around them, and a second choice is a
   grey key, never a text button. Apply empty: "Track your first job" (Add job | Try with sample
