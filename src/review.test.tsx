@@ -875,6 +875,17 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
     await waitFor(() => expect(seen.some((el) => el.contains(card))).toBe(true));
   });
 
+  it('each card’s list item says its place in the whole list (aria-setsize / posinset)', async () => {
+    renderPhoneFind();
+    const ul = await list();
+    const items = within(ul).getAllByRole('listitem');
+    expect(items.length).toBeGreaterThan(1);
+    items.forEach((li, i) => {
+      expect(li).toHaveAttribute('aria-posinset', String(i + 1));
+      expect(li).toHaveAttribute('aria-setsize', String(items.length));
+    });
+  });
+
   it('after the last card, focus goes to the empty state’s title', async () => {
     const user = userEvent.setup();
     feed.fetchFeed.mockResolvedValue(result([BASIC[0]]));
