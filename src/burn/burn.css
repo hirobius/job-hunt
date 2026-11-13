@@ -7,7 +7,7 @@
   overflow: hidden;
 }
 .rjb-burn-char {
-  fill: color-mix(in srgb, var(--rjb-burn-tone) 55%, black);
+  fill: color-mix(in srgb, var(--rjb-burn-tone) 55%, var(--primitive-color-neutral-950));
   fill-opacity: var(--rjb-burn-char);
 }
 :root[data-rjb-burning]::view-transition-old(root),
