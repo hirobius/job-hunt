@@ -20,7 +20,8 @@ function overlay(w: number, h: number, tone: string) {
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
   svg.setAttribute('preserveAspectRatio', 'none');
   svg.style.setProperty('--rjb-burn-tone', tone);
-  svg.style.setProperty('--rjb-burn-char', String(BURN.charStrength));
+  svg.style.setProperty('--rjb-burn-char', String(BURN.edgeOpacity));
+  svg.dataset.edge = BURN.edgeColor;
   const p = document.createElementNS(NS, 'path');
   p.setAttribute('class', 'rjb-burn-char');
   p.setAttribute('fill-rule', 'evenodd');

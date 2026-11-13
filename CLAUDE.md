@@ -483,7 +483,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   a lazy chunk with a 44px hold (`.rjb-theme-toggle-hold`). `ColorMode.burnToggle(at)` reveals the new theme from the
   tap point (the button's centre from the keyboard): `src/burn/burn.ts` (lazy, `importFresh`) runs a View Transition,
   holds it open and clips the new snapshot to `burnField.ts`'s front (`clip-path: path()`, a thin char band ahead of it).
-  `BURN` is **locked** (Adrian 2026-11-12: 2000 ms, cell 2, fps 11…; `burnField.test.ts`). No View Transitions,
+  `BURN` is **locked** (Adrian 2026-11-13: 970 ms, cell 6.5, fps 10…; the char band's flat fill is `edgeColor` offtone (old surface darkened) | cobalt (`--primitive-color-blue-500`) | flame (`--primitive-color-cobalt-400`) at `edgeOpacity`; `burnField.test.ts`). No View Transitions,
   reduced motion or Pause animations = an instant swap. Both theme-color metas take the page background on every
   swap (`ColorMode.syncThemeColor`). Save on Find flies the card to the Apply tab, which pulses (`saveFlight.ts`
   `saveRow`); the card burn is off (open choice). The Account sheet shows no focus ring on a row the pointer or a

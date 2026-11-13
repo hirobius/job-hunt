@@ -4,19 +4,21 @@ import { BURN, createBurn } from './burnField';
 describe('theme burn (#688)', () => {
   it('keeps the locked settings', () => {
     expect({ ...BURN }).toEqual({
-      themeMs: 2000,
+      themeMs: 970,
       cardMs: 450,
       rough: 0.7,
       scale: 140,
       octaves: 5,
-      gain: 0.67,
+      gain: 0.48,
       char: 35,
       charStrength: 0.35,
       easing: 'inOutSine',
-      cell: 2,
+      cell: 6.5,
       seed: 7,
-      fps: 11,
+      fps: 10,
       charOn: true,
+      edgeColor: 'offtone',
+      edgeOpacity: 0.35,
     });
     expect(Object.isFrozen(BURN)).toBe(true);
   });

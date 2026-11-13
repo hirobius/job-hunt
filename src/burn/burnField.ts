@@ -6,6 +6,8 @@
 // (BURN); the cost per frame is one pass over a reused grid per contour.
 import { curve, noise, simplify } from '../brand/flameEngine';
 
+/** offtone: the old surface darkened; cobalt: flame layer 1; flame: flame layer 2. */
+export type EdgeColor = 'offtone' | 'cobalt' | 'flame';
 export type Easing = 'inOutCubic' | 'inOutQuad' | 'inOutSine' | 'linear';
 export type BurnSettings = {
   themeMs: number;
@@ -22,6 +24,11 @@ export type BurnSettings = {
   charStrength: number;
   /** Char band on or off. */
   charOn: boolean;
+  /** The char band's flat fill: the old page colour darkened, or a flame layer's HDS primitive. */
+  edgeColor: EdgeColor;
+  /** The char band's fill opacity (takes over charStrength's role; charStrength stays for old tuner
+   *  settings and is not read for the fill). */
+  edgeOpacity: number;
   easing: Easing;
   /** Field grid cell, px. */
   cell: number;
@@ -30,21 +37,23 @@ export type BurnSettings = {
   fps: number;
 };
 
-/** Locked by Adrian (2026-11-12). Do not tune here without his say. */
+/** Locked by Adrian (2026-11-13). Do not tune here without his say. */
 export const BURN: Readonly<BurnSettings> = Object.freeze({
-  themeMs: 2000,
+  themeMs: 970,
   cardMs: 450,
   rough: 0.7,
   scale: 140,
   octaves: 5,
-  gain: 0.67,
+  gain: 0.48,
   char: 35,
   charStrength: 0.35,
   easing: 'inOutSine',
-  cell: 2,
+  cell: 6.5,
   seed: 7,
-  fps: 11,
+  fps: 10,
   charOn: true,
+  edgeColor: 'offtone',
+  edgeOpacity: 0.35,
 });
 
 export const EASE: Record<Easing, (t: number) => number> = {
@@ -112,7 +121,7 @@ export function createBurn(S: BurnSettings, w: number, h: number, ox: number, oy
     for (const loop of march(t)) d += curve(simplify(loop, 0.35), -2);
     return d;
   };
-  const charOn = S.charOn && S.char > 0 && S.charStrength > 0;
+  const charOn = S.charOn && S.char > 0 && S.edgeOpacity > 0;
   const charN = charOn ? S.char / D : 0;
   const ease = EASE[S.easing];
   return (p: number): BurnFrame => {

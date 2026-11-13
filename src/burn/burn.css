@@ -10,6 +10,13 @@
   fill: color-mix(in srgb, var(--rjb-burn-tone) 55%, var(--primitive-color-neutral-950));
   fill-opacity: var(--rjb-burn-char);
 }
+/* The edge in a flame layer's colour (BURN.edgeColor), a flat fill. */
+.rjb-burn-rim[data-edge='cobalt'] .rjb-burn-char {
+  fill: var(--primitive-color-blue-500);
+}
+.rjb-burn-rim[data-edge='flame'] .rjb-burn-char {
+  fill: var(--primitive-color-cobalt-400);
+}
 :root[data-rjb-burning]::view-transition-old(root),
 :root[data-rjb-burning]::view-transition-new(root) {
   animation: none;
