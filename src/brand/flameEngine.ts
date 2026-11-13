@@ -202,6 +202,37 @@ export function noise(x: number, y: number, z: number, s: number) {
     zf,
   );
 }
+/** `noise` on one fixed z plane and seed, for a caller that samples it many times (the theme burn's
+ *  field, #688): the z cell and its smoothed fraction are worked out once, and no closures are made
+ *  per sample. The same sums in the same order as `noise`, so the values are identical. */
+export function noisePlane(z: number, s: number) {
+  const zi = Math.floor(z),
+    zf = sm(z - zi),
+    z1 = zi + 1;
+  return (x: number, y: number) => {
+    const xi = Math.floor(x),
+      yi = Math.floor(y);
+    const xf = sm(x - xi),
+      yf = sm(y - yi);
+    const x1 = xi + 1,
+      y1 = yi + 1;
+    const a0 = hash(xi, yi, zi, s),
+      b0 = hash(x1, yi, zi, s),
+      c0 = hash(xi, y1, zi, s),
+      d0 = hash(x1, y1, zi, s);
+    const a1 = hash(xi, yi, z1, s),
+      b1 = hash(x1, yi, z1, s),
+      c1 = hash(xi, y1, z1, s),
+      d1 = hash(x1, y1, z1, s);
+    const p0 = a0 + (b0 - a0) * xf,
+      q0 = c0 + (d0 - c0) * xf;
+    const r0 = p0 + (q0 - p0) * yf;
+    const p1 = a1 + (b1 - a1) * xf,
+      q1 = c1 + (d1 - c1) * xf;
+    const r1 = p1 + (q1 - p1) * yf;
+    return r0 + (r1 - r0) * zf;
+  };
+}
 /** Marching squares at one level, segments joined into closed loops. */
 /** Marching squares at heat 1 over a W x H grid (row-major), segments joined into closed loops. */
 export function contours(

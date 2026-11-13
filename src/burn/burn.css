@@ -10,7 +10,9 @@
   fill: color-mix(in srgb, var(--rjb-burn-tone) 55%, var(--primitive-color-neutral-950));
   fill-opacity: var(--rjb-burn-char);
 }
-/* The edge in a flame layer's colour (BURN.edgeColor), a flat fill. */
+/* The edge in a flame layer's colour (BURN.edgeColor), a flat fill: the same primitives as the logo's
+   --rjb-flame-1 / -2 (base.css). HDS names #1e2efd blue-500 and #5b71fa cobalt-400, so 'cobalt'
+   (layer 1) reads blue-500 and 'flame' (layer 2) cobalt-400: not swapped. */
 .rjb-burn-rim[data-edge='cobalt'] .rjb-burn-char {
   fill: var(--primitive-color-blue-500);
 }
@@ -50,4 +52,26 @@
 }
 :root[data-rjb-burning]::view-transition-old(rjb-burn-logo) {
   display: none;
+}
+
+/* The logo in the old theme (burn.ts oldLogo): live, above the real logo, clipped to the unburnt
+   side, so the logo turns only as the front passes it. */
+.rjb-burn-logo-old {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 11;
+  view-transition-name: rjb-burn-logo-old;
+}
+:root[data-rjb-burning]::view-transition-group(rjb-burn-logo-old) {
+  z-index: 5;
+  animation: none;
+}
+.rjb-burn-logo-copy {
+  position: absolute;
+  left: calc(var(--rjb-burn-x) * 1px);
+  top: calc(var(--rjb-burn-y) * 1px);
+  width: calc(var(--rjb-burn-w) * 1px);
+  height: calc(var(--rjb-burn-h) * 1px);
+  margin: 0;
 }

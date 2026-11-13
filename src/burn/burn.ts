@@ -29,6 +29,66 @@ function overlay(w: number, h: number, tone: string) {
   return { svg, show: (f: BurnFrame) => p.setAttribute('d', f.char ? f.char + f.hole : '') };
 }
 
+
+/** The app bar's logo in the old theme, live, over the real one (which is in the new theme from the
+ *  first frame), clipped to what the front has not reached yet: the logo turns only where and when
+ *  the front passes, and its flame keeps moving on both sides. A full-viewport box holding a copy at
+ *  the logo's place, so the copy takes the page's clip in page coordinates. The copy's colours are
+ *  the old theme's, read before the swap and set inline; its flame follows the real one's paths. */
+function oldLogo(w: number, h: number) {
+  const logo = document.querySelector<HTMLElement>('header .rjb-logo-link');
+  if (!logo) return null;
+  const r = logo.getBoundingClientRect();
+  const box = document.createElement('div');
+  box.className = 'rjb-burn-logo-old';
+  box.setAttribute('aria-hidden', 'true');
+  const copy = logo.cloneNode(true) as HTMLElement;
+  copy.removeAttribute('href');
+  copy.removeAttribute('id');
+  copy.tabIndex = -1;
+  copy.classList.add('rjb-burn-logo-copy');
+  // The logo's box, in px (burn.css multiplies them out).
+  copy.style.setProperty('--rjb-burn-x', String(r.left));
+  copy.style.setProperty('--rjb-burn-y', String(r.top));
+  copy.style.setProperty('--rjb-burn-w', String(r.width));
+  copy.style.setProperty('--rjb-burn-h', String(r.height));
+  const from = [logo, ...logo.querySelectorAll<Element>('*')];
+  const to = [copy, ...copy.querySelectorAll<Element>('*')];
+  from.forEach((el, i) => {
+    const cs = getComputedStyle(el);
+    const t = (to[i] as HTMLElement | SVGElement | undefined)?.style;
+    if (!t) return;
+    t.setProperty('color', cs.color);
+    t.setProperty('fill', cs.fill);
+    t.setProperty('stroke', cs.stroke);
+  });
+  box.append(copy);
+  const mo = new MutationObserver((ms) => {
+    for (const m of ms) {
+      const i = from.indexOf(m.target as Element);
+      const el = to[i];
+      if (i < 0 || !el || !m.attributeName) continue;
+      const v = (m.target as Element).getAttribute(m.attributeName);
+      if (m.attributeName === 'style' || m.attributeName === 'class') continue;
+      if (v === null) el.removeAttribute(m.attributeName);
+      else el.setAttribute(m.attributeName, v);
+    }
+  });
+  mo.observe(logo, { attributes: true, subtree: true, attributeFilter: ['d', 'transform'] });
+  return {
+    box,
+    clip: (hole: string) =>
+      box.style.setProperty(
+        'clip-path',
+        `path(evenodd, 'M-40,-40H${w + 40}V${h + 40}H-40Z${hole}')`,
+      ),
+    remove: () => {
+      mo.disconnect();
+      box.remove();
+    },
+  };
+}
+
 /** The hole alone: the new theme shows through it. Set synchronously each step (no image mask,
  *  which decodes late and blanks a frame). */
 export const holeClip = (hole: string) => (hole ? `path(evenodd, '${hole}')` : 'inset(50%)');
@@ -80,12 +140,15 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
     h = innerHeight;
   const { svg, show } = overlay(w, h, getComputedStyle(document.body).backgroundColor);
   svg.dataset.root = '';
+  const old = oldLogo(w, h);
+  old?.clip('');
   root.setAttribute('data-rjb-burning', '');
   root.style.setProperty('--rjb-burn-clip', 'inset(50%)');
   const vt = document.startViewTransition(() => {
     swap();
     syncThemeColor();
     document.body.append(svg);
+    if (old) document.body.append(old.box);
   });
   try {
     await vt.ready;
@@ -97,11 +160,13 @@ export async function burnTheme(at: Pt, swap: () => void): Promise<boolean> {
     await runBurn(w, h, at, BURN.themeMs, (f) => {
       show(f);
       root.style.setProperty('--rjb-burn-clip', holeClip(f.hole));
+      old?.clip(f.hole);
     });
     await vt.finished;
     return true;
   } finally {
     svg.remove();
+    old?.remove();
     root.removeAttribute('data-rjb-burning');
     root.style.removeProperty('--rjb-burn-clip');
   }

@@ -116,3 +116,44 @@ test.describe('Account sheet focus', () => {
     await expect.poll(() => ringed(page)).toHaveLength(1);
   });
 });
+
+// Adrian's recording (#695): the app-bar logo turned at once. Its old-theme copy is clipped to the
+// unburnt side, so mid-burn the logo, far from the press, still reads in the old theme.
+test('the logo keeps the old theme until the front reaches it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'no-preference', colorScheme: 'light' });
+  const toggle = await open(page);
+  if ((await theme(page)) === 'dark') {
+    await toggle.click();
+    await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
+  }
+  const logo = page.getByRole('banner').locator('.rjb-logo-link');
+  const box = (await logo.boundingBox())!;
+  // Share of dark pixels in the logo's box: the name's ink on the light page, none once dark.
+  const dark = async () => {
+    const png = (await page.screenshot({ clip: box })).toString('base64');
+    return page.evaluate(async (src) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${src}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const g = c.getContext('2d')!;
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] < 240) n++;
+      return n / (d.length / 4);
+    }, png);
+  };
+  const before = await dark();
+  expect(before).toBeGreaterThan(0.02);
+  await page.getByRole('banner').getByRole('button', { name: 'Switch to dark theme' }).click();
+  await expect.poll(() => burning(page)).toBe(true);
+  // The front starts at the button, far right; the logo at the far left is not reached yet.
+  const mid = await dark();
+  expect(Math.abs(mid - before)).toBeLessThan(before * 0.5);
+  await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
+  expect(await dark()).toBeGreaterThan(0.5);
+});
