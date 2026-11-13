@@ -1,5 +1,7 @@
 // The phone's walk control (#542, redesign phase 2, plan 5.6): one row of three named controls,
-// no box around it. Left, the view picker (the open view's name, bold, with a caret): an HDS Menu,
+// no box around it. Left, the view picker (the open view's name, bold, with a caret inside): an HDS
+// secondary select-style key with the Find chips' fill and height (`.rjb-view-picker`, ApplyWalk.css),
+// its left edge on the page gutter, under the Find | Apply control (2026-11-13). An HDS Menu,
 // drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the six views and "All jobs and
 // filters". Beside it a "N filters" chip, only while a filter is on (search, Remote only); it opens
 // the All jobs sheet. Right, the pager: it only steps (a sideways swipe on the job steps it too).
@@ -9,6 +11,7 @@
 import { ChevronDown } from 'lucide-react';
 import { Box, Button, Menu, Stack, Tag, Text } from '@hirobius/design-system';
 import ApplyPager from './ApplyPager';
+import './ApplyWalk.css';
 import { useBackSheet } from './useBackCloses';
 import {
   FILTER_LABEL,
@@ -58,10 +61,12 @@ export default function ApplyWalk({
         <Menu {...sheet}>
           <Menu.Trigger asChild>
             <Button
-              variant="tertiary"
+              variant="secondary"
+              shadow="none"
               size="md"
               label={`View: ${name}`}
               iconRight={<ChevronDown size={16} />}
+              className="rjb-view-picker"
               style={PICKER}
             >
               <Text as="span" variant="ui" weight="bold" style={NAME}>

@@ -190,6 +190,41 @@ test.describe('Tab from the open top tab goes on into the page (#364)', () => {
 test('a click or tap leaves no focus ring', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await seed(page);
+  // List | Deck shows only beside postings (Adrian 2026-11-13): a synthetic Hacker News feed (no
+  // real people), as review.spec does, so Find lists some. Registered after seed's abort-all, so
+  // it wins for hn.algolia.com.
+  await page.route(/^https:\/\/hn\.algolia\.com\//, (r) =>
+    r.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+      body: JSON.stringify(
+        r.request().url().includes('search_by_date')
+          ? {
+              hits: [
+                {
+                  objectID: '9',
+                  title: 'Ask HN: Who is hiring? (October 2026)',
+                  created_at: '2026-10-01',
+                },
+              ],
+            }
+          : {
+              hits: [
+                ['1', 'Orbit | Design Systems Engineer | Remote<p>Own our design system.</p>'],
+                ['2', 'Lumen | Design Systems Lead | Remote<p>Lead the design system.</p>'],
+              ].map(([id, text]) => ({
+                objectID: `p-${id}`,
+                story_id: 9,
+                parent_id: 9,
+                created_at: new Date().toISOString(),
+                comment_text: text,
+              })),
+            },
+      ),
+    }),
+  );
+  await page.reload();
+  await expect(page.getByRole('button', { name: /^View: / })).toBeVisible({ timeout: 15_000 });
   const ring = () =>
     page.evaluate(() => {
       const e = document.activeElement as HTMLElement | null;

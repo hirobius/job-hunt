@@ -53,7 +53,11 @@ for (const width of [390, 1440]) {
     await fakeSupabase(page, new Date(Date.now() - 4 * 60_000).toISOString());
     await signIn(page);
     await page.goto('/#/find');
-    await expect(page.getByRole('button', { name: /^View: / })).toBeVisible({ timeout: 15_000 });
+    // No postings yet: the empty state, never the List | Deck toggle alone (Adrian 2026-11-13).
+    await expect(page.getByRole('region', { name: 'No postings' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
     await page.waitForTimeout(1500);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
     await expect(
@@ -82,13 +86,19 @@ test('signed out: Scan now is in the Account menu, beside Search profile (390)',
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/find');
   const review = page.getByRole('region', { name: /^New postings$/ });
-  await expect(review.getByRole('button', { name: /^View: / })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(0);
+  await expect(review.getByRole('region', { name: 'No postings' })).toBeVisible({
+    timeout: 15_000,
+  });
+  // No postings shown: no List | Deck toggle (Adrian 2026-11-13).
+  await expect(review.getByRole('button', { name: /^View: / })).toHaveCount(0);
+  // No Scan now key on the page outside the empty state's own key (#694).
+  const empty = review.getByRole('region', { name: 'No postings' });
+  await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(
+    await empty.getByRole('button', { name: 'Scan now' }).count(),
+  );
   await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
-  // The h1 stays for screen readers (sr-only); List | Deck ends the Review row, inside the gutter.
+  // The h1 stays for screen readers (sr-only).
   await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toHaveClass(/sr-only/);
-  const toggle = (await review.getByRole('button', { name: /^View: / }).boundingBox())!;
-  expect(toggle.x + toggle.width).toBeLessThanOrEqual(390 - 20);
   await page.getByRole('button', { name: /^Account/ }).click();
   // The rows are their own chunk: wait for them.
   await expect(page.getByRole('menuitem', { name: 'Scan now' })).toBeVisible();
