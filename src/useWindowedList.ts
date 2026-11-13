@@ -133,10 +133,14 @@ export function useWindowedList(keys: string[], keep: (string | null | undefined
           changed = true;
         }
       }
-      if (changed) setVersion((v) => v + 1);
+      if (changed) {
+        setVersion((v) => v + 1);
+        // A height change moves every card below it: the window may now sit elsewhere.
+        recompute();
+      }
     });
     return ro.current;
-  }, []);
+  }, [recompute]);
   useEffect(
     () => () => {
       ro.current?.disconnect();
@@ -194,13 +198,26 @@ export function useWindowedList(keys: string[], keep: (string | null | undefined
     };
   }, []);
 
+  // One ref callback per key, kept while its item is mounted: an inline ref would be detached and
+  // attached again on every render (React 19), unobserving and observing every card each time.
+  const refs = useRef(new Map<string, (el: HTMLElement | null) => () => void>());
   const itemRef = useCallback(
-    (key: string) => (el: HTMLElement | null) => {
-      if (!el) return undefined;
-      el.dataset.windowKey = key;
-      const obs = observer();
-      obs?.observe(el);
-      return () => obs?.unobserve(el);
+    (key: string) => {
+      let ref = refs.current.get(key);
+      if (!ref) {
+        ref = (el: HTMLElement | null) => {
+          if (!el) return () => {};
+          el.dataset.windowKey = key;
+          const obs = observer();
+          obs?.observe(el);
+          return () => {
+            obs?.unobserve(el);
+            refs.current.delete(key);
+          };
+        };
+        refs.current.set(key, ref);
+      }
+      return ref;
     },
     [observer],
   );

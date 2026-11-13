@@ -630,10 +630,6 @@ function RowList({
   /** Below lg, an old #/find/<fingerprint> link's posting: scrolled into view. */
   linked?: string | null;
 }) {
-  const linkedRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    linkedRef.current?.scrollIntoView({ block: 'start' });
-  }, [linked]);
   const left = rows.length - shown;
   // Auto-load (2026-11-12): the sentinel pages the list; Review's polite status says "Loaded N more".
   const more = () => onMore(Math.min(left, REVIEW_PAGE));
@@ -644,6 +640,17 @@ function RowList({
     visible.map((r) => r.fingerprint),
     [selected, linked],
   );
+  // The linked card is found by its key on the mounted list (it is always kept mounted), so no
+  // element reference outlives its card.
+  useEffect(() => {
+    if (!linked) return;
+    const items = listRef.current?.querySelectorAll<HTMLElement>('[data-window-key]') ?? [];
+    for (const el of items)
+      if (el.dataset.windowKey === linked) {
+        el.scrollIntoView({ block: 'start' });
+        break;
+      }
+  }, [linked, listRef]);
   return (
     // The gap before Load more is the cards' own gap (one parent gap, no margins).
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'sm' }}>
@@ -675,10 +682,9 @@ function RowList({
             <Box
               as="li"
               key={r.fingerprint}
-              ref={(el: HTMLDivElement | null) => {
-                if (r.fingerprint === linked) linkedRef.current = el;
-                return itemRef(r.fingerprint)(el);
-              }}
+              ref={itemRef(r.fingerprint)}
+              aria-setsize={rows.length}
+              aria-posinset={seg.index + 1}
             >
               <Card
                 as="article"

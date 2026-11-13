@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import {
   ESTIMATE_PX,
   heightOf,
@@ -101,5 +101,74 @@ describe('useWindowedList', () => {
     expect(observe).toHaveBeenCalled();
     unmount();
     expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps one ref per key: a re-render observes nothing again', () => {
+    const observe = vi.fn();
+    const unobserve = vi.fn();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe = observe;
+        unobserve = unobserve;
+        disconnect = vi.fn();
+      },
+    );
+    const keys = Array.from({ length: 150 }, (_, i) => `k${i}`);
+    function List({ n }: { n: number }) {
+      const { listRef, itemRef, segments } = useWindowedList(keys, []);
+      return (
+        <div ref={listRef} data-n={n}>
+          {segments.map((s) =>
+            s.kind === 'item' ? <div key={keys[s.index]} ref={itemRef(keys[s.index])} /> : null,
+          )}
+        </div>
+      );
+    }
+    const { rerender } = render(<List n={0} />);
+    const calls = observe.mock.calls.length;
+    expect(calls).toBe(100);
+    rerender(<List n={1} />);
+    rerender(<List n={2} />);
+    expect(observe).toHaveBeenCalledTimes(calls);
+    expect(unobserve).not.toHaveBeenCalled();
+  });
+
+  it('recomputes the window when a measured height changes', () => {
+    let fire: (entries: { target: Element }[]) => void = () => {};
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(cb: (e: { target: Element }[]) => void) {
+          fire = cb;
+        }
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    const keys = Array.from({ length: 300 }, (_, i) => `k${i}`);
+    // Everything measured at 100px; the viewport centre sits ~item 150 at that height.
+    keys.forEach((k) => rememberHeight(k, 100));
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(2 * 150 * 100);
+    function List() {
+      const { listRef, itemRef, segments } = useWindowedList(keys, []);
+      return (
+        <div ref={listRef}>
+          {segments.map((s) =>
+            s.kind === 'item' ? <div key={keys[s.index]} ref={itemRef(keys[s.index])} /> : null,
+          )}
+        </div>
+      );
+    }
+    const { container } = render(<List />);
+    expect(container.querySelector('[data-window-key="k100"]')).not.toBeNull();
+    // The first card grows to cover the viewport centre: the window must move back to the start.
+    const first = container.querySelector('[data-window-key="k100"]') as HTMLElement;
+    first.dataset.windowKey = 'k0';
+    vi.spyOn(first, 'getBoundingClientRect').mockReturnValue({ height: 1e6 } as DOMRect);
+    act(() => fire([{ target: first }]));
+    expect(container.querySelector('[data-window-key="k100"]')).toBeNull();
+    expect(container.querySelector('[data-window-key="k0"]')).not.toBeNull();
   });
 });

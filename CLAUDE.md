@@ -453,9 +453,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Browse is windowed (memory audit 2026-11-13):** `src/useWindowedList.ts` mounts a window of 100 cards
   (`WINDOW_SIZE`, moved in steps of 20) around the viewport; each run of the rest is one `li.rjb-window-spacer`
   (aria-hidden, height through `--rjb-spacer-h`, `FindDeck.css`) as tall as its cards and gaps. Heights are measured
-  by one ResizeObserver (disconnected on unmount) and cached by fingerprint for the page load, unmeasured ones at
+  by one ResizeObserver (disconnected on unmount; one stable ref per fingerprint, so a re-render observes nothing again; a height change recomputes the window) and cached by fingerprint for the page load, unmeasured ones at
   the measured mean (240px before any), so the page height and scrollMemory's exact restore hold. The focused card
-  and the selected / linked card never unmount. **Limits:** cards outside the window are not in the Tab order and
+  and the selected / linked card never unmount. Each card's `li` carries `aria-setsize` (every posting in the list) and `aria-posinset`, so a screen reader hears the whole count. **Limits:** cards outside the window are not in the Tab order and
   the browser's find-in-page (Ctrl/Cmd+F) does not find them. Auto-load, Load more and the remembered pages shown
   are unchanged. Pinned in `useWindowedList.test.tsx`, `e2e/browse-window.spec.ts` (320 postings at 390: ≤ 121 cards).
 - **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: the title step; no source or New badge since #557), one at a time (`ReviewView.tsx`
