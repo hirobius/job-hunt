@@ -185,16 +185,16 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
-  it('pins the Find Deck (#545, #617): keys in the dock, "‹ 1 of N ›" in the page bar, Sort shows', () => {
+  it('pins the Find Deck (#545, #617): keys under the card, "‹ 1 of N ›" in the page bar, Sort shows', () => {
     expect(RULES).toMatch(/Find Deck \(#545, #617\)/);
     expect(RULES).toMatch(
-      /Skip \(grey, left\) and Save \(filled,\s+right\) sit in the action dock/,
+      /Skip \(grey, left\) and Save \(filled,\s+right\) sit in one row right under the card, in flow/,
     );
     expect(CLAUDE).toMatch(/\*\*Find Deck \(#545, #617/);
     // #557 cuts: no source or New badge on the Deck card, and no blue (info) badge on any card.
     expect(RULES).toMatch(/with no source or New\s+badge \(#557\)/);
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
-    expect(review).toContain('<ActionDock docked={docked} row');
+    expect(review).toContain('<ActionDock docked={false} row');
     expect(review).not.toContain('Pagination');
     expect(review).not.toContain('<Badge tone="info">');
     expect(review).not.toMatch(/mode === 'browse' && \(/);
