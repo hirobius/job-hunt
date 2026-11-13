@@ -65,7 +65,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
 }) => {
   test.setTimeout(180_000);
   await feed(page);
-  await page.goto(`${PROD_URL}/#/find`);
+  await page.goto(`${PROD_URL}/#/review`);
   await accountMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
   await expect(list.getByRole('link', { name: /Design Systems Engineer 0\b/ })).toBeVisible({
@@ -125,7 +125,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
   // Let Apply settle (its page and focus land) before coming back.
   await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
   await page.waitForTimeout(1000);
-  await topTab(page, 'Find').click();
+  await topTab(page, 'Review').click();
   await expect(list).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 5000 }).toBe(at);
   await page.waitForTimeout(300);

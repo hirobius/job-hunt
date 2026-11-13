@@ -8,7 +8,7 @@ describe('viewFor', () => {
   it('names the lazy view a route opens on', () => {
     expect(viewFor(parseHash('#/apply'))).toBe(TrackerView);
     expect(viewFor(parseHash('#/apply/abc123'))).toBe(JobPage);
-    expect(viewFor(parseHash('#/find'))).not.toBeNull();
+    expect(viewFor(parseHash('#/review'))).not.toBeNull();
     expect(viewFor(parseHash('#/apply/company/acme'))).toBe(CompanyPage);
     expect(viewFor(parseHash('#/discover'))).toBeNull();
     expect(viewFor(parseHash(''))).toBeNull();

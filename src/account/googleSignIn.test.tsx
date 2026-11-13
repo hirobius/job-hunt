@@ -148,12 +148,12 @@ describe('coming back from Google', () => {
     const v = newVerifier();
     rememberOAuthRequest(v);
     await issue('good-code', v, ME);
-    await boot('?code=good-code#/find');
+    await boot('?code=good-code#/review');
     expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(exchanges).toEqual([{ auth_code: 'good-code', code_verifier: v }]);
     expect(location.search).toBe('');
-    expect(location.hash).toBe('#/find');
+    expect(location.hash).toBe('#/review');
     expect(readOAuthRequest()).toBe(false); // used once
   });
 
@@ -232,7 +232,7 @@ describe('Continue with LinkedIn (linkedin_oidc), the same PKCE binding', () => 
     const v = newVerifier();
     rememberOAuthRequest(v, Date.now(), 'linkedin_oidc');
     await issue('li-code', v, ME);
-    await boot('?code=li-code#/find');
+    await boot('?code=li-code#/review');
     expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
     expect(exchanges).toEqual([{ auth_code: 'li-code', code_verifier: v }]);
     expect(readOAuthRequest()).toBe(false);
@@ -291,9 +291,9 @@ describe('the pieces', () => {
       state: null,
       replaceState: (_s: unknown, _t: string, u: string) => calls.push(u),
     };
-    stripAuthFragment({ hash: '#/find', pathname: '/', search: '?code=abc&x=1' }, hist);
+    stripAuthFragment({ hash: '#/review', pathname: '/', search: '?code=abc&x=1' }, hist);
     stripAuthFragment({ hash: '#/apply', pathname: '/', search: '?x=1' }, hist);
-    expect(calls).toEqual(['/?x=1#/find']);
+    expect(calls).toEqual(['/?x=1#/review']);
     expect(readAuthCode('?code=abc')).toBe('abc');
     expect(readAuthCode('?x=1')).toBeNull();
   });

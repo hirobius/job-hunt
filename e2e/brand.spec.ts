@@ -113,7 +113,7 @@ test('the app bar flame keeps burning after 5 s, and is still under reduced moti
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   // The flame's first layer (its d holds the embers too, so it changes every frame).
   const path = page.locator('header .rjb-rf > svg path').first();
   await expect(path).toBeAttached();
@@ -134,7 +134,7 @@ test('the app bar flame keeps burning after 5 s, and is still under reduced moti
 
 test('the sign-in flame keeps burning after 5 s too (Adrian 2026-11-09)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: /^Sign in/ }).click();
   const path = page.locator('.rjb-signin-screen .rjb-rf > svg path').first();
@@ -149,7 +149,7 @@ test('the sign-in screen pauses the flame and its size easing, and plays it agai
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: /^Sign in/ }).click();
   const screenEl = page.locator('.rjb-signin-screen');
@@ -178,7 +178,7 @@ for (const width of [390, 1440]) {
   test(`the app bar's embers stay on screen at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     await page.locator('header .rjb-rf svg').first().waitFor();
     let top = Infinity;
     for (let i = 0; i < 30; i++) {
@@ -202,7 +202,7 @@ for (const width of [390, 1440]) {
 // is kept on this device.
 test('Pause animations stops the app bar flame and is kept after a reload', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   const path = page.locator('header .rjb-rf > svg path').first();
   await expect(path).toBeAttached();
   await page.getByRole('button', { name: 'Account' }).click();
@@ -233,17 +233,17 @@ test('the logo links home to Find (#620)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/apply');
-  const home = page.getByRole('banner').getByRole('link', { name: 'roleflame, Find' });
+  const home = page.getByRole('banner').getByRole('link', { name: 'roleflame, Review' });
   await expect(home.locator('.rjb-rf > svg')).toBeVisible();
   const box = await home.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
   expect(box!.width).toBeGreaterThanOrEqual(44);
   await home.click();
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]'),
-  ).toHaveText(/^Find/);
+  ).toHaveText(/^Review/);
 });
 
 // #556: the stacked flame (sign-in) is centred by mass. RoleFlame.tsx's nudge assumes the name's

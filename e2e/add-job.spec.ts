@@ -126,12 +126,12 @@ test('opens on Today with no setup; the sample pipeline lists due follow-ups', a
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();
 });
 
-// #/find is home again (#383): it opens Today, and Back goes to the page before.
-test('#/find opens Today', async ({ page }) => {
+// #/review is home again (#383): it opens Today, and Back goes to the page before.
+test('#/review opens Today', async ({ page }) => {
   await page.goto('/#/apply');
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   await expect(page).toHaveURL(/#\/find$/);
-  await expect(currentTab(page).filter({ hasText: 'Find' })).toBeVisible();
+  await expect(currentTab(page).filter({ hasText: 'Review' })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/#\/apply$/);
 });

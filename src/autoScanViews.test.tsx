@@ -114,7 +114,7 @@ const renderViews = ({ signedIn = false } = {}) =>
 describe('Find header: no More menu, no scan line (#694)', () => {
   it('signed out or in: no More, no Scan now, no "Scanned …" on Find, even after a scan', async () => {
     renderViews();
-    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^More: scan/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
@@ -223,9 +223,9 @@ describe('Scan details (the Search profile, #549)', () => {
     expect(within(list).getByText('Salesforce · unsupported board (Workday)')).toBeInTheDocument();
   });
 
-  it('before Find has read: says to open Find', () => {
+  it('before Review has read: says to open Review', () => {
     renderDetails();
-    expect(screen.getByText(/^Open Find to read your sources/)).toBeInTheDocument();
+    expect(screen.getByText(/^Open Review to read your sources/)).toBeInTheDocument();
   });
 });
 

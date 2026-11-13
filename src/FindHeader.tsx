@@ -22,7 +22,7 @@ export function FindHeader({
     <>
       {heading && (
         <Text as="h1" variant="title" className="sr-only">
-          Find
+          Review
         </Text>
       )}
       {deckPlace && (

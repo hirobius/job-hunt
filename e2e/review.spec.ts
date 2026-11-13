@@ -84,7 +84,7 @@ async function templateOf(page: Page) {
 
 async function setUp(page: Page) {
   await feed(page);
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/find$/);
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
@@ -192,7 +192,7 @@ for (const width of [390, 1440]) {
       await expect(card.getByRole('link', { name: /^Open posting for / })).toHaveCount(0);
       await expect(page).toHaveURL(/#\/find$/);
       await page.screenshot({ path: `test-results/review-selected-${width}.png` });
-      await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
     }
 
     // Skip hides only that posting: Orbit's other one stays.
@@ -231,7 +231,7 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('button', { name: 'View: Deck, switch to List' })).toBeVisible();
     // The Deck keeps no selection (#546): Find's header shows again, with its "1 of N" caption.
     await expect(page).toHaveURL(/#\/find$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
     await expect(page.getByRole('article')).toHaveCount(1);
     // #557 cuts: no source or blue New badge on the Deck card; the company stays.
     const card = page.getByRole('article');
@@ -295,7 +295,7 @@ for (const width of [390, 1440]) {
       }
     }
     // The deck is empty: Find's h1 takes focus.
-    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeFocused();
+    await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeFocused();
     await expect(page.getByText('You’re all caught up')).toBeVisible();
 
     // Back on the Pipeline, the save is in To apply.
@@ -348,7 +348,7 @@ for (const width of [375, 390]) {
         })),
       });
     });
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
     const since = await page.evaluate(() => Date.now());
     await accountMenuItem(page, 'Scan now');

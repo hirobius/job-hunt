@@ -18,10 +18,10 @@ for (const width of [390, 1440]) {
     await expect(page).toHaveURL(/#\/find$/);
     await page.goto('/#/discover/live');
     await expect(page).toHaveURL(/#\/find$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
     // Each tab's label, then its count when it shows one (#548).
     await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link')).toHaveText([
-      /^Find( \d+\+?)?$/,
+      /^Review( \d+\+?)?$/,
       /^Apply( \d+\+?)?$/,
     ]);
     // No More menu on Find (#694): Scan now and Search profile are the Account menu's.
@@ -67,7 +67,7 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('dialog', { name: /^Follow up/ })).toHaveCount(0);
     if (await page.getByRole('dialog').count()) await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await topTab(page, 'Find').click();
+    await topTab(page, 'Review').click();
     await expect(page).toHaveURL(/#\/find$/);
   });
 }

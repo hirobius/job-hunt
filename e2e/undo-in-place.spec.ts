@@ -24,7 +24,7 @@ for (const width of [390, 1440] as const) {
       const undo = page.getByRole('button', { name: 'Undo' });
       await expect(undo).toBeVisible();
 
-      await topTab(page, 'Find').click();
+      await topTab(page, 'Review').click();
       await expect(page).toHaveURL(/#\/find$/);
       await expect(undo).toBeVisible();
       await undo.click();

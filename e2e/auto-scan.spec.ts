@@ -95,7 +95,7 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     const asked: string[] = [];
     await network(page, asked);
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
     // No status text on Find (Adrian 2026-11-08); Scan now is the Account menu's (#694). Nothing
@@ -155,7 +155,7 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 900 });
   await network(page);
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   await page.evaluate(seedTrack);
   const since = await page.evaluate(() => Date.now());
   await accountMenuItem(page, 'Scan now');

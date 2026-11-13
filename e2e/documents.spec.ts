@@ -75,7 +75,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
 test('Restore starter messages toasts and shows the first restored row (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto('/#/find?documents=');
+  await page.goto('/#/review?documents=');
   await page.getByRole('button', { name: 'Start from scratch' }).click();
   const outreach = page.getByRole('region', { name: 'Messages' });
   await outreach.getByRole('button', { name: 'Restore starter messages' }).click();
@@ -94,7 +94,7 @@ for (const width of [390, 1440]) {
   }) => {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-    await page.goto('/#/find?documents=');
+    await page.goto('/#/review?documents=');
     await page.getByRole('button', { name: 'Add starter messages' }).click();
     const docs = page.getByRole('dialog', { name: 'Documents' });
     const groups = docs.getByRole('region');

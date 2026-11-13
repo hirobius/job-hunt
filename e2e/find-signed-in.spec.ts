@@ -52,7 +52,7 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await fakeSupabase(page, new Date(Date.now() - 4 * 60_000).toISOString());
     await signIn(page);
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     // No postings yet: the empty state, never the List | Deck toggle alone (Adrian 2026-11-13).
     await expect(page.getByRole('region', { name: 'No postings' })).toBeVisible({
       timeout: 15_000,
@@ -84,7 +84,7 @@ test('signed out: Scan now is in the Account menu, beside Search profile (390)',
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   const review = page.getByRole('region', { name: /^New postings$/ });
   await expect(review.getByRole('region', { name: 'No postings' })).toBeVisible({
     timeout: 15_000,
@@ -98,7 +98,7 @@ test('signed out: Scan now is in the Account menu, beside Search profile (390)',
   );
   await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
   // The h1 stays for screen readers (sr-only).
-  await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toHaveClass(/sr-only/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toHaveClass(/sr-only/);
   await page.getByRole('button', { name: /^Account/ }).click();
   // The rows are their own chunk: wait for them.
   await expect(page.getByRole('menuitem', { name: 'Scan now' })).toBeVisible();

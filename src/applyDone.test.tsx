@@ -69,11 +69,11 @@ describe('Apply done state (#554)', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeTruthy();
   });
 
-  it('Find more jobs goes to Find', async () => {
+  it('Find more jobs goes to Review', async () => {
     renderApp();
     const done = await screen.findByRole('region', { name: 'That is the list' });
     await userEvent.click(within(done).getByRole('button', { name: 'Find more jobs' }));
-    expect(window.location.hash).toMatch(/^#\/find/);
+    expect(window.location.hash).toMatch(/^#\/review/);
   });
 
   it('All jobs opens the All jobs view, and its first job', async () => {

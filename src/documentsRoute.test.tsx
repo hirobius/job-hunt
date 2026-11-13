@@ -76,11 +76,11 @@ afterEach(() => {
 describe('the Documents page', () => {
   it('an old #/copy-deck link opens the Documents dialog over Find; Close leaves Find as it was', async () => {
     await renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     const dialog = await screen.findByRole('dialog', { name: 'Documents' });
-    expect(currentTab('Find', { hidden: true })).toBeInTheDocument();
+    expect(currentTab('Review', { hidden: true })).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: /Close/ }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -125,23 +125,23 @@ describe('the Documents page', () => {
     );
     // The row expands first (rev-3 M); Open goes to the editor.
     await userEvent.click(screen.getByRole('button', { name: 'Open Thank-you after interview' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents=snippet-tpl-thanks'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents=snippet-tpl-thanks'));
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Thank-you after interview');
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
   });
 
   it('an old template link opens the message its snippet became', async () => {
     window.location.hash = '#/copy-deck/tpl-cover';
     await renderApp();
     expect(await screen.findByRole('textbox', { name: 'Title' })).toHaveValue('Cover letter');
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents=snippet-tpl-cover'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents=snippet-tpl-cover'));
   });
 
   it('an unknown id falls back to the library', async () => {
     window.location.hash = '#/copy-deck/nope';
     await renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     expect(screen.getByRole('region', { name: 'Messages' })).toBeInTheDocument();
   });
 
@@ -151,7 +151,7 @@ describe('the Documents page', () => {
     await screen.findByRole('textbox', { name: 'Title' });
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     expect(ids()).not.toContain('snippet-tpl-cover');
     // A reload runs the startup move again: the snippet was moved once, so nothing comes back.
     r.unmount();
@@ -197,7 +197,7 @@ describe('unsaved edits in the editor', () => {
       'link',
     );
     await userEvent.click(within(ask).getByRole('button', { name: 'Keep editing' }));
-    expect(window.location.hash).toBe('#/find?documents=snippet-tpl-outreach');
+    expect(window.location.hash).toBe('#/review?documents=snippet-tpl-outreach');
     expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent(
       'Unsaved line.',
     );
@@ -210,7 +210,7 @@ describe('unsaved edits in the editor', () => {
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
     const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
     await userEvent.click(within(ask).getByRole('button', { name: 'Discard' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     r.unmount();
     window.location.hash = OPEN;
     await renderApp();
@@ -224,7 +224,7 @@ describe('unsaved edits in the editor', () => {
     await renderApp();
     await screen.findByRole('textbox', { name: 'Message text' });
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 
@@ -247,7 +247,7 @@ describe('unsaved edits in the editor', () => {
     const r = await renderApp();
     await typeInMessage(' Unsaved line.');
     // Back: the hash moves on and the editor goes, with no chance to ask.
-    window.location.hash = '#/find?documents=';
+    window.location.hash = '#/review?documents=';
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Message text' })).toBeNull());
     r.unmount();
     window.location.hash = OPEN;
@@ -382,7 +382,7 @@ describe('a link to a document that is not a Base one', () => {
     const id = createDocument({ kind: 'note', title: 'Orphan', text: 'x', jobUrl: JOB });
     window.location.hash = `#/copy-deck/${id}`;
     await renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 // navigable state so refresh and back/forward restore it:
 //
 //   #/<tab>[/<sub>][?pillar=<id>]      #/apply/<jobId>
-//   #/find · #/apply · #/apply/k3x9a1 · #/apply/company/acme (#471: two tabs, Find and Apply)
+//   #/review · #/apply · #/apply/k3x9a1 · #/apply/company/acme (#471: two tabs, Review (was Find) and Apply)
 //
 // A tiny external store over `hashchange` (mirrors src/store.ts), read via useSyncExternalStore.
 // `tab`/`sub` are opaque slugs the app maps to its own views; `pillar` is the active career
@@ -11,7 +11,7 @@
 import { useSyncExternalStore } from 'react';
 
 export interface Route {
-  /** Top-level tab slug (e.g. 'find', 'apply'); '' when the hash carries no route. */
+  /** Top-level tab slug (e.g. 'review', 'apply'); '' when the hash carries no route. */
   tab: string;
   /** Nested sub-tab slug (Discover's inner tabs), or null. */
   sub: string | null;
@@ -39,7 +39,10 @@ export const APPLY_TAB = 'apply';
 /** The Apply tab's second segment for a Company: `#/apply/company/<slug>` (#471 slice 2). */
 const COMPANY_SEG = 'company';
 /** The Find tab (#471, was Today). */
-export const FIND_TAB = 'find';
+export const FIND_TAB = 'review';
+/** The Review tab's old slug (Adrian 2026-11-13: Find was renamed Review): `#/find[/<fingerprint>]`
+ *  redirects in place to `#/review[/<fingerprint>]`. */
+const OLD_FIND = 'find';
 const JOB_TAB = APPLY_TAB;
 
 /** Parse a raw `location.hash` string into a Route. Pure — exported for tests. */
@@ -106,14 +109,18 @@ function pageUnder(r: Route): Route {
 
 /** Where an old route goes instead, or null for a live one. Pure. The redirect lives here only:
  *  the snapshot reads an old hash as its new route, the URL is rewritten in place (no history step
- *  of its own) and `navigate` never writes one. `#/today` → `#/find`, `#/queue` → `#/apply`,
+ *  of its own) and `navigate` never writes one. `#/today` → `#/review`, `#/find[/<fp>]` → `#/review[/<fp>]`, `#/queue` → `#/apply`,
  *  `#/queue/<id>` → `#/apply/<id>` (its origin kept), `#/company/<slug>` →
- *  `#/apply/company/<slug>`, the Companies tab → `#/find`, `#/copy-deck/<id>` and `#/legal/<doc>` →
+ *  `#/apply/company/<slug>`, the Companies tab → `#/review`, `#/copy-deck/<id>` and `#/legal/<doc>` →
  *  the page they were opened from (else Find) with the Documents or Legal dialog over it. */
 export function redirectOf(r: Route): Route | null {
   if (r.tab === OLD_DOCUMENTS) return { ...pageUnder(r), documents: r.sub ? decode(r.sub) : '' };
   if (r.tab === OLD_LEGAL) return { ...pageUnder(r), legal: r.sub || 'privacy' };
   if (TO_FIND.has(r.tab)) return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
+  if (r.tab === OLD_FIND) {
+    const { tab: _t, ...rest } = r;
+    return { ...rest, tab: FIND_TAB };
+  }
   // A Company's page moved into the Apply tab (#471 slice 2).
   if (r.tab === OLD_COMPANY && r.sub)
     return {

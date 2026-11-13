@@ -53,7 +53,7 @@ for (const width of [390, 800] as const) {
     });
 
     test('All jobs jumps to a job in place: one Back leaves the Apply tab', async ({ page }) => {
-      await go(page, '#/find');
+      await go(page, '#/review');
       await go(page, '#/apply');
       const jobs = await allJobs(page);
       const link = jobs.locator(JOB_LINK).last();
@@ -70,7 +70,7 @@ for (const width of [390, 800] as const) {
     test('Mark applied moves on to the next job in place; Back leaves in one step', async ({
       page,
     }) => {
-      await go(page, '#/find');
+      await go(page, '#/review');
       await go(page, '#/apply');
       const first = (await h1(page).textContent())!.trim();
       const shown = page.url();
@@ -113,7 +113,7 @@ for (const width of [390, 800] as const) {
     test("a job's pager moves in place, Back leaves in one step; Documents opens over the job", async ({
       page,
     }) => {
-      await go(page, '#/find');
+      await go(page, '#/review');
       await go(page, '#/apply');
       const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
       const at = await stepPager(page);
@@ -143,7 +143,7 @@ for (const width of [390, 800] as const) {
         await page.waitForTimeout(300);
         await expect(page).toHaveURL(url);
       };
-      await go(page, '#/find');
+      await go(page, '#/review');
       await go(page, '#/apply');
       const queue = /#\/apply$/;
       // Add job is the All jobs sheet's (#543): Back closes the dialog, then the sheet.
@@ -212,7 +212,7 @@ for (const width of [390, 800] as const) {
       await expect(page).toHaveURL(/#\/apply\/company\/larkspur-analytics$/);
 
       // Jumped to from All jobs, with Find behind it: Remove lands on the Apply tab, once.
-      await go(page, '#/find');
+      await go(page, '#/review');
       await go(page, '#/apply');
       const last = (await allJobs(page)).locator(JOB_LINK).last();
       const lastTitle = (await last.textContent())!.trim();
@@ -230,8 +230,8 @@ for (const width of [390, 800] as const) {
       const id = (await next.getAttribute('href'))!.replace('#/apply/', '');
       const nextTitle = (await next.textContent())!.trim();
       await page.keyboard.press('Escape');
-      await go(page, '#/find?documents=');
-      await go(page, '#/find');
+      await go(page, '#/review?documents=');
+      await go(page, '#/review');
       await go(page, `#/apply/${id}?from=%2Ffind`);
       await expect(page.getByRole('heading', { level: 1, name: nextTitle })).toBeVisible();
       await removeOpenJob(nextTitle);
@@ -274,12 +274,12 @@ for (const width of [390, 800] as const) {
       const cases: [string, string, string][] = [
         // A document is a dialog over the page (#471 slice 4): an unknown one shows the library.
         ['#/apply', '#/apply?documents=does-not-exist', '#/apply?documents='],
-        ['#/find', '#/apply/nojob123?from=%2Ffind', '#/find'],
+        ['#/review', '#/apply/nojob123?from=%2Ffind', '#/review'],
         ['#/apply', '#/apply/nojob123', '#/apply'],
       ];
       for (const [origin, unknown, lands] of cases) {
         // Another page behind the origin, so a second pop would have somewhere to go.
-        await go(page, '#/find?documents=');
+        await go(page, '#/review?documents=');
         await go(page, origin);
         await go(page, unknown);
         await expect.poll(hash).toBe(lands);
@@ -298,7 +298,7 @@ for (const width of [390, 800] as const) {
         await expect(page).toHaveURL(re);
       };
       // A job jumped to from All jobs, Find behind it: the open tab, tapped twice.
-      await go(page, '#/find');
+      await go(page, '#/review');
       await go(page, '#/apply');
       const link = (await allJobs(page)).locator(JOB_LINK).nth(1);
       const title = (await link.textContent())!.trim();
@@ -351,11 +351,11 @@ for (const width of [390, 800] as const) {
     });
 
     test('each top tab reopens where it was left', async ({ page }) => {
-      await go(page, '#/find');
+      await go(page, '#/review');
       await topTab(page, 'Apply').click();
       await stepPager(page);
       const title = (await h1(page).textContent())!.trim();
-      await topTab(page, 'Find').click();
+      await topTab(page, 'Review').click();
       await expect(page).toHaveURL(/#\/find$/);
       await topTab(page, 'Apply').click();
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
@@ -409,7 +409,7 @@ test.describe('return paths at 1440', () => {
   });
 
   test('picks in the list move in place: one Back leaves the Jobs tab', async ({ page }) => {
-    await go(page, '#/find');
+    await go(page, '#/review');
     await go(page, '#/apply');
     // It opens on the first job to apply to.
     await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
@@ -425,12 +425,12 @@ test.describe('return paths at 1440', () => {
   test('the Jobs tab reopens on the job it was left on; tapped again, its first job to apply', async ({
     page,
   }) => {
-    await go(page, '#/find');
+    await go(page, '#/review');
     await topTab(page, 'Apply').click();
     const title = (await rows(page).nth(1).textContent())!.trim();
     await rows(page).nth(1).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-    await topTab(page, 'Find').click();
+    await topTab(page, 'Review').click();
     await expect(page).toHaveURL(/#\/find$/);
     await topTab(page, 'Apply').click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
