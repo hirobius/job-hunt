@@ -95,14 +95,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   application; `checkJobLink` in `store.ts` refuses a link a browser cannot open or another job's before anything is
   saved, #593), follow-up due (Copy follow-up, then Mark followed up and Close out, those two with Undo, in `applyActions.ts`;
   More keeps "Follow up…" for the dialog), Interviewing (Add interview), else no dock. The "Templates (N)"
-  disclosure (`ApplyTemplates`, `templatesOpen.ts`, `.rjb-template-row`, `ApplySheet.css`) is deleted; the kit links
-  to Documents and, with no messages, shows no message rows. Pinned in `dockKeys.test.ts`, `jobPage.test.tsx`,
+  disclosure (`ApplyTemplates`, `templatesOpen.ts`, `.rjb-template-row`, `ApplySheet.css`) is deleted. Pinned in `dockKeys.test.ts`, `jobPage.test.tsx`,
   `e2e/job-states.spec.ts`.
-- **Copy into the form (redesign §5.5, #539):** the Application kit panel is "Copy into the form": filled fields
-  are HDS `Tag` chips with a copy icon (`CopyChip` in `ApplySheet.tsx`, G4 hds#1435), "Copied" for 1.5 s and a
-  polite status; empty fields fold into "N more fields are empty. Add them"; Edit (aria-expanded) opens the field
-  rows. A failed copy toasts the text itself (`copyFailed`, `templateCopy.ts`). `.rjb-blank` moved to
-  `BlankText.css` (lazy, off base.css); `.rjb-template-row` went with the Templates disclosure (#540). Pinned in `e2e/copy-chips.spec.ts`.
+- **No Application kit on the job view (Adrian 2026-11-13):** the "Copy into the form" panel (`ApplySheet.tsx`,
+  #539's copy chips, the kit's message rows and Custom answers) is deleted. The kit's data is kept: `applyKit.ts`
+  (`rjb_apply_kit`, blob v6) stays in storage, sync, Back up and the merge, and its name still fills `[Your name]`.
+  A stale template pick is no longer cleared (nothing reads it on screen). Pinned in `rapidApply.test.tsx`.
 - **One saved list (redesign §5.3, #534):** Apply is the saved list. Find's Save (primary, plus icon) toasts
   "Added to Apply: <title>" with Open and Undo; a double Save is a no-op (`alreadyInApply`); Undo toasts survive
   navigation for their full timeout (no route dismissal in `saveNotice.ts`). The star
@@ -244,7 +242,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `#/apply`, `#/queue/<id>` → `#/apply/<id>` (origin and section kept); an old `?from=` reads as its new route
   (`originOf`, `routeLabel`). **There is no Apply mode, To apply panel or Start applying on Apply:** the tab is
   the walk. One job view (`JobPage`: header with Open application, Mark applied | Not a fit (`applyActions.ts`;
-  a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then `ApplySheet.tsx` Templates + Application kit, then Details,
+  a 700 ms double-tap guard on both; focus then goes to the new job's heading, or the list's), then (no Application kit since 2026-11-13) Details,
   Notes, Documents, Decks). Mark applied / Not a fit open the next job in the list as it shows (in place, before
   the answer lands, with Undo); the last one goes back to the list. At ≥ lg the Apply tab opens on the first job
   to apply to with the list column (`JobRail`) beside it; a pick replaces the history entry. **Below lg: one Apply
@@ -271,8 +269,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   job page's header and More have them). Follow up and Next 7 days stay under the lg column only.
   `ApplyFilterBar`, `ApplyQueueSummary` and `JobListCard` are deleted. A pick pops the sheet's entry, then replaces the page's, so Back leaves
   the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
-  elsewhere keeps its "← Back". The **Templates** disclosure is gone (#540): the job's messages are rows in Copy into the
-  form (only when there are messages), with Edit documents beside them. No posting
+  elsewhere keeps its "← Back". The **Templates** disclosure is gone (#540), and the Application kit with it (2026-11-13):
+  templates live in Documents. No posting
   glyph by a title on Apply (the header's Open application, or the menu's Open posting). A
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
@@ -487,8 +485,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
 - **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/hds-gaps/DisclosureRow.tsx` (hds#1508) wraps HDS
-  `Disclosure variant="row"` (Copy into the form's Why this company / Cover note / Custom answers, Daily
-  picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
+  `Disclosure variant="row"` (Daily picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
   body starts a height tween, so rows jumped; here the gap stays 0, the body pads itself and opens at once.
   BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/hds-gaps/FactLines.tsx` (hds#1509)
   (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
@@ -573,7 +570,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   steps back. Close, Escape and the browser's Back shut it on the page (a pop when the dialog-less entry
   is just behind, else in place); opened over a job, a Save closes it there. Old `#/copy-deck[/<id>]`
   links redirect in place to their `?from=` page (else Find) with the dialog open. Reached from the
-  Account menu's Documents item and the Apply sheet's Edit documents link. Headings in it are h2 (the
+  Account menu's Documents item (the job view's Edit documents link went with the Application kit, 2026-11-13). Headings in it are h2 (the
   page keeps its h1). **Grouped lists, one New menu, a blanks count (redesign §5.10, #552):** `DocumentsLibrary`
   is a flat `Panel` per kind on the dialog's one surface, ordered by use (Messages, Cover letters, Résumés, then
   Notes), each with its count; **one New key** heads the library, a Menu of Message, Cover letter, Résumé, Note
@@ -596,8 +593,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   synced snippet store, so a deleted message never comes back and a second device adds nothing.
   "Restore starter messages" re-adds missing `tpl-*` (`restoreStarterOutreach`). **Every fill path reads
   `useOutreachTemplates()`** (latest Version text, values, pinned first; a moved message keeps its
-  snippet id, so `tpl-followup` and the kit's picks still match): Use template, `FollowUp`, the Apply
-  sheet and the kit's letters, all through `templateFill.fillSnippet`. Editor menus are
+  snippet id, so `tpl-followup` and the kit's picks still match): Use template and `FollowUp`, all through `templateFill.fillSnippet`. Editor menus are
   `modal={false}` (a modal menu plus the dialog left the page unclickable). Pinned in
   `documentsRoute.test.tsx`, `documentsLibrary.test.tsx`, `outreachTemplates.test.ts`; E2E
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
@@ -945,7 +941,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   no starter messages are migrated in on a first run or a new device; `AddStarterMessages`
   (`StarterMessages.tsx` → `addStarters.ts` → `restoreStarterOutreach`) adds them in one tap from
   Documents' empty state ("No documents yet": Add starter messages | Start from scratch), the
-  follow-up dialog (an empty message box until then), the Apply sheet and the kit's letters. Sample
+  follow-up dialog (an empty message box until then). Sample
   data stays opt-in and adds no messages. The Search profile form prefills only the design-system titles
   (onboarding, #388) and adds nothing else the user did not finish. Documents'
   empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,

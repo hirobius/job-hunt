@@ -49,6 +49,11 @@ const renderApp = () =>
   );
 const at = (hash: string) => waitFor(() => expect(window.location.hash).toBe(hash));
 const heading = (name: string | RegExp) => screen.findByRole('heading', { level: 1, name });
+/** Documents from the Account menu: it opens over the page it was asked from (#471 slice 4). */
+const openDocumentsFromMenu = async () => {
+  await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'Documents' }));
+};
 const notice = () => screen.getByRole('region', { name: /^Notifications/ });
 
 beforeEach(() => {
@@ -221,29 +226,11 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     expect(getRoute().jobId).toBe(after);
   });
 
-  it('a half-typed kit field is still open with its text after Edit documents and Back', async () => {
-    window.location.hash = `#/apply/${idA}`;
-    renderApp();
-    await heading('Fabricator');
-    await userEvent.click(await screen.findByRole('button', { name: 'Add them' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Add Name' }));
-    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Pla');
-    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
-    // Documents is a dialog over the job (#471 slice 4): Close returns to it as it was.
-    const docs = await screen.findByRole('dialog', { name: 'Documents' });
-    await userEvent.click(within(docs).getByRole('button', { name: /Close/ }));
-    await at(`#/apply/${idA}`);
-    expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveValue('Sam Pla');
-    // Cancel closes it, and the next visit starts closed.
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
-  });
-
-  it('Edit documents: Documents opens over the job, and saving a message comes straight back', async () => {
+  it('Documents opens over the job from the Account menu, and saving a message comes straight back', async () => {
     window.location.hash = `#/apply/${jobIdOf(C)}`;
     renderApp();
     await heading('Machinist');
-    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
+    await openDocumentsFromMenu();
     await screen.findByRole('dialog', { name: 'Documents' });
     await at(`#/apply/${jobIdOf(C)}?documents=`);
     const outreach = screen.getByRole('region', { name: 'Messages' });
@@ -256,8 +243,6 @@ describe("a job's Apply view (#471: the tab is the walk, no Apply mode)", () => 
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await at(`#/apply/${jobIdOf(C)}`);
     await heading('Machinist');
-    // Back on the job, with its link to Documents (#540: no Templates list on the page).
-    expect(screen.getByRole('link', { name: 'Edit documents' })).toBeInTheDocument();
   });
 });
 
@@ -525,7 +510,7 @@ describe('one navigation per Remove, Delete or double click', () => {
   it('Delete in a document opened from a library that has its own origin goes back to that library', async () => {
     await startAt('#/apply', `#/apply/${idA}`);
     await heading('Fabricator');
-    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
+    await openDocumentsFromMenu();
     await screen.findByRole('dialog', { name: 'Documents' });
     const library = window.location.hash;
     const outreach = screen.getByRole('region', { name: 'Messages' });
@@ -592,7 +577,7 @@ describe('one navigation per Remove, Delete or double click', () => {
   it('a double click on Save in a new document opened from a job saves one and comes back once', async () => {
     await startAt('#/apply', `#/apply/${idA}`);
     await heading('Fabricator');
-    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
+    await openDocumentsFromMenu();
     await screen.findByRole('dialog', { name: 'Documents' });
     const before = getAllDocuments().length;
     // The library's one New key (#552): its menu, then the kind.
