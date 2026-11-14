@@ -370,7 +370,9 @@ describe('a link to a document that is not a Base one', () => {
     window.location.hash = `#/copy-deck/${r.id}`;
     await renderApp();
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(JOB)}`));
-    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    // No editor: no Documents dialog (the job page's own Notes has a Save key since 2026-11-13).
+    expect(screen.queryByRole('dialog', { name: 'Documents' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Version history/ })).toBeNull();
   });
 
   it("one whose job isn't saved falls back to the library", async () => {
