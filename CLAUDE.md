@@ -42,7 +42,7 @@ the still mark (`brandHtml.ts`); `src/brand/bootFlame.ts`, its own small chunk p
 budget), runs the simulation on those paths until React replaces the splash; reduced motion / no script shows the still
 mark. No flame anywhere repeats: `loopFrames`, the baked frames and the `rjb-boot-frame` CSS are gone
 (`flameEngine.test.ts` fails if a loop comes back). The splash still fades in after a short beat.
-**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Find, #620;
+**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Review, #620;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
 `.rjb-wordmark-l` for the flicker; the og-image keeps a plain run). `wordmark.css` sets them on one baseline, the
@@ -55,7 +55,7 @@ code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
 (`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523; **mass-centred, #556:** the stacked flame moves right by `STACKED_FLAME_NUDGE_EM`, the name's ink offset (`NAME_INK_OFFSET_EM`, measured again in `e2e/brand.spec.ts`) less the flame's mean mass offset (`FLAME_MASS`, measured again over 300 frames in `flameEngine.test.ts`, which fails on a tuning that moves it); the app bar row drops by `INLINE_FLAME_NUDGE_EM` (0.123em, #639; was 0.152em on the x-height centre, which read low, Adrian 2026-11-13) so the flame's mass sits on the word's optical centre, the ink centroid of "roleflame" in Sora 800 (`WORD_INK_CENTRE_EM` 0.031em: the x-height band, the f and l ascenders counting by their area; `X_HEIGHT_CENTRE_EM` 0.06 stays as the lower bound; both measured again in `e2e/brand.spec.ts`), within 0.5px at 19px (`flameEngine.test.ts`); both are transforms, so no box moves). **Sign-in copy (redesign §5.8, #555):** under the wordmark, the benefit: "Sign in to see your jobs on any device." (body, primary), which describes the form step; "We email you a sign-in link. No password needed." is the Email field's HDS `helperText` (caption, secondary, its description; Adrian 2026-11-12) (`account/signInCopy.ts`); Continue with Google / LinkedIn are HDS secondary `shadow="none"` (HDS 0.41 names it `shadow`, not `depth`) so Send link leads; the Account menu's signed-out group is shorter (Adrian's phone test, 2026-11-12): the label "On this device only. Sign in to sync across devices." then the grey key "Sign in" (`SIGN_IN_LABEL`, `SIGN_IN_ITEM`); the top right control is Pause animations with its icon; Continue without an account stays the underlined exit. **One legal line at the foot** (Adrian 2026-11-13, after Tailscale's login page): "By signing in, you agree to <BRAND>’s Terms of use and Privacy policy.", a caption whose two HDS InlineLinks are the page's hash with `?legal=terms|privacy` (`route.legalHash`), so Privacy and terms opens on its tab over the screen and Escape / Back return to it; the screen's only legal links (`SIGN_IN_AGREE`, pinned in `SignInDialog.test.tsx`, `e2e/sign-in.spec.ts`). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: the HDS variable Sora covers 400–700 and the logo keeps its own Sora 800; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
-inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
+inline-style literals); reduced motion at load shows the still frame, and **Pause animations (or reduced motion turned on) mid-run freezes it on the frame on screen**, Play going on from there (Adrian 2026-11-13; `useFlame` in `RoleFlame.tsx`). It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** toggle (WCAG 2.2.2;
 `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
 flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
@@ -82,8 +82,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
     `hds-gaps/tone` is gone (slice 4): use `Text tone`, never an inline colour. Bold is
     `Text weight="bold"` (HDS 0.28).
-  - **Empty states** import `src/hds-gaps/EmptyState` (HDS `EmptyState` + `not-italic`: HDS 0.30
-    sets the title in italic; `centered` / `framed` draw rev-3's centred teaching empty with an
+  - **Empty states** import `src/hds-gaps/EmptyState` (HDS `EmptyState`, upright since HDS 0.43, so the
+    old `not-italic` patch is gone; `centered` / `framed` draw rev-3's centred teaching empty with an
     icon tile). `e2e/layout-rules.spec.ts` fails on any italic text.
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
@@ -168,7 +168,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.43.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.44.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `package.json` pins it by its full tarball URL and `.npmrc` keeps only the auth line (no `@hirobius` scope
   mapping, job-hunt#567), so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`) and design-system
@@ -231,8 +231,19 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
-- **Two screens: Find and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
-  top tabs and no other full page; each is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
+- **Two screens: Review and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
+  top tabs and no other full page. **Find was renamed Review (Adrian 2026-11-13):** the tab, its h1, `document.title`,
+  the logo's name ("roleflame, Review"), routeLabel ("← Review") and the copy that names the tab say Review; the slug
+  is `review` (`route.ts` `FIND_TAB = 'review'`; code identifiers such as `FIND_TAB`, `Today.tsx`, `FindHeader`,
+  `findHash` keep their names), and `redirectOf` sends `#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place
+  (no history step; an old `?from=/find` reads as Review). Where a section below says Find, read Review. The Find
+  box (Add job's "Type a company or title instead") and "Find more jobs" are verbs and keep the word. **Review's
+  count (2026-11-13):** the Review tab shows the postings still to decide, the New chip's number
+  (`scanDetails.newToday`), as a `CountBadge` (99+, the chip's #694 fills; `TopTabCount.tsx`, a lazy chunk), none at 0;
+  Apply has none. Below 400px the pill is hidden visually (`TopTabCount.css`, in its lazy chunk), so the app bar stays one row with no overlapping
+  hit areas; the name keeps the count at every width ("Review 12"; `test/topTabs.ts`, `e2e/routes.ts` `topTab`)
+  (Adrian 2026-11-13 chose this over the wrap). The Review page has no visible title: its h1 is `.sr-only` (`FindHeader.tsx`), so the tab is the one visible "Review". Pinned in `e2e/shell-controls.spec.ts` (320, 375, 390, 414).
+  Each screen is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
   selection is the route; Documents and Privacy and terms are dialogs in the page's URL. **This section is the current
   shell: where an older section below (Job routes, Final shell, Rapid apply, Pipeline panels, Return paths) says
   Pipeline, `#/queue`, Today, Apply mode or a Documents / Legal page, read it as history.** The top tabs are **Find** (slug `find`,
@@ -275,7 +286,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
-- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
+- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Review** (was Find)
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
   tab pages (a job, a posting, a Company) and two dialogs over them (Documents, Privacy and terms; #471 slice 4). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Find.
@@ -487,15 +498,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/hds-gaps/DisclosureRow.tsx` (hds#1508) wraps HDS
   `Disclosure variant="row"` (Daily picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
   body starts a height tween, so rows jumped; here the gap stays 0, the body pads itself and opens at once.
-  BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/hds-gaps/FactLines.tsx` (hds#1509)
-  (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
-  (inline) in `DetailTitleBlock`, the posting cards and Daily picks. Both are in the HDS gap registry.
+  BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. One fact per line, the icon on the first text line,
+  is HDS `Card.Facts` (stacked by default since HDS 0.43, hds#1509) in `DetailTitleBlock`, the posting cards and Daily
+  picks; the local `FactLines` gap is deleted (HDS 0.44 PR). DisclosureRow stays in the HDS gap registry.
 - **Theme toggle + burn (#688):** the app bar's HDS `ThemeToggle` (left of the Account button, 44px; its own name
   "Switch to dark/light theme", no aria-pressed, HDS's contract) is the one theme switch; `src/burn/ThemeBurnToggle.tsx`,
   a lazy chunk with a 44px hold (`.rjb-theme-toggle-hold`). `ColorMode.burnToggle(at)` reveals the new theme from the
   tap point (the button's centre from the keyboard): `src/burn/burn.ts` (lazy, `importFresh`) runs a View Transition,
   holds it open and clips the new snapshot to `burnField.ts`'s front (`clip-path: path()`, a thin char band ahead of it).
-  `BURN` is **locked** (Adrian 2026-11-13: 970 ms, cell 6.5, fps 10…; the char band's flat fill is `edgeColor` offtone (old surface darkened) | cobalt (`--primitive-color-blue-500`) | flame (`--primitive-color-cobalt-400`) at `edgeOpacity`; `burnField.test.ts`). **Generative (#690 follow-up):** `BURN.seed` is `null` in the app, so each burn picks a fresh seed (`random01`: `crypto.getRandomValues`, else `Math.random`) and a small variation (`pickVariant`: noise offset and rotation, ±10% on scale and gain, clamped), fixed for that burn (no flicker); a numeric seed (tests, the tuner, a recording) gives the same field every run. No View Transitions,
+  `BURN` is **locked** (Adrian 2026-11-13: 970 ms, cell 6.5, fps 10…; the char band's flat fill is `edgeColor` offtone (old surface darkened) | cobalt (`--primitive-color-blue-500`) | flame (`--primitive-color-cobalt-400`) at `edgeOpacity`; `burnField.test.ts`). **Generative (#690 follow-up):** `BURN.seed` is `null` in the app, so each burn picks a fresh seed (`random01`: `crypto.getRandomValues`, else `Math.random`) and a small variation (`pickVariant`: noise offset and rotation, ±10% on scale and gain, clamped), fixed for that burn (no flicker); a numeric seed (tests, the tuner, a recording) gives the same field every run. **The edge and the reveal share one geometry (#695 follow-up, Adrian's iPhone recording):** the edge layer
+  (`burn.ts` `overlay`) is sized in px from the burn's own `innerWidth` × `innerHeight`, the same w × h as the field and
+  the reveal clip, never `100vw`/`100vh` (on iOS `100vh` is the large viewport, which stretched the edge beside the
+  hole); pinned in `burn/burnGeometry.test.ts`, `e2e/theme-toggle.spec.ts`. No View Transitions,
   reduced motion or Pause animations = an instant swap. Both theme-color metas take the page background on every
   swap (`ColorMode.syncThemeColor`). Save on Find flies the card to the Apply tab, which pulses (`saveFlight.ts`
   `saveRow`); the card burn is off (open choice). The Account sheet shows no focus ring on a row the pointer or a
@@ -523,7 +537,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. The tabs
   show **no counts** (Find controls, 2026-11-13: `TopTabCount.tsx` is deleted; the New chip keeps Find's number and
   the To apply view chip Apply's; the bar wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
-  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label alone ("Apply"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
+  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label alone ("Apply"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Review", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
   a tab tap, which reopens where the tab was left. List / Deck is **one toggle** (#694): one HDS `Button` drawn as the `.rjb-segs` track, both icons (List,
   Layers) shown, the open one filled; a press anywhere (or Space / Enter) flips it; named "View: List, switch to Deck" /
@@ -945,6 +959,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
   and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Unsaved listings (Find's Browse cards) have no page:
   below lg their title is the link out, with HDS's external icon (#544; at lg it selects the posting). Apply mode keeps Open application.
+  **Labelled external links are HDS Button `external` (HDS 0.44):** Open application (the dock's key) and the
+  follow-up dialog's Open posting show HDS's arrow after the label, which nudges on hover and focus (still under
+  reduced motion); no leading ExternalLink icon. Icon-only posting links keep their icon.
   Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts` (hit-tests
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Company logos (2026-10-22):** `CompanyLogo.tsx` is an HDS `Avatar` per company (the To apply stack, Pipeline table and cards, job header (the 24px `inline` mark before the name, as on Find cards and Apply rows, 2026-11-13), job rail, Company page, Companies and dream rows): letter first, the logo only once `new Image()` has loaded it at 16px or more (lazy, no referrer; errors and DuckDuckGo's tiny placeholder keep the letter). `companyLogo.ts` is the one table-tested rule for the domain (company website first, then the posting's host; never a job board, ATS or aggregator host, `*.example.com`, localhost, IPs). Icons come from `icons.duckduckgo.com` (`img-src`, `legal.ts` THIRD_PARTIES, `csp.test.ts`); e2e specs abort that host, so baselines show letters.

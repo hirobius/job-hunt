@@ -10,7 +10,8 @@
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { hiddenParts, setScanDetails } from './feed/scanDetails';
+import { setScanDetails } from './feed/scanDetails';
+import { hiddenParts } from './feed/scanDetailsText';
 import {
   Badge,
   Box,
@@ -88,7 +89,6 @@ import { usePostingText } from './feed/postingText';
 import PostingDescription from './PostingDescription';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
-import { FactLines } from './hds-gaps/FactLines';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -618,7 +618,7 @@ const rowActions: RowActions = {
   mute: (r, from) =>
     collapseRow(from, () => {
       const undo = muteCompany(r.company);
-      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Find.');
+      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Review.');
     }),
 };
 
@@ -964,12 +964,15 @@ function PostingCard({
             Company not stated
           </Text>
         )}
-        <FactLines
-          truncateFirst
+        <Card.Facts
+          className="p-0"
+          // Plain lines, not a list inside each card's list item (as FactLines was): a list of
+          // cards counts only its cards.
+          role="presentation"
           items={[
             { icon: MapPin, label: placeOf(r) },
-            mode ? { icon: Briefcase, label: mode } : null,
-            postedLabel ? { icon: Calendar, label: postedLabel } : null,
+            ...(mode ? [{ icon: Briefcase, label: mode }] : []),
+            ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
           ]}
         />
         {pay && (
@@ -1220,7 +1223,7 @@ function PostingDetail({
   now: number;
   actions: RowActions;
 }) {
-  usePageTitle(r ? r.title : wide ? 'Find' : null);
+  usePageTitle(r ? r.title : wide ? 'Review' : null);
   if (!r)
     return (
       <Stack gap="normal">

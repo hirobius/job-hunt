@@ -66,6 +66,7 @@ import {
   TAB_FROZEN_TITLE,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
+import { setScanDetails } from '../feed/scanDetails';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { CloudSyncContext, PULL_LIMIT, type CloudSyncApi } from './accountContext';
 import { magicLinkRedirect } from './authRedirect';
@@ -140,6 +141,14 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const sources = useSources();
   const decided = decidedStore.use();
   const [user, setUser] = useState<User | null>(null);
+  // What Review last read belongs to the account it read for: a sign-out or a switch clears it, so
+  // the Review tab's count (TopTabCount) never shows the previous account's number.
+  const scanOwner = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const id = user?.id ?? null;
+    if (scanOwner.current !== undefined && scanOwner.current !== id) setScanDetails(null);
+    scanOwner.current = id;
+  }, [user?.id]);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
   const [accountTrigger, setAccountTrigger] = useState<HTMLButtonElement | null>(null);

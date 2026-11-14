@@ -29,7 +29,7 @@ describe('the double-tap guard', () => {
 
   it('leaves the top tabs alone: they sit in main, in the page bar, since #679', () => {
     document.body.innerHTML =
-      '<main><div class="rjb-page-bar"><nav><a id="tab" href="#/find">Find</a></nav></div></main>';
+      '<main><div class="rjb-page-bar"><nav><a id="tab" href="#/review">Find</a></nav></div></main>';
     const hits: string[] = [];
     document.getElementById('tab')!.addEventListener('click', (e) => {
       e.preventDefault();

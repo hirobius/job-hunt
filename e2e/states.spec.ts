@@ -89,7 +89,7 @@ test('Find with no results: Scan now filled, Edit search profile grey, on the pa
       body: JSON.stringify(body),
     });
   });
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   const title = page.getByText('No postings match yet');
   await expect(title).toBeVisible({ timeout: 30_000 });
   await onPage(title);

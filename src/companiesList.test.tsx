@@ -63,7 +63,7 @@ const renderApp = () =>
 beforeEach(() => {
   localStorage.clear();
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/find';
+  window.location.hash = '#/review';
 });
 afterEach(() => {
   cleanup();

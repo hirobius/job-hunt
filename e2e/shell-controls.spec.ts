@@ -1,5 +1,5 @@
 import { hitArea } from './hitArea';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
@@ -41,25 +41,28 @@ for (const width of [390, 1440]) {
         expect(account!.x).toBeGreaterThan(logo!.x + logo!.width - 1);
         expect(account!.width).toBeGreaterThanOrEqual(44);
       }).toPass({ timeout: 10_000 });
-      await topTab(page, 'Find').click();
-      await expect(page).toHaveURL(/#\/find/);
-      await expect(topTab(page, 'Find')).toHaveAttribute('aria-current', 'page');
+      await topTab(page, 'Review').click();
+      await expect(page).toHaveURL(/#\/review/);
+      await expect(topTab(page, 'Review')).toHaveAttribute('aria-current', 'page');
       await page.goBack();
       await expect(page).toHaveURL(/#\/apply/);
       await expect(topTab(page, 'Apply')).toHaveAttribute('aria-current', 'page');
     });
 
-    test('the top tabs show no counts (2026-11-13)', async ({ page }) => {
+    test('Review shows its count, Apply none (2026-11-13)', async ({ page }) => {
+      await manyPostings(page, 12);
       await seed(page);
-      await page.goto('/#/apply');
+      await page.goto('/#/review');
       const nav = page.getByRole('navigation', { name: 'Sections' });
+      await expect(nav.getByRole('link', { name: /^Review/ })).toHaveAccessibleName('Review 12');
       await expect(nav.getByRole('link', { name: /^Apply/ })).toHaveAccessibleName('Apply');
-      await expect(nav.getByRole('link', { name: /^Find/ })).toHaveAccessibleName('Find');
+      await expect(nav.locator('.rjb-seg-count')).toHaveCount(1);
     });
 
     test('List / Deck: one toggle over the whole track, with a tooltip', async ({ page }) => {
+      // No outside-host block here: Find's postings (and so this toggle) come from those reads.
       await seed(page);
-      await page.goto('/#/find');
+      await page.goto('/#/review');
       const toggle = page.getByRole('button', { name: /^View: / });
       await expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
       await expect(toggle).toHaveText('');
@@ -87,6 +90,8 @@ for (const width of [390, 1440]) {
     test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({
       page,
     }) => {
+      // Outside hosts refused: left open they hang and stall the lg column (#614).
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);
       await page.goto('/#/apply');
       const phone = width < 1024;
@@ -127,64 +132,80 @@ for (const width of [390, 1440]) {
         .toBe(remote);
     });
 
-    test('Remote only on each view: chip count, status line and list agree (#614)', async ({
-      page,
-    }) => {
-      await seed(page);
-      await page.goto('/#/apply');
-      const phone = width < 1024;
-      const list = await listScope(page);
-      const sw = phone
-        ? list.getByRole('button', { name: 'Remote only' })
-        : list.getByRole('switch', { name: 'Remote only' });
-      const isOn = async () =>
-        phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
-      const chips = list.getByRole('group', { name: 'Views' }).first().getByRole('button');
-      const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
-      // The lg column's status line ("To apply · N jobs"); the sheet says "N jobs shown" (#543).
-      const status = list
-        .getByRole('status')
-        .filter({ hasText: phone ? /^\d+ jobs? shown$/ : /· \d+ jobs?/ })
-        .first();
-      const shownCount = async () => Number((await status.textContent())!.match(/(\d+) jobs?/)![1]);
-      for (const on of [false, true]) {
-        if ((await isOn()) !== on) await sw.click();
+    // Split by Remote only (the one test ran 2 x 7 views and sat near the 30 s limit). Outside
+    // hosts are refused as in the tests above: left open, the lg column's requests (company logos,
+    // the seeded Greenhouse board) hang in a sandbox with no outbound network and stall each
+    // click by seconds, which timed out the chip clicks and the aria-pressed wait at 1440.
+    for (const on of [false, true]) {
+      test(`Remote only ${on ? 'on' : 'off'} on each view: chip count, status line and list agree (#614)`, async ({
+        page,
+      }) => {
+        await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+        await seed(page);
+        await page.goto('/#/apply');
+        const phone = width < 1024;
+        const list = await listScope(page);
+        const sw = phone
+          ? list.getByRole('button', { name: 'Remote only' })
+          : list.getByRole('switch', { name: 'Remote only' });
+        const chips = list.getByRole('group', { name: 'Views' }).first().getByRole('button');
+        const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
+        // The lg column's status line ("To apply · N jobs"); the sheet says "N jobs shown" (#543).
+        const status = list
+          .getByRole('status')
+          .filter({ hasText: phone ? /^\d+ jobs? shown$/ : /· \d+ jobs?/ })
+          .first();
+        const shownCount = async () =>
+          Number((await status.textContent())!.match(/(\d+) jobs?/)![1]);
+        // Wait on the switch's state, never assume the click landed.
+        const pressed = async () =>
+          phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
+        if ((await pressed()) !== on) await sw.click();
+        await expect.poll(pressed).toBe(on);
         for (const name of names) {
-          const chip = chips.filter({ hasText: name }).first();
-          await chip.click();
-          await expect(chip).toHaveAttribute('aria-pressed', 'true');
-          const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
-          await expect.poll(shownCount, `${name}, Remote only ${on}`).toBe(badge);
-          const n = await list
-            .getByRole('navigation', { name: 'Jobs' })
-            .locator('a[href^="#/apply/"]')
-            .count();
-          expect(n, `${name} rows`).toBe(badge);
+          await test.step(name, async () => {
+            const chip = chips.filter({ hasText: name }).first();
+            await chip.click();
+            await expect(chip).toHaveAttribute('aria-pressed', 'true');
+            const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
+            await expect.poll(shownCount, `${name}, Remote only ${on}`).toBe(badge);
+            const n = await list
+              .getByRole('navigation', { name: 'Jobs' })
+              .locator('a[href^="#/apply/"]')
+              .count();
+            expect(n, `${name} rows`).toBe(badge);
+          });
         }
-      }
-    });
+      });
+    }
   });
 }
 
-// Equal segments, no counts (2026-11-13): Find | Apply are two
-// equal segments, each 44px tall on a phone; the page bar fits on one row at 375 and 390 and wraps,
-// never scrolls sideways, at 320.
-for (const width of [320, 375, 390]) {
-  test(`Find | Apply: equal segments, no counts, fit at ${width}`, async ({ page }) => {
+// Equal segments, Review's count (2026-11-13): Review | Apply are two equal segments, each 44px
+// tall on a phone, on one row. Below 400px the count pill is hidden visually (it stays in the name),
+// so the page bar never runs past the screen or overlaps its tools; from 400 the "99+" pill shows
+// inside its segment.
+for (const width of [320, 375, 390, 414]) {
+  test(`Review | Apply: equal segments, a 99+ count, fit at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await manyPostings(page, 120);
     await seed(page);
-    await page.goto('/#/apply');
+    await page.goto('/#/review');
     const nav = page.getByRole('navigation', { name: 'Sections' });
+    const review = nav.getByRole('link', { name: /^Review/ });
+    await expect(review).toHaveAccessibleName('Review 99+');
     const apply = nav.getByRole('link', { name: /^Apply/ });
     await expect(apply).toHaveAccessibleName('Apply');
-    await expect(nav.locator('.rjb-seg-count')).toHaveCount(0);
-    const [find, app] = [await topTab(page, 'Find').boundingBox(), await apply.boundingBox()];
-    expect(Math.abs(find!.width - app!.width)).toBeLessThan(1);
-    expect(Math.abs(find!.y - app!.y)).toBeLessThan(1);
-    expect(find!.height).toBeGreaterThanOrEqual(44);
+    const [rev, app] = [await review.boundingBox(), await apply.boundingBox()];
+    expect(Math.abs(rev!.width - app!.width)).toBeLessThan(1);
+    expect(Math.abs(rev!.y - app!.y)).toBeLessThan(1);
+    expect(rev!.height).toBeGreaterThanOrEqual(44);
     const navBox = await nav.boundingBox();
     expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(width);
+    const pill = await nav.locator('.rjb-seg-count').boundingBox();
+    if (width < 400) expect(pill!.width).toBeLessThanOrEqual(1);
+    // From 400 the pill shows, inside its segment.
+    else expect(pill!.x + pill!.width).toBeLessThanOrEqual(rev!.x + rev!.width);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
@@ -215,7 +236,7 @@ test.describe('at 390, the view picker', () => {
     expect(fill.h).toBeCloseTo(40, 0);
     expect(fill.w).toBeCloseTo(box!.width, 0);
     // The chip's fill: the same colour and height as Find's New chip.
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     const chip = page.getByRole('group', { name: 'Filter postings' }).getByRole('button').first();
     const chipFill = await chip.evaluate((el) => {
       const s = getComputedStyle(el.firstElementChild as Element);
@@ -232,3 +253,42 @@ test.describe('at 390, the view picker', () => {
     expect(caret!.x + caret!.width).toBeLessThan(box!.x + box!.width);
   });
 });
+
+/** n synthetic design-system postings from one Hacker News thread; every other host answers empty
+ *  (no real people). Review reads them as new, so its tab shows the count. */
+async function manyPostings(page: Page, n: number) {
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+    const url = r.request().url();
+    const json = (body: unknown) =>
+      r.fulfill({
+        status: 200,
+        headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    if (url.startsWith('https://remotive.com/') || url.startsWith('https://jobicy.com/'))
+      return json({ jobs: [] });
+    if (url.startsWith('https://api.lever.co/')) return json([]);
+    if (/^https:\/\/(boards-api\.greenhouse\.io|api\.ashbyhq\.com)\//.test(url))
+      return json({ jobs: [] });
+    if (!url.startsWith('https://hn.algolia.com/')) return r.abort();
+    if (url.includes('search_by_date'))
+      return json({
+        hits: [
+          {
+            objectID: '9',
+            title: 'Ask HN: Who is hiring? (October 2026)',
+            created_at: '2026-10-01',
+          },
+        ],
+      });
+    return json({
+      hits: Array.from({ length: n }, (_, i) => ({
+        objectID: `p-${i}`,
+        story_id: 9,
+        parent_id: 9,
+        created_at: new Date().toISOString(),
+        comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+      })),
+    });
+  });
+}

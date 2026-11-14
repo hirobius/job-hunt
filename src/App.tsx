@@ -54,6 +54,7 @@ import DialogHold from './DialogHold';
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 // The count beside each top tab (#548): its own chunk (pipelineView is not in the entry).
 // The app bar's theme switch and its burn (#688): its own chunk.
+const TopTabCount = lazy(importFresh(() => import('./TopTabCount')));
 const ThemeBurnToggle = lazy(importFresh(() => import('./burn/ThemeBurnToggle')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
 // The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan
@@ -157,7 +158,7 @@ export default function App() {
         ? null
         : tabSlug === APPLY_TAB
           ? 'Apply'
-          : 'Find',
+          : 'Review',
   );
 
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
@@ -201,11 +202,16 @@ export default function App() {
   // every width (#548: the phone's second row went). HDS SegmentedControl is a radio group (Radix
   // toggle group; arrow keys select), so it cannot be a nav: these stay links in a nav, the open one
   // aria-current="page", drawn with its tokens (base.css .rjb-segs). Upstream ask:
-  // docs/hds-upstream-asks/segmented-nav.md (G7, hds#1438). No counts on the tabs (Find controls, 2026-11-13).
+  // docs/hds-upstream-asks/segmented-nav.md (G7, hds#1438). Review shows its count (TopTabCount), Apply none (Adrian 2026-11-13).
   const [barSlot, setBarSlot] = useState<HTMLDivElement | null>(null);
   const sections = (
     <Box as="nav" aria-label="Sections" className="rjb-segs">
-      <a {...tabLink(FIND_TAB)}>Find</a>
+      <a {...tabLink(FIND_TAB)}>
+        Review
+        <Suspense fallback={null}>
+          <TopTabCount />
+        </Suspense>
+      </a>
       <a {...tabLink(APPLY_TAB)}>Apply</a>
     </Box>
   );
@@ -323,7 +329,7 @@ export default function App() {
                   <a
                     href={`#/${FIND_TAB}`}
                     className="rjb-logo-link"
-                    aria-label={`${BRAND.name}, Find`}
+                    aria-label={`${BRAND.name}, Review`}
                     onClick={toFind}
                   >
                     <BrandLogo fontSize={19} />

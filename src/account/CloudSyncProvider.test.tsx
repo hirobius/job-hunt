@@ -54,6 +54,7 @@ import { createDocument, getAllDocuments, replaceDocuments } from '../documents'
 import type { Job } from '../types';
 import { loadSample } from '../demo/loadSample';
 import { getAllSweeps, setTitleOn } from '../feed/sweepTitles';
+import { getScanDetails, setScanDetails } from '../feed/scanDetails';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -510,6 +511,14 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     await screen.findByText('Track changes didn’t reach the cloud');
     await chooseAccountItem('Sign out');
     await waitFor(() => expect(localStorage.getItem('rjb_curation')).toBeNull());
+  });
+
+  it("sign-out clears what Review last read, so the Review tab never shows the last account's count", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await signedInWithSyncedTrack();
+    act(() => setScanDetails({ failed: [], hidden: [], newToday: 12, sourcesRead: 3 }));
+    await chooseAccountItem('Sign out');
+    await waitFor(() => expect(getScanDetails()).toBeNull());
   });
 
   it('a track write still in flight counts as unsynced at sign-out', async () => {

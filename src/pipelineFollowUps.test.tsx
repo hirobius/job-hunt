@@ -1,7 +1,7 @@
 // Calm list 2/7 (#236): Today is gone. Due follow-ups and the next 7 days of interviews and calls
 // live with the Apply list, as one Follow up section (due first, then the rest with their dates)
 // and one Next 7 days list: since #543 under the lg list column (JobRail) only, so these tests
-// run at lg. `#/find` is home again (#383). Tested at the
+// run at lg. `#/review` is home again (#383). Tested at the
 // route seam through App and driven by role + name.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -76,15 +76,15 @@ afterEach(() => {
   delete (window as { matchMedia?: unknown }).matchMedia;
 });
 
-describe('#/find is home again (#383; was retired in #236)', () => {
+describe('#/review is home again (#383; was retired in #236)', () => {
   it('opens Today, not Companies', async () => {
     seedPack('consulting');
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     await openListOnPhone();
-    expect(currentTab()).toHaveAccessibleName('Find');
-    expect(window.location.hash).toBe('#/find');
-    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    expect(currentTab()).toHaveAccessibleName('Review');
+    expect(window.location.hash).toBe('#/review');
+    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
   });
 
   it('an empty hash lands on Today', async () => {
@@ -92,8 +92,8 @@ describe('#/find is home again (#383; was retired in #236)', () => {
     window.location.hash = '';
     renderApp();
     await openListOnPhone();
-    expect(currentTab()).toHaveAccessibleName('Find');
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    expect(currentTab()).toHaveAccessibleName('Review');
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
   });
 
   it('a ?add= quick-add link still lands on the Pipeline', async () => {
@@ -339,7 +339,7 @@ describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
     window.location.hash = '';
     renderApp();
     await openListOnPhone();
-    expect(currentTab()).toHaveAccessibleName('Find');
+    expect(currentTab()).toHaveAccessibleName('Review');
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();
   });

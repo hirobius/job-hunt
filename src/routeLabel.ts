@@ -1,5 +1,5 @@
 // What a route is called where a Back names it (return paths, Adrian 2026-10-22): "← Senior UX
-// Designer", "← Apply", "← Find". Pure over the saved jobs and documents, with a
+// Designer", "← Apply", "← Review". Pure over the saved jobs and documents, with a
 // hook that reads them live.
 import { useMemo } from 'react';
 import { APPLY_TAB, FIND_TAB, companySlugOf, redirectOf, type Route } from './route';
@@ -38,7 +38,7 @@ export function routeLabel(route: Route, ctx: { jobs: Job[]; docs: Document[] })
     }
     case FIND_TAB:
     case '':
-      return 'Find';
+      return 'Review';
     default:
       return 'the last page';
   }

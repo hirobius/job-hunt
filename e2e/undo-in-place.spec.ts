@@ -24,13 +24,13 @@ for (const width of [390, 1440] as const) {
       const undo = page.getByRole('button', { name: 'Undo' });
       await expect(undo).toBeVisible();
 
-      await topTab(page, 'Find').click();
-      await expect(page).toHaveURL(/#\/find$/);
+      await topTab(page, 'Review').click();
+      await expect(page).toHaveURL(/#\/review$/);
       await expect(undo).toBeVisible();
       await undo.click();
       // Undo never navigates: still on Find, focus not dropped to <body>.
       await page.waitForTimeout(600);
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
       await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
       await expect
         .poll(() => page.evaluate(() => document.activeElement !== document.body))
