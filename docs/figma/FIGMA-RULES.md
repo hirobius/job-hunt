@@ -42,9 +42,8 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Review is one list (2026-11-13).** No Deck and no List | Deck switch. Cards carry no source or New
   badge (#557). From 1024 px: the list on the left (about 26 rem) and the selected posting's detail on the
   right; the first posting is selected, so the detail is never empty; ↑ / ↓ move the selection. Below
-  1024 px: the list alone, with one pager row above it, "[‹][›] 1 of N" at the left (each arrow a
-  44 px key of its own, the count after them). The arrows step a current card to the top (focus stays on
-  the arrow); scrolling moves the current card too, so the count stays true. No pager from 1024 px.
+  1024 px: the list alone, scrolled, with **no pager** (Adrian 2026-11-14: in a scrolled list its arrows only
+  jumped the page). No pager at any width.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 
@@ -79,7 +78,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
 - **Review's short header (#544).** (Review controls, 2026-11-13.) No visible "Review" title (the page bar's Review / Apply says where
   you are), nothing at the bar's right. No date line, no Scan now key. **No visible "Review" heading (2026-11-12)** and no
-  filter row (2026-11-13): from 1024 px the list starts under the tabs; below it only the pager row.
+  filter row (2026-11-13): the list starts under the tabs at every width (no pager row, 2026-11-14).
   No Sort on Review (2026-11-13): newest first, always. **No More menu on Review (#694):** Scan now (signed out) is in the Account menu beside
   Search profile, and "Scanned 2 h ago" lives only in Scan details (the Search profile dialog). **One empty state, by
   cause (#694):** "No postings match yet" (Scan now | Edit search profile), "You’re all caught up" (check-circle; Scan

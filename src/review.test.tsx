@@ -329,7 +329,6 @@ describe('Review new: Browse', () => {
 });
 
 describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
-  const current = () => screen.getByRole('group', { name: 'Postings in the list' });
   it('has no view switch and no Deck', async () => {
     renderReview();
     await list();
@@ -338,52 +337,14 @@ describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
     expect(document.querySelector('.rjb-deck, .rjb-deck-excerpt')).toBeNull();
   });
 
-  it('below lg, "‹ › 1 of N": the arrows step a current card; focus stays on the arrow', async () => {
-    const user = userEvent.setup();
-    const scrolled = vi.fn();
-    Element.prototype.scrollIntoView = scrolled;
+  it('below lg the list scrolls with no pager (Adrian 2026-11-14: its arrows only jumped the page)', async () => {
     renderReview();
     const ul = await list();
-    const pager = current();
-    const [prev, next] = within(pager).getAllByRole('button');
-    expect(prev).toHaveAccessibleName('Previous posting');
-    expect(next).toHaveAccessibleName('Next posting');
-    // Arrows first, then the count; nothing else on the row.
-    expect(pager.textContent).toBe('1 of 3');
-    expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(prev).toBeDisabled();
-    await user.click(next);
-    expect(pager).toHaveTextContent('2 of 3');
-    // Review of #714: focus stays on the arrow, so it can be pressed again; the step is said once,
-    // politely, and the visible count is not a live region (it follows the scroll).
-    expect(next).toHaveFocus();
-    const second = within(ul).getAllByRole('heading', { level: 3 })[1];
-    const said = screen.getAllByRole('status').find((e) => /^2 of 3: /.test(e.textContent ?? ''));
-    expect(said?.textContent).toContain(second.textContent!.split('\u2060')[0]);
-    expect(pager.querySelector('[aria-live]')).toBeNull();
-    await waitFor(() => expect(scrolled).toHaveBeenCalled());
-    await user.click(next);
-    expect(pager).toHaveTextContent('3 of 3');
-    expect(next).toBeDisabled();
-    // At the end, focus moves to the arrow that is still on.
-    await waitFor(() => expect(prev).toHaveFocus());
-    await user.click(prev);
-    expect(pager).toHaveTextContent('2 of 3');
-  });
-
-  it('below lg, the current card follows scrolling, so the count stays true', async () => {
-    renderReview();
-    const ul = await list();
-    const pager = current();
-    const items = Array.from(ul.querySelectorAll<HTMLElement>(':scope > li'));
-    // The first card has scrolled above a quarter of the screen; the second is the first past it.
-    items.forEach((li, i) => {
-      li.getBoundingClientRect = () => ({ bottom: i === 0 ? 10 : 400 + i * 300 }) as DOMRect;
-    });
-    act(() => {
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await waitFor(() => expect(pager).toHaveTextContent('2 of 3'));
+    expect(titles(ul).length).toBeGreaterThan(1);
+    expect(screen.queryByRole('group', { name: 'Postings in the list' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Previous|Next) posting$/ })).toBeNull();
+    expect(screen.queryByText(/^\d+ of \d+$/)).toBeNull();
+    expect(document.querySelector('.rjb-find-pager')).toBeNull();
   });
 
   it('↓ past the pages shown shows the next page, so its card is there (review of #714)', async () => {

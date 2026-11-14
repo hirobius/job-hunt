@@ -187,7 +187,7 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
-  it('pins Find as one list (2026-11-13): no Deck, no switch, the phone pager, no filter row', () => {
+  it('pins Find as one list (2026-11-13): no Deck, no switch, no pager, no filter row', () => {
     expect(RULES).toMatch(/Review is one list \(2026-11-13\)/);
     expect(RULES).toMatch(
       /with no source or New\s+badge \(#557\)|carry no source or New\s+badge \(#557\)/,
@@ -197,7 +197,9 @@ describe('FIGMA-RULES.md', () => {
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
     expect(review).not.toMatch(/\bDeck\b|ActionDock|SwipeArea|Checkbox|remoteOnly/);
     expect(review).not.toContain('<Badge tone="info">');
-    expect(review).toContain('aria-label="Postings in the list"');
+    // No phone pager (Adrian 2026-11-14): the list scrolls.
+    expect(review).not.toContain('Postings in the list');
+    expect(RULES).toMatch(/\*\*no pager\*\* \(Adrian 2026-11-14/);
     expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Pagination');
     // The Apply job still swipes.
     expect(fs.readFileSync('src/JobPage.tsx', 'utf8')).toContain('<SwipeArea');

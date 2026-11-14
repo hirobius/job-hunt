@@ -190,8 +190,7 @@ test.describe('Tab from the open top tab goes on into the page (#364)', () => {
 test('a click or tap leaves no focus ring', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await seed(page);
-  // The pager shows only beside postings (2026-11-13): a synthetic Hacker News feed (no
-  // real people), as review.spec does, so Find lists some. Registered after seed's abort-all, so
+  // A synthetic Hacker News feed (no real people), as review.spec does, so Review lists some. Registered after seed's abort-all, so
   // it wins for hn.algolia.com.
   await page.route(/^https:\/\/hn\.algolia\.com\//, (r) =>
     r.fulfill({
@@ -224,7 +223,9 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     }),
   );
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Next posting' })).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByRole('list', { name: 'New postings' }).getByRole('listitem').first(),
+  ).toBeVisible({ timeout: 15_000 });
   const ring = () =>
     page.evaluate(() => {
       const e = document.activeElement as HTMLElement | null;
@@ -241,8 +242,6 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     });
   // The top tabs' names end in their count when they show one ("Apply 12", #548).
   for (const [role, name] of [
-    // The phone pager's Next posting (2026-11-13): focus stays on the pager, no ring after a click.
-    ['button', 'Next posting'],
     ['link', 'Apply'],
     ['link', 'Review'],
     // Scan now is in the Account menu (#694): a menu moves focus into itself, so it is not in
