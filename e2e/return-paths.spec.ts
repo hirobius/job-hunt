@@ -1,10 +1,10 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import {
+  allWorkModes,
   go,
   JOB_LINK,
   openAllJobs,
   openApply,
-  openFilters,
   seed,
   topTab,
   openData,
@@ -161,7 +161,7 @@ for (const width of [390, 800] as const) {
       await signIn.getByLabel('Email').fill('typed@example.com');
       await closesOnBack(signIn, queue);
 
-      // The view picker (#542), the All jobs sheet, the job's menu, the Sort menu, and Recently removed.
+      // The view picker (#542), the All jobs sheet, the job's menu, and Recently removed.
       await page.getByRole('button', { name: /^View: / }).click();
       await closesOnBack(page.getByRole('menu'), queue);
       await openAllJobs(page);
@@ -170,11 +170,6 @@ for (const width of [390, 800] as const) {
       const more = page.getByRole('button', { name: `More actions: ${title}` }).first();
       await more.click();
       await closesOnBack(page.getByRole('menu'), queue);
-      // Sort is the sheet's too (#543): Back closes its menu, then the sheet.
-      const filters = await openFilters(page);
-      await filters.getByRole('button', { name: /^Sort:/ }).click();
-      await closesOnBack(page.getByRole('menu'), queue);
-      await closesOnBack(filters, queue);
       await more.click();
       await page.getByRole('menuitem', { name: 'Remove from Apply' }).click();
       // Recently removed is in the Account menu's Data dialog (#416, #550).
@@ -377,6 +372,7 @@ test.describe('return paths at 1440', () => {
   test.beforeEach(async ({ page }) => {
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
     await seed(page);
+    await allWorkModes(page);
   });
 
   test('picks in the list move in place: one Back leaves the Jobs tab', async ({ page }) => {

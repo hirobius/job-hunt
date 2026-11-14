@@ -2,14 +2,16 @@
 // no box around it. Left, the view picker (the open view's name, bold, with a caret inside): an HDS
 // secondary select-style key with the Find chips' fill and height (`.rjb-view-picker`, ApplyWalk.css),
 // its left edge on the page gutter, under the Find | Apply control (2026-11-13). An HDS Menu,
-// drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the six views and "All jobs and
-// filters". Beside it a "N filters" chip, only while a filter is on (search, Remote only); it opens
-// the All jobs sheet. Right, the pager: it only steps (a sideways swipe on the job steps it too).
+// drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the seven views and "All jobs" (the
+// sheet). No filters chip since 2026-11-13: there are no filters (Remote only follows the Search
+// profile). Right, the pager: it only steps (a sideways swipe on the job steps it too).
 // The view name takes the room it needs (prod audit 2026-11-12: it truncated with free space
 // left); when the row is too narrow for both, the pager wraps under it. It only truncates on a
 // screen too narrow for the name alone. Below lg only: at lg the list sits beside the job.
 import { ChevronDown } from 'lucide-react';
-import { Box, Button, Menu, Stack, Tag, Text } from '@hirobius/design-system';
+import { Box, Button, Menu, Stack, Text } from '@hirobius/design-system';
+import { decided } from './decided';
+import { skippedPostings } from './passed';
 import ApplyPager from './ApplyPager';
 import './ApplyWalk.css';
 import { useBackSheet } from './useBackCloses';
@@ -17,7 +19,6 @@ import {
   FILTER_LABEL,
   NAMED_VIEWS,
   filterCounts,
-  filtersOn,
   setPipelineView,
   usePipelineView,
   type Filter,
@@ -52,8 +53,8 @@ export default function ApplyWalk({
 }) {
   const view = usePipelineView();
   const sheet = useBackSheet('apply-views');
-  const counts = filterCounts(jobs, undefined, !!view.remoteOnly);
-  const n = filtersOn(view);
+  const skipped = skippedPostings(decided.use().values()).length;
+  const counts = filterCounts(jobs, undefined, !!view.remoteOnly, skipped);
   const name = FILTER_LABEL[view.filter];
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
@@ -87,17 +88,9 @@ export default function ApplyWalk({
               ))}
             </Menu.RadioGroup>
             <Menu.Separator />
-            <Menu.Item onSelect={onAllJobs}>All jobs and filters</Menu.Item>
+            <Menu.Item onSelect={onAllJobs}>All jobs</Menu.Item>
           </Menu.Content>
         </Menu>
-        {n > 0 && (
-          <Tag
-            onClick={onAllJobs}
-            aria-label={`${n} ${n === 1 ? 'filter' : 'filters'}, open All jobs`}
-          >
-            {`${n} ${n === 1 ? 'filter' : 'filters'}`}
-          </Tag>
-        )}
       </Stack>
       {!empty && (
         <Box>

@@ -3,13 +3,12 @@ import JobPage from './JobPage';
 import { toApplyQueue } from './applyQueue';
 import { jobIdOf } from './store';
 import { Search, Briefcase } from 'lucide-react';
+import PassedList from './PassedList';
 import {
   Button as UiButton,
-  Input as HdsInput,
   Box,
   Sidebar,
   Stack,
-  Tag,
   Text,
   VisuallyHidden,
   useAtLeast,
@@ -18,21 +17,19 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import { useJobs } from './store';
 import {
   FILTER_LABEL,
-  filtersOn,
   setPipelineView,
   usePipelineView,
   visibleJobs,
   type Filter,
 } from './pipelineView';
-import { SampleBanner, TrySampleButton } from './demo/SampleData';
+import { TrySampleButton } from './demo/SampleData';
 import JobRowList from './JobRowList';
 import { openJob } from './route';
 import type { Job } from './types';
 import { useListFocusKeeper } from './listFocus';
-import { focusAsHeading, focusNewHeading, pageHeadingNow } from './focusRescue';
+import { focusAsHeading } from './focusRescue';
 import AddJobButton from './AddJob';
 import JobViews from './JobViews';
-import PipelineMenus from './PipelineMenus';
 import { CloudSyncContext } from './account/accountContext';
 import { needsClientAtBoot } from './supabase';
 import { tabFrozen } from './tabAccount';
@@ -99,11 +96,10 @@ export default function TrackerView() {
   const shown = visibleJobs(jobs, view);
   const next = toApplyQueue(jobs).find((j) => shown.includes(j));
   // The To apply view walked to its end (#554): the done state, not some other job. Only when
-  // nothing is left to apply to at all (Remote only hiding some keeps a job, as before).
+  // nothing is left to apply to at all (the profile's remote rule hiding some keeps a job, as before).
   const done =
     jobs.length > 0 &&
     view.filter === 'toApply' &&
-    !view.q.trim() &&
     visibleJobs(jobs, { ...view, remoteOnly: false }).length === 0;
   if (done) return <DonePage jobs={jobs} />;
   const first = next ?? shown[0] ?? toApplyQueue(jobs)[0] ?? jobs[0];
@@ -111,102 +107,41 @@ export default function TrackerView() {
   return <PipelinePage />;
 }
 
-/** The Apply list: the phone's All jobs sheet (#543, redesign plan 5.7). Add job, the named views,
- *  the search, the filter chips (Remote only), the Sort chip and "Clear N" while a filter is on,
- *  then the jobs as the shared rows (JobRowList: one surface, the open job filled). The job page
+/** The Apply list: the phone's All jobs sheet (#543, redesign plan 5.7). Add job, the named
+ *  views, then the jobs as the shared rows (JobRowList: one surface, the open job filled; Passed
+ *  lists PassedList). No search, filters, sort or sample line since 2026-11-13. The job page
  *  itself keeps none of these. `onOpen` opens a job in place (the sheet closes). */
 export function JobsList({ onOpen, openId }: { onOpen?: (job: Job) => void; openId?: string }) {
   const jobs = useJobs();
   const view = usePipelineView();
-  const { filter, q, remoteOnly } = view;
+  const { filter } = view;
   const setFilter = (filter: Filter) => setPipelineView({ filter });
-  const setQ = (q: string) => setPipelineView({ q });
-  // A control that clears the view unmounts as it does, so focus goes to the search (audit).
-  const searchField = useRef<HTMLInputElement>(null);
-  const focusSearch = () => searchField.current?.focus();
-  const on = filtersOn(view);
+  // A row that leaves the list hands focus to its neighbour, else to the views.
+  const top = useRef<HTMLDivElement>(null);
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const shownUrls = useMemo(() => shown.map((j) => j.url), [shown]);
-  // Mark applied, Remove or a status change that takes a row out keeps focus in the list.
-  useListFocusKeeper(shownUrls, searchField);
+  useListFocusKeeper(shownUrls, top);
   const open = onOpen ?? ((j: Job) => openJob(jobIdOf(j.url)));
   const shownLabel = `${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`;
   return (
     <Stack gap="normal">
-      <Box>
+      <Box ref={top}>
         <AddJobButton size="md" />
       </Box>
       <JobViews />
-      <Box className="rjb-form-full">
-        <HdsInput
-          ref={searchField}
-          aria-label="Search saved jobs"
-          placeholder="Search jobs"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          leadingVisual={<Search size={16} />}
-        />
-      </Box>
-      <Stack direction="row" wrap="wrap" gap="px8" align="center" role="group" aria-label="Filters">
-        <Tag
-          active={!!remoteOnly}
-          aria-pressed={!!remoteOnly}
-          onClick={() => setPipelineView({ remoteOnly: !remoteOnly })}
-        >
-          Remote only
-        </Tag>
-        <PipelineMenus chip />
-        {on > 0 && (
-          <UiButton
-            variant="tertiary"
-            size="md"
-            label={`Clear ${on} ${on === 1 ? 'filter' : 'filters'}`}
-            onClick={() => {
-              setPipelineView({ q: '', remoteOnly: false });
-              focusSearch();
-            }}
-          >
-            {`Clear ${on}`}
-          </UiButton>
-        )}
-      </Stack>
-      {/* Clear takes the jobs, and this sheet with them: focus the page that replaces it (#345). */}
-      <SampleBanner jobs={jobs} onCleared={() => focusNewHeading(pageHeadingNow())} />
-      {/* The list's count is not re-read as the search or filter changes: say it (audit). */}
+      {/* The list's count is not re-read as the view changes: say it (audit). */}
       <VisuallyHidden role="status">{shownLabel}</VisuallyHidden>
-      {shown.length === 0 ? (
-        q.trim() ? (
-          <EmptyState
-            centered
-            icon={Search}
-            title={`No jobs match "${q.trim()}"`}
-            description="Try a shorter word, or clear the search."
-            action={
-              <UiButton
-                variant="secondary"
-                onClick={() => {
-                  setQ('');
-                  focusSearch();
-                }}
-              >
-                Clear search
-              </UiButton>
-            }
-          />
-        ) : filter === 'toApply' ? (
+      {filter === 'passed' ? (
+        <PassedList jobs={shown} openId={openId} onPick={open} />
+      ) : shown.length === 0 ? (
+        filter === 'toApply' ? (
           <EmptyState
             centered
             icon={Search}
             title="Nothing left to apply to"
             description="Check Applied, or add more jobs."
             action={
-              <UiButton
-                variant="secondary"
-                onClick={() => {
-                  setFilter('applied');
-                  focusSearch();
-                }}
-              >
+              <UiButton variant="secondary" onClick={() => setFilter('applied')}>
                 Show applied
               </UiButton>
             }
@@ -218,13 +153,7 @@ export function JobsList({ onOpen, openId }: { onOpen?: (job: Job) => void; open
             title={`Nothing under “${FILTER_LABEL[filter]}”`}
             description="Try another view."
             action={
-              <UiButton
-                variant="secondary"
-                onClick={() => {
-                  setFilter('toApply');
-                  focusSearch();
-                }}
-              >
+              <UiButton variant="secondary" onClick={() => setFilter('toApply')}>
                 Show to apply
               </UiButton>
             }
@@ -264,8 +193,7 @@ function DonePage({ jobs }: { jobs: Job[] }) {
 
 /** No jobs yet: the page header and the first-run empty state. */
 function PipelinePage() {
-  const jobs = useJobs();
-  // Try with sample data and Clear leave with what they changed: focus goes to the heading (#345).
+  // Try with sample data leaves with what they changed: focus goes to the heading (#345).
   const heading = useRef<HTMLHeadingElement>(null);
   // The sample's jobs turn this page into the first job (#471): its heading is gone by then, so
   // focus the new page's own h1, once it has rendered.
@@ -286,7 +214,6 @@ function PipelinePage() {
             Apply
           </Text>
         </Box>
-        <SampleBanner jobs={jobs} onCleared={focusPageHeading} />
       </Stack>
       {/* First use: the shared teaching empty (#132): what this will hold, one primary action,
           one way to see it working (rev-3 "Pipeline, empty"). */}

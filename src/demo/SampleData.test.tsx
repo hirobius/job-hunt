@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ToastProvider } from '@hirobius/design-system';
+import { Menu, ToastProvider } from '@hirobius/design-system';
+import AccountMenuRows from '../account/AccountMenuRows';
 import TrackerView from '../TrackerView';
 import { CloudSyncContext, type CloudSyncApi } from '../account/accountContext';
 import { addJob, getAllJobs, removeJob } from '../store';
-import { openAllJobs } from '../test/allJobs';
 
 // With jobs the tab is the first job's Apply view (Proposal A, Adrian 2026-11-08), which reads sync.
 const renderTracker = () =>
@@ -29,53 +29,46 @@ afterEach(() => {
 
 // Text queries, not role queries: computing accessible names over 10 cards is slow in jsdom.
 const tryButton = () => screen.queryByText(/try with sample data/i);
+// The sample line is gone from the Apply list (2026-11-13): Clear is the Account menu's.
 const banner = () =>
   document.querySelector<HTMLElement>('[role="status"][aria-label="Sample data"]');
 
-describe('Try with sample data (Tracker)', () => {
-  it(
-    'loads the sample from an empty tracker, then Clear returns it to empty',
-    { timeout: 20_000 },
-    async () => {
-      const user = userEvent.setup();
-      renderTracker();
-      expect(banner()).toBeNull();
-
-      await user.click(tryButton()!);
-      // The tab is now the first job to apply to (Proposal A); the sample line and the list's
-      // count are in the All jobs sheet (#543), not on the job page.
-      expect(getAllJobs()).toHaveLength(10);
-      expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-      expect(banner()).toBeNull();
-      const sheet = await openAllJobs();
-      expect(banner()).toHaveTextContent(/10 fictional jobs/);
-      expect(within(sheet).getByText(/^To apply · \d+ jobs$/)).toBeInTheDocument();
-      expect(tryButton()).toBeNull();
-
-      await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
-      expect(banner()).toBeNull();
-      expect(getAllJobs()).toEqual([]);
-      expect(tryButton()).toBeInTheDocument();
-    },
+const noop = () => {};
+const renderMenu = () =>
+  render(
+    <CloudSyncContext.Provider value={{ user: null, settled: true } as unknown as CloudSyncApi}>
+      <Menu open>
+        <Menu.Trigger>Account</Menu.Trigger>
+        <Menu.Content>
+          <AccountMenuRows
+            opensDialog={(f) => f}
+            openProfile={noop}
+            openCompanies={noop}
+            openData={noop}
+          />
+        </Menu.Content>
+      </Menu>
+    </CloudSyncContext.Provider>,
   );
+const clearItem = () => screen.queryByRole('menuitem', { name: 'Clear sample data' });
 
-  // #345: the pressed control leaves with what it changed; focus goes to the Pipeline heading,
-  // never to <body>.
-  it('Try with sample data and Clear hand focus to the Pipeline heading', async () => {
+describe('Try with sample data (Tracker)', () => {
+  it('loads the sample from an empty tracker, with no sample line on Apply', async () => {
     const user = userEvent.setup();
     renderTracker();
-    const heading = () => screen.getByRole('heading', { level: 1 });
-
     await user.click(tryButton()!);
-    // The first job's title (Proposal A: the tab is the job).
-    await waitFor(() => expect(heading()).toHaveFocus());
-
-    // Clear lives in the All jobs sheet (#543).
-    await openAllJobs();
-    expect(banner()).toBeInTheDocument();
-    await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
+    expect(getAllJobs()).toHaveLength(10);
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
     expect(banner()).toBeNull();
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Apply' })).toHaveFocus());
+    expect(tryButton()).toBeNull();
+  });
+
+  // #345: the pressed control leaves with what it changed; focus goes to the page heading.
+  it('Try with sample data hands focus to the page heading', async () => {
+    const user = userEvent.setup();
+    renderTracker();
+    await user.click(tryButton()!);
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveFocus());
   });
 
   it('is not offered when the tracker already has real jobs', () => {
@@ -90,23 +83,22 @@ describe('Try with sample data (Tracker)', () => {
     renderTracker();
     expect(tryButton()).toBeNull();
   });
+});
 
-  it('keeps the banner (and Clear) up when a search hides every sample row', async () => {
-    const user = userEvent.setup();
-    renderTracker();
-    await user.click(tryButton()!);
-    await openAllJobs();
-    await user.type(screen.getByPlaceholderText(/search/i), 'zzz-no-match');
-    expect(banner()).toBeInTheDocument();
-  });
-
-  it('Clear keeps a job the user added on top of the sample', async () => {
-    const user = userEvent.setup();
-    renderTracker();
-    await user.click(tryButton()!);
+describe('Clear sample data (Account menu, 2026-11-13)', () => {
+  it('shows only while sample jobs exist, and clears only them', async () => {
+    addJob('https://boards.greenhouse.io/acme/jobs/9');
+    const { unmount } = renderMenu();
+    expect(screen.getByRole('menuitem', { name: 'Documents' })).toBeInTheDocument();
+    expect(clearItem()).toBeNull();
+    unmount();
+    act(() => removeJob('https://boards.greenhouse.io/acme/jobs/9'));
+    const { loadSample } = await import('./loadSample');
+    act(() => void loadSample());
     addJob('https://boards.greenhouse.io/acme/jobs/8');
-    await openAllJobs();
-    await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
+    renderMenu();
+    act(() => clearItem()!.click());
     expect(getAllJobs().map((j) => j.url)).toEqual(['https://boards.greenhouse.io/acme/jobs/8']);
+    expect(clearItem()).toBeNull();
   });
 });

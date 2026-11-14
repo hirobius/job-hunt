@@ -29,7 +29,7 @@ export default function ApplyDone({ jobs }: { jobs: Job[] }) {
                 if (next.kind === 'find')
                   return navigate({ tab: FIND_TAB, sub: null, jobId: null });
                 const from = pageHeadingNow();
-                setPipelineView({ filter: 'followUp', q: '' });
+                setPipelineView({ filter: 'followUp' });
                 focusNewHeading(from);
               }}
             >
@@ -39,7 +39,7 @@ export default function ApplyDone({ jobs }: { jobs: Job[] }) {
               variant="secondary"
               onClick={() => {
                 const from = pageHeadingNow();
-                setPipelineView({ filter: 'all', q: '' });
+                setPipelineView({ filter: 'all' });
                 focusNewHeading(from);
               }}
             >

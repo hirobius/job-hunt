@@ -11,8 +11,7 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
 
 import { LivenessOnOpen } from './LivenessViews';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
-import { replaceAll } from './store';
-import { useClosedOnBoard } from './useClosedOnBoard';
+import { replaceAll, useJobs } from './store';
 import { liveness, resetLivenessSession } from './livenessStore';
 import { JobBadges } from './JobRowParts';
 import { dedupKey } from './store';
@@ -50,22 +49,32 @@ const api = (over: Partial<CloudSyncApi>): CloudSyncApi => ({
   ...over,
 });
 
-/** The list's status line as Apply draws it, with the on-open check mounted as App mounts it. */
-function StatusLine({ jobs, sync = {} }: { jobs: Job[]; sync?: Partial<CloudSyncApi> }) {
-  const tail = useClosedOnBoard(jobs);
+/** The list's rows' badges as Apply draws them (the one place closed shows since the status line
+ *  went, 2026-11-13), with the on-open check mounted as App mounts it. */
+function Badges() {
+  const jobs = useJobs();
+  return (
+    <ul>
+      {jobs.map((j) => (
+        <li key={j.url}>
+          <JobBadges job={j} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+function StatusLine({ sync = {} }: { sync?: Partial<CloudSyncApi> }) {
   return (
     <CloudSyncContext.Provider value={api(sync)}>
       <LivenessOnOpen />
-      <p role="status">
-        Active · {jobs.length} jobs{tail}
-      </p>
+      <Badges />
     </CloudSyncContext.Provider>
   );
 }
 /** Render with the jobs in the store, where LivenessOnOpen reads them. */
 function show(jobs: Job[], sync?: Partial<CloudSyncApi>) {
   replaceAll(jobs);
-  return render(<StatusLine jobs={jobs} sync={sync} />);
+  return render(<StatusLine sync={sync} />);
 }
 
 describe('liveness on Apply (#601, on open since #602)', () => {
@@ -75,11 +84,11 @@ describe('liveness on Apply (#601, on open since #602)', () => {
     expect(screen.queryByText(/check which are still open/i)).toBeNull();
   });
 
-  it('checks on open, then counts the closed jobs on the status line, with no second link', async () => {
+  it('checks on open, then the closed job shows its Closed badge, with no second link', async () => {
     feed.fetchJson.mockResolvedValue(board('aaaa'));
     const jobs = [job(A, 'Open role'), job(B, 'Gone role')];
     const { container } = show(jobs);
-    expect(await screen.findByText('Active · 2 jobs · 1 closed on the board')).toBeInTheDocument();
+    expect(await screen.findAllByText('Closed')).toHaveLength(1);
     // Once per board.
     expect(feed.fetchJson).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('link')).toBeNull();
@@ -111,7 +120,7 @@ describe('liveness on Apply (#601, on open since #602)', () => {
     show([job(A, 'a')]);
     await waitFor(() => expect(feed.fetchJson).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 20));
-    expect(screen.queryByText(/closed on the board/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Closed')).not.toBeInTheDocument();
     expect(liveness.get()[dedupKey(A)]?.state).not.toBe('closed');
   });
 

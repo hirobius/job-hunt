@@ -54,7 +54,7 @@ test('Add job and Search profile sheets keep a side gutter at 390', async ({ pag
 });
 
 // #614: the lg list column scrolls on its own, and its scroll box clipped the left edge of its
-// contents and the focus rings of its header (Add job, the view chips, Remote only, Search, Sort).
+// contents and the focus rings of its header (Add job, the view chips).
 test('the Apply list column at 1440: nothing starts left of its content box, no ring is clipped', async ({
   page,
 }) => {

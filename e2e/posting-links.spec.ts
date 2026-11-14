@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { openAllJobs, openData } from './routes';
+import { allWorkModes, openAllJobs, openData } from './routes';
 
 // Adrian 2026-10-22: "Anywhere a job is listed, we should be able to click on the URL to visit the
 // link, or there should be a visit jump link button near the URL or name of the job." With the
@@ -89,11 +89,11 @@ async function loadBusy(page: Page, { long = false } = {}) {
     localStorage.setItem('rjb_liveness', JSON.stringify(live));
   }, BOARD);
   await page.reload();
-  // The closed jobs are counted on the list's status line, not listed again (#601): the lg
-  // column's, or the All jobs sheet's below lg (#543).
+  // The closed jobs show by their Closed badge (#601; the status line went 2026-11-13): the lg
+  // column's rows, or the All jobs sheet's below lg (#543).
   const phone = (page.viewportSize()?.width ?? 0) < 1024;
   if (phone) await openAllJobs(page);
-  await expect(page.getByText(/3 closed on the board/).first()).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Jobs' }).first()).toBeVisible();
   if (phone) {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
@@ -386,6 +386,7 @@ test.describe('the job rail at 1440', () => {
     page,
   }) => {
     await loadSample(page);
+    await allWorkModes(page);
     const jobs = await savedJobs(page);
     await page.locator('a[href^="#/apply/"]').first().click();
     const rail = page.getByRole('navigation', { name: 'Jobs' });

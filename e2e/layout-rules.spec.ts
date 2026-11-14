@@ -12,7 +12,7 @@
 //   - a back link's arrow sits on the page heading's left edge (no tertiary inset)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
 import { test, expect, type Page } from '@playwright/test';
-import { seed, visitAll, openFilters, topTab } from './routes';
+import { seed, visitAll, listScope, topTab } from './routes';
 
 const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [390, 1440] as const;
@@ -332,26 +332,32 @@ for (const theme of THEMES) {
         expect(await probe(page)).toEqual([]);
         await seed(page);
         await page.evaluate(() => (location.hash = '#/apply'));
-        // From lg the search is the list column's beside a job (#471), behind its icon (#614);
-        // below lg it is the All jobs sheet's (#543), closed again after typing. The open job
-        // stays, "Not in this filter".
+        // A view with nothing in it (no search since 2026-11-13): Recently closed, from the
+        // view chips (the list column at lg, the All jobs sheet below it).
         const phone = (page.viewportSize()?.width ?? 0) < 1024;
-        if (phone) await openFilters(page);
-        else await page.locator('.job-rail').getByRole('button', { name: 'Search jobs' }).click();
-        await page.getByRole('textbox', { name: /^Search (saved )?jobs$/ }).fill('zzz nothing');
+        const list = await listScope(page);
+        await list
+          .getByRole('group', { name: 'Views' })
+          .getByRole('button', { name: /^Recently closed/ })
+          .click();
         if (phone) {
           await page.keyboard.press('Escape');
           await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
         }
-        // The open job stays, outside the filter: below lg its pager says so; from lg the list
-        // column says nothing matches (#614: no "Not in this filter" card there).
+        // Below lg the page shows the view's empty state; from lg the open job stays and the
+        // list column says nothing matches (#614: no "Not in this filter" card there).
         await expect(
-          (page.viewportSize()?.width ?? 0) < 1024
-            ? page
-                .getByRole('navigation', { name: 'Jobs in the list' })
-                .getByText('Not in this filter', { exact: true })
+          phone
+            ? page.getByText('Nothing under “Recently closed”')
             : page.getByText('No jobs match.', { exact: true }),
         ).toBeVisible();
+        // The chip's click may scroll it clear of the sticky bar, or scroll the lg list column
+        // inside itself (Playwright brings the chip into view): measure both from the top.
+        await page.evaluate(() => {
+          window.scrollTo(0, 0);
+          document.querySelectorAll('.job-rail').forEach((el) => el.scrollTo(0, 0));
+        });
+        await page.waitForTimeout(200);
         expect(await probe(page)).toEqual([]);
       });
     });

@@ -23,7 +23,6 @@ import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, removeJob } from './store';
-import { openListOnPhone } from './test/allJobs';
 import { getCurationState, replaceCurationState } from './curation/curationStore';
 import { getAllDocuments } from './documents';
 import { getProfile, replaceProfiles, saveProfile } from './profile';
@@ -119,19 +118,20 @@ describe('sample data, from the Jobs empty state', () => {
     window.location.hash = '#/apply';
     renderApp();
     await click('Try with sample data');
-    // The sample line is in the Apply list (the All jobs sheet on a phone, #543).
-    await openListOnPhone();
-    expect(await screen.findByRole('status', { name: 'Sample data' })).toBeInTheDocument();
+    // No sample line on Apply since 2026-11-13: Clear is the Account menu's.
+    await waitFor(() => expect(getAllJobs().length).toBeGreaterThan(0));
+    expect(screen.queryByRole('status', { name: 'Sample data' })).toBeNull();
     expect(getAllJobs().length).toBeGreaterThan(0);
     expect(getCurationState().categories).toHaveLength(0);
   });
 
-  it('Clear sample data removes the sample jobs', async () => {
+  it('Clear sample data (Account menu) removes the sample jobs', async () => {
     window.location.hash = '#/apply';
     renderApp();
     await click('Try with sample data');
-    await openListOnPhone();
-    await click('Clear sample data');
+    await waitFor(() => expect(getAllJobs().length).toBeGreaterThan(0));
+    await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Clear sample data' }));
     await waitFor(() => expect(getAllJobs()).toHaveLength(0));
   });
 });

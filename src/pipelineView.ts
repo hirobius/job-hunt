@@ -1,31 +1,35 @@
-// The Pipeline's view state (#130): which status filter, search text and sort order the list is
-// showing. It lives here, in memory, instead of inside TrackerView, so the job page's rail shows
-// the same jobs the list did and the list is as you left it after opening a job and going Back.
-// Pure rules plus one tiny store; nothing is persisted (a reload starts fresh on To apply).
+// The Apply list's view state (#130): which named view the list is showing. It lives here, in
+// memory, instead of inside TrackerView, so the job page's rail shows the same jobs the list did
+// and the list is as you left it after opening a job and going Back. Pure rules plus one tiny
+// store; nothing is persisted (a reload starts fresh on To apply). Since the control-free list
+// (Adrian 2026-11-13) there is no search, no sort (newest first, To apply closing soonest first)
+// and no Remote only switch: Remote only follows the Search profile's work mode, as Review does,
+// and the old `rjb_apply_remote_only` key is left unread.
 import { createStore } from './createStore';
 import { deriveJobState, localDay } from './jobState';
 import { isClosed } from './jobDates';
 import { respondByJobs, upcomingEvents } from './jobEvents';
-import { sortJobs, type SortKey } from './jobSort';
+import { sortJobs } from './jobSort';
+import { getProfile, useProfile } from './profile';
 import { classifyRemote } from './feed/mode';
 import type { Job } from './types';
 
 /** The named views (#541, redesign phase 2): the Apply list is walked by view, not by a Status
- *  select. Six named views, then All jobs (every job, set-aside ones too, so none is out of reach).
- *  This week (#640) holds what the phone's Next 7 days section did: interviews and closing dates. */
+ *  select. Seven named views, then All jobs (every job, set-aside ones too, so none is out of reach).
+ *  This week (#640) holds what the phone's Next 7 days section did: interviews and closing dates.
+ *  Passed (Adrian 2026-11-13) holds the jobs marked Not a fit or set aside, and Review's skipped
+ *  postings (passed.ts). */
 export type Filter =
-  'toApply' | 'followUp' | 'thisWeek' | 'interviewing' | 'applied' | 'closed' | 'all';
+  'toApply' | 'followUp' | 'thisWeek' | 'interviewing' | 'applied' | 'closed' | 'passed' | 'all';
 
 export interface PipelineView {
   filter: Filter;
-  sort: SortKey;
-  q: string;
-  /** Apply's "Remote only" switch (Adrian 2026-11-09): only remote jobs (`isRemoteJob`: the mode,
-   *  else the title and location, #614). Kept per device (`rjb_apply_remote_only`), unlike the rest. */
+  /** Only remote jobs (`isRemoteJob`: the mode, else the title and location, #614): on when the
+   *  Search profile's work mode is remote (usePipelineView / getPipelineView fill it in). */
   remoteOnly?: boolean;
 }
 
-export const DEFAULT_VIEW: PipelineView = { filter: 'toApply', sort: 'recent', q: '' };
+export const DEFAULT_VIEW: PipelineView = { filter: 'toApply' };
 
 export const FILTER_LABEL: Record<Filter, string> = {
   toApply: 'To apply',
@@ -35,21 +39,11 @@ export const FILTER_LABEL: Record<Filter, string> = {
   applied: 'Applied',
   // #602: closed jobs collect here, where the person removes or keeps each one.
   closed: 'Recently closed',
+  passed: 'Passed',
   all: 'All jobs',
 };
 
-/** Each view's one-line description, shown under the chips for the open view. */
-export const VIEW_DESCRIPTION: Record<Filter, string> = {
-  toApply: 'Saved and still open, closing soonest first.',
-  followUp: 'A week since you applied or last followed up: time to check in.',
-  thisWeek: 'Interviews and closing dates in the next 7 days, soonest first.',
-  interviewing: 'In interviews or holding an offer.',
-  applied: 'Sent, waiting to hear back.',
-  closed: 'Gone from the board or past the closing date. Remove or keep each one.',
-  all: 'Every saved job, set-aside ones too.',
-};
-
-/** The six named views, in order; All jobs comes after them. */
+/** The seven named views, in order; All jobs comes after them. */
 export const NAMED_VIEWS: Filter[] = [
   'toApply',
   'followUp',
@@ -57,6 +51,7 @@ export const NAMED_VIEWS: Filter[] = [
   'interviewing',
   'applied',
   'closed',
+  'passed',
 ];
 
 /** This week's date for a job (#640): its soonest interview or event from today through the next
@@ -79,6 +74,8 @@ function matchesFilter(j: Job, f: Filter, now: Date): boolean {
   const s = deriveJobState(j, now);
   if (f === 'all') return true;
   if (f === 'closed') return isClosed(j, now);
+  // Passed: Not a fit and every other set-aside job (`archived`).
+  if (f === 'passed') return !!j.archived;
   if (j.archived) return false;
   if (f === 'toApply') return s.status === 'Saved' && !isClosed(j, now);
   if (f === 'followUp') return s.followUp.due;
@@ -110,21 +107,25 @@ export function isRemoteJob(j: Job): boolean {
   return c.mode === 'remote' || (c.mode === 'unstated' && c.offersRemote);
 }
 
+/** What Remote only keeps on Apply, Review's rule (autoScan `remoteOnly`): a remote job, and one
+ *  that says nothing about where it is (no mode, no place: "Remote not stated"). A job with a
+ *  place or a mode that is not remote drops. */
+export function keptUnderRemote(j: Job): boolean {
+  if (isRemoteJob(j)) return true;
+  if (j.mode) return false;
+  const c = classifyRemote(`${j.location ?? ''} ${j.label ?? ''}`);
+  return c.mode === 'unstated' && !(j.location ?? '').trim();
+}
+
 /** The jobs Remote only lets through: what every count on Apply reads (chips, status line, closed
  *  count, pager, All jobs), so counts always follow the active filters (#614). */
 export function remoteFiltered(jobs: Job[], remoteOnly?: boolean): Job[] {
-  return remoteOnly ? jobs.filter(isRemoteJob) : jobs;
+  return remoteOnly ? jobs.filter(keptUnderRemote) : jobs;
 }
 
-/** The jobs a view shows, in its order. */
+/** The jobs a view shows, in its order (newest first; To apply and This week by date first). */
 export function visibleJobs(jobs: Job[], view: PipelineView, now: Date = new Date()): Job[] {
-  const needle = view.q.trim().toLowerCase();
-  const textMatch = (j: Job) =>
-    !needle ||
-    [j.label, j.company, j.location, j.note, j.notes, j.contact, j.url].some((f) =>
-      (f || '').toLowerCase().includes(needle),
-    );
-  const sorted = sortJobs(jobs, view.sort, now);
+  const sorted = sortJobs(jobs, 'recent', now);
   const ordered =
     view.filter === 'toApply'
       ? closingFirst(sorted)
@@ -132,56 +133,51 @@ export function visibleJobs(jobs: Job[], view: PipelineView, now: Date = new Dat
         ? soonestFirst(sorted, now)
         : sorted;
   return ordered.filter(
-    (j) =>
-      matchesFilter(j, view.filter, now) && textMatch(j) && (!view.remoteOnly || isRemoteJob(j)),
+    (j) => matchesFilter(j, view.filter, now) && (!view.remoteOnly || keptUnderRemote(j)),
   );
 }
 
-/** How many filters are on besides the view (#542): the search and Remote only. */
-export function filtersOn(view: PipelineView): number {
-  return (view.q.trim() ? 1 : 0) + (view.remoteOnly ? 1 : 0);
-}
-
-/** How many jobs each view would show, under Remote only when it is on (#614). */
+/** How many rows each view would show, under Remote only when it is on (#614). `skipped` is how
+ *  many skipped postings Passed lists beside its jobs (passed.ts `skippedPostings`). */
 export function filterCounts(
   jobs: Job[],
   now: Date = new Date(),
   remoteOnly = false,
+  skipped = 0,
 ): Record<Filter, number> {
   const pool = remoteFiltered(jobs, remoteOnly);
-  return Object.fromEntries(
+  const counts = Object.fromEntries(
     VIEWS.map((f) => [f, pool.filter((j) => matchesFilter(j, f, now)).length]),
   ) as Record<Filter, number>;
+  counts.passed += skipped;
+  return counts;
 }
 
-const REMOTE_KEY = 'rjb_apply_remote_only';
-/** The stored Remote only choice; false when none or storage is blocked. */
-export function storedRemoteOnly(): boolean {
-  try {
-    return localStorage.getItem(REMOTE_KEY) === '1';
-  } catch {
-    return false;
-  }
+const store = createStore<PipelineView>(DEFAULT_VIEW);
+
+/** Remote only follows the Search profile's work mode, as Review does. One object per stored
+ *  view, so hooks that depend on the view see a stable value. */
+const remoteViews = new WeakMap<PipelineView, PipelineView>();
+let followProfile = true;
+/** Tests only: whether Apply follows the profile's work mode (test/setup turns it off, so a first
+ *  run's remote profile landing mid-test does not move the list; remote tests turn it on). */
+export function setFollowProfileRemote(on: boolean): void {
+  followProfile = on;
 }
-const withRemote = (): PipelineView =>
-  storedRemoteOnly() ? { ...DEFAULT_VIEW, remoteOnly: true } : DEFAULT_VIEW;
+function withProfile(v: PipelineView, mode: string | undefined): PipelineView {
+  if (!followProfile || mode !== 'remote') return v;
+  let r = remoteViews.get(v);
+  if (!r) remoteViews.set(v, (r = { ...v, remoteOnly: true }));
+  return r;
+}
 
-const store = createStore<PipelineView>(withRemote(), {
-  onSet: (next) => {
-    try {
-      if (next.remoteOnly) localStorage.setItem(REMOTE_KEY, '1');
-      else localStorage.removeItem(REMOTE_KEY);
-    } catch {
-      // Blocked storage: the switch lasts this page load.
-    }
-  },
-});
-
-export const usePipelineView = store.use;
-export const getPipelineView = store.get;
-export const setPipelineView = (patch: Partial<PipelineView>) =>
+export function usePipelineView(): PipelineView {
+  return withProfile(store.use(), useProfile()?.mode);
+}
+export const getPipelineView = (): PipelineView => withProfile(store.get(), getProfile()?.mode);
+export const setPipelineView = (patch: Partial<Pick<PipelineView, 'filter'>>) =>
   store.set({ ...store.get(), ...patch });
-export const resetPipelineView = () => store.set(withRemote());
+export const resetPipelineView = () => store.set(DEFAULT_VIEW);
 
 /** The nearest job the filter shows before and after `job`, by its place in `order` (every job in
  *  the same sort): where the Apply pager steps from a job the filter hides (#510 review). */

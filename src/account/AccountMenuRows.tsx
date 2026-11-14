@@ -14,6 +14,7 @@ import {
   RefreshCw,
   ShieldCheck,
   CircleStop,
+  Eraser,
   SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
@@ -25,6 +26,9 @@ import { useCloudSync } from './accountContext';
 import { cancelScan, scanNow, useScan } from '../feed/autoScan';
 import { useScanInput } from '../feed/useAutoScan';
 import { SIGN_IN_ITEM, SIGN_IN_LABEL } from './signInCopy';
+import { useJobs } from '../store';
+import { isSample } from '../demo/isSample';
+import { clearSample } from '../demo/sampleSession';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -97,6 +101,9 @@ export default function AccountMenuRows({
       <Row icon={Database} onSelect={opensDialog(openData)}>
         Data
       </Row>
+      {/* Clear sample data (bare list, 2026-11-13: was the Apply list's sample line): only while
+          sample jobs exist; clears exactly those (sampleSession `clearSample`). */}
+      <ClearSampleRow />
       <Menu.Separator />
       {/* 3. Display: Pause animations, a toggle that shows its state (the theme is the app bar's ThemeToggle, #688). */}
       <MotionToggle />
@@ -123,6 +130,17 @@ function ScanRow() {
   ) : (
     <Row icon={RefreshCw} onSelect={() => void scanNow(input, undefined, { force: true })}>
       Scan now
+    </Row>
+  );
+}
+
+/** Clear sample data, shown only while the tracker holds sample jobs. */
+function ClearSampleRow() {
+  const jobs = useJobs();
+  if (!jobs.some(isSample)) return null;
+  return (
+    <Row icon={Eraser} onSelect={() => void clearSample()}>
+      Clear sample data
     </Row>
   );
 }

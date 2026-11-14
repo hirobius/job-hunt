@@ -134,11 +134,12 @@ describe('Pipeline toolbar', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByText('Saved and still open, closing soonest first.')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
+    // No description line under the chips and no search since 2026-11-13.
+    expect(screen.queryByText('Saved and still open, closing soonest first.')).toBeNull();
+    expect(screen.queryByRole('textbox')).toBeNull();
   });
 
-  it('each view has a count, and picking one filters the list and says what it holds', async () => {
+  it('each view has a count, and picking one filters the list', async () => {
     const user = userEvent.setup();
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     addJob('https://acme.example/jobs/2', 'Product Designer');
@@ -150,7 +151,6 @@ describe('Pipeline toolbar', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByText('Sent, waiting to hear back.')).toBeInTheDocument();
     expect(screen.getAllByText('Product Designer').length).toBeGreaterThan(0);
     expect(screen.queryByText('Design Engineer')).toBeNull();
   });
@@ -190,30 +190,16 @@ describe('Pipeline hierarchy', () => {
     expect(screen.queryByText('To apply · 1 job')).toBeNull();
   });
 
-  it('the All jobs list owns Add job, the views, search, the filter chips and Sort (#543)', async () => {
-    const user = userEvent.setup();
+  it('the All jobs list owns Add job and the views; no search, filters, Sort or sample line (2026-11-13)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();
     expect(screen.getByRole('button', { name: 'Add job' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Views' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
-    const filters = screen.getByRole('group', { name: 'Filters' });
-    const remote = within(filters).getByRole('button', { name: 'Remote only' });
-    expect(remote).toHaveAttribute('aria-pressed', 'false');
-    expect(within(filters).getByRole('button', { name: /^Sort: / })).toBeInTheDocument();
-    // "Clear N" only while a filter is on; it clears them all.
-    expect(within(filters).queryByRole('button', { name: /^Clear / })).toBeNull();
-    await user.click(remote);
-    await user.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Design');
-    const clear = within(filters).getByRole('button', { name: 'Clear 2 filters' });
-    expect(clear).toHaveTextContent('Clear 2');
-    await user.click(clear);
-    expect(screen.getByRole('button', { name: 'Remote only' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('');
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveFocus();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Filters' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remote only' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Sort:/ })).toBeNull();
+    expect(screen.queryByRole('status', { name: 'Sample data' })).toBeNull();
   });
 
   it('the rows sit on one surface: links named by the title, no card, key or posting glyph (#543)', async () => {
@@ -262,18 +248,6 @@ describe('Pipeline hierarchy', () => {
 });
 
 describe('Pipeline filtered to nothing', () => {
-  it('a search with no match: no period, a helper line and Clear search', async () => {
-    const user = userEvent.setup();
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderList();
-    await user.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz nothing');
-    expect(screen.getByText('No jobs match "zzz nothing"')).toBeInTheDocument();
-    expect(screen.getByText('Try a shorter word, or clear the search.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Clear search' }));
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('');
-    expect(screen.getByRole('link', { name: 'Design Engineer' })).toBeInTheDocument();
-  });
-
   it('a view with no jobs: Try another view, and Show to apply goes back', async () => {
     const user = userEvent.setup();
     addJob('https://acme.example/jobs/1', 'Design Engineer');
@@ -293,14 +267,6 @@ describe('Pipeline filtered to nothing', () => {
     renderList();
     expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
     expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
-  });
-});
-
-describe('Sort shows only its value', () => {
-  it('the prefix lives in the name, not the visible text', () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderList();
-    expect(screen.getByRole('button', { name: /^Sort:/ }).textContent).not.toMatch(/^Sort/);
   });
 });
 

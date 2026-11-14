@@ -3,8 +3,8 @@ import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
 // segmented control but still a nav of links (routing, Back, deep links); Find with no view switch
-// or filter row (list only, 2026-11-13); Apply's Remote only switch, per device, that narrows the
-// pager's "n of N" and the All jobs sheet. Since #548 Find / Apply sit in the app bar's one row at
+// or filter row (list only, 2026-11-13). Apply's list has no Remote only switch, search or Sort since
+// 2026-11-13: each view's chip count matches its rows. Since #548 Find / Apply sit in the app bar's one row at
 // every width, each with its count.
 for (const width of [390, 1440]) {
   test.describe(`at ${width}`, () => {
@@ -76,97 +76,41 @@ for (const width of [390, 1440]) {
       );
     });
 
-    test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({
+    test('the Apply list: views only, and each chip count matches its rows (2026-11-13)', async ({
       page,
     }) => {
       // Outside hosts refused: left open they hang and stall the lg column (#614).
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);
       await page.goto('/#/apply');
-      const phone = width < 1024;
-      // On a phone the filter is a chip in the All jobs sheet (#543), never on the job page; at
-      // lg the list column's one visible control (#614).
-      if (phone) await expect(page.getByRole('switch', { name: 'Remote only' })).toHaveCount(0);
       const list = await listScope(page);
-      const sw = phone
-        ? list.getByRole('button', { name: 'Remote only' })
-        : list.getByRole('switch', { name: 'Remote only' });
-      const isOn = async () =>
-        phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
-      await expect(sw).toBeVisible();
-      const count = () =>
-        list.getByRole('navigation', { name: 'Jobs' }).getByRole('listitem').count();
-      const all = await count();
-      await sw.click();
-      await expect.poll(isOn).toBe(true);
-      await expect.poll(count).toBeLessThan(all);
-      const remote = await count();
-      expect(remote).toBeGreaterThan(0);
-      if (phone) {
-        await page.keyboard.press('Escape');
-        await expect(list).toHaveCount(0);
-        await expect(
-          page.getByRole('navigation', { name: 'Jobs in the list' }).getByText(`of ${remote}`),
-        ).toBeVisible();
+      for (const gone of [
+        list.getByRole('switch', { name: 'Remote only' }),
+        list.getByRole('button', { name: 'Remote only' }),
+        list.getByRole('button', { name: 'Search jobs' }),
+        list.getByRole('textbox'),
+        list.getByRole('button', { name: /^Sort:/ }),
+        list.getByText(/Every saved job/),
+        list.getByText(/^Sample data,/),
+      ])
+        await expect(gone).toHaveCount(0);
+      const chips = list.getByRole('group', { name: 'Views' }).first().getByRole('button');
+      const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
+      expect(names).toContain('Passed');
+      for (const name of names) {
+        const chip = chips.filter({ hasText: name }).first();
+        await chip.click();
+        await expect(chip).toHaveAttribute('aria-pressed', 'true');
+        const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
+        await expect
+          .poll(
+            () =>
+              list.getByRole('navigation', { name: 'Jobs' }).locator('a[href^="#/apply/"]').count(),
+            `${name} rows`,
+          )
+          .toBe(badge);
       }
-      await page.reload();
-      const again = await listScope(page);
-      const sw2 = phone
-        ? again.getByRole('button', { name: 'Remote only' })
-        : again.getByRole('switch', { name: 'Remote only' });
-      if (phone) await expect(sw2).toHaveAttribute('aria-pressed', 'true');
-      else await expect(sw2).toBeChecked();
-      await expect
-        .poll(() => again.getByRole('navigation', { name: 'Jobs' }).getByRole('listitem').count())
-        .toBe(remote);
     });
-
-    // Split by Remote only (the one test ran 2 x 7 views and sat near the 30 s limit). Outside
-    // hosts are refused as in the tests above: left open, the lg column's requests (company logos,
-    // the seeded Greenhouse board) hang in a sandbox with no outbound network and stall each
-    // click by seconds, which timed out the chip clicks and the aria-pressed wait at 1440.
-    for (const on of [false, true]) {
-      test(`Remote only ${on ? 'on' : 'off'} on each view: chip count, status line and list agree (#614)`, async ({
-        page,
-      }) => {
-        await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-        await seed(page);
-        await page.goto('/#/apply');
-        const phone = width < 1024;
-        const list = await listScope(page);
-        const sw = phone
-          ? list.getByRole('button', { name: 'Remote only' })
-          : list.getByRole('switch', { name: 'Remote only' });
-        const chips = list.getByRole('group', { name: 'Views' }).first().getByRole('button');
-        const names = (await chips.allTextContents()).map((t) => t.replace(/\s*\d+$/, '').trim());
-        // The lg column's status line ("To apply · N jobs"); the sheet says "N jobs shown" (#543).
-        const status = list
-          .getByRole('status')
-          .filter({ hasText: phone ? /^\d+ jobs? shown$/ : /· \d+ jobs?/ })
-          .first();
-        const shownCount = async () =>
-          Number((await status.textContent())!.match(/(\d+) jobs?/)![1]);
-        // Wait on the switch's state, never assume the click landed.
-        const pressed = async () =>
-          phone ? (await sw.getAttribute('aria-pressed')) === 'true' : sw.isChecked();
-        if ((await pressed()) !== on) await sw.click();
-        await expect.poll(pressed).toBe(on);
-        for (const name of names) {
-          await test.step(name, async () => {
-            const chip = chips.filter({ hasText: name }).first();
-            await chip.click();
-            await expect(chip).toHaveAttribute('aria-pressed', 'true');
-            const badge = Number((await chip.textContent())!.match(/(\d+)\s*$/)![1]);
-            await expect.poll(shownCount, `${name}, Remote only ${on}`).toBe(badge);
-            const n = await list
-              .getByRole('navigation', { name: 'Jobs' })
-              .locator('a[href^="#/apply/"]')
-              .count();
-            expect(n, `${name} rows`).toBe(badge);
-          });
-        }
-      });
-    }
   });
 }
 

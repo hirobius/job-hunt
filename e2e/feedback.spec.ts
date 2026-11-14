@@ -214,16 +214,13 @@ test('Apply list: every control in the All jobs sheet answers within 300 ms (#54
   // Below lg the list is the All jobs sheet (Proposal A); it holds the list's controls (#543).
   await page.setViewportSize({ width: 800, height: 900 });
   await go(page, '#/apply');
-  let sheet = await openAllJobs(page);
+  const sheet = await openAllJobs(page);
   // The named views (#541): a press swaps the list at once.
   await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
   await press(page, button(sheet, /^Applied \d/), 'Applied view');
   await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
-  // The filter chips: Remote only brings "Clear 1", which clears it.
-  await press(page, button(sheet, 'Remote only'), 'Remote only');
-  await press(page, button(sheet, 'Clear 1 filter'), 'Clear 1');
-  await press(page, button(sheet, 'Sort: Newest'), 'Sort: Newest');
-  await closeOverlay(page);
+  await press(page, button(sheet, /^Passed \d/), 'Passed view');
+  await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
   await press(page, button(sheet, 'Add job'), 'Add job');
   await closeOverlay(page);
   // A row opens its job in place and the sheet closes.
@@ -233,8 +230,10 @@ test('Apply list: every control in the All jobs sheet answers within 300 ms (#54
     'a row',
   );
   await expect(sheet).toHaveCount(0);
-  sheet = await openAllJobs(page);
-  await press(page, button(sheet, 'Clear sample data'), 'Clear sample data');
+  // Clear sample data is the Account menu's since 2026-11-13.
+  await menu(page, 'Account', 'Clear sample data');
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await expect(page.getByRole('menuitem', { name: 'Clear sample data' })).toHaveCount(0);
 });
 
 test('Apply list (1440): Remove from the job answers with Undo, and Undo flashes its row back', async ({

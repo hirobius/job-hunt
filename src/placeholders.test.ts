@@ -33,6 +33,8 @@ describe('placeholders are the field’s own name', () => {
 
   it('finds the placeholders it checks (the scan is not empty)', () => {
     const all = sourceFiles(SRC).flatMap((f) => placeholdersIn(readFileSync(f, 'utf8')));
-    expect(all.length).toBeGreaterThan(10);
+    // 10 since the Application kit (#705) and Apply's search (#716) left; a guard against an
+    // empty scan, not a count to keep.
+    expect(all.length).toBeGreaterThan(5);
   });
 });

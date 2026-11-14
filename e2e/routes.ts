@@ -30,10 +30,10 @@ export async function seed(page: Page) {
   // External requests are refused, so it never says closed.
   // The sample lands first (the tab becomes its first job, focus moves to the page head); a click
   // on Add job while that settles could be lost, so open the dialog until it shows. Below lg Add
-  // job and the sample line are the All jobs sheet's (#543).
+  // job is the All jobs sheet's (#543).
   await expect(page.getByRole('button', { name: 'Try with sample data' })).toHaveCount(0);
   const list = await listScope(page);
-  await expect(list.getByRole('status', { name: 'Sample data' })).toBeVisible();
+  await expect(list.getByRole('button', { name: 'Add job' })).toBeVisible();
   const add = page.getByRole('dialog', { name: 'Add a job' });
   await expect(async () => {
     if (!(await add.isVisible())) await list.getByRole('button', { name: 'Add job' }).click();
@@ -114,16 +114,25 @@ export async function listScope(page: Page) {
   return page.locator('.job-rail');
 }
 
-/** Below lg (#542): the walk row's view picker, then its "All jobs and filters" row. */
+/** Below lg (#542): the walk row's view picker, then its "All jobs" row. */
 export async function pressAllJobs(page: Page) {
   await page.getByRole('button', { name: /^View: / }).click();
-  await page.getByRole('menuitem', { name: 'All jobs and filters' }).click();
+  await page.getByRole('menuitem', { name: 'All jobs' }).click();
 }
 
-/** Below lg: the Apply list's search, filters and Sort are the All jobs sheet's (#543; was the
- *  filter bar's Filters). Opens it and returns it. */
-export async function openFilters(page: Page) {
-  return listScope(page);
+/** Turn the Search profile's Remote only off (every work mode), as a person would: Apply's list
+ *  follows the profile's work mode (2026-11-13), and the first run's profile is remote only, which
+ *  hides the sample's on-site and hybrid jobs. For specs that walk several Apply rows. */
+export async function allWorkModes(page: Page) {
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: 'Search profile' }).click();
+  const profile = page.getByRole('dialog', { name: 'Search profile' });
+  const sw = profile.getByRole('switch', { name: 'Remote only' });
+  await expect(sw).toBeVisible();
+  if (await sw.isChecked()) await sw.click();
+  await expect(sw).not.toBeChecked();
+  await profile.getByRole('button', { name: 'Save' }).click();
+  await expect(profile).toBeHidden();
 }
 
 /** Open the Account menu's Data dialog (#550) and return it. */

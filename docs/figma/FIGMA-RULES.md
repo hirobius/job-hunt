@@ -95,25 +95,24 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with the caret inside it, drawn as a select: a soft grey pill with the
   Review chips' fill and 40 px height, no edge, its left edge on the page gutter under Review | Apply and
-  the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the six views and
-  "All jobs and filters"), beside it a "N filters" chip only while a filter is on (it opens the All
-  jobs bottom sheet), and right the pager "7 of 12" with previous and next, which only steps (a
+  the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the seven views and
+  "All jobs", which opens the All jobs bottom sheet; no filters chip since 2026-11-13), and right the pager "7 of 12" with previous and next, which only steps (a
   sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. A job's view holds Open application, Mark applied | Not a fit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
   This week (interviews and closing dates in the next 7 days, soonest first; #640), Interviewing,
-  Applied, Recently closed, then All jobs. Each is a Tag chip with a count Badge, one
-  picked at a time, and the open view's one-line description sits under the chips in caption. Follow
+  Applied, Recently closed, Passed (jobs marked Not a fit or set aside, then the postings skipped in
+  Find; each row has Delete, a skipped posting also Save and Undo skip; 2026-11-13), then All jobs.
+  Each is a Tag chip with a count Badge, one picked at a time; no description line under them
+  (2026-11-13). Follow
   up's count is amber while a follow-up is due; every other count is neutral. To apply sorts by
   closing date first, then newest. At 1440 the chips sit at the top of the list column. Closed jobs
   collect in Recently closed, where each is removed or kept.
-- **Apply list column header at 1440 (#614).** Top to bottom: "Jobs" + Add job, the view chips, the
-  view's one-line description, then one row: the **Remote only** toggle (the one visible control),
-  with Search and Sort as quiet tertiary icon buttons at its end (Search opens the field under the
-  row; Sort is a menu, never a filled select there), then one status line in caption
-  ("To apply · 21 jobs · 1 closed on the board"). No "Check which are still open": the liveness check
-  runs by itself on open (#602). Every count (chips, status line, closed, pager) follows Remote only.
-  Focus rings and the selected fill are never clipped at the column's edges.
+- **Apply list column header at 1440 (#614)**, control-free since 2026-11-13. Top to bottom: "Jobs" + Add
+  job, the view chips, then the jobs. No Remote only toggle, search, sort, view description, status
+  line or sample line: Remote only follows the Search profile's work mode (every count and the pager
+  follow it), the list is newest first, a closed job shows by its Closed badge, and Clear sample
+  data is in the Account menu. Focus rings and the selected fill are never clipped at the column's edges.
 - **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
   "Sign in" as a grey key (signed in: the email, the sync
   line, Sign out). Then Documents, Search profile, Scan now (signed out only; Stop scan while one runs), Companies, Data. Then Pause animations as a
@@ -132,11 +131,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   grab handle, Add job at full width over the grey key. At 1440 a centred dialog, Add job at the
   right.
 - **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
-  search, the filter chips (Remote only), a Sort chip, and "Clear N" while N filters are on; then
-  the jobs. **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
+  then the jobs (no search, filters or Sort since 2026-11-13). **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
   each row is the badge row, the title (two lines at most), the company, the place and one date.
   The open job takes the selected fill, never an outline ring. No key on a row and no posting icon:
-  the job's own page has its next step and Open posting.
+  the job's own page has its next step and Open posting (the one exception: Passed's Delete).
 - **One detail template at 1440 (#546).** Review is two columns too: postings left, the selected
   posting right. A posting and a job use one detail template: the title block (title, company,
   one facts line, then the badges; a posting's source is a neutral badge there), More beside it,
