@@ -13,17 +13,11 @@ import { chromium } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
 import { hdsColor } from '../src/hdsColor.ts';
-import { flameSvgFile, logoViewBox, stillFrame } from '../src/brand/flameEngine.ts';
+import { logoViewBox } from '../src/brand/flameEngine.ts';
 
-// First the source: src/brand/flame.svg is the flame engine's still frame, in the HDS
-// primitives base.css recolours per theme. Everything below reads it.
-writeFileSync(
-  'src/brand/flame.svg',
-  flameSvgFile([hdsColor('blue-500'), hdsColor('cobalt-400'), hdsColor('cobalt-200')]),
-);
-console.log('src/brand/flame.svg');
-
-// The mark: src/brand/flame.svg as written (its own fills), placed as a nested svg in a box.
+// The source: src/brand/flame.svg, the hand-drawn still mark (R5, Adrian 2026-11-14), in the HDS
+// primitives base.css recolours per theme. Everything below reads it; nothing here writes it.
+// The mark: src/brand/flame.svg as drawn (its own fills), placed as a nested svg in a box.
 const flame = readFileSync('src/brand/flame.svg', 'utf8')
   .replace(/<!--[\s\S]*?-->\s*/g, '')
   .trim();
@@ -42,7 +36,7 @@ const svgUrl = dataUrl(svg);
 // HDS's own face (one variable font since HDS 0.30), inlined: a page set with setContent can't
 // load file:// fonts.
 const font = `data:font/woff2;base64,${readFileSync(
-  'node_modules/@hirobius/design-system/dist/fonts/plus-jakarta-sans-variable.woff2',
+  'node_modules/@hirobius/design-system/dist/fonts/sora-variable.woff2',
 ).toString('base64')}`;
 // The tile and the card: HDS graphite, light face.
 const GRAPHITE = hdsColor('graphite-900');
@@ -121,7 +115,8 @@ try {
   const shareLockup =
     `<div style="display:inline-flex;align-items:center;gap:0.3em;font-family:Display,sans-serif;font-size:72px;font-weight:800;line-height:1;color:#fff">` +
     `<svg viewBox="${logoViewBox()}" style="height:1.95em;width:auto;overflow:visible">` +
-    stillFrame()
+    ['flame-1', 'flame-2', 'flame-3']
+      .map((cls) => new RegExp(`class="${cls}"[^>]*\\sd="([^"]*)"`).exec(flame)?.[1] ?? '')
       .map((d, i) => (d ? `<path fill="${fills[i]}" fill-rule="evenodd" d="${d}"/>` : ''))
       .join('') +
     `</svg><span>${BRAND.name}</span></div>`;

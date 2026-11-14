@@ -8,8 +8,7 @@ import { join } from 'node:path';
 import { BRAND } from '../brand';
 import { applyBrand } from '../brandHtml';
 import { BrandLogo, Flame } from './Flame';
-import { flameSvg, withUniqueIds } from './flameSvg';
-import { stillFrame } from './flameEngine';
+import { STILL_MARK, flameSvg, withUniqueIds } from './flameSvg';
 import { cancelBootFlame, runBootFlame } from './bootFlame';
 
 afterEach(cleanup);
@@ -168,7 +167,7 @@ describe('the boot splash burns (the live fire, no fixed loop)', () => {
   const css = readFileSync('src/theme/base.css', 'utf8');
 
   it('the served splash is the still mark, with no baked frames and no clip', () => {
-    for (const d of stillFrame().filter(Boolean)) expect(root).toContain(`d="${d}"`);
+    for (const d of STILL_MARK.filter(Boolean)) expect(root).toContain(`d="${d}"`);
     expect(root.match(/<svg[\s>]/g)).toHaveLength(1);
     expect(root.match(/class="flame-1"/g)).toHaveLength(1);
     expect(root).not.toMatch(/clip|rjb-boot-f\b|visibility="hidden"/);

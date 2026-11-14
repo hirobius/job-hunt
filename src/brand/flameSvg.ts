@@ -3,6 +3,12 @@ import flameSvg from './flame.svg?raw';
 
 export { flameSvg };
 
+/** flame.svg's three layers' path data, outer to core: the still mark (R5, hand-drawn, Adrian
+ *  2026-11-14), in the flame engine's coordinates, so the animated logo shows it when still. */
+export const STILL_MARK = (['flame-1', 'flame-2', 'flame-3'] as const).map(
+  (cls) => new RegExp(`class="${cls}"[^>]*\\sd="([^"]*)"`).exec(flameSvg)?.[1] ?? '',
+) as [string, string, string];
+
 /** The file's markup with every id (and each `#id` reference, any quoting) suffixed, so two
  *  flames on one page never share a clip path. Comments and the whitespace between tags go (inline in a word,
  *  stray text nodes would sit in its textContent). */

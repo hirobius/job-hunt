@@ -23,16 +23,23 @@ and cut at 1 (marching squares, curves with sharp corners). Layers stack, none i
 is). `FLAME` = the settings Adrian copied out of the **flame tuner** (a private artifact page of sliders; tune only
 there, then `npm run icons`). `RoleFlame.tsx` draws with the same engine (`flameEngine.test.ts` fails on a copy). About
 4 ms a frame in Node at 10 fps.
-`npm run icons` writes its still frame (the first frame of the `STILL_SEED` fire, HDS primitive fills, `fill-rule="evenodd"`, classes
-`flame-1|2|3`) to `src/brand/flame.svg`, then favicon.svg, PNG icons, favicon.ico, og-image from it;
-`flameEngine.test.ts` fails when flame.svg is not the engine's still frame. Everything static derives
+**The still mark is hand-drawn (Adrian 2026-11-14): `src/brand/flame.svg` is R5, the asymmetric
+two-tongue flame (HDS blue-500 outer, cobalt-400 core, an empty `flame-3`), picked from the flame contact sheet; it
+is no longer the engine's frame.** It sits in the engine's coordinates (centred on `FLAME.cx`, its foot on the
+still fire's foot, the same height), so the live fire takes over in the same box. `npm run icons` reads it (it no
+longer writes it) for favicon.svg, the PNG icons, favicon.ico and the og-image. `flameEngine.test.ts` pins it as the
+hand-drawn mark (two layers and an empty core, not the engine's frame, its viewBox holds every point, it stands on
+the engine's foot and centre line); `flame.test.tsx` keeps the HDS fills, no copy elsewhere and a fresh favicon.
+The engine stays for the live logo; `stillFrame()` / `STILL_SEED` are only the tuner's still for custom settings;
+`RoleFlame`'s still (reduced motion, Pause animations) is `flameSvg.ts` `STILL_MARK`, and the boot splash
+(`brandHtml.ts`) is flame.svg's paths and viewBox. Everything static derives
 from flame.svg: the wordmark in the header and on sign-in (`src/brand/Flame.tsx` inlines it, ids made
 unique per instance) and the icons. `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its
 path data, a stale `public/favicon.svg`, or non-HDS fills.
 **Motion:** `flameMotion.ts` `animateFlame(svg, letters)` rewrites the three paths' `d` every 1/fps (the
 box never changes) and can shimmer the wordmark letters (`FLAME.tOn`; off, Adrian 2026-11-10: it bent the f and l, so the letters stand still);
 the header/sign-in `Wordmark` and `Flame` reach it only through `startFlame.ts` (a lazy chunk, `entryChunk.test.ts`: the
-entry is under its 255 kB budget (252.6 kB); the still frame shows until it lands);
+entry is under its 255 kB budget (252.6 kB); the still mark shows until it lands);
 it animates continuously (Adrian 2026-10-30: never settles);
 still under prefers-reduced-motion (also when turned on mid-run), paused while the tab is hidden, off
 where matchMedia is missing (jsdom). The header/sign-in `Wordmark` and `BootHold` (`<Flame animate />`)

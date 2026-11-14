@@ -1,8 +1,8 @@
 // The flame is a small fire simulation (Adrian 2026-11-10): a body of heat per colour layer, and
 // licks that are each their own particle (position, velocity, size, life), summed into heat and
 // cut into shapes. These pin the settings Adrian tuned, that the engine draws sane frames, that
-// the licks really move on their own, and that flame.svg (the static mark every icon derives from)
-// is the engine's still frame, so the logo and its motion never drift apart.
+// the licks really move on their own, and that flame.svg (the static mark every icon derives from,
+// hand-drawn since 2026-11-14: R5) sits in the engine's box, so the live fire takes over in place.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { FLAME, createFire, endlessFrames, flameViewBox, stillFrame } from './flameEngine';
@@ -116,16 +116,49 @@ describe('each lick is alive on its own', () => {
   });
 });
 
-describe('flame.svg is the still frame (else run `npm run icons`)', () => {
+// flame.svg is the hand-drawn still mark (R5, Adrian 2026-11-14), no longer the engine's first frame:
+// the animated logo keeps the engine. It must sit where the engine draws, so the live fire takes
+// over in the same box (the header's Wordmark, the boot splash and the og-image read flame.svg).
+describe('flame.svg is the hand-drawn still mark, in the engine’s box', () => {
   const svg = readFileSync('src/brand/flame.svg', 'utf8');
-  const d = (cls: string) => new RegExp(`class="${cls}"[^>]*\\sd="([^"]*)"`).exec(svg)?.[1];
+  const d = (cls: string) => new RegExp(`class="${cls}"[^>]*\\sd="([^"]*)"`).exec(svg)?.[1] ?? '';
+  const MARK_PATH = /^(M[-\d., CZ]+Z ?)+$/;
+  const box = (/viewBox="([^"]+)"/.exec(svg)?.[1] ?? '').split(/\s+/).map(Number);
+  const pts = (p: string) => {
+    const n = numbers(p);
+    return { xs: n.filter((_, i) => i % 2 === 0), ys: n.filter((_, i) => i % 2 === 1) };
+  };
 
-  it('its three layers are the engine’s', () => {
-    expect([d('flame-1'), d('flame-2'), d('flame-3')]).toEqual(stillFrame());
+  it('has an outer and a core layer, and the core layer of the engine stays empty', () => {
+    expect(d('flame-1')).toMatch(MARK_PATH);
+    expect(d('flame-2')).toMatch(MARK_PATH);
+    expect(d('flame-3')).toBe('');
   });
 
-  it('its viewBox is the still frame’s box', () => {
-    expect(/viewBox="([^"]+)"/.exec(svg)?.[1]).toBe(flameViewBox().join(' '));
+  it('is not the engine’s frame (a hand-drawn mark, chosen on purpose)', () => {
+    expect([d('flame-1'), d('flame-2'), d('flame-3')]).not.toEqual(stillFrame());
+  });
+
+  it('its viewBox holds every point of the mark', () => {
+    const [x, y, w, h] = box;
+    for (const layer of [d('flame-1'), d('flame-2')]) {
+      const { xs, ys } = pts(layer);
+      expect(Math.min(...xs)).toBeGreaterThanOrEqual(x);
+      expect(Math.max(...xs)).toBeLessThanOrEqual(x + w);
+      expect(Math.min(...ys)).toBeGreaterThanOrEqual(y);
+      expect(Math.max(...ys)).toBeLessThanOrEqual(y + h);
+    }
+  });
+
+  it('stands on the engine’s foot and its centre line, so the live fire takes over in place', () => {
+    const mark = pts(d('flame-1'));
+    const fire = pts(stillFrame()[0]);
+    expect(Math.abs(Math.max(...mark.ys) - Math.max(...fire.ys))).toBeLessThan(1);
+    // (Control points count, so the right tongue's curve pulls the box a unit right.)
+    expect(Math.abs((Math.min(...mark.xs) + Math.max(...mark.xs)) / 2 - FLAME.cx)).toBeLessThan(1.5);
+    // The same height as the engine's still frame, give or take a unit.
+    const tall = (p: { ys: number[] }) => Math.max(...p.ys) - Math.min(...p.ys);
+    expect(Math.abs(tall(mark) - tall(fire))).toBeLessThan(1.5);
   });
 });
 
