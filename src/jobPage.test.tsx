@@ -295,7 +295,7 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
     // A hash change (browser Back) unmounts the field: the draft is flushed on unmount.
     await userEvent.type(notes(), ' and hours');
     act(() => {
-      window.location.hash = '#/find';
+      window.location.hash = '#/review';
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Notes' })).toBeNull());

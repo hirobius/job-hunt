@@ -108,7 +108,7 @@ test('Add job at 1440 is a centred dialog with Add job at the right; Close cance
 // pipeline, with its follow-ups.
 test('opens on Today with no setup; the sample pipeline lists due follow-ups', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/#\/find$/);
+  await expect(page).toHaveURL(/#\/review$/);
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
   await expect(page.getByText('Set up your search')).toHaveCount(0);
   await topTab(page, 'Apply').click();
@@ -126,12 +126,12 @@ test('opens on Today with no setup; the sample pipeline lists due follow-ups', a
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();
 });
 
-// #/find is home again (#383): it opens Today, and Back goes to the page before.
-test('#/find opens Today', async ({ page }) => {
+// #/review is home again (#383): it opens Today, and Back goes to the page before.
+test('#/review opens Today', async ({ page }) => {
   await page.goto('/#/apply');
-  await page.goto('/#/find');
-  await expect(page).toHaveURL(/#\/find$/);
-  await expect(currentTab(page).filter({ hasText: 'Find' })).toBeVisible();
+  await page.goto('/#/review');
+  await expect(page).toHaveURL(/#\/review$/);
+  await expect(currentTab(page).filter({ hasText: 'Review' })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/#\/apply$/);
 });

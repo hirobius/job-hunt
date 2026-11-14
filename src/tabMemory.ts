@@ -54,6 +54,6 @@ export function openTab(tab: TopTab): void {
 
 /** Forget every tab's place (tests start fresh). */
 export function resetTabMemory(): void {
-  delete last.find;
+  delete last.review;
   delete last.apply;
 }

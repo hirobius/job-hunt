@@ -1,6 +1,7 @@
-// The animated logo (RoleFlame.tsx) follows WCAG 2.2.2 (Pause, Stop, Hide): it moves for at most
-// 5 s on screen, then holds frame 0. A hidden tab pauses it (the hidden time does not count).
-// Under prefers-reduced-motion it holds frame 0 from the start.
+// The animated logo (RoleFlame.tsx) follows WCAG 2.2.2 (Pause, Stop, Hide): Pause animations and
+// reduced motion stop it, and a hidden tab pauses it. Under reduced motion at load it shows the
+// still mark; paused mid-run it freezes on the frame on screen and Play goes on from there
+// (Adrian 2026-11-13).
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RoleFlameLogo } from './RoleFlame';
@@ -78,18 +79,32 @@ describe('RoleFlameLogo motion', () => {
     expect(d()).toBe(still);
   });
 
-  it('Pause animations (Account menu, WCAG 2.2.2) stops the flame at once', () => {
+  it('Pause animations (Account menu, WCAG 2.2.2) freezes the flame on the frame on screen', () => {
     const { d } = mount();
     const still = d();
     advance(300);
-    expect(d()).not.toBe(still);
+    const current = d();
+    expect(current).not.toBe(still);
     act(() => setMotionPaused(true));
-    expect(d()).toBe(still);
+    // Adrian 2026-11-13: it stops where it is, never snapping back to the still mark.
+    expect(d()).toBe(current);
+    advance(2000);
+    expect(d()).toBe(current);
+    // Play goes on from there.
+    act(() => setMotionPaused(false));
+    expect(d()).toBe(current);
+    advance(300);
+    expect(d()).not.toBe(current);
+    expect(d()).not.toBe(still);
+  });
+
+  it('paused from the start (an earlier choice) shows the still mark', () => {
+    act(() => setMotionPaused(true));
+    const { d } = mount();
+    const still = d();
     advance(2000);
     expect(d()).toBe(still);
-    act(() => setMotionPaused(false));
-    advance(300);
-    expect(d()).not.toBe(still);
+    expect(still).not.toBeNull();
   });
 
   it('Play wins over the system setting: an explicit choice runs the flame under reduced motion', () => {
@@ -134,16 +149,17 @@ describe('RoleFlameLogo motion', () => {
     expect(letterTransform()).toMatch(/skewX\(0\.00deg\)/);
   });
 
-  it('goes still when reduced motion turns on mid-run', () => {
+  it('stops on the frame on screen when reduced motion turns on mid-run', () => {
     const { d } = mount();
     const first = d();
     advance(500);
-    expect(d()).not.toBe(first);
+    const current = d();
+    expect(current).not.toBe(first);
     reduce = true;
     act(() => mqListeners.forEach((l) => l()));
-    expect(d()).toBe(first);
+    expect(d()).toBe(current);
     advance(1000);
-    expect(d()).toBe(first);
+    expect(d()).toBe(current);
   });
 });
 

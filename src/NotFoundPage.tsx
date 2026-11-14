@@ -1,7 +1,7 @@
 // An unknown route (`#/nope`, a mistyped or stale link) says so instead of silently showing
 // Companies. Like Documents and the legal pages it has no tab selected; one action goes home.
 import { Box, Button, Stack, Text } from '@hirobius/design-system';
-import { navigate } from './route';
+import { FIND_TAB, navigate } from './route';
 
 export default function NotFoundPage() {
   return (
@@ -15,9 +15,9 @@ export default function NotFoundPage() {
         </Text>
         <Button
           variant="primary"
-          onClick={() => navigate({ tab: 'find', sub: null, jobId: null })}
+          onClick={() => navigate({ tab: FIND_TAB, sub: null, jobId: null })}
         >
-          Go to Find
+          Go to Review
         </Button>
       </Stack>
     </Box>

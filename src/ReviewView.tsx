@@ -10,7 +10,8 @@
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { hiddenParts, setScanDetails } from './feed/scanDetails';
+import { setScanDetails } from './feed/scanDetails';
+import { hiddenParts } from './feed/scanDetailsText';
 import {
   Badge,
   Box,
@@ -617,7 +618,7 @@ const rowActions: RowActions = {
   mute: (r, from) =>
     collapseRow(from, () => {
       const undo = muteCompany(r.company);
-      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Find.');
+      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Review.');
     }),
 };
 
@@ -1222,7 +1223,7 @@ function PostingDetail({
   now: number;
   actions: RowActions;
 }) {
-  usePageTitle(r ? r.title : wide ? 'Find' : null);
+  usePageTitle(r ? r.title : wide ? 'Review' : null);
   if (!r)
     return (
       <Stack gap="normal">

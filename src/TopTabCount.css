@@ -1,0 +1,27 @@
+/* In TopTabCount's lazy chunk, off the first-load CSS budget. */
+/* The Review tab's count pill (TopTabCount): the New chip's fills (#694), inverse at rest, on-accent
+ * with accent text on the open tab. */
+[data-hds] .rjb-seg .rjb-seg-count {
+  background: var(--semantic-color-surface-inverse);
+  color: var(--semantic-color-content-inverse);
+}
+[data-hds] .rjb-seg[aria-current='page'] .rjb-seg-count {
+  background: var(--semantic-color-content-onAccent);
+  color: var(--semantic-accent-rest);
+}
+/* Below 400px the pill would push the app bar past one row (about 10px at 390) or make hit areas
+ * overlap: it is hidden visually there, and stays in the link's name ("Review 12") for screen
+ * readers (Adrian 2026-11-13: hide, not wrap). */
+@media (max-width: 399.98px) {
+  [data-hds] .rjb-seg .rjb-seg-count {
+    position: absolute;
+    min-inline-size: 0;
+    padding: 0;
+    border: 0;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

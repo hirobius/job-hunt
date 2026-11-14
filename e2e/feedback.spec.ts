@@ -185,7 +185,7 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
       const el = document.querySelector('.rjb-view-enter');
       return el ? getComputedStyle(el).animationName : null;
     });
-  await go(page, '#/find');
+  await go(page, '#/review');
   await expect(page.locator('.rjb-view-enter')).toHaveCount(1);
   expect(await enterName()).toBe('rjb-view-enter');
   await topTab(page, 'Apply').click();
@@ -196,7 +196,7 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
 test('Find: Scan now and the Account menu’s Companies and Data answer within 300 ms', async ({
   page,
 }) => {
-  await go(page, '#/find');
+  await go(page, '#/review');
   // Scan now is the Account menu's (#694, signed out).
   await menu(page, 'Account', 'Scan now');
   await menu(page, 'Account', 'Companies');
@@ -294,7 +294,7 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
 });
 
 test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({ page }) => {
-  await go(page, '#/find?documents=');
+  await go(page, '#/review?documents=');
   const row = button(page, /^Follow-up after applying/);
   await press(page, row, 'Open a document row');
   await press(page, button(page, 'Copy'), 'Copy');
@@ -326,15 +326,15 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   await press(page, button(page, 'Open Follow-up after applying'), 'Open');
   // One New key with a menu (#552): each kind it offers answers.
   for (const kind of ['Message', 'Cover letter', 'Résumé', 'Note']) {
-    await go(page, '#/find?documents=');
+    await go(page, '#/review?documents=');
     await menu(page, 'New document', kind);
   }
   // An empty group's own Add (#552): no résumé yet.
-  await go(page, '#/find?documents=');
+  await go(page, '#/review?documents=');
   await press(page, button(page, 'Add résumé'), 'Add résumé');
 
   // The editor: its menus, the variables panel and Save.
-  await go(page, '#/find?documents=tpl-outreach');
+  await go(page, '#/review?documents=tpl-outreach');
   for (const name of ['Insert variable', 'More actions']) {
     await press(page, button(page, name), String(name));
     await closeOverlay(page);
@@ -355,7 +355,7 @@ test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
   test('view enter (#279): the page shows at once, with no enter animation', async ({ page }) => {
-    await go(page, '#/find');
+    await go(page, '#/review');
     const name = await page.evaluate(() => {
       const el = document.querySelector('.rjb-view-enter');
       return el ? getComputedStyle(el).animationName : null;
