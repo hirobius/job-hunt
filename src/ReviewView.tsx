@@ -88,7 +88,6 @@ import { usePostingText } from './feed/postingText';
 import PostingDescription from './PostingDescription';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
-import { FactLines } from './hds-gaps/FactLines';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -964,12 +963,15 @@ function PostingCard({
             Company not stated
           </Text>
         )}
-        <FactLines
-          truncateFirst
+        <Card.Facts
+          className="p-0"
+          // Plain lines, not a list inside each card's list item (as FactLines was): a list of
+          // cards counts only its cards.
+          role="presentation"
           items={[
             { icon: MapPin, label: placeOf(r) },
-            mode ? { icon: Briefcase, label: mode } : null,
-            postedLabel ? { icon: Calendar, label: postedLabel } : null,
+            ...(mode ? [{ icon: Briefcase, label: mode }] : []),
+            ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
           ]}
         />
         {pay && (

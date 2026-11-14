@@ -25,3 +25,10 @@ cd9e3fffdf84a8e50c43849b583625137f21ce81:src/config.ts:generic-api-key:4
 # Supabase publishable key in the old index.html. It is public by design.
 d22c251c3ea6f9d19c8ee63bfd5314a4fe1d4f5e:index.html:generic-api-key:805
 611340cd5608d0437e017146fb4485bfe15f10f9:src/feed/data/board-keys.json:linkedin-client-secret:1
+# Same two false positives as above, again in 1a3f4b6 (CI workflow commit, 2026-11-11):
+# the public Supabase publishable key (RLS-protected by design) and the test JWT fixture.
+1a3f4b6ef8ab398a017b8080c8ac394a66d44d6b:src/config.ts:generic-api-key:4
+1a3f4b6ef8ab398a017b8080c8ac394a66d44d6b:src/errorReport.test.ts:jwt:36
+# board-keys.json is one minified line of ATS slugs: "headout","linkedin","<slug>" reads as a LinkedIn secret.
+1a3f4b6ef8ab398a017b8080c8ac394a66d44d6b:src/feed/data/board-keys.json:linkedin-client-secret:1
+0dfea02c990274caabc7248793a7a60d9fabcbcc:src/feed/data/board-keys.json:linkedin-client-secret:1

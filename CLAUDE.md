@@ -82,8 +82,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
     `hds-gaps/tone` is gone (slice 4): use `Text tone`, never an inline colour. Bold is
     `Text weight="bold"` (HDS 0.28).
-  - **Empty states** import `src/hds-gaps/EmptyState` (HDS `EmptyState` + `not-italic`: HDS 0.30
-    sets the title in italic; `centered` / `framed` draw rev-3's centred teaching empty with an
+  - **Empty states** import `src/hds-gaps/EmptyState` (HDS `EmptyState`, upright since HDS 0.43, so the
+    old `not-italic` patch is gone; `centered` / `framed` draw rev-3's centred teaching empty with an
     icon tile). `e2e/layout-rules.spec.ts` fails on any italic text.
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
@@ -173,7 +173,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.43.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.44.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `package.json` pins it by its full tarball URL and `.npmrc` keeps only the auth line (no `@hirobius` scope
   mapping, job-hunt#567), so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`) and design-system
@@ -492,9 +492,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
 - **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/hds-gaps/DisclosureRow.tsx` (hds#1508) wraps HDS
   `Disclosure variant="row"` (Daily picks' Draft note): HDS 0.41 snaps its wrapper gap 0 → 8px and drops the preview line in the frame the
   body starts a height tween, so rows jumped; here the gap stays 0, the body pads itself and opens at once.
-  BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. `src/hds-gaps/FactLines.tsx` (hds#1509)
-  (one fact per line, the icon on the first text line, `align-items: flex-start`) replaces HDS `Card.Facts`
-  (inline) in `DetailTitleBlock`, the posting cards and Daily picks. Both are in the HDS gap registry.
+  BlankText's fill box is a hairline row, no longer a Card inside the panel's Card. One fact per line, the icon on the first text line,
+  is HDS `Card.Facts` (stacked by default since HDS 0.43, hds#1509) in `DetailTitleBlock`, the posting cards and Daily
+  picks; the local `FactLines` gap is deleted (HDS 0.44 PR). DisclosureRow stays in the HDS gap registry.
 - **Theme toggle + burn (#688):** the app bar's HDS `ThemeToggle` (left of the Account button, 44px; its own name
   "Switch to dark/light theme", no aria-pressed, HDS's contract) is the one theme switch; `src/burn/ThemeBurnToggle.tsx`,
   a lazy chunk with a 44px hold (`.rjb-theme-toggle-hold`). `ColorMode.burnToggle(at)` reveals the new theme from the
@@ -943,6 +943,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
   and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Unsaved listings (Find's Browse cards) have no page:
   below lg their title is the link out, with HDS's external icon (#544; at lg it selects the posting). Apply mode keeps Open application.
+  **Labelled external links are HDS Button `external` (HDS 0.44):** Open application (the dock's key) and the
+  follow-up dialog's Open posting show HDS's arrow after the label, which nudges on hover and focus (still under
+  reduced motion); no leading ExternalLink icon. Icon-only posting links keep their icon.
   Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts` (hit-tests
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Company logos (2026-10-22):** `CompanyLogo.tsx` is an HDS `Avatar` per company (the To apply stack, Pipeline table and cards, job header (the 24px `inline` mark before the name, as on Find cards and Apply rows, 2026-11-13), job rail, Company page, Companies and dream rows): letter first, the logo only once `new Image()` has loaded it at 16px or more (lazy, no referrer; errors and DuckDuckGo's tiny placeholder keep the letter). `companyLogo.ts` is the one table-tested rule for the domain (company website first, then the posting's host; never a job board, ATS or aggregator host, `*.example.com`, localhost, IPs). Icons come from `icons.duckduckgo.com` (`img-src`, `legal.ts` THIRD_PARTIES, `csp.test.ts`); e2e specs abort that host, so baselines show letters.

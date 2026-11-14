@@ -790,7 +790,8 @@ describe('Review new: Deck card anatomy (#458)', () => {
     const place = within(card).getByText('Lisbon, Portugal');
     const mode = within(card).getByText('Remote');
     const posted = within(card).getByText('Posted today');
-    const lines = [place, mode, posted].map((el) => el.parentElement!);
+    // HDS Card.Facts (stacked, 0.43): each fact is its own list item, icon then text.
+    const lines = [place, mode, posted].map((el) => el.closest('li')!);
     // Three lines, one fact each, each with its icon, in that order.
     expect(new Set(lines).size).toBe(3);
     const icons = ['lucide-map-pin', 'lucide-briefcase', 'lucide-calendar'];
@@ -886,7 +887,8 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
   it('each card’s list item says its place in the whole list (aria-setsize / posinset)', async () => {
     renderPhoneFind();
     const ul = await list();
-    const items = within(ul).getAllByRole('listitem');
+    // The cards' own items (each card's facts are a list of their own, HDS Card.Facts).
+    const items = [...ul.children].filter((c) => c.matches('li:not(.rjb-window-spacer)'));
     expect(items.length).toBeGreaterThan(1);
     items.forEach((li, i) => {
       expect(li).toHaveAttribute('aria-posinset', String(i + 1));
