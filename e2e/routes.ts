@@ -3,13 +3,13 @@
 import { expect, type Page } from '@playwright/test';
 
 export const ROUTES = [
-  '#/find',
+  '#/review',
   '#/apply',
   // Documents and Legal are dialogs over the open tab (#471 slice 4).
-  '#/find?documents=',
-  '#/find?documents=tpl-outreach',
-  '#/find?legal=privacy',
-  '#/find?legal=terms',
+  '#/review?documents=',
+  '#/review?documents=tpl-outreach',
+  '#/review?legal=privacy',
+  '#/review?legal=terms',
   // A Company's page (#230), named by a sample job's company.
   '#/apply/company/larkspur-analytics',
   // An unknown route shows Page not found, not Companies.
@@ -44,13 +44,13 @@ export async function seed(page: Page) {
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await addStarters(page);
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/find');
+  await go(page, '#/review');
   await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
 }
 
 /** Add the starter messages from Documents' empty state (a first run adds none). */
 export async function addStarters(page: Page) {
-  await go(page, '#/find?documents=');
+  await go(page, '#/review?documents=');
   const docs = page.getByRole('dialog', { name: 'Documents' });
   await docs.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(docs.getByRole('region', { name: 'Messages' })).toBeVisible();
@@ -154,15 +154,15 @@ export async function openScanDetails(page: Page) {
 }
 
 /** The shell's top tabs are links in a nav (top tabs PR): one by name, or the open one. The name is
- *  its label (no counts since 2026-11-13). */
+ *  its label, then Review's count when it has one ("Review 12", 2026-11-13). */
 export const topTab = (page: Page, name: string) =>
   page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: new RegExp(`^${name}$`) });
+    .getByRole('link', { name: new RegExp(`^${name}( \\d+\\+?)?$`) });
 export const currentTab = (page: Page) =>
   page.getByRole('navigation', { name: 'Sections' }).locator('a[aria-current="page"]');
 
-/** Pick an item in the Account menu ("Scan now", "Stop scan", "Search profile"). Find has no
+/** Pick an item in the Account menu ("Scan now", "Stop scan", "Search profile"). Review has no
  *  More menu since #694: Scan now (signed out) sits in the Account menu beside Search profile. */
 export async function accountMenuItem(page: Page, name: string) {
   await page.getByRole('button', { name: /^Account/ }).click();

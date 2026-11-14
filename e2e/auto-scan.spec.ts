@@ -95,13 +95,13 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     const asked: string[] = [];
     await network(page, asked);
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
     // No status text on Find (Adrian 2026-11-08); Scan now is the Account menu's (#694). Nothing
-    // read yet: the empty state, and no List | Deck toggle beside it (Adrian 2026-11-13).
+    // read yet: the empty state, and no pager beside it (2026-11-13).
     await expect(page.getByRole('region', { name: 'No postings' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
+    await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
     await page.waitForTimeout(3000);
     expect(asked.filter((u) => u.includes('yc-oss.github.io'))).toEqual([]);
     const since = await page.evaluate(() => Date.now());
@@ -155,7 +155,7 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 900 });
   await network(page);
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   await page.evaluate(seedTrack);
   const since = await page.evaluate(() => Date.now());
   await accountMenuItem(page, 'Scan now');

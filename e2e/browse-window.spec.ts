@@ -65,7 +65,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
 }) => {
   test.setTimeout(180_000);
   await feed(page);
-  await page.goto(`${PROD_URL}/#/find`);
+  await page.goto(`${PROD_URL}/#/review`);
   await accountMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
   await expect(list.getByRole('link', { name: /Design Systems Engineer 0\b/ })).toBeVisible({
@@ -95,7 +95,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
   await page.waitForTimeout(200);
   await expect(first).toBeFocused();
 
-  // Scroll comes back exactly after Find → Apply → Find.
+  // Scroll comes back exactly after Review → Apply → Review.
   await page.evaluate(() => window.scrollTo(0, 18_000));
   // Wait until scrollMemory has kept this position (a busy machine can be slow to).
   await expect
@@ -105,7 +105,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
           const kept = new Map<string, number>(
             JSON.parse(sessionStorage.getItem('rjb_scroll') || '[]'),
           );
-          return [...kept].some(([k, y]) => k.includes('find') && y === window.scrollY);
+          return [...kept].some(([k, y]) => k.includes('review') && y === window.scrollY);
         }),
       { timeout: 10_000 },
     )
@@ -125,7 +125,7 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
   // Let Apply settle (its page and focus land) before coming back.
   await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
   await page.waitForTimeout(1000);
-  await topTab(page, 'Find').click();
+  await topTab(page, 'Review').click();
   await expect(list).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 5000 }).toBe(at);
   await page.waitForTimeout(300);

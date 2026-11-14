@@ -16,7 +16,7 @@ const metas = (page: Page) =>
 
 async function open(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   const toggle = page
     .getByRole('banner')
     .getByRole('button', { name: /^Switch to (dark|light) theme$/ });
@@ -207,3 +207,47 @@ test('the theme switch flips its icon within one frame of the press', async ({ p
   expect(flipped[0]).not.toBe(flipped[1]);
   await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
 });
+
+// #695 follow-up (Adrian's iPhone recording): the burn's edge layer must sit on the reveal. Mid-burn,
+// at a scrolled position and at DPR 2 and 3, the edge layer covers exactly the viewport the clip is
+// drawn in (innerWidth × innerHeight from 0,0), and its path ends with the very hole the clip uses.
+for (const dpr of [2, 3])
+  test(`the burn edge shares the reveal's geometry (DPR ${dpr}, scrolled)`, async ({ browser }) => {
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 664 },
+      deviceScaleFactor: dpr,
+      reducedMotion: 'no-preference',
+    });
+    const page = await ctx.newPage();
+    const toggle = await open(page);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await toggle.click();
+    await expect.poll(() => burning(page)).toBe(true);
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const svg = document.querySelector<SVGSVGElement>('svg.rjb-burn-rim[data-root]');
+          const d = svg?.querySelector('path')?.getAttribute('d') ?? '';
+          return d.length > 0;
+        }),
+      )
+      .toBe(true);
+    const geo = await page.evaluate(() => {
+      const svg = document.querySelector<SVGSVGElement>('svg.rjb-burn-rim[data-root]')!;
+      const r = svg.getBoundingClientRect();
+      const clip = document.documentElement.style.getPropertyValue('--rjb-burn-clip');
+      const hole = /path\(evenodd, '(.*)'\)/.exec(clip)?.[1] ?? '';
+      const d = svg.querySelector('path')!.getAttribute('d')!;
+      return {
+        box: [r.left, r.top, r.width, r.height],
+        view: [0, 0, innerWidth, innerHeight],
+        viewBox: svg.getAttribute('viewBox'),
+        sameHole: hole === '' || d.endsWith(hole),
+      };
+    });
+    expect(geo.box).toEqual(geo.view);
+    expect(geo.viewBox).toBe(`0 0 ${geo.view[2]} ${geo.view[3]}`);
+    expect(geo.sameHole).toBe(true);
+    await expect.poll(() => burning(page), { timeout: 5000 }).toBe(false);
+    await ctx.close();
+  });

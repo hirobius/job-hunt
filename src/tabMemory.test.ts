@@ -16,11 +16,11 @@ beforeEach(resetTabMemory);
 describe('tab memory', () => {
   it('remembers the last route of each top tab', async () => {
     await visit('#/apply/abc?section=screening');
-    await visit('#/find');
+    await visit('#/review');
     // An old Documents link opens the dialog over Find; the tab is still left at Find.
     await visit('#/copy-deck');
     expect(lastRouteOf('apply')).toBe('#/apply/abc?section=screening');
-    expect(lastRouteOf('find')).toBe('#/find');
+    expect(lastRouteOf('review')).toBe('#/review');
   });
 
   it('counts Apply mode and a Company page as the Pipeline', async () => {
@@ -32,18 +32,18 @@ describe('tab memory', () => {
 
   it('falls back to the tab root before anything was visited', () => {
     expect(lastRouteOf('apply')).toBe('#/apply');
-    expect(lastRouteOf('find')).toBe('#/find');
+    expect(lastRouteOf('review')).toBe('#/review');
   });
 
   // Review blocker (2026-10-22): a removed job's page stayed the Pipeline's place, so every tap on
   // the tab reopened it and its fallback sent the user to the origin again.
   it('a remembered job page or Apply mode whose job is no longer saved reopens the list', async () => {
     await visit('#/apply/gone123?from=%2Ffind');
-    await visit('#/find');
+    await visit('#/review');
     openTab('apply');
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     await visit('#/apply/gone456');
-    await visit('#/find');
+    await visit('#/review');
     openTab('apply');
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
   });
@@ -53,7 +53,7 @@ describe('tab memory', () => {
     addJob(url, 'Fabricator');
     try {
       await visit(`#/apply/${jobIdOf(url)}?section=screening`);
-      await visit('#/find');
+      await visit('#/review');
       openTab('apply');
       await waitFor(() =>
         expect(window.location.hash).toBe(`#/apply/${jobIdOf(url)}?section=screening`),
@@ -65,7 +65,7 @@ describe('tab memory', () => {
 
   it('openTab goes back to where the tab was left', async () => {
     await visit('#/apply/company/acme');
-    await visit('#/find');
+    await visit('#/review');
     openTab('apply');
     await waitFor(() => expect(window.location.hash).toBe('#/apply/company/acme'));
   });

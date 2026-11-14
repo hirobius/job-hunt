@@ -88,7 +88,7 @@ describe('app shell (#115 Phase 1)', () => {
   it('has a slim header: the product name, the top tabs and one account menu', () => {
     renderApp();
     expect(screen.getByRole('img', { name: BRAND.name })).toBeInTheDocument();
-    expect(topTabs().map((t) => t.textContent)).toEqual(['Find', 'Apply']);
+    expect(topTabs().map((t) => t.textContent)).toEqual(['Review', 'Apply']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -126,7 +126,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(
       within(screen.getByRole('main', { hidden: true })).getByRole('heading', {
         level: 1,
-        name: 'Find',
+        name: 'Review',
         hidden: true,
       }),
     ).toBeInTheDocument();
@@ -138,8 +138,8 @@ describe('app shell (#115 Phase 1)', () => {
     window.location.hash = '#/apply';
     renderApp();
     const banner = screen.getAllByRole('banner').find((el) => !el.closest('main'))!;
-    const home = within(banner).getByRole('link', { name: `${BRAND.name}, Find` });
-    expect(home).toHaveAttribute('href', '#/find');
+    const home = within(banner).getByRole('link', { name: `${BRAND.name}, Review` });
+    expect(home).toHaveAttribute('href', '#/review');
     expect(home).toHaveClass('rjb-logo-link');
     // The lockup inside it is unchanged: the image named for the product.
     expect(within(home).getByRole('img', { name: BRAND.name })).toBeInTheDocument();
@@ -148,33 +148,33 @@ describe('app shell (#115 Phase 1)', () => {
   });
 
   it('the logo opens Find at its root, not where Find was left (#620)', async () => {
-    window.location.hash = '#/find/some-posting';
+    window.location.hash = '#/review/some-posting';
     renderApp();
     await userEvent.click(topTab('Apply'));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    await userEvent.click(screen.getByRole('link', { name: `${BRAND.name}, Find` }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
-    expect(currentTab('Find')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: `${BRAND.name}, Review` }));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
+    expect(currentTab('Review')).toBeInTheDocument();
   });
 
   it("on a Find posting the logo goes back to Find's root; at the root it scrolls to the top (#620)", async () => {
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
-    window.location.hash = '#/find/some-posting';
-    await waitFor(() => expect(window.location.hash).toBe('#/find/some-posting'));
-    const home = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    window.location.hash = '#/review/some-posting';
+    await waitFor(() => expect(window.location.hash).toBe('#/review/some-posting'));
+    const home = screen.getByRole('link', { name: `${BRAND.name}, Review` });
     await userEvent.click(home);
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     await userEvent.click(home);
     expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
   });
 
   it("a modified click on the logo keeps the browser's own way (new tab)", () => {
     window.location.hash = '#/apply';
     renderApp();
-    const home = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    const home = screen.getByRole('link', { name: `${BRAND.name}, Review` });
     const click = new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true });
     home.dispatchEvent(click);
     expect(click.defaultPrevented).toBe(false);
@@ -412,7 +412,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
   });
 
   it('signed out with jobs, the avatar is plain "Account" on every route; no banner', async () => {
-    for (const hash of ['#/apply', '#/find']) {
+    for (const hash of ['#/apply', '#/review']) {
       window.location.hash = hash;
       const { unmount } = renderApp();
       const account = await screen.findByRole('button', { name: 'Account' });
@@ -489,9 +489,9 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
     ['#/apply', 'Apply'],
-    ['#/discover', 'Find'],
-    ['#/find', 'Find'],
-    ['', 'Find'],
+    ['#/discover', 'Review'],
+    ['#/review', 'Review'],
+    ['', 'Review'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
@@ -503,8 +503,8 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Templates', hidden: true })).toBeNull();
-    expect(currentTab('Find', { hidden: true })).toBeInTheDocument();
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    expect(currentTab('Review', { hidden: true })).toBeInTheDocument();
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
   });
 
   it('#/copy-deck/<id> still opens that template, now an Outreach message (#240, #227)', async () => {
@@ -512,26 +512,26 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.location.hash = '#/copy-deck/tpl-cover';
     renderApp();
     expect(await screen.findByRole('textbox', { name: 'Title' })).toHaveValue('Cover letter');
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents=snippet-tpl-cover'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents=snippet-tpl-cover'));
   });
 
   it('the Menu opens Documents over the page it was opened from (#240, #227, #471)', async () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?documents='));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
     // The browser's Back closes it and stays on Find.
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
   });
 
   it('the Menu opens Privacy and terms: one dialog with two tabs (#43, #471)', async () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?legal=privacy'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?legal=privacy'));
     const dialog =
       // Past its loading frame (DialogHold): the dialog with its tabs.
       (await screen.findByRole('tablist', { name: 'Privacy and terms' })).closest(
@@ -553,10 +553,10 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(
       within(dialog).getByRole('tab', { name: 'Terms of use', selected: true }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(window.location.hash).toBe('#/find?legal=terms'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?legal=terms'));
     const length = window.history.length;
     await userEvent.click(within(dialog).getByRole('tab', { name: 'Privacy policy' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find?legal=privacy'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review?legal=privacy'));
     expect(window.history.length).toBe(length);
     // Approved wording carries its date and no notice; a revision under review says it is a draft.
     if (LEGAL_DRAFT) {
@@ -571,7 +571,7 @@ describe('routes keep working (#115 Phase 1)', () => {
       `mailto:${CONTACT_EMAIL}`,
     );
     await userEvent.click(within(dialog).getByRole('button', { name: /Close/ }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
   });
 
   it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {
@@ -687,10 +687,10 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(
       await screen.findByText('That sign-in link has expired. Send a new one from Account.'),
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(currentTab('Find')).toBeInTheDocument();
+    expect(currentTab('Review')).toBeInTheDocument();
   });
 
   it('a cancelled Google sign-in says so and leaves no error in the URL, query or hash (#482)', async () => {
@@ -704,7 +704,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     expect(await screen.findByText('Google sign-in was cancelled.')).toBeInTheDocument();
     expect(window.location.search).toBe('');
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
   });
 
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {
@@ -721,7 +721,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     // The menu's entry pops at once: the route knows the hash it is on, so it doesn't wait ~2 s
     // for a hashchange that never comes.
     await waitFor(() => expect(backInFlight()).toBe(false), { timeout: 500 });
-    await userEvent.click(topTab('Find'));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'), { timeout: 500 });
+    await userEvent.click(topTab('Review'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'), { timeout: 500 });
   });
 });

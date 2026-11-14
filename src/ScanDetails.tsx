@@ -1,5 +1,5 @@
 // Scan details (Adrian 2026-11-08; in the Search profile since #549): Find shows no status text
-// above Browse / Deck, so this is where the scan's freshness, the sources that didn't answer and what
+// above its list, so this is where the scan's freshness, the sources that didn't answer and what
 // Review new left out stay reachable. Signed in, "Updated N min ago" from the server's last sync;
 // signed out, the last scan's line. A closed row at the end of the Search profile dialog, in its
 // chunk (lazyDialogs.ts).
@@ -10,7 +10,8 @@ import { lastScannedLine, scanBoardUrls, useScan, type ScanProgress } from './fe
 import { useScanningCount } from './feed/scanningCount';
 import { useServerUpdated } from './feed/serverUpdated';
 import { useScanInput } from './feed/useAutoScan';
-import { unavailableWhy, useScanDetails } from './feed/scanDetails';
+import { useScanDetails } from './feed/scanDetails';
+import { unavailableWhy } from './feed/scanDetailsText';
 
 function progressLine(p: ScanProgress | undefined): string {
   switch (p?.phase) {
@@ -66,13 +67,13 @@ export default function ScanDetails() {
       <Stack gap="spacious">
         {!d ? (
           <Text variant="body" as="p" tone="secondary">
-            Open Find to read your sources; the details show here after that.
+            Open Review to read your sources; the details show here after that.
           </Text>
         ) : (
           <>
             <Stack gap="tight" as="section" aria-labelledby="rjb-scan-hidden">
               <Text variant="body" as="h3" className="rjb-semibold" id="rjb-scan-hidden">
-                Not shown in Find
+                Not shown in Review
               </Text>
               <Text variant="body" as="p" tone="secondary">
                 {d.hidden.length ? d.hidden.join(', ') : 'Nothing: every posting read is listed.'}

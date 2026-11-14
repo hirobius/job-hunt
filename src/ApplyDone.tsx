@@ -4,7 +4,7 @@
 import { Button, Stack } from '@hirobius/design-system';
 import { ListChecks } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
-import { navigate } from './route';
+import { FIND_TAB, navigate } from './route';
 import { setPipelineView } from './pipelineView';
 import { nextStep, weekLine } from './applyDone';
 import { focusNewHeading, pageHeadingNow } from './focusRescue';
@@ -26,7 +26,8 @@ export default function ApplyDone({ jobs }: { jobs: Job[] }) {
             <Button
               variant="primary"
               onClick={() => {
-                if (next.kind === 'find') return navigate({ tab: 'find', sub: null, jobId: null });
+                if (next.kind === 'find')
+                  return navigate({ tab: FIND_TAB, sub: null, jobId: null });
                 const from = pageHeadingNow();
                 setPipelineView({ filter: 'followUp' });
                 focusNewHeading(from);

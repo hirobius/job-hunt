@@ -30,8 +30,8 @@ const label = (hash: string) => routeLabel(parseHash(hash), { jobs, docs });
 describe('routeLabel', () => {
   it.each([
     ['#/apply', 'Apply'],
-    ['#/discover', 'Find'],
-    ['#/discover/live', 'Find'],
+    ['#/discover', 'Review'],
+    ['#/discover/live', 'Review'],
     ['#/copy-deck', 'Documents'],
     ['#/copy-deck/d1', 'Intro note'],
     ['#/copy-deck/new/outreach', 'New outreach message'],
@@ -45,7 +45,7 @@ describe('routeLabel', () => {
     expect(label(`#/apply/${jobIdOf(job(2).url)}`)).toBe('Designer 2');
     expect(label(`#/queue/${jobIdOf(job(2).url)}`)).toBe('Designer 2');
     expect(label('#/queue')).toBe('Apply');
-    expect(label('#/today')).toBe('Find');
+    expect(label('#/today')).toBe('Review');
   });
 
   it('falls back to a plain name for a page it cannot find', () => {

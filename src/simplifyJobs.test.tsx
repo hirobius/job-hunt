@@ -315,7 +315,7 @@ describe('Recently removed from another page', () => {
         removedAt: new Date().toISOString(),
       },
     ]);
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     const data = await openData();
     await userEvent.click(within(data).getByRole('button', { name: 'Recently removed (1)' }));

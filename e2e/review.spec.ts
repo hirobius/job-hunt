@@ -1,12 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 import { accountMenuItem, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
-import { hitArea } from './hitArea';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
-// other posting stays), Save lands in the Pipeline's To apply, and the Deck shows one card at a
-// time. The feed is synthetic Hacker News posts (no real people); every other host answers empty.
+// other posting stays), Save lands in the Pipeline's To apply; at 390 the pager steps a current
+// card, at 1440 ↑ / ↓ move the selection (list only, no Deck since 2026-11-13). The feed is synthetic Hacker News posts (no real people); every other host answers empty.
 // Kite's UX Engineer is in the list: Design Engineer (with UX Engineer) is a related title on by
 // default (#581). Ferro's Mechanical Design Engineer is read (it says a searched title) but the
 // design engineer guard (tracks/designRoleGuard.ts) keeps it out, so it is the one counted.
@@ -84,13 +83,13 @@ async function templateOf(page: Page) {
 
 async function setUp(page: Page) {
   await feed(page);
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
-  await expect(page).toHaveURL(/#\/find$/);
+  await expect(page).toHaveURL(/#\/review$/);
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
-  // The profile has landed (Review new's own controls show), so the page no longer swaps under
-  // the click. Signed out, nothing scans on open (2026-11-07): Scan now does.
-  await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
+  // The profile has landed (the list shows), so the page no longer swaps under the click. Signed
+  // out, nothing scans on open (2026-11-07): Scan now does.
+  await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
   const since = await page.evaluate(() => Date.now());
   // Scan now is the Account menu's (#694).
   await accountMenuItem(page, 'Scan now');
@@ -114,7 +113,9 @@ async function scanFinished(page: Page, since: number, timeout = 60_000) {
 }
 
 for (const width of [390, 1440]) {
-  test(`browse, skip one posting, save one, then the deck (${width})`, async ({ page }) => {
+  test(`browse, skip one posting, save one, then walk and finish the list (${width})`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 900 });
     let postingTemplate: Awaited<ReturnType<typeof templateOf>> | null = null;
     // At 1440 a posting is decided in the detail column (#546): its title selects it first.
@@ -130,7 +131,7 @@ for (const width of [390, 1440]) {
     };
     await setUp(page);
     await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
-    // No status text above Browse / Deck (Adrian 2026-11-08): no scan line, counts or progress.
+    // No status text above the list (Adrian 2026-11-08): no scan line, counts or progress.
     await expect(
       page.getByText(
         /^Scanning |^Last scanned|^Read \d+ of \d+ boards$|unavailable · details|^Not shown/,
@@ -156,13 +157,13 @@ for (const width of [390, 1440]) {
 
     if (width >= 1024) {
       // At lg Find opens on the first posting (Adrian 2026-11-12, #546), like Apply's first job.
-      await expect(page).toHaveURL(/#\/find\/.+/);
+      await expect(page).toHaveURL(/#\/review\/.+/);
       const first = await list.getByRole('heading', { level: 3 }).first().innerText();
       await expect(page.getByRole('heading', { level: 1, name: first })).toBeVisible();
       await expect(page.getByText('Pick a posting')).toHaveCount(0);
       // A title selects another posting for the detail column (#471 slice 3), in place.
       await list.getByRole('link', { name: 'Design Systems Designer', exact: true }).click();
-      await expect(page).toHaveURL(/#\/find\/.+/);
+      await expect(page).toHaveURL(/#\/review\/.+/);
       await expect(
         page.getByRole('heading', { level: 1, name: 'Design Systems Designer' }),
       ).toBeVisible();
@@ -190,9 +191,9 @@ for (const width of [390, 1440]) {
       await expect(link).toHaveAttribute('target', '_blank');
       await expect(card.getByRole('button', { name: /description/ })).toHaveCount(0);
       await expect(card.getByRole('link', { name: /^Open posting for / })).toHaveCount(0);
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
       await page.screenshot({ path: `test-results/review-selected-${width}.png` });
-      await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
     }
 
     // Skip hides only that posting: Orbit's other one stays.
@@ -223,80 +224,52 @@ for (const width of [390, 1440]) {
     await expect(page.getByText(/shortlist/i)).toHaveCount(0);
     await expect(list.getByRole('listitem')).toHaveCount(2);
 
-    // The deck: one card at a time, Skip each of the two left. Past the double-tap guard first: it
-    // swallows any press inside the page for 700 ms after Save, Deck's too.
+    // Two left. Past the double-tap guard first.
     await page.waitForTimeout(800);
-    const deck = page.getByRole('button', { name: 'View: List, switch to Deck' });
-    await deck.click();
-    await expect(page.getByRole('button', { name: 'View: Deck, switch to List' })).toBeVisible();
-    // The Deck keeps no selection (#546): Find's header shows again, with its "1 of N" caption.
-    await expect(page).toHaveURL(/#\/find$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
-    await expect(page.getByRole('article')).toHaveCount(1);
-    // #557 cuts: no source or blue New badge on the Deck card; the company stays.
-    const card = page.getByRole('article');
-    await expect(card.getByText('Hacker News', { exact: true })).toHaveCount(0);
-    await expect(card.getByText('New', { exact: true })).toHaveCount(0);
-    await expect(card.locator('[data-tone="info"]')).toHaveCount(0);
-    await expect(card.getByRole('heading', { level: 3 })).toBeVisible();
-    // 2026-11-12: "‹ 1 of 2 ›" in the page bar (HDS compact pager, Previous off at the start).
-    const pager = page.getByRole('navigation', { name: 'Postings in the deck' });
-    await expect(pager.getByText('1 of 2')).toBeVisible();
-    await expect(pager.getByRole('button', { name: /previous/i })).toBeDisabled();
-    // Find controls (2026-11-13): the pager sits at the right of the Find | Apply row.
-    const navBox = await page.getByRole('navigation', { name: 'Sections' }).boundingBox();
-    const pagerBox = await pager.boundingBox();
-    expect(
-      Math.abs(navBox!.y + navBox!.height / 2 - (pagerBox!.y + pagerBox!.height / 2)),
-    ).toBeLessThan(4);
-    expect(pagerBox!.x).toBeGreaterThan(navBox!.x + navBox!.width);
-    // No Sort on Find (2026-11-13).
-    await expect(page.getByRole('button', { name: /^Sort/ })).toHaveCount(0);
-    // Skip | Save | More in one row under the card (2026-11-13): More a fixed 44px key at the end,
-    // Skip and Save sharing the rest; the title has the card's width (no More beside it).
-    await expect(card.getByRole('button', { name: /^More actions/ })).toHaveCount(0);
-    // Skip (grey) and Save (filled, right) sit in the dock: fixed at the bottom on a phone, one
-    // row, each key 44px tall at least; inline under the card at lg.
-    const dock = page.getByRole('group', { name: /^Actions for / });
-    const skipKey = dock.getByRole('button', { name: /^Skip / });
-    const saveKey = dock.getByRole('button', { name: /^Save / });
-    const [skipBox, saveBox] = [await skipKey.boundingBox(), await saveKey.boundingBox()];
-    expect(skipBox && saveBox && skipBox.x < saveBox.x).toBe(true);
-    expect(Math.abs((skipBox?.y ?? 0) - (saveBox?.y ?? 1))).toBeLessThan(1);
-    // In flow under the card at every width (2026-11-13): no fixed dock on Find, the card's width.
-    expect(await dock.evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed');
-    const cardBox = (await page.locator('.rjb-deck article').boundingBox())!;
-    expect(skipBox!.y).toBeGreaterThan(cardBox.y + cardBox.height - 1);
-    expect(Math.abs(skipBox!.x - cardBox.x)).toBeLessThan(1);
-    const moreBox = (await dock.getByRole('button', { name: /^More actions/ }).boundingBox())!;
-    expect(Math.abs(moreBox.x + moreBox.width - (cardBox.x + cardBox.width))).toBeLessThan(1);
-    expect(moreBox.x).toBeGreaterThan(saveBox!.x + saveBox!.width);
-    expect(Math.round(moreBox.width)).toBe(44);
-    expect(Math.round(moreBox.height)).toBe(44);
-    expect(Math.abs(moreBox.y - skipBox!.y)).toBeLessThan(1);
-    expect(Math.abs(skipBox!.width - saveBox!.width)).toBeLessThan(1);
-    // The title has the card's width (nothing beside it).
-    const titleBox = (await card.getByRole('heading', { level: 3 }).boundingBox())!;
-    expect(cardBox.x + cardBox.width - (titleBox.x + titleBox.width)).toBeLessThan(40);
-    if (width < 1024) expect(skipBox!.height).toBeGreaterThanOrEqual(44);
-    await page.screenshot({ path: `test-results/review-deck-${width}.png`, fullPage: true });
-    for (let left = 2; left > 0; left--) {
-      // Past the double-tap guard again.
-      await page.waitForTimeout(800);
-      await page
-        .getByRole('group', { name: /^Actions for / })
-        .getByRole('button', { name: /^Skip / })
-        .click();
-      if (left > 1) {
-        await expect(page.getByRole('article')).toHaveCount(1);
-        await expect(page.getByText('1 of 1', { exact: true })).toBeVisible();
-        // Focus goes to the next card's title, not the dock key (#545 follow-up).
-        await expect(page.getByRole('article').getByRole('heading', { level: 3 })).toBeFocused();
-      }
+    await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
+    const pager = page.getByRole('group', { name: 'Postings in the list' });
+    if (wide) {
+      // No pager at lg; ↑ / ↓ move the selection (never from a text field).
+      await expect(pager).toHaveCount(0);
+      const names = await list.getByRole('heading', { level: 3 }).allInnerTexts();
+      await list.getByRole('link', { name: names[0], exact: true }).click();
+      await page.keyboard.press('ArrowDown');
+      await expect(page.getByRole('heading', { level: 1, name: names[1] })).toBeVisible();
+      await page.keyboard.press('ArrowUp');
+      await expect(page.getByRole('heading', { level: 1, name: names[0] })).toBeVisible();
+    } else {
+      // "‹ › 1 of 2": the arrows step a current card. Focus stays on the pager (review of #714), so
+      // an arrow can be pressed again; at the end the arrow that turns off hands focus to the other.
+      await expect(pager.getByText('1 of 2', { exact: true })).toBeVisible();
+      await pager.getByRole('button', { name: 'Next posting' }).focus();
+      await page.keyboard.press('Enter');
+      await expect(pager.getByText('2 of 2', { exact: true })).toBeVisible();
+      await expect(pager.getByRole('button', { name: 'Next posting' })).toBeDisabled();
+      await expect(pager.getByRole('button', { name: 'Previous posting' })).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(pager.getByText('1 of 2', { exact: true })).toBeVisible();
+      await expect(pager.getByRole('button', { name: 'Next posting' })).toBeFocused();
     }
-    // The deck is empty: Find's h1 takes focus.
-    await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeFocused();
+    for (let left = 2; left > 0; left--) {
+      await page.waitForTimeout(800);
+      // The first card's name is "<title> at <company>".
+      const name = (await list.getByRole('article').first().getAttribute('aria-label'))!;
+      const [title, company] = name.split(' at ');
+      await (await decideOn(title, 'Skip', company)).click();
+      if (left > 1) await expect(list.getByRole('listitem')).toHaveCount(1);
+    }
     await expect(page.getByText('You’re all caught up')).toBeVisible();
+    if (wide) {
+      // The two columns stay: caught up is the right column's (2026-11-13).
+      await expect(
+        page.locator('.rjb-find-detail').getByText('You’re all caught up'),
+      ).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeFocused();
+    } else {
+      // Below lg the empty state's title takes the focus the last card left (#508).
+      await expect(page.locator('#rjb-review-empty-title')).toBeFocused();
+    }
 
     // Back on the Pipeline, the save is in To apply.
     await page.goto('/#/apply');
@@ -311,10 +284,10 @@ for (const width of [390, 1440]) {
   });
 }
 
-// Find controls (2026-11-13): New (two-digit count) and Remote (no count) on the left, Browse | Deck,
-// List | Deck pinned at the right (no More since #694, no Sort since 2026-11-13), one row at 375 and 390. Each key's 44px hit area is its own (elementFromPoint).
+// The phone pager (Adrian 2026-11-13): "[‹][›] 1 of N" alone on the row, each arrow a 44px hit area
+// of its own; the arrows step a current card into view, and scrolling moves the current card too.
 for (const width of [375, 390]) {
-  test(`the Review row: one line, the right group pinned, its own 44px hit areas (${width})`, async ({
+  test(`the pager row: arrows then the count, 44px each, stepping and following the scroll (${width})`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -348,36 +321,72 @@ for (const width of [375, 390]) {
         })),
       });
     });
-    await page.goto('/#/find');
-    await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
+    await page.goto('/#/review');
+    const list = page.getByRole('list', { name: 'New postings' });
+    await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
     const since = await page.evaluate(() => Date.now());
     await accountMenuItem(page, 'Scan now');
     await scanFinished(page, since);
-    const chips = page.getByRole('group', { name: 'Filter postings' });
-    await expect(chips.getByRole('button', { name: /^New \d\d$/ })).toBeVisible();
-    await expect(chips.getByRole('button', { name: 'Remote', exact: true })).toBeVisible();
-    const view = page.getByRole('button', { name: /^View: / });
-    // No More on Find (#694) and no Sort (2026-11-13): List | Deck ends the row.
-    await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^Sort/ })).toHaveCount(0);
-    const [c, v] = [await chips.boundingBox(), await view.boundingBox()];
-    expect(Math.abs(c!.y + c!.height / 2 - (v!.y + v!.height / 2))).toBeLessThan(4);
-    // List | Deck ends the row, inside the page gutter (20px).
-    expect(v!.x + v!.width).toBeLessThanOrEqual(width - 20);
-    // Each key's 44px hit area (.rjb-hit-44's ::after) is its own: a tap 2px inside each edge of it
-    // lands on that key, never its neighbour.
-    // A tap just inside the last chip's right edge is the chip's, not the List | Deck toggle's.
-    const remote = chips.getByRole('button', { name: 'Remote', exact: true });
-    const onChip = await remote.evaluate((el) => {
-      const r = el.getBoundingClientRect();
-      return document.elementFromPoint(r.right - 2, r.top + r.height / 2)?.closest('button') === el;
+    await expect(list.getByRole('listitem')).toHaveCount(12);
+    const pager = page.getByRole('group', { name: 'Postings in the list' });
+    const prev = pager.getByRole('button', { name: 'Previous posting' });
+    const next = pager.getByRole('button', { name: 'Next posting' });
+    const count = pager.getByText(/^\d+ of 12$/);
+    await expect(count).toHaveText('1 of 12');
+    // The arrows step the current card into view; focus stays on the arrow (review of #714), so a
+    // second press needs no hunting for it.
+    await next.click();
+    await expect(next).toBeFocused();
+    await next.click();
+    await expect(count).toHaveText('3 of 12');
+    const third = list.getByRole('listitem').nth(2);
+    await expect(next).toBeFocused();
+    // The card sits just under the pager row, which stays stuck at the top (2026-11-13).
+    const [cardTop, bar] = [(await third.boundingBox())!.y, (await pager.boundingBox())!];
+    expect(Math.abs(bar.y)).toBeLessThan(1);
+    expect(cardTop).toBeGreaterThanOrEqual(bar.y + bar.height - 1);
+    expect(cardTop).toBeLessThan(bar.y + bar.height + 24);
+    // With both arrows enabled (one step in): arrows first, then the count; the row starts at the gutter. Each arrow is a 44px box, the
+    // boxes do not overlap, and a tap anywhere in one is its own (viewport coordinates throughout).
+    const geo = await pager.evaluate((g) => {
+      const [p, n] = Array.from(g.querySelectorAll('button')).map((b) => b.getBoundingClientRect());
+      const c = (g.querySelector('span') as HTMLElement).getBoundingClientRect();
+      const misses: string[] = [];
+      for (const [i, r] of [p, n].entries())
+        // Each edge's middle 2px in, the centre, and the corners 8px in (the key's rounded corners
+        // are not hit-tested as part of it).
+        for (const [x, y] of [
+          [r.left + 2, r.top + r.height / 2],
+          [r.right - 2, r.top + r.height / 2],
+          [r.left + r.width / 2, r.top + 2],
+          [r.left + r.width / 2, r.bottom - 2],
+          [r.left + r.width / 2, r.top + r.height / 2],
+          [r.left + 8, r.top + 8],
+          [r.right - 8, r.top + 8],
+          [r.left + 8, r.bottom - 8],
+          [r.right - 8, r.bottom - 8],
+        ])
+          if (
+            document.elementFromPoint(x, y)?.closest('button') !== g.querySelectorAll('button')[i]
+          )
+            misses.push(`${i}: ${Math.round(x)},${Math.round(y)}`);
+      return { p: p.toJSON(), n: n.toJSON(), c: c.toJSON(), misses };
     });
-    expect(onChip).toBe(true);
-    for (const name of [/^View: /]) {
-      const hit = await hitArea(page.getByRole('button', { name }));
-      expect(hit.width).toBeGreaterThanOrEqual(44);
-      expect(hit.height).toBeGreaterThanOrEqual(44);
-      expect(hit.misses, String(name)).toEqual([]);
+    expect(geo.misses).toEqual([]);
+    expect(geo.p.right).toBeLessThanOrEqual(geo.n.left);
+    expect(geo.n.right).toBeLessThanOrEqual(geo.c.left);
+    expect(Math.abs(geo.p.left - 20)).toBeLessThan(2);
+    for (const b of [geo.p, geo.n]) {
+      expect(Math.round(b.width)).toBeGreaterThanOrEqual(44);
+      expect(Math.round(b.height)).toBeGreaterThanOrEqual(44);
     }
+    // Scrolling moves the current card with it, so the count stays true.
+    await page.waitForTimeout(700);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(count).toHaveText('1 of 12');
+    const sixth = list.getByRole('listitem').nth(5);
+    await sixth.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await expect(count).toHaveText('6 of 12');
+    await expect(prev).toBeEnabled();
   });
 }

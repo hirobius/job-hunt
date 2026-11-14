@@ -15,7 +15,7 @@ import { useSyncExternalStore } from 'react';
 export const FLAG_DEFAULTS = {
   /** Phase 2 (#559): named views and the All jobs sheet. */
   p2Views: true,
-  /** Phase 3 (#560): Find's compact card, Deck and 1440 detail. */
+  /** Phase 3 (#560): Find's compact card and 1440 detail (the Deck went in #714). */
   p3Find: true,
   /** Phase 4 (#561): one-row app bar, Account menu groups, Data dialog. */
   p4Shell: true,

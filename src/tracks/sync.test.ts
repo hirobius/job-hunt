@@ -465,12 +465,17 @@ describe('greenhouse delta reads (#448)', () => {
       ['greenhouse:acme:2', stored(2, '2026-10-02T04:00:00.000Z', 'Stored text two.')],
     ]);
     const { f, calls } = deltaFetch({
-      light: { jobs: [lightJob(1, '2026-10-01T00:00:00-04:00'), lightJob(2, '2026-10-02T00:00:00-04:00')] },
+      light: {
+        jobs: [lightJob(1, '2026-10-01T00:00:00-04:00'), lightJob(2, '2026-10-02T00:00:00-04:00')],
+      },
     });
     const [r] = await readAll(acme, { fetch: f, rss: false, knownBoards: known });
     expect(r.ok).toBe(true);
     expect(calls).toEqual([LIGHT]);
-    expect(r.postings.map((p) => p.descriptionText)).toEqual(['Stored text one.', 'Stored text two.']);
+    expect(r.postings.map((p) => p.descriptionText)).toEqual([
+      'Stored text one.',
+      'Stored text two.',
+    ]);
     expect(r.postings[0].sourceUpdatedAt).toBe('2026-10-01T04:00:00.000Z');
   });
 
@@ -480,19 +485,22 @@ describe('greenhouse delta reads (#448)', () => {
       ['greenhouse:acme:2', stored(2, '2026-10-02T04:00:00.000Z', 'Stored text two.')],
     ]);
     const { f, calls } = deltaFetch({
-      light: { jobs: [lightJob(1, '2026-10-01T00:00:00-04:00'), lightJob(2, '2026-10-20T00:00:00-04:00')] },
+      light: {
+        jobs: [lightJob(1, '2026-10-01T00:00:00-04:00'), lightJob(2, '2026-10-20T00:00:00-04:00')],
+      },
       singles: { '2': fullJob(2, '2026-10-20T00:00:00-04:00', 'Fresh text two.') },
     });
     const [r] = await readAll(acme, { fetch: f, rss: false, knownBoards: known });
     expect(calls).toEqual([LIGHT, `${LIGHT}/2`]);
-    expect(r.postings.map((p) => p.descriptionText)).toEqual(['Stored text one.', 'Fresh text two.']);
+    expect(r.postings.map((p) => p.descriptionText)).toEqual([
+      'Stored text one.',
+      'Fresh text two.',
+    ]);
     expect(r.postings[1].sourceUpdatedAt).toBe('2026-10-20T00:00:00-04:00');
   });
 
   it('fetches a new job singly and drops a stored job the board no longer lists', async () => {
-    const known = new Map([
-      ['greenhouse:acme:9', stored(9, '2026-10-01T04:00:00.000Z', 'Gone.')],
-    ]);
+    const known = new Map([['greenhouse:acme:9', stored(9, '2026-10-01T04:00:00.000Z', 'Gone.')]]);
     const { f, calls } = deltaFetch({
       light: { jobs: [lightJob(3, '2026-10-05T00:00:00-04:00')] },
       singles: { '3': fullJob(3, '2026-10-05T00:00:00-04:00', 'Brand new.') },

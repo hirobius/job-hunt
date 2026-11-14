@@ -1,10 +1,9 @@
-import { hitArea } from './hitArea';
 import { test, expect } from '@playwright/test';
 import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
-// segmented control but still a nav of links (routing, Back, deep links); List / Deck as one
-// toggle with a tooltip (#694). Apply's list has no Remote only switch, search or Sort since
+// segmented control but still a nav of links (routing, Back, deep links); Find with no view switch
+// or filter row (list only, 2026-11-13). Apply's list has no Remote only switch, search or Sort since
 // 2026-11-13: each view's chip count matches its rows. Since #548 Find / Apply sit in the app bar's one row at
 // every width, each with its count.
 for (const width of [390, 1440]) {
@@ -41,49 +40,40 @@ for (const width of [390, 1440]) {
         expect(account!.x).toBeGreaterThan(logo!.x + logo!.width - 1);
         expect(account!.width).toBeGreaterThanOrEqual(44);
       }).toPass({ timeout: 10_000 });
-      await topTab(page, 'Find').click();
-      await expect(page).toHaveURL(/#\/find/);
-      await expect(topTab(page, 'Find')).toHaveAttribute('aria-current', 'page');
+      await topTab(page, 'Review').click();
+      await expect(page).toHaveURL(/#\/review/);
+      await expect(topTab(page, 'Review')).toHaveAttribute('aria-current', 'page');
       await page.goBack();
       await expect(page).toHaveURL(/#\/apply/);
       await expect(topTab(page, 'Apply')).toHaveAttribute('aria-current', 'page');
     });
 
-    test('the top tabs show no counts (2026-11-13)', async ({ page }) => {
-      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    test('Review shows its count, Apply none (2026-11-13)', async ({ page }) => {
+      await manyPostings(page, 12);
       await seed(page);
-      await page.goto('/#/apply');
+      await page.goto('/#/review');
       const nav = page.getByRole('navigation', { name: 'Sections' });
+      await expect(nav.getByRole('link', { name: /^Review/ })).toHaveAccessibleName('Review 12');
       await expect(nav.getByRole('link', { name: /^Apply/ })).toHaveAccessibleName('Apply');
-      await expect(nav.getByRole('link', { name: /^Find/ })).toHaveAccessibleName('Find');
+      await expect(nav.locator('.rjb-seg-count')).toHaveCount(1);
     });
 
-    test('List / Deck: one toggle over the whole track, with a tooltip', async ({ page }) => {
-      // No outside-host block here: Find's postings (and so this toggle) come from those reads.
+    test('Find: one list, no view switch and no filter row (2026-11-13)', async ({ page }) => {
       await seed(page);
-      await page.goto('/#/find');
-      const toggle = page.getByRole('button', { name: /^View: / });
-      await expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
-      await expect(toggle).toHaveText('');
-      await expect(toggle.locator('.rjb-seg-icon')).toHaveCount(2);
-      // The whole track is its 44px target, all of it this one key.
-      const hit = await hitArea(toggle);
-      expect(hit.height).toBeGreaterThanOrEqual(44);
-      expect(hit.misses).toEqual([]);
-      // The seed's "Added to Apply" toast can land under the pointer and close the tooltip at
-      // 1440: hover again until it shows.
-      await expect(async () => {
-        await page.mouse.move(0, 0);
-        await toggle.hover();
-        await expect(page.getByRole('tooltip')).toHaveText('Switch to Deck', { timeout: 1500 });
-      }).toPass({ timeout: 10_000 });
-      // A tap on the open (List) icon still flips: the whole track is the button.
-      const box = (await toggle.boundingBox())!;
-      await page.mouse.click(box.x + 6, box.y + box.height / 2);
-      await expect(toggle).toHaveAccessibleName('View: Deck, switch to List');
-      await toggle.focus();
-      await page.keyboard.press('Space');
-      await expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
+      await page.goto('/#/review');
+      // Postings or the empty state (at lg the right column's), whichever the reads give.
+      const list = page.getByRole('list', { name: 'New postings' });
+      await expect(list.or(page.getByRole('region', { name: 'No postings' }))).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
+      await expect(page.getByRole('checkbox')).toHaveCount(0);
+      await expect(page.getByRole('group', { name: 'Filter postings' })).toHaveCount(0);
+      // Phones keep only the pager row, beside postings; at lg there is none.
+      const listed = await list.isVisible();
+      await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(
+        width < 1024 && listed ? 1 : 0,
+      );
     });
 
     test('the Apply list: views only, and each chip count matches its rows (2026-11-13)', async ({
@@ -124,25 +114,31 @@ for (const width of [390, 1440]) {
   });
 }
 
-// Equal segments, no counts (2026-11-13): Find | Apply are two
-// equal segments, each 44px tall on a phone; the page bar fits on one row at 375 and 390 and wraps,
-// never scrolls sideways, at 320.
-for (const width of [320, 375, 390]) {
-  test(`Find | Apply: equal segments, no counts, fit at ${width}`, async ({ page }) => {
+// Equal segments, Review's count (2026-11-13): Review | Apply are two equal segments, each 44px
+// tall on a phone, on one row. Below 400px the count pill is hidden visually (it stays in the name),
+// so the page bar never runs past the screen or overlaps its tools; from 400 the "99+" pill shows
+// inside its segment.
+for (const width of [320, 375, 390, 414]) {
+  test(`Review | Apply: equal segments, a 99+ count, fit at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await manyPostings(page, 120);
     await seed(page);
-    await page.goto('/#/apply');
+    await page.goto('/#/review');
     const nav = page.getByRole('navigation', { name: 'Sections' });
+    const review = nav.getByRole('link', { name: /^Review/ });
+    await expect(review).toHaveAccessibleName('Review 99+');
     const apply = nav.getByRole('link', { name: /^Apply/ });
     await expect(apply).toHaveAccessibleName('Apply');
-    await expect(nav.locator('.rjb-seg-count')).toHaveCount(0);
-    const [find, app] = [await topTab(page, 'Find').boundingBox(), await apply.boundingBox()];
-    expect(Math.abs(find!.width - app!.width)).toBeLessThan(1);
-    expect(Math.abs(find!.y - app!.y)).toBeLessThan(1);
-    expect(find!.height).toBeGreaterThanOrEqual(44);
+    const [rev, app] = [await review.boundingBox(), await apply.boundingBox()];
+    expect(Math.abs(rev!.width - app!.width)).toBeLessThan(1);
+    expect(Math.abs(rev!.y - app!.y)).toBeLessThan(1);
+    expect(rev!.height).toBeGreaterThanOrEqual(44);
     const navBox = await nav.boundingBox();
     expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(width);
+    const pill = await nav.locator('.rjb-seg-count').boundingBox();
+    if (width < 400) expect(pill!.width).toBeLessThanOrEqual(1);
+    // From 400 the pill shows, inside its segment.
+    else expect(pill!.x + pill!.width).toBeLessThanOrEqual(rev!.x + rev!.width);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
@@ -172,21 +168,58 @@ test.describe('at 390, the view picker', () => {
     expect(fill.bg).not.toBe('rgba(0, 0, 0, 0)');
     expect(fill.h).toBeCloseTo(40, 0);
     expect(fill.w).toBeCloseTo(box!.width, 0);
-    // The chip's fill: the same colour and height as Find's New chip.
-    await page.goto('/#/find');
-    const chip = page.getByRole('group', { name: 'Filter postings' }).getByRole('button').first();
-    const chipFill = await chip.evaluate((el) => {
-      const s = getComputedStyle(el.firstElementChild as Element);
-      return {
-        bg: s.backgroundColor,
-        h: (el.firstElementChild as Element).getBoundingClientRect().height,
-      };
+    // The chip's fill: HDS Tag's resting background (Find's chips went on 2026-11-13; Apply's
+    // view chips keep the same Tag).
+    const tagBg = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.background = 'var(--component-tag-background)';
+      document.body.append(probe);
+      const bg = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return bg;
     });
-    expect(chipFill.bg).toBe(fill.bg);
-    expect(chipFill.h).toBeCloseTo(fill.h, 0);
-    await page.goto('/#/apply');
+    expect(tagBg).toBe(fill.bg);
     // The caret sits inside the fill.
     const caret = await picker.locator('svg').boundingBox();
     expect(caret!.x + caret!.width).toBeLessThan(box!.x + box!.width);
   });
 });
+
+/** n synthetic design-system postings from one Hacker News thread; every other host answers empty
+ *  (no real people). Review reads them as new, so its tab shows the count. */
+async function manyPostings(page: Page, n: number) {
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+    const url = r.request().url();
+    const json = (body: unknown) =>
+      r.fulfill({
+        status: 200,
+        headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    if (url.startsWith('https://remotive.com/') || url.startsWith('https://jobicy.com/'))
+      return json({ jobs: [] });
+    if (url.startsWith('https://api.lever.co/')) return json([]);
+    if (/^https:\/\/(boards-api\.greenhouse\.io|api\.ashbyhq\.com)\//.test(url))
+      return json({ jobs: [] });
+    if (!url.startsWith('https://hn.algolia.com/')) return r.abort();
+    if (url.includes('search_by_date'))
+      return json({
+        hits: [
+          {
+            objectID: '9',
+            title: 'Ask HN: Who is hiring? (October 2026)',
+            created_at: '2026-10-01',
+          },
+        ],
+      });
+    return json({
+      hits: Array.from({ length: n }, (_, i) => ({
+        objectID: `p-${i}`,
+        story_id: 9,
+        parent_id: 9,
+        created_at: new Date().toISOString(),
+        comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+      })),
+    });
+  });
+}

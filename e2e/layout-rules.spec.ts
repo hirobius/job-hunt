@@ -80,12 +80,6 @@ function probe(page: Page) {
             if (!visible(el)) return;
             // HDS's own clear-input button is 30px wide (hds#750).
             if (el.getAttribute('aria-label') === 'Clear input') return;
-            // A small key whose ::after is its 44px hit area (.rjb-hit-44, Find's Review row;
-            // review.spec.ts hit-tests that area with elementFromPoint).
-            if (el.classList.contains('rjb-hit-44')) {
-              const after = getComputedStyle(el, '::after');
-              if (parseFloat(after.width) >= 43.5 && parseFloat(after.height) >= 43.5) return;
-            }
             // A chip input's text field (HDS creatable Combobox) is 28px, but its 40px field is the
             // target: a press anywhere on the field focuses it.
             const field = el.getAttribute('role') === 'combobox' && el.closest('[role="group"]');
@@ -292,8 +286,8 @@ for (const theme of THEMES) {
       test('the focused top tab draws one ring around its label', async ({ page }) => {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
-        await page.goto('/#/find');
-        const tab = topTab(page, 'Find');
+        await page.goto('/#/review');
+        const tab = topTab(page, 'Review');
         await expect(tab).toBeVisible();
         await page.keyboard.press('Shift'); // a key press first, so focus shows as focus-visible
         await tab.focus();

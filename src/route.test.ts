@@ -129,8 +129,8 @@ describe('route — navigate drops a stale job id (#127)', () => {
   it('a tab change without a job id clears it', async () => {
     const { navigate, getRoute } = await import('./route');
     window.location.hash = '#/apply/abc123';
-    navigate({ tab: 'find' });
-    expect(getRoute()).toMatchObject({ tab: 'find', jobId: null });
+    navigate({ tab: 'review' });
+    expect(getRoute()).toMatchObject({ tab: 'review', jobId: null });
   });
 });
 
@@ -198,7 +198,7 @@ describe('route — withOrigin records where a jump came from', () => {
   it("leaves it out when the origin is the page's own default way back", () => {
     // A job and a Company go back to the Apply list by default, a selected posting to Find.
     expect(buildHash(withOrigin({ tab: 'apply', jobId: 'A' }, at('#/apply')))).toBe('#/apply/A');
-    expect(buildHash(withOrigin({ tab: 'find', sub: 'p1' }, at('#/find')))).toBe('#/find/p1');
+    expect(buildHash(withOrigin({ tab: 'review', sub: 'p1' }, at('#/review')))).toBe('#/review/p1');
   });
 
   it("keeps one level of the origin's own origin, so two Backs still work", () => {
@@ -207,7 +207,7 @@ describe('route — withOrigin records where a jump came from', () => {
     expect(originOf(onCompany)).toMatchObject({
       tab: 'apply',
       jobId: 'A',
-      from: '/find',
+      from: '/review',
     });
     // From the Company page on to another job: the job's own origin is dropped (one level kept).
     const next = withOrigin({ tab: 'apply', jobId: 'B' }, onCompany);
@@ -217,9 +217,9 @@ describe('route — withOrigin records where a jump came from', () => {
   });
 
   it("going back to the page the origin came from reuses that page's own origin (no loop)", () => {
-    const onCompany = withOrigin(company, at('#/apply/A?from=%2Ffind'));
+    const onCompany = withOrigin(company, at('#/apply/A?from=%2Freview'));
     expect(buildHash(withOrigin({ tab: 'apply', jobId: 'A' }, onCompany))).toBe(
-      '#/apply/A?from=%2Ffind',
+      '#/apply/A?from=%2Freview',
     );
     const plain = withOrigin(company, at('#/apply/A'));
     expect(buildHash(withOrigin({ tab: 'apply', jobId: 'A' }, plain))).toBe('#/apply/A');
@@ -350,8 +350,8 @@ describe('route — navigate keeps an origin with its page', () => {
   });
 });
 
-describe('route — old routes redirect in place (simplify Q6, #471: two tabs, Find and Apply)', () => {
-  const find = { tab: 'find', sub: null, pillar: null, jobId: null };
+describe('route — old routes redirect in place (simplify Q6, #471: two tabs, Review and Apply)', () => {
+  const find = { tab: 'review', sub: null, pillar: null, jobId: null };
   it.each([
     ['#/discover', find],
     ['#/discover/live?from=%2Ftoday', find],
@@ -364,7 +364,11 @@ describe('route — old routes redirect in place (simplify Q6, #471: two tabs, F
       '#/queue/k3x9a1?from=%2Ftoday',
       { tab: 'apply', sub: null, pillar: null, jobId: 'k3x9a1', from: '/today' },
     ],
-    ['#/find', null],
+    // Find was renamed Review (2026-11-13): its old slug and postings redirect, the posting kept.
+    ['#/find', find],
+    ['#/find/abc%3A%3Ad', { ...find, sub: 'abc%3A%3Ad' }],
+    ['#/find?documents=', { ...find, documents: '' }],
+    ['#/review', null],
     ['#/apply', null],
     ['#/apply/k3x9a1', null],
     ['#/company/acme', { tab: 'apply', sub: 'company/acme', pillar: null, jobId: null }],
@@ -379,7 +383,21 @@ describe('route — old routes redirect in place (simplify Q6, #471: two tabs, F
       tab: 'apply',
       jobId: 'k3x9a1',
     });
-    expect(originOf(parseHash('#/apply/A?from=%2Ftoday'))).toMatchObject({ tab: 'find' });
+    expect(originOf(parseHash('#/apply/A?from=%2Ftoday'))).toMatchObject({ tab: 'review' });
+    expect(originOf(parseHash('#/apply/A?from=%2Ffind%2Fp1'))).toMatchObject({
+      tab: 'review',
+      sub: 'p1',
+    });
+  });
+
+  it('an old #/find/<fingerprint> link shows as #/review/<fingerprint>, in place', async () => {
+    window.location.hash = '#/apply';
+    await waitFor(() => expect(getRoute().tab).toBe('apply'));
+    const steps = window.history.length;
+    window.location.hash = '#/find/p1';
+    expect(getRoute()).toMatchObject({ tab: 'review', sub: 'p1' });
+    await waitFor(() => expect(window.location.hash).toBe('#/review/p1'));
+    expect(window.history.length).toBe(steps + 1);
   });
 
   it('a link to an old route reads, and then shows, as its new one, in place', async () => {
@@ -387,24 +405,24 @@ describe('route — old routes redirect in place (simplify Q6, #471: two tabs, F
     await waitFor(() => expect(getRoute().tab).toBe('apply'));
     const steps = window.history.length;
     window.location.hash = '#/discover/live';
-    expect(getRoute()).toMatchObject({ tab: 'find', sub: null });
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
-    // The old hash's entry became Find's: one step, as for any link.
+    expect(getRoute()).toMatchObject({ tab: 'review', sub: null });
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
+    // The old hash's entry became Review's: one step, as for any link.
     expect(window.history.length).toBe(steps + 1);
     window.location.hash = '#/queue/k3x9a1';
     expect(getRoute()).toMatchObject({ tab: 'apply', jobId: 'k3x9a1' });
     await waitFor(() => expect(window.location.hash).toBe('#/apply/k3x9a1'));
     window.location.hash = '#/today';
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
   });
 
   it('navigate and goBackTo never write an old route', async () => {
     navigate({ tab: 'discover', sub: 'ats' });
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
     window.location.hash = '#/other2/terms';
     await waitFor(() => expect(getRoute().tab).toBe('other2'));
     goBackTo(parseHash('#/discover/ats'));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     navigate({ tab: 'queue', sub: 'k3x9a1' });
     expect(window.location.hash).toBe('#/apply/k3x9a1');
   });
@@ -414,13 +432,13 @@ describe('route — Documents and Legal are dialogs over a page (#471 slice 4)',
   const settle = () => new Promise((r) => setTimeout(r, 30));
 
   it.each([
-    ['#/copy-deck', { tab: 'find', documents: '' }],
-    ['#/copy-deck/tpl-cover', { tab: 'find', documents: 'tpl-cover' }],
-    ['#/copy-deck/new/outreach', { tab: 'find', documents: 'new/outreach' }],
+    ['#/copy-deck', { tab: 'review', documents: '' }],
+    ['#/copy-deck/tpl-cover', { tab: 'review', documents: 'tpl-cover' }],
+    ['#/copy-deck/new/outreach', { tab: 'review', documents: 'new/outreach' }],
     ['#/copy-deck/d1?from=%2Fapply%2Fk3', { tab: 'apply', jobId: 'k3', documents: 'd1' }],
     ['#/copy-deck?from=%2Fqueue%2Fk3', { tab: 'apply', jobId: 'k3', documents: '' }],
-    ['#/legal/terms', { tab: 'find', legal: 'terms' }],
-    ['#/legal', { tab: 'find', legal: 'privacy' }],
+    ['#/legal/terms', { tab: 'review', legal: 'terms' }],
+    ['#/legal', { tab: 'review', legal: 'privacy' }],
     ['#/legal/privacy?from=%2Fapply', { tab: 'apply', legal: 'privacy' }],
   ])('an old %s opens the dialog over the page it came from', (hash, want) => {
     expect(redirectOf(parseHash(hash))).toMatchObject(want);
@@ -431,7 +449,7 @@ describe('route — Documents and Legal are dialogs over a page (#471 slice 4)',
       '#/apply/k3?documents=new%2Foutreach',
     );
     expect(parseHash('#/apply/k3?documents=').documents).toBe('');
-    expect(parseHash('#/find?legal=terms').legal).toBe('terms');
+    expect(parseHash('#/review?legal=terms').legal).toBe('terms');
     expect(documentsHash('', parseHash('#/apply/k3?from=%2Ffind'))).toBe(
       '#/apply/k3?from=%2Ffind&documents=',
     );
@@ -455,11 +473,11 @@ describe('route — Documents and Legal are dialogs over a page (#471 slice 4)',
   });
 
   it('a dialog opened by a link (nothing behind it) closes in place', async () => {
-    window.location.hash = '#/find?legal=terms';
+    window.location.hash = '#/review?legal=terms';
     await settle();
     resetHistoryRecord();
     closeDialog();
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
   });
 
   it('another page closes the dialog; the Legal tabs swap in place', async () => {
@@ -471,8 +489,8 @@ describe('route — Documents and Legal are dialogs over a page (#471 slice 4)',
     openLegal('terms', true);
     expect(window.location.hash).toBe('#/apply/dlg2?legal=terms');
     expect(window.history.length).toBe(length);
-    navigate({ tab: 'find', jobId: null });
+    navigate({ tab: 'review', jobId: null });
     await settle();
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
   });
 });

@@ -21,7 +21,7 @@ async function open(page: Page) {
     if (!localStorage.getItem('rjb_documents'))
       localStorage.setItem('rjb_documents', JSON.stringify(d));
   }, DOCS);
-  await page.goto('/#/find?documents=msg-x');
+  await page.goto('/#/review?documents=msg-x');
 }
 const preview = (page: Page) => page.getByRole('region', { name: 'Preview' });
 const stored = (page: Page) =>
@@ -126,7 +126,7 @@ test('Fill for keeps a long job label on one 44px line (390)', async ({ page }) 
 // #552: in the library a message's blanks are a count; the chips are the editor's alone.
 test('the library row counts the blanks; the editor keeps them as chips', async ({ page }) => {
   await open(page);
-  await page.goto('/#/find?documents=');
+  await page.goto('/#/review?documents=');
   const row = page
     .getByRole('region', { name: 'Messages' })
     .getByRole('listitem', { name: 'Note' });

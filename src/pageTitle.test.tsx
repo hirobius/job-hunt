@@ -52,8 +52,8 @@ describe('pageTitle', () => {
 
 describe('each route sets the document title', () => {
   it.each<[string, () => string, string]>([
-    ['Find (home)', () => '', 'Find'],
-    ['an old Companies link (Find now)', () => '#/discover', 'Find'],
+    ['Find (home)', () => '', 'Review'],
+    ['an old Companies link (Find now)', () => '#/discover', 'Review'],
     ['the Apply tab', () => '#/apply', 'Apply'],
     ['a job page', () => `#/apply/${jobIdOf(URL_A)}`, 'Acme Welder'],
     ['an old job link (#471)', () => `#/queue/${jobIdOf(URL_A)}`, 'Acme Welder'],

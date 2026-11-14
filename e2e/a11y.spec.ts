@@ -10,12 +10,12 @@ const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [1440, 390] as const;
 // Hash routes reached once a track and the sample pipeline exist. The job page is added below.
 const ROUTES = [
-  '#/find',
+  '#/review',
   '#/apply',
-  '#/find?documents=',
-  '#/find?documents=tpl-outreach',
-  '#/find?legal=privacy',
-  '#/find?legal=terms',
+  '#/review?documents=',
+  '#/review?documents=tpl-outreach',
+  '#/review?legal=privacy',
+  '#/review?legal=terms',
   // A Company's page (#230), named by a sample job's company.
   '#/apply/company/larkspur-analytics',
   // An unknown route's Page not found.
@@ -26,11 +26,11 @@ async function seed(page: Page) {
   await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
-  await go(page, '#/find?documents=');
+  await go(page, '#/review?documents=');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/find');
+  await go(page, '#/review');
   await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
 }
 
@@ -132,11 +132,6 @@ test.describe('phone sweep', () => {
             const iconOnly = !(el.textContent || '').trim();
             // HDS's own clear-input button is 30px wide (hds#750).
             if (el.getAttribute('aria-label') === 'Clear input') return;
-            // A small key whose ::after carries the 44px hit area (.rjb-hit-44, Find's Review row).
-            if (el.classList.contains('rjb-hit-44')) {
-              const after = getComputedStyle(el, '::after');
-              if (parseFloat(after.width) >= 43.5 && parseFloat(after.height) >= 43.5) return;
-            }
             // 44px on a phone (retro quick wins, 2026-11-08; WCAG 2.5.5 / HDS touch size).
             if (r.height < 43.5 || (iconOnly && r.width < 43.5))
               out.small.push(`${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);

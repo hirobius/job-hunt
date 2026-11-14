@@ -1,6 +1,6 @@
 // The final shell (simplify 2/9 #383 + amendment 2, Q6; #471): two top tabs, Find and Apply. Find,
 // top to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"),
-// Review new as the Browse list (a title selects the posting: #/find/<fingerprint>); the found
+// Review new as the Browse list (a title selects the posting: #/review/<fingerprint>); the found
 // companies are the Companies dialog's Found list (#618). At lg the selected posting is the right
 // column (the first posting when the tab opens, #546); below lg its own view with Back and a pager. Follow up and Apply moved to
 // the Apply tab (#471 slice 3). Tested at the route seam through App and driven by role + name.
@@ -93,11 +93,11 @@ afterEach(() => {
 describe('the shell: Today and Jobs', () => {
   it('an empty hash lands on Today; the only tabs are Today and Jobs', async () => {
     renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
-    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
-    expect(topTabs().map((t) => t.textContent)).toEqual(['Find', 'Apply']);
-    expect(currentTab('Find')).toBeInTheDocument();
-    expect(document.title).toMatch(/^Find/);
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
+    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
+    expect(topTabs().map((t) => t.textContent)).toEqual(['Review', 'Apply']);
+    expect(currentTab('Review')).toBeInTheDocument();
+    expect(document.title).toMatch(/^Review/);
   });
 
   it.each(['#/discover', '#/discover/live', '#/discover/teams?pillar=x', '#/apprenticeships'])(
@@ -106,15 +106,15 @@ describe('the shell: Today and Jobs', () => {
       window.location.hash = hash;
       const before = window.history.length;
       renderApp();
-      await waitFor(() => expect(window.location.hash).toBe('#/find'));
-      expect(currentTab('Find')).toBeInTheDocument();
+      await waitFor(() => expect(window.location.hash).toBe('#/review'));
+      expect(currentTab('Review')).toBeInTheDocument();
       expect(window.history.length).toBe(before);
     },
   );
 
   it('Find shows Review new only (found companies are in the Companies dialog, #618); Follow up and Apply are on Apply', async () => {
     seedFound();
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
     const names = within(screen.getByRole('main'))
@@ -128,14 +128,14 @@ describe('the shell: Today and Jobs', () => {
   it('a first run opens on Today with the design-systems profile, no setup screen', async () => {
     replaceProfiles([]);
     renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(await screen.findByRole('region', { name: /^New postings$/ })).toBeInTheDocument();
     expect(screen.queryByText('Set up your search')).toBeNull();
   });
 
   it('the Jobs tab opens the Pipeline, unchanged inside', async () => {
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     await userEvent.click(topTab('Apply'));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
@@ -149,10 +149,10 @@ describe('the auto-scan', () => {
   it('signed out: Scan now is in the header’s More menu, and one caption, no status text', async () => {
     const user = userEvent.setup();
     seedScan({ finishedAt: Date.now() - 2 * 3600_000, newCount: 4, sourceCount: 9, found: [] });
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     const review = await screen.findByRole('region', { name: /^New postings$/ });
-    await within(review).findByRole('button', { name: /^View: / });
+    await within(review).findByRole('list', { name: 'New postings' });
     expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
     // No date line, no caption and no More (#694): when the sources were scanned is Scan details',
     // and no count (the chip has it). Scan now and Search profile are the Account menu's.
@@ -181,7 +181,7 @@ describe('Review new on Today', () => {
         post('hn:3', 'Backend Engineer', 'Gamma'),
       ]),
     );
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     const ul = await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
     const titles = within(ul)
@@ -191,7 +191,7 @@ describe('Review new on Today', () => {
   });
 
   it('below lg there is no posting page: the title is the link out to the posting', async () => {
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     const ul = await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
     const card = within(ul)
@@ -203,14 +203,14 @@ describe('Review new on Today', () => {
     expect(link).toHaveAttribute('href', 'https://news.ycombinator.com/item?id=hn2');
     expect(link).toHaveAttribute('target', '_blank');
     expect(within(card).queryByRole('button', { name: /description/ })).toBeNull();
-    expect(window.location.hash).toBe('#/find');
-    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/review');
+    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
   });
 
   it('at lg the tab opens on the first posting (#546); a pick shows beside the list, in place', async () => {
     viewport(1280);
     const user = userEvent.setup();
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     const steps = window.history.length;
     renderApp();
     const ul = await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
@@ -219,7 +219,7 @@ describe('Review new on Today', () => {
     const first = within(ul).getAllByRole('heading', { level: 3 })[0].textContent!;
     expect(await screen.findByRole('heading', { level: 1, name: first })).toBeInTheDocument();
     expect(screen.queryByText('Pick a posting')).toBeNull();
-    expect(window.location.hash).toMatch(/^#\/find\/./);
+    expect(window.location.hash).toMatch(/^#\/review\/./);
     expect(window.history.length).toBe(steps);
     await user.click(within(ul).getByRole('link', { name: 'Design Systems Engineer' }));
     expect(
@@ -234,7 +234,7 @@ describe('Review new on Today', () => {
 
   it('at lg the first posting waits while a dialog is open over Find (#546)', async () => {
     viewport(1280);
-    window.location.hash = '#/find?documents=';
+    window.location.hash = '#/review?documents=';
     renderApp();
     expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
     // The list has loaded behind the modal dialog (hidden from the accessibility tree there).
@@ -245,14 +245,14 @@ describe('Review new on Today', () => {
     );
     // Selecting would be a new page, and a new page closes the dialog: it waits.
     await new Promise((r) => setTimeout(r, 300));
-    expect(window.location.hash).toBe('#/find?documents=');
+    expect(window.location.hash).toBe('#/review?documents=');
     expect(screen.getByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
   });
 
   it('a decision on the selected posting moves on to the next one', async () => {
     viewport(1280);
     const user = userEvent.setup();
-    window.location.hash = '#/find/beta%3A%3Adesign%20systems%20engineer';
+    window.location.hash = '#/review/beta%3A%3Adesign%20systems%20engineer';
     renderApp();
     const detail = (
       await screen.findByRole('heading', { level: 1, name: 'Design Systems Engineer' })
@@ -276,7 +276,7 @@ describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
     addJob('https://acme.example.com/jobs/1', 'Designer');
     markAppliedByUrl('https://acme.example.com/jobs/1');
     updateJob('https://acme.example.com/jobs/1', { applied: ymd(daysAgo(9)), company: 'Acme' });
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
@@ -292,7 +292,7 @@ describe('Found companies: the Companies dialog (#618, Adrian 2026-11-12)', () =
   it('Follow and Ignore each say so with Undo in the dialog; Ignore mutes the company', async () => {
     const user = userEvent.setup();
     seedFound();
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
     await user.click(screen.getByRole('button', { name: 'Account' }));

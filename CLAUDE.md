@@ -42,7 +42,7 @@ the still mark (`brandHtml.ts`); `src/brand/bootFlame.ts`, its own small chunk p
 budget), runs the simulation on those paths until React replaces the splash; reduced motion / no script shows the still
 mark. No flame anywhere repeats: `loopFrames`, the baked frames and the `rjb-boot-frame` CSS are gone
 (`flameEngine.test.ts` fails if a loop comes back). The splash still fades in after a short beat.
-**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Find, #620;
+**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Review, #620;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
 `.rjb-wordmark-l` for the flicker; the og-image keeps a plain run). `wordmark.css` sets them on one baseline, the
@@ -55,7 +55,7 @@ code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
 (`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523; **mass-centred, #556:** the stacked flame moves right by `STACKED_FLAME_NUDGE_EM`, the name's ink offset (`NAME_INK_OFFSET_EM`, measured again in `e2e/brand.spec.ts`) less the flame's mean mass offset (`FLAME_MASS`, measured again over 300 frames in `flameEngine.test.ts`, which fails on a tuning that moves it); the app bar row drops by `INLINE_FLAME_NUDGE_EM` (0.123em, #639; was 0.152em on the x-height centre, which read low, Adrian 2026-11-13) so the flame's mass sits on the word's optical centre, the ink centroid of "roleflame" in Sora 800 (`WORD_INK_CENTRE_EM` 0.031em: the x-height band, the f and l ascenders counting by their area; `X_HEIGHT_CENTRE_EM` 0.06 stays as the lower bound; both measured again in `e2e/brand.spec.ts`), within 0.5px at 19px (`flameEngine.test.ts`); both are transforms, so no box moves). **Sign-in copy (redesign §5.8, #555):** under the wordmark, the benefit: "Sign in to see your jobs on any device." (body, primary), which describes the form step; "We email you a sign-in link. No password needed." is the Email field's HDS `helperText` (caption, secondary, its description; Adrian 2026-11-12) (`account/signInCopy.ts`); Continue with Google / LinkedIn are HDS secondary `shadow="none"` (HDS 0.41 names it `shadow`, not `depth`) so Send link leads; the Account menu's signed-out group is shorter (Adrian's phone test, 2026-11-12): the label "On this device only. Sign in to sync across devices." then the grey key "Sign in" (`SIGN_IN_LABEL`, `SIGN_IN_ITEM`); the top right control is Pause animations with its icon; Continue without an account stays the underlined exit. **One legal line at the foot** (Adrian 2026-11-13, after Tailscale's login page): "By signing in, you agree to <BRAND>’s Terms of use and Privacy policy.", a caption whose two HDS InlineLinks are the page's hash with `?legal=terms|privacy` (`route.legalHash`), so Privacy and terms opens on its tab over the screen and Escape / Back return to it; the screen's only legal links (`SIGN_IN_AGREE`, pinned in `SignInDialog.test.tsx`, `e2e/sign-in.spec.ts`). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: the HDS variable Sora covers 400–700 and the logo keeps its own Sora 800; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
-inline-style literals), and reduced motion holds frame 0. It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
+inline-style literals); reduced motion at load shows the still frame, and **Pause animations (or reduced motion turned on) mid-run freezes it on the frame on screen**, Play going on from there (Adrian 2026-11-13; `useFlame` in `RoleFlame.tsx`). It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** toggle (WCAG 2.2.2;
 `src/motionPref.ts`, `rjb_ui_pause_motion` per device, default = reduced motion; `roleFlameMotion.test.tsx`). The boot splash, icons, og-image and BootHold still use
 flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e2e/brand.spec.ts`.
@@ -108,7 +108,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `priority` field stays in the data, backups and CSV (and still sorts). More's last item is "Remove from Apply"
   ("Removed from Apply: <title>", Undo; focus to the next title). Pinned in `e2e/saved-list.spec.ts`, `e2e/review.spec.ts`.
 - **Action dock (redesign §5.5, #535/#536):** `src/hds-gaps/ActionDock.tsx` (+ `.css`, `fieldFocus.ts`; G1,
-  hds#1432; in the JobPage and Find chunks (the Find Deck, #545), nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
+  hds#1432; in the JobPage chunk, nothing in base.css). Below lg it is a fixed dock portalled to `body` (a
   transformed ancestor would pin it), safe-area inset, hidden and `inert` while a typing field has focus
   (`hds.motion.spatial`; reduced motion = opacity); from lg an inline row under the title block. Keys: filled,
   grey, exit, per state from one table, `src/dockKeys.ts` `dockKeys` (see Keys by state above): to apply with a
@@ -123,6 +123,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   When the keys change under a focused key (a sync from another device), focus goes to the new filled key, or the
   title when none is left. The dock is `position: fixed; bottom: 0` on body and never moves on scroll or overscroll (iOS rubber-band and the home-screen web app raised it half-way up, fix/dock-ios-scroll): `useDockLift` writes `--rjb-dock-lift` on visualViewport resize only, non-zero only while a keyboard is open (`keyboardOpen`) and a field has focus (`dockLift`); `html:has(.rjb-dock)` sets `overscroll-behavior-y: none` (no pull-to-refresh on dock pages only). It reserves one row for one key (`data-rows`) (#593). Pinned in `e2e/dock-ios-scroll.spec.ts` (Chromium iPhone 13 emulation).
   Pinned in `ActionDock.test.tsx`, `dockKeys.test.ts`, `rapidApply.test.tsx`, `jobPage.test.tsx`, `e2e/action-dock.spec.ts`.
+- **Job Notes: a Save key (Adrian 2026-11-13, in place of saving while typing):** `TodosNotes.tsx` `NotesField` saves
+  on its Save key (HDS secondary, on only while there are unsaved changes) and still on blur, tab hide, pagehide and
+  unmount; beside the key a caption `role="status"` (polite) says "Saved to this job" after a save, empty again on the
+  next edit (`notesSave.ts` `NOTES_STATUS`). "From when you saved it: …" shows the older `note` only when Notes does
+  not already hold its text (`olderNoteLine`). Pinned in `notesSave.test.ts`, `jobPage.test.tsx`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
@@ -150,7 +155,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   "Track your first job" (Add job | Try with sample data), the load error (Try again), Documents' "No documents
   yet" (Add starter messages | Start from scratch, grey), Find's "No postings match yet" (`AutoScanViews.tsx` `NoResultsKeys`: signed out Scan now | Edit
   search profile (Scan now is also in the Account menu, #694); signed in Edit search profile alone, filled, as
-  there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Find has one empty state, picked by cause, never by view (#694):** `ReviewView.tsx` `FindEmpty`, the same in List and Deck (`data-empty-cause`): `none` (nothing read or nothing matches; search-x) "No postings match yet" with those keys; `caughtUp` (all saved or skipped; CircleCheck) "You’re all caught up", signed out Scan now alone, signed in Edit search profile filled (`NoResultsKeys caughtUp`); `filtered` (ListFilter) "No postings with these filters", Clear filters filled. After the Deck's last decision focus still goes to Find's h1. **Done:**
+  there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Find has one empty state, picked by cause, never by view (#694):** `ReviewView.tsx` `FindEmpty` (`data-empty-cause`): `none` (nothing read or nothing matches; search-x) "No postings match yet" with those keys; `caughtUp` (all saved or skipped; CircleCheck) "You’re all caught up", signed out Scan now alone, signed in Edit search profile filled (`NoResultsKeys caughtUp`); at lg it is the right column and the two columns stay (2026-11-13). Review has no filters since 2026-11-13, so there is no `filtered` cause. **Done:**
   with nothing left to apply to at all (To apply view, no search; Remote only aside) the Apply tab is
   `TrackerView` `DonePage`: the h1, then `ApplyDone.tsx` (the standard `hds-gaps/EmptyState` `centered` icon tile,
   `ListChecks`, no flame since 2026-11-13; "That is the list" (its title, not a heading); `applyDone.ts` `weekLine`: applied
@@ -231,8 +236,19 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
-- **Two screens: Find and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
-  top tabs and no other full page; each is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
+- **Two screens: Review and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
+  top tabs and no other full page. **Find was renamed Review (Adrian 2026-11-13):** the tab, its h1, `document.title`,
+  the logo's name ("roleflame, Review"), routeLabel ("← Review") and the copy that names the tab say Review; the slug
+  is `review` (`route.ts` `FIND_TAB = 'review'`; code identifiers such as `FIND_TAB`, `Today.tsx`, `FindHeader`,
+  `findHash` keep their names), and `redirectOf` sends `#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place
+  (no history step; an old `?from=/find` reads as Review). Where a section below says Find, read Review. The Find
+  box (Add job's "Type a company or title instead") and "Find more jobs" are verbs and keep the word. **Review's
+  count (2026-11-13):** the Review tab shows the postings still to decide, the number the New chip showed until #714 removed it
+  (`scanDetails.newToday`), as a `CountBadge` (99+, the chip's #694 fills; `TopTabCount.tsx`, a lazy chunk), none at 0;
+  Apply has none. Below 400px the pill is hidden visually (`TopTabCount.css`, in its lazy chunk), so the app bar stays one row with no overlapping
+  hit areas; the name keeps the count at every width ("Review 12"; `test/topTabs.ts`, `e2e/routes.ts` `topTab`)
+  (Adrian 2026-11-13 chose this over the wrap). The Review page has no visible title: its h1 is `.sr-only` (`FindHeader.tsx`), so the tab is the one visible "Review". Pinned in `e2e/shell-controls.spec.ts` (320, 375, 390, 414).
+  Each screen is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
   selection is the route; Documents and Privacy and terms are dialogs in the page's URL. **This section is the current
   shell: where an older section below (Job routes, Final shell, Rapid apply, Pipeline panels, Return paths) says
   Pipeline, `#/queue`, Today, Apply mode or a Documents / Legal page, read it as history.** The top tabs are **Find** (slug `find`,
@@ -273,7 +289,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
-- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
+- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Review** (was Find)
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
   tab pages (a job, a posting, a Company) and two dialogs over them (Documents, Privacy and terms; #471 slice 4). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Find.
@@ -383,7 +399,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Back closes the top one, closing one on screen pops it and any over it, a push waits for
   a pop in flight (Sign in picked from the Account menu), a sheet gone while open pops its entry,
   and a navigation or Back from a menu item drops the sheets' entries first. Use template reopens
-  on its message when its Edit message / Write a message editor comes back. **View memory** (`viewMemory.ts` `useRemembered`, in memory per page load, written at once so a row unmounting in the same commit keeps its value): coming back restores what was being done, not only the page. Apply mode's open rows and a half-typed kit field / custom answer (open + draft); Review new (Browse | Deck, sort, filters, pages shown, the open preview, and the read rows, so Back shows them with no new read). A magic link
+  on its message when its Edit message / Write a message editor comes back. **View memory** (`viewMemory.ts` `useRemembered`, in memory per page load, written at once so a row unmounting in the same commit keeps its value): coming back restores what was being done, not only the page. Apply mode's open rows and a half-typed kit field / custom answer (open + draft); Review new (pages shown and the read rows, so Back shows them with no new read). A magic link
   returns to the page the sign-in was asked from (`account/signInReturn.ts`). Pinned in
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
@@ -393,42 +409,48 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
   and a sign-in error land on Today; there is no setup screen (see First run).
-  `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the sr-only h1 "Find" and, in
-  the Deck only, its place at the right of the Find | Apply row (**Find controls, 2026-11-13**, Adrian's approved
-  draft: nothing there in List). **No More menu and no scan line on Find (#694, Adrian 2026-11-13):** Scan now / Stop
-  scan (signed out only) is the Account menu's, beside Search profile; when the sources were last scanned lives only in
-  Scan details (the Search profile dialog); no count on Find since #660 (the New and Remote chips hold the numbers, and
-  Review's polite `role="status"` says "N postings, M new"). The Review row's right side is List | Deck, pinned at its end. **No Sort on Find (Adrian 2026-11-13):** List and
-  Deck are newest first, always (`sortRows(…, 'newest')`; an older remembered `review:sort` is not read; `FindSortMenu`
-  and `SORT_LABEL` are deleted; Apply's Sort went too, 2026-11-13). No hairline between the toolbar and the list or above Find's empty state. The
-  Review row (`.rjb-review-row`, `FindDeck.css`): the chips on the left (New with its count, Remote a plain toggle
-  with no count) take the rest and wrap; the right group (List | Deck) stays pinned at the end; `ReviewView`'s `header` is a function given the new count
-  and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
-  (was "Review new", #615: no count on the heading since #660; labels only)
-  = `ReviewView` itself (`label="New postings" scanStatus`; **no visible heading since 2026-11-12**: an sr-only h2
-  "New postings" (`Panel titleHidden`) and one row, the New / Remote chips on the left (New's count Badge capped at "99+" by `CountBadge.tsx`; its fill is the inverse surface on the resting chip and on-accent with accent text on the selected one, `.rjb-chip-count`, 3:1 against the chip and 4.5:1 text, pinned in `theme.contrast.test.ts`, #694; its name keeps the full count, "New 140"; Remote has no count since 2026-11-13), then pinned at the right List | Deck
-  (`.rjb-segs .rjb-view-segs`, 2026-11-13: one toggle button drawn as the Find | Apply rail on a 2px pad so it is the chips' 32px, two 28px icon pills, the open one the open tab's fill, edge and text colour; its name says the view, #694; in `FindDeck.css`, off base.css; **shown only beside postings, Adrian 2026-11-13:** `showToggle` = some posting listed and no read error, so loading, "Nothing to read yet", an error and every FindEmpty cause (none / caughtUp / filtered, also a Deck emptied by its last decision, whose focus still goes to Find's h1) hide it and it never floats alone; where it shows it never moves; pinned in `review.test.tsx`) (no Sort since 2026-11-13; no More since #694), one line at 375 and 390 (the right group never wraps or moves, the chips wrap; Adrian 2026-11-12: its keys 28-32px to look at, each with its own 44px hit area on `.rjb-hit-44`'s ::after, 6px above and below and 12px on its outer side only (`rjb-hit-start` / `rjb-hit-end`), so no two overlap; the a11y and layout-rules phone sweeps read it, and `e2e/review.spec.ts` forces two-digit counts and hit-tests each area with elementFromPoint, `e2e/hitArea.ts`). Browse
+  `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the sr-only h1 "Find" and
+  nothing else (no page-bar tools since the Deck went, 2026-11-13). **No More menu and no scan line on Find (#694, Adrian
+  2026-11-13):** Scan now / Stop scan (signed out only) is the Account menu's, beside Search profile; when the sources were
+  last scanned lives only in Scan details (the Search profile dialog); Review's polite `role="status"` says "N postings,
+  M new". **No Sort on Find (Adrian 2026-11-13):** newest first, always (`sortRows(…, 'newest')`; an older remembered
+  `review:sort` is not read; Apply's Sort went too, 2026-11-13). `ReviewView`'s `header` is a function given the new
+  count and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
+  = `ReviewView` itself (`label="New postings" scanStatus`; no visible heading since 2026-11-12: an sr-only h2 "New
+  postings" (`Panel titleHidden`)). **List only (Adrian 2026-11-13):** no Deck, no List | Deck switch and **no filter
+  row**: the New / Remote chips and the Remote only control are gone; Review follows the Search profile's work mode only
+  (remote by default; an older remembered `review:filters` / `review:mode` / `review:card` is not read; Apply's Remote only
+  follows the profile too since 2026-11-13). At lg the list starts under the tabs. **Below lg the pager row**
+  (`ReviewView` `pager`, `FindList.css` `.rjb-find-pager`, group "Postings in the list"): "[‹][›] 1 of N" at the left,
+  each arrow an HDS icon-only tertiary sized to a 44px box of its own (`--rjb-touch`), a gap between them, so the hit
+  areas never overlap. The arrows move a **current** posting (local state, `{ fp, at }`, kept mounted by the windowed
+  list) and scroll its card to the top (`scroll-margin-top`); **focus stays on the arrow** (review of #714: so it can be pressed
+  again; at an end the arrow that turns off hands focus to the other), and the step is said once in a polite status
+  ("3 of 40: <title> at <company>"; the visible count is not live, as it follows the scroll); a step past the pages
+  shown shows enough pages first (`showUpTo`, also for ↑ / ↓ at lg), so its card is there to scroll to; **the current
+  posting follows scrolling** (a passive, rAF-throttled scroll listener: the first mounted card whose bottom is past a
+  quarter of the viewport; an arrow's own scroll is ignored for 600 ms), so the count stays true. **At lg** ↑ / ↓ move
+  the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
+  text field, select, menu, listbox or dialog, or a menu / dialog is open. Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
   end, disconnected on unmount; off without IntersectionObserver or under prefers-reduced-data); "Load more (N)" stays as
   the fallback, one card gap below the cards, and the polite status says "Loaded N more". A Browse card shows
   `CompanyLogo` before the company, or "Company not stated" (its More, which would hold only Not this company, is then
   absent), and two lines of the text already held (`BrowseExcerpt`, never fetched, all-caps runs title-cased for display by
   `feed/capsCase.ts`), "Show more" / "Show less" in place (`aria-expanded`) and "Read the full posting" only when open.
-  Was: one panel holding Browse | Deck, two filter chips
-  (**New**, was "New today" (#615): first seen today, the same rule as the card's count; Remote) and the Browse list; at lg a card's title selects the posting) **New companies
+  At lg a card's title selects the posting. **New companies
   left Find (#618, Adrian 2026-11-12):** the scan's found companies (`NewCompanies`, Follow / Ignore with Undo) are
   the Companies dialog's **Found** list. **Two columns (#471 slice 3):** `ReviewView` given a `header` lays
   Find out (**below lg there is no posting page since 2026-11-08:** the card's title is the link out to the posting
   (#544), an old `#/find/<fingerprint>` link scrolls to its card and drops the fingerprint, and after a
   decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, Review) beside
   `PostingDetail` (the job page's template since #546: title block, More with Not this company, Save / Skip / Open
-  posting, then the Description; the first posting when the tab opens, #546); below lg the list is the tab and a
-  selected posting is its own view with "← Find" and "‹ 2 of N ›" ("Postings in the list"). The selection is the
+  posting, then the Description; the first posting when the tab opens, #546); below lg the list is the tab. The selection is the
   route, `#/find/<fingerprint>` (`route.postingOf` / `findHash` / `selectPosting`, URI-escaped): shareable, survives
   a reload. **At lg Browse opens on the first posting (Adrian 2026-11-12, #546, like Apply's first job; in place, an
-  effect in `ReviewView`), a decided posting is never picked again while its card collapses (`deciding`), the Deck
-  keeps no selection (Find's header and its "1 of N" show), and with no posting left the list stands alone (caught
-  up, nothing beside it; Find's new h1 node takes the focus a decision left on body); below lg nothing is selected when the tab opens.** A pick replaces the history entry at lg and pushes below lg (Back
+  effect in `ReviewView`), so the detail is never empty; a decided posting is never picked again while its card
+  collapses (`deciding`); with no posting left **the two columns stay** and `FindEmpty` (caught up, or nothing matches)
+  is the right column (Adrian 2026-11-13), focus going to Find's h1; below lg nothing is selected when the tab opens.** A pick replaces the history entry at lg and pushes below lg (Back
   returns to the list); a decision on the selected posting selects the next one in the list (in place). The
   selected card is `aria-current` (`.rjb-selected`). **Apply and Follow up left Find** (each item shows on one tab
   only): Follow up is on the Apply list; `today.ts` and Resume applying are gone. Followed and Ignored
@@ -463,32 +485,18 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   status line, no sample line; `PipelineView` is `{ filter, remoteOnly? }` and only the view is the person's choice. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 - **Browse is windowed (memory audit 2026-11-13):** `src/useWindowedList.ts` mounts a window of 100 cards
   (`WINDOW_SIZE`, moved in steps of 20) around the viewport; each run of the rest is one `li.rjb-window-spacer`
-  (aria-hidden, height through `--rjb-spacer-h`, `FindDeck.css`) as tall as its cards and gaps. Heights are measured
+  (aria-hidden, height through `--rjb-spacer-h`, `FindList.css`) as tall as its cards and gaps. Heights are measured
   by one ResizeObserver (disconnected on unmount; one stable ref per fingerprint, so a re-render observes nothing again; a height change recomputes the window) and cached by fingerprint for the page load, unmeasured ones at
   the measured mean (240px before any), so the page height and scrollMemory's exact restore hold. The focused card
-  and the selected / linked card never unmount. Each card's `li` carries `aria-setsize` (every posting in the list) and `aria-posinset`, so a screen reader hears the whole count. **Limits:** cards outside the window are not in the Tab order and
+  and the selected / linked / pager-current card never unmount. Each card's `li` carries `aria-setsize` (every posting in the list) and `aria-posinset`, so a screen reader hears the whole count. **Limits:** cards outside the window are not in the Tab order and
   the browser's find-in-page (Ctrl/Cmd+F) does not find them. Auto-load, Load more and the remembered pages shown
   are unchanged. Pinned in `useWindowedList.test.tsx`, `e2e/browse-window.spec.ts` (320 postings at 390: ≤ 121 cards).
-- **Find Deck (#545, #617, redesign §5.2):** the same `PostingCard` as Browse (not compact: the title step; no source or New badge since #557), one at a time (`ReviewView.tsx`
-  `Deck`). Its place is "‹ 1 of 4 ›" at the right of the Find | Apply row, Deck only (2026-11-12, 2026-11-13: `header`'s tools carry `DeckPlace`, `FindHeader`
-  `DeckPager` draws HDS `Pagination variant="compact"` labelled "Postings in the deck", as Apply's pager; arrows off at the
-  ends); a 64px sideways swipe (`src/SwipeArea.tsx`, shared with the Apply job) or the arrow keys on the
-  card step it. Skip (grey), Save (filled) and More (…, Not this company) are an `ActionDock docked={false} row`: in flow
-  under the card at every width, Skip and Save sharing the card's width and More a fixed 44px icon key at the end
-  (`.rjb-deck-more`, `flex: none`; Adrian 2026-11-13: beside the title it shrank as the title wrapped, so the title has
-  the card's width now; Browse cards keep their own action row) (`.rjb-deck`, Adrian 2026-11-13: no fixed dock on Find; Apply keeps its dock); the card collapses as it goes and both toast with Undo.
-  After a decision focus goes to the next card's title (h3), or Find's h1 once the deck is empty (`Deck`'s `decided`
-  mark; the card's elements stay, so `focusNextTitle`'s list-item walk does not apply).
-  The card shows the posting's text at once, all-caps runs title-cased as Browse's (`capsToSentence`; `usePostingText`, `.rjb-deck-excerpt` in `FindDeck.css`: 7 lines, in
-  Find's chunk, not base.css), then "Read the full posting" (HDS InlineLink); no disclosure. The deck walks `listed`
-  newest first (no Sort on Find since 2026-11-13). Pinned in `review.test.tsx`, `e2e/review.spec.ts`,
-  `figmaRules.test.ts`.
 - **The page bar (2026-11-12, a phone recording, #679):** Find / Apply (the `.rjb-segs` nav of links,
   `aria-current`, never a radio group) left the app bar for the **page bar**, the first row of `main`
   (`.rjb-page-bar` in App, `.rjb-main` keeps the 24 page rhythm under it) at top left, where the page title was; the
   app bar is the logo and Account, one row. No visible "Find" / "Apply" title: each page keeps its h1 as
-  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). Only the Deck's "‹ 1 of N ›" goes
-  to the bar's right through `PageBar.tsx` `InPageBar` (no scan line on Find since #694: it is Scan details')
+  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). A page's own tools go
+  to the bar's right through `PageBar.tsx` `InPageBar` (Find has none since the Deck went, 2026-11-13) (no scan line on Find since #694: it is Scan details')
   (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
 - **Flat, steady Disclosure rows + facts one per line (2026-11-12, #679):** `src/hds-gaps/DisclosureRow.tsx` (hds#1508) wraps HDS
@@ -502,7 +510,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   a lazy chunk with a 44px hold (`.rjb-theme-toggle-hold`). `ColorMode.burnToggle(at)` reveals the new theme from the
   tap point (the button's centre from the keyboard): `src/burn/burn.ts` (lazy, `importFresh`) runs a View Transition,
   holds it open and clips the new snapshot to `burnField.ts`'s front (`clip-path: path()`, a thin char band ahead of it).
-  `BURN` is **locked** (Adrian 2026-11-13: 970 ms, cell 6.5, fps 10…; the char band's flat fill is `edgeColor` offtone (old surface darkened) | cobalt (`--primitive-color-blue-500`) | flame (`--primitive-color-cobalt-400`) at `edgeOpacity`; `burnField.test.ts`). **Generative (#690 follow-up):** `BURN.seed` is `null` in the app, so each burn picks a fresh seed (`random01`: `crypto.getRandomValues`, else `Math.random`) and a small variation (`pickVariant`: noise offset and rotation, ±10% on scale and gain, clamped), fixed for that burn (no flicker); a numeric seed (tests, the tuner, a recording) gives the same field every run. No View Transitions,
+  `BURN` is **locked** (Adrian 2026-11-13: 970 ms, cell 6.5, fps 10…; the char band's flat fill is `edgeColor` offtone (old surface darkened) | cobalt (`--primitive-color-blue-500`) | flame (`--primitive-color-cobalt-400`) at `edgeOpacity`; `burnField.test.ts`). **Generative (#690 follow-up):** `BURN.seed` is `null` in the app, so each burn picks a fresh seed (`random01`: `crypto.getRandomValues`, else `Math.random`) and a small variation (`pickVariant`: noise offset and rotation, ±10% on scale and gain, clamped), fixed for that burn (no flicker); a numeric seed (tests, the tuner, a recording) gives the same field every run. **The edge and the reveal share one geometry (#695 follow-up, Adrian's iPhone recording):** the edge layer
+  (`burn.ts` `overlay`) is sized in px from the burn's own `innerWidth` × `innerHeight`, the same w × h as the field and
+  the reveal clip, never `100vw`/`100vh` (on iOS `100vh` is the large viewport, which stretched the edge beside the
+  hole); pinned in `burn/burnGeometry.test.ts`, `e2e/theme-toggle.spec.ts`. No View Transitions,
   reduced motion or Pause animations = an instant swap. Both theme-color metas take the page background on every
   swap (`ColorMode.syncThemeColor`). Save on Find flies the card to the Apply tab, which pulses (`saveFlight.ts`
   `saveRow`); the card burn is off (open choice). The Account sheet shows no focus ring on a row the pointer or a
@@ -528,13 +539,11 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   logo · Find / Apply · Account (the phone's 52px second row is gone; below sm the segments' sides narrow to 6 and the
   row's minimum gap is 4, so it fits at 375 and 390; where it cannot fit, a 320 screen, it wraps the tabs under the logo). Concentric corners (hds#1470): `.rjb-segs` sets
   `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. The tabs
-  show **no counts** (Find controls, 2026-11-13: `TopTabCount.tsx` is deleted; the New chip keeps Find's number and
-  the To apply view chip Apply's; the bar wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
-  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label alone ("Apply"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
+  show **a count on Review only** (see Two screens, Review's count: `TopTabCount.tsx`, `scanDetails.newToday`; Apply has
+  none, the To apply view chip keeps its number; the bar wraps at 320, `e2e/shell-controls.spec.ts`). Review and Apply are equal segments (`.rjb-segs`
+  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label and count ("Review 12"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Review", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
-  a tab tap, which reopens where the tab was left. List / Deck is **one toggle** (#694): one HDS `Button` drawn as the `.rjb-segs` track, both icons (List,
-  Layers) shown, the open one filled; a press anywhere (or Space / Enter) flips it; named "View: List, switch to Deck" /
-  "View: Deck, switch to List", an HDS Tooltip "Switch to …", a 44px hit area over the whole track. Segment pills
+  a tab tap, which reopens where the tab was left. Find has no List / Deck switch since 2026-11-13 (list only). Segment pills
   nest in their track (`--seg-inner-radius` = rail radius less its pad) and draw the ledge as a gradient clipped by
   that radius (never a box shadow: the focus outline stays the one ring). The app bar's theme switch (`ThemeBurnToggle`) draws its icon at 28px, and the Account button
   matches it (the same 44px box and 28px icon, #694) (a base.css gap, registered in `docs/hds-upstream-asks-0.9.md`). Apply's **Remote only** has no control since
@@ -566,10 +575,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   the job page's links) is `PipelinePanel` `ItemList` (`.rjb-items`, a hairline between rows) of `ItemRow` (a plain
   row, never an HDS `Card`); the Apply list's jobs are `JobRowList` NavList rows on one surface (#543).
   **Review new's panel has no surface of its own** (`Panel flat`): its heading, count and metadata declare the group,
-  and its content lines up with the page gutter. So each Browse row and the Deck posting is one standalone soft HDS
+  and its content lines up with the page gutter. So each Browse row is one standalone soft HDS
   `Card` (never `bordered`; the preview dialog shows the same body) in the reference anatomy (#458, Adrian 2026-11-02: `PostingCard`,
-  no source or New badge on a card (#557 cuts; the detail's title block keeps the source, neutral), the title on the `title` step (Deck and the detail; a Browse card is compact, below), company, then **one fact per line** (#616, Adrian
-  2026-11-12; Browse, Deck and the detail): MapPin place ("Location not stated" when none, or when it is only a mode
+  no source or New badge on a card (#557 cuts; the detail's title block keeps the source, neutral), the title on the `title` step (the detail; a Browse card is compact, below), company, then **one fact per line** (#616, Adrian
+  2026-11-12; a list card and the detail): MapPin place ("Location not stated" when none, or when it is only a mode
   word), Briefcase work mode (Remote / Hybrid / On-site, "Remote not stated", else "Work mode not stated"; on its own
   line, **left out when the place already says remote** (Adrian 2026-11-12, reversing #616's "also when the place says
   Remote": `feed/placeRemote.ts` `placeSaysRemote`, `classifyRemote` on the place text, so "Remote (US)" is never
@@ -844,7 +853,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   stated"). Kept per browser: `rjb_autoscan` (last run, lead queue, probed, found companies) and
   `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
-  `AutoScanViews.tsx` and `FindHeader.tsx` (**Adrian 2026-11-08: no status text above Browse / Deck.** Find's short
+  `AutoScanViews.tsx` and `FindHeader.tsx` (**Adrian 2026-11-08: no status text above the list.** Find's short
   header has no caption and no More menu (#694): Scan now / Stop scan is the Account menu's, signed out only (the
   server syncs every 15 minutes signed in); `ScanStatus` is gone). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
   signed out), the sources that didn't answer and the "not shown" counts are **Scan details**, a closed row at the end of
