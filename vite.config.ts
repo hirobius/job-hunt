@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import { applyBrand } from './src/brandHtml.ts';
 import { fontPreloadTag } from './src/fontPreload.ts';
 import { checkBudget } from './src/sizeBudget.ts';
+import { LANDING_META, landingChunks, type BundleChunk } from './src/boot/landingChunks.ts';
 
 const emptyBoards = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
   if (!req.url?.startsWith('/api/boards')) return next();
@@ -47,6 +48,42 @@ export default defineConfig({
                 },
               ]
             : [];
+        },
+      },
+    },
+    // landing-preload: the landing view's chunks download with the entry (src/boot/landingPreload.ts
+    // reads the hash and this meta, and adds modulepreload links), not after it has run.
+    {
+      name: 'landing-preload-chunk',
+      apply: 'build',
+      buildStart() {
+        this.emitFile({ type: 'chunk', id: 'src/boot/landingPreload.ts', name: 'landingPreload' });
+      },
+    },
+    {
+      name: 'landing-preload',
+      apply: 'build',
+      transformIndexHtml: {
+        order: 'post',
+        handler: (_html, ctx) => {
+          const chunks = Object.values(ctx.bundle ?? {}) as BundleChunk[];
+          const script = chunks.find(
+            (c) => c.type === 'chunk' && c.fileName.includes('landingPreload'),
+          );
+          if (!script) return [];
+          return [
+            {
+              tag: 'meta',
+              attrs: { name: LANDING_META, content: JSON.stringify(landingChunks(chunks)) },
+              injectTo: 'head' as const,
+            },
+            // async: it needs nothing from the page but the meta above, which is already parsed.
+            {
+              tag: 'script',
+              attrs: { type: 'module', async: true, src: `/${script.fileName}` },
+              injectTo: 'head' as const,
+            },
+          ];
         },
       },
     },
