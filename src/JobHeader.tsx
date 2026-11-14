@@ -5,17 +5,7 @@
 // every width. Back goes to the page the job was opened from (the Pipeline by default).
 // An Interviewing job's primary is Add interview (opens its dialog, #416); a job with no next
 // step (Offer, Rejected, retired, applied and not yet due) has none, so More stands alone.
-import {
-  Banknote,
-  Bell,
-  CalendarClock,
-  Clock,
-  Copy,
-  ExternalLink,
-  Link2,
-  Link2Off,
-  MapPin,
-} from 'lucide-react';
+import { Banknote, Bell, CalendarClock, Clock, Copy, Link2, Link2Off, MapPin } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Badge, Button, Icon, useAtLeast, useToast } from '@hirobius/design-system';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
@@ -177,9 +167,8 @@ export default function JobHeader({
     switch (id) {
       case 'openApplication':
         return (
-          <Button key={id} asChild variant={variant} size="md">
+          <Button key={id} asChild variant={variant} size="md" external>
             <a href={link} target="_blank" rel="noopener noreferrer">
-              <Icon icon={ExternalLink} />
               Open application
             </a>
           </Button>

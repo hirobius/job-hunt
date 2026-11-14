@@ -158,7 +158,7 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/A job leads with its title/);
     expect(RULES).toMatch(/No fit chips, no Saved chip, no blue/);
     expect(fs.readFileSync('src/DetailHeader.tsx', 'utf8')).toContain(
-      '<FactLines list items={facts} />',
+      '<Card.Facts className="p-0" items={facts} />',
     );
     expect(fs.readFileSync('src/JobHeader.tsx', 'utf8')).toContain('<DetailTitleBlock');
   });
@@ -311,16 +311,15 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/A posting's facts, one per line \(#616\)/);
     expect(CLAUDE).toMatch(/\*\*one fact per line\*\* \(#616/);
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
-    expect(review).toContain('<FactLines');
+    expect(review).toContain('<Card.Facts');
     expect(review).toContain('{ icon: MapPin, label: placeOf(r) }');
     // Left out when the place already says remote (2026-11-12, reversing "once, also then").
     expect(review).toContain('placeSaysRemote(placeOf(r))');
     expect(RULES).toMatch(/work-mode\s+line is left out when the place already says remote/);
-    // Icon on the first text line, never centred on a wrapped fact (2026-11-12).
-    expect(fs.readFileSync('src/hds-gaps/FactLines.css', 'utf8')).toMatch(
-      /align-items: flex-start/,
-    );
-    expect(fs.readFileSync('src/DailyPicks.tsx', 'utf8')).toContain('<FactLines');
+    // Icon on the first text line: HDS Card.Facts' stacked layout (0.43), never `inline` here.
+    expect(review).not.toMatch(/layout="inline"/);
+    expect(fs.readFileSync('src/DailyPicks.tsx', 'utf8')).toContain('<Card.Facts');
+    expect(fs.existsSync('src/hds-gaps/FactLines.tsx')).toBe(false);
   });
 
   it('pins the compact Find card and the short header (#544)', () => {

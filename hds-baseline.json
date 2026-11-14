@@ -27,6 +27,14 @@
     },
     {
       "rule": "gap",
+      "file": "src/hds-gaps/EmptyState.tsx",
+      "match": "stand-in has no hds-gap tag",
+      "count": 1,
+      "issue": "job-hunt#553",
+      "why": "the italic title is fixed upstream (hds#1441, HDS 0.43); the centred teaching variant has no HDS issue yet (to file)"
+    },
+    {
+      "rule": "gap",
       "file": "src/hds-gaps/PageShell.css",
       "match": "stand-in has no hds-gap tag",
       "count": 1,
