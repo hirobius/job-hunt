@@ -5,8 +5,9 @@
 //
 // In the app (App bar, sign-in) it loads lazily (LazyRoleFlameLogo.tsx) behind the still wordmark, so it
 // stays out of the entry chunk. Colours are HDS tokens (base.css `.rjb-rf`, light and dark), the font is
-// the logo's own Sora 800 (HDS's variable Sora covers 400–700), the name is brand.ts. Stops under prefers-reduced-motion,
-// pauses while the tab is hidden; Pause animations and reduced motion stop it (WCAG 2.2.2).
+// the logo's own Sora 800 (HDS's variable Sora covers 400–700), the name is brand.ts. Pause animations and
+// reduced motion stop it (WCAG 2.2.2): the still mark at load, else frozen on the frame on screen
+// (Adrian 2026-11-13); it pauses while the tab is hidden.
 import { CSSProperties, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { BRAND } from '../brand';
 import { MOTION_EVENT, REDUCE, motionPaused } from '../motionPref';
@@ -134,8 +135,11 @@ function useFlame(animated = true, settings: FlameSettings = FLAME) {
     }, 1000 / settings.fps);
     return () => window.clearInterval(id);
   }, [on, visible, next, settings]);
-  // Stopped (reduced motion, Pause animations, or not animated): the still mark, held.
-  return on ? { ...state, running: true } : { frame: still, tick: 0, running: false };
+  // Paused (Pause animations or reduced motion): it freezes on the frame on screen, and Play goes on
+  // from there (Adrian 2026-11-13: never snap back to the still mark). Paused from the start, no
+  // frame has burned yet, so that is the still mark. Not animated at all: the still mark.
+  if (on) return { ...state, running: true };
+  return animated ? { ...state, running: false } : { frame: still, tick: 0, running: false };
 }
 
 type SvgProps = {
