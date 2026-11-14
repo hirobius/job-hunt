@@ -2,7 +2,7 @@
 // top to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"),
 // Review new as the Browse list (a title selects the posting: #/review/<fingerprint>); the found
 // companies are the Companies dialog's Found list (#618). At lg the selected posting is the right
-// column (the first posting when the tab opens, #546); below lg its own view with Back and a pager. Follow up and Apply moved to
+// column (the first posting when the tab opens, #546); below lg the list alone, with no pager (2026-11-14). Follow up and Apply moved to
 // the Apply tab (#471 slice 3). Tested at the route seam through App and driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';

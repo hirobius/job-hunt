@@ -427,16 +427,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   postings" (`Panel titleHidden`)). **List only (Adrian 2026-11-13):** no Deck, no List | Deck switch and **no filter
   row**: the New / Remote chips and the Remote only control are gone; Review follows the Search profile's work mode only
   (remote by default; an older remembered `review:filters` / `review:mode` / `review:card` is not read; Apply's Remote only
-  follows the profile too since 2026-11-13). At lg the list starts under the tabs. **Below lg the pager row**
-  (`ReviewView` `pager`, `FindList.css` `.rjb-find-pager`, group "Postings in the list"): "[‹][›] 1 of N" at the left,
-  each arrow an HDS icon-only tertiary sized to a 44px box of its own (`--rjb-touch`), a gap between them, so the hit
-  areas never overlap. The arrows move a **current** posting (local state, `{ fp, at }`, kept mounted by the windowed
-  list) and scroll its card to the top (`scroll-margin-top`); **focus stays on the arrow** (review of #714: so it can be pressed
-  again; at an end the arrow that turns off hands focus to the other), and the step is said once in a polite status
-  ("3 of 40: <title> at <company>"; the visible count is not live, as it follows the scroll); a step past the pages
-  shown shows enough pages first (`showUpTo`, also for ↑ / ↓ at lg), so its card is there to scroll to; **the current
-  posting follows scrolling** (a passive, rAF-throttled scroll listener: the first mounted card whose bottom is past a
-  quarter of the viewport; an arrow's own scroll is ignored for 600 ms), so the count stays true. **At lg** ↑ / ↓ move
+  follows the profile too since 2026-11-13). At lg the list starts under the tabs. **No pager below lg (Adrian 2026-11-14):** the "[‹][›] 1 of N" row of #714 is gone; in a list that
+  scrolls, its arrows only jumped the page (`FindList.css` keeps only the window spacer). A step past the pages
+  shown by ↑ / ↓ at lg shows enough pages first (`showUpTo`), so its card is there to scroll to. **At lg** ↑ / ↓ move
   the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
   text field, select, menu, listbox or dialog, or a menu / dialog is open. Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
@@ -495,7 +488,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (aria-hidden, height through `--rjb-spacer-h`, `FindList.css`) as tall as its cards and gaps. Heights are measured
   by one ResizeObserver (disconnected on unmount; one stable ref per fingerprint, so a re-render observes nothing again; a height change recomputes the window) and cached by fingerprint for the page load, unmeasured ones at
   the measured mean (240px before any), so the page height and scrollMemory's exact restore hold. The focused card
-  and the selected / linked / pager-current card never unmount. Each card's `li` carries `aria-setsize` (every posting in the list) and `aria-posinset`, so a screen reader hears the whole count. **Limits:** cards outside the window are not in the Tab order and
+  and the selected / linked card never unmount. Each card's `li` carries `aria-setsize` (every posting in the list) and `aria-posinset`, so a screen reader hears the whole count. **Limits:** cards outside the window are not in the Tab order and
   the browser's find-in-page (Ctrl/Cmd+F) does not find them. Auto-load, Load more and the remembered pages shown
   are unchanged. Pinned in `useWindowedList.test.tsx`, `e2e/browse-window.spec.ts` (320 postings at 390: ≤ 121 cards).
 - **The page bar (2026-11-12, a phone recording, #679):** Find / Apply (the `.rjb-segs` nav of links,
