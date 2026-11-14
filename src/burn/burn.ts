@@ -12,13 +12,21 @@ export type Pt = { x: number; y: number };
 
 const NS = 'http://www.w3.org/2000/svg';
 
-/** The char band over the page, in `tone` (the old page colour), darkened. */
-function overlay(w: number, h: number, tone: string) {
+/** The char band over the page, in `tone` (the old page colour), darkened. Sized in px from the
+ *  same w × h as the burn field and the reveal clip, so one user unit is one CSS px of the
+ *  viewport: the edge sits exactly on the hole's boundary. (It was 100vw × 100vh with a stretched
+ *  viewBox; on iOS Safari 100vh is the large viewport, taller than innerHeight, so the edge drew
+ *  scaled down the page, beside the hole: #695 follow-up, Adrian's iPhone recording.) */
+export function overlay(w: number, h: number, tone: string) {
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'rjb-burn-rim');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('width', String(w));
+  svg.setAttribute('height', String(h));
+  // The same w × h in CSS (burn.css multiplies them out), so no stylesheet rule can resize it.
+  svg.style.setProperty('--rjb-burn-w', String(w));
+  svg.style.setProperty('--rjb-burn-h', String(h));
   svg.style.setProperty('--rjb-burn-tone', tone);
   svg.style.setProperty('--rjb-burn-char', String(BURN.edgeOpacity));
   svg.dataset.edge = BURN.edgeColor;
