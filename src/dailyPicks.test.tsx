@@ -72,14 +72,14 @@ describe('Daily picks', () => {
         .getAttribute('href'),
     ).toBe('https://onwardsearch.com/jobs/1');
     expect(within(a).getByText('Contract')).toBeTruthy();
-    // One fact per line (#616; 2026-11-12): pay, then the posted day, each its own line.
-    expect(within(a).getByText('$75–$90/hr').closest('.rjb-fact')).toBeTruthy();
-    expect(within(a).getByText('Posted date not found').closest('.rjb-fact')).toBeTruthy();
+    // One fact per line (#616; HDS Card.Facts, stacked since 0.43): pay, then the posted day.
+    expect(within(a).getByText('$75–$90/hr').closest('li')).toBeTruthy();
+    expect(within(a).getByText('Posted date not found').closest('li')).toBeTruthy();
     expect(within(a).getByText('Best pay found, remote US-only contract.')).toBeTruthy();
     const b = row('Design Systems Engineer at ClickHouse');
     expect(within(b).getByText('Employee')).toBeTruthy();
-    expect(within(b).getByText('Pay not found').closest('.rjb-fact')).toBeTruthy();
-    expect(within(b).getByText('Posted Nov 3').closest('.rjb-fact')).toBeTruthy();
+    expect(within(b).getByText('Pay not found').closest('li')).toBeTruthy();
+    expect(within(b).getByText('Posted Nov 3').closest('li')).toBeTruthy();
   });
 
   it('opens the draft note and copies it', async () => {
