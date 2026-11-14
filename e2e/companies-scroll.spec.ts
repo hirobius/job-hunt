@@ -24,7 +24,7 @@ for (const [width, height] of [
         ),
       );
     }, names);
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     await page.getByRole('button', { name: 'Account' }).click();
     await page.getByRole('menuitem', { name: 'Companies' }).click();
     const dialog = page.getByRole('dialog', { name: 'Companies' });

@@ -13,11 +13,11 @@ async function seed(page: Page) {
   await page.goto('/#/apply');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
-  await go(page, '#/find?documents=');
+  await go(page, '#/review?documents=');
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/find');
+  await go(page, '#/review');
   await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
 }
 
@@ -110,7 +110,7 @@ for (const theme of ['light', 'dark'] as const) {
         await page.keyboard.press('Escape');
         await expect(page.getByRole('dialog')).toBeHidden();
 
-        await go(page, '#/find?documents=');
+        await go(page, '#/review?documents=');
         // A row expands in place (rev-3 M): axe it open, then Open goes to the editor.
         await page.getByRole('button', { name: 'Follow-up after applying' }).click();
         await page.waitForTimeout(300);
@@ -245,7 +245,7 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
     ['button', /^View: /],
     ['button', /^View: /],
     ['link', 'Apply'],
-    ['link', 'Find'],
+    ['link', 'Review'],
     // Scan now is in the Account menu (#694): a menu moves focus into itself, so it is not in
     // this list.
   ] as const) {
@@ -385,12 +385,12 @@ for (const width of [390, 1440] as const) {
       // Opened by a link, it has no opener: closing hands focus to the page's heading.
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
-      await expect.poll(() => focused(page)).toBe('H1 Find');
+      await expect.poll(() => focused(page)).toBe('H1 Review');
       // A top tab keeps focus on the tab (it is still there).
-      await topTab(page, 'Find').focus();
+      await topTab(page, 'Review').focus();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/#\/find$/);
-      await expect.poll(() => focused(page)).toBe('A Find');
+      await expect(page).toHaveURL(/#\/review$/);
+      await expect.poll(() => focused(page)).toBe('A Review');
     });
 
     // #345: the pressed control leaves with what it changed (the empty state, the banner).

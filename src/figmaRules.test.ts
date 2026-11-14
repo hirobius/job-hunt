@@ -97,9 +97,9 @@ describe('FIGMA-RULES.md', () => {
 
   it('names the two screens as CLAUDE.md does', () => {
     // The top tabs, as CLAUDE.md states them (#471, #475).
-    expect(CLAUDE).toMatch(/Two screens: Find and Apply/);
-    expect(CLAUDE).toMatch(/two top tabs, \*\*Find\*\*[\s\S]{0,200}?\*\*Apply\*\*/);
-    expect(RULES).toMatch(/\*\*Two screens: Find and Apply\*\*/);
+    expect(CLAUDE).toMatch(/Two screens: Review and Apply/);
+    expect(CLAUDE).toMatch(/two top tabs, \*\*Review\*\*[\s\S]{0,200}?\*\*Apply\*\*/);
+    expect(RULES).toMatch(/\*\*Two screens: Review and Apply\*\*/);
     // The old names are gone from the rules (they stay in CLAUDE.md only as history).
     expect(RULES).not.toMatch(/\*\*Today\*\*|\*\*Jobs\*\*|page head "Pipeline"/);
     // CLAUDE.md keeps "Today · Jobs" only in the one history note that says it was renamed.
@@ -171,7 +171,7 @@ describe('FIGMA-RULES.md', () => {
       expect(src).toContain('<DetailHeader');
       expect(src).toContain('<DetailTitleBlock');
     }
-    expect(RULES).toContain('Find at 1440\n  opens with the first posting selected');
+    expect(RULES).toContain('Review at 1440\n  opens with the first posting selected');
     // At lg a Find list card carries no keys: the detail column has them.
     expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('keys={!onOpen}');
   });
@@ -188,7 +188,7 @@ describe('FIGMA-RULES.md', () => {
   });
 
   it('pins the Find Deck (#545, #617): keys under the card, "‹ 1 of N ›" in the page bar, More in the key row', () => {
-    expect(RULES).toMatch(/Find Deck \(#545, #617\)/);
+    expect(RULES).toMatch(/Review Deck \(#545, #617\)/);
     expect(RULES).toMatch(
       /Skip \(grey, left\) and Save \(filled,\s+right\) sit in one row right under the card, in flow/,
     );
@@ -214,14 +214,14 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/No visible "Review" heading \(2026-11-12\)/);
     // No Sort on Find (Adrian 2026-11-13): newest first, always.
     expect(fs.existsSync('src/FindSortMenu.tsx')).toBe(false);
-    expect(RULES).toMatch(/No Sort on Find \(2026-11-13\)/);
+    expect(RULES).toMatch(/No Sort on Review \(2026-11-13\)/);
     expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Menu.RadioGroup');
     expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('titleHidden');
   });
 
-  it('pins the top tabs: no counts, equal segments (2026-11-13)', () => {
-    expect(RULES).toMatch(/The tabs show no counts/);
-    expect(fs.existsSync('src/TopTabCount.tsx')).toBe(false);
+  it("pins the top tabs: Review's count, equal segments (2026-11-13)", () => {
+    expect(RULES).toMatch(/The Review tab shows its count of postings still to decide/);
+    expect(fs.readFileSync('src/TopTabCount.tsx', 'utf8')).toContain('<CountBadge');
     expect(fs.readFileSync('src/CountBadge.tsx', 'utf8')).toContain(
       '<Badge count={count} max={COUNT_MAX}',
     );
@@ -262,7 +262,7 @@ describe('FIGMA-RULES.md', () => {
   });
 
   it('pins found companies in the Companies dialog, not on Find (#618)', () => {
-    expect(RULES).toContain('under **Found** (Follow / Ignore), never on Find');
+    expect(RULES).toContain('under **Found** (Follow / Ignore), never on Review');
     expect(CLAUDE).toContain('New companies\n  left Find (#618');
     expect(fs.readFileSync('src/Today.tsx', 'utf8')).not.toContain('NewCompanies');
     expect(fs.readFileSync('src/CompaniesDialog.tsx', 'utf8')).toContain('<NewCompanies />');
@@ -330,8 +330,8 @@ describe('FIGMA-RULES.md', () => {
   });
 
   it('pins the compact Find card and the short header (#544)', () => {
-    expect(RULES).toMatch(/\*\*The compact Find card \(#544\)\.\*\*/);
-    expect(RULES).toMatch(/\*\*Find's short header \(#544\)\.\*\*/);
+    expect(RULES).toMatch(/\*\*The compact Review card \(#544\)\.\*\*/);
+    expect(RULES).toMatch(/\*\*Review's short header \(#544\)\.\*\*/);
     expect(CLAUDE).toMatch(/A Browse card is compact \(#544/);
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
     expect(review).toContain('lineClamp={3}');

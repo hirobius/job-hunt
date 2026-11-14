@@ -53,7 +53,7 @@ async function feed(page: Page) {
 test('the detail shows the whole description, structured, no ellipsis (1440)', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await feed(page);
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   await expect(page.getByRole('button', { name: /^View: / })).toBeVisible({ timeout: 30_000 });
   await accountMenuItem(page, 'Scan now');
   await expect(

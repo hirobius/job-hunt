@@ -34,7 +34,7 @@ async function inkOffsets(page: Page, selector: string) {
 
 for (const width of [390, 1440]) {
   for (const scheme of ['light', 'dark'] as const) {
-    test(`Find / Apply labels are ink-centred at ${width}, ${scheme}`, async ({ page }) => {
+    test(`Review / Apply labels are ink-centred at ${width}, ${scheme}`, async ({ page }) => {
       await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
       await page.emulateMedia({ colorScheme: scheme });
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());

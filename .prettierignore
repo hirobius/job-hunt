@@ -8,3 +8,7 @@ src/theme/hds-palette.generated.ts
 
 # live captures kept byte for byte
 src/tracks/feeds/fixtures/
+
+# generated data and recorded answers, kept as written
+src/feed/data/
+src/tracks/fixtures/

@@ -83,8 +83,8 @@ describe('job route (#127)', () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/apply/${jobIdOf(URL_A)}?from=%2Ffind`;
     renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: /Back to Find/ }));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await userEvent.click(await screen.findByRole('button', { name: /Back to Review/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     cleanup();
     window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     renderApp();
@@ -128,8 +128,8 @@ describe('job route (#127)', () => {
     window.location.hash = `#/apply/${jobIdOf(URL_A)}`;
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Design Engineer' });
-    await userEvent.click(topTab('Find'));
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await userEvent.click(topTab('Review'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     await userEvent.click(topTab('Apply'));
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),

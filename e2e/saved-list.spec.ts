@@ -14,7 +14,10 @@ for (const width of [390, 1440]) {
       const h1 = page.getByRole('heading', { level: 1 });
       const title = (await h1.textContent())!.trim();
       await expect(page.getByRole('button', { name: /^Star(red)?$/ })).toHaveCount(0);
-      await page.getByRole('button', { name: `More actions: ${title}` }).first().click();
+      await page
+        .getByRole('button', { name: `More actions: ${title}` })
+        .first()
+        .click();
       const menu = page.getByRole('menu');
       await expect(menu.getByRole('menuitem', { name: /Star/ })).toHaveCount(0);
       await menu.getByRole('menuitem', { name: 'Remove from Apply' }).click();

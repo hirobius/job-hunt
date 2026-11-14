@@ -327,9 +327,7 @@ describe('row words', () => {
     expect(payLabel({ salaryMin: 95000, salaryMax: 120000, currency: 'EUR' })).toBe(
       '€95k to €120k',
     );
-    expect(payLabel({ salaryMin: 70000, salaryMax: 85000, currency: 'gbp' })).toBe(
-      '£70k to £85k',
-    );
+    expect(payLabel({ salaryMin: 70000, salaryMax: 85000, currency: 'gbp' })).toBe('£70k to £85k');
     expect(payLabel({ salaryMax: 150000, currency: 'CAD' })).toBe('CAD 150k');
     expect(payLabel({})).toBe('');
   });

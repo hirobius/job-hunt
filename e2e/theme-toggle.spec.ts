@@ -16,7 +16,7 @@ const metas = (page: Page) =>
 
 async function open(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   const toggle = page
     .getByRole('banner')
     .getByRole('button', { name: /^Switch to (dark|light) theme$/ });
