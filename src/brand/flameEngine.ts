@@ -580,7 +580,8 @@ export function endlessFrames(S: FlameSettings, seed: number): () => FlameFrame 
  *  moving flame is the live simulation. */
 export const STILL_SEED = 21;
 
-/** The static mark: the first frame of the STILL_SEED fire. flame.svg holds it (`npm run icons`). */
+/** The STILL_SEED fire's first frame: the tuner's still for custom settings. The app's still mark is
+ *  flame.svg, drawn by hand since 2026-11-14 (R5); it is not this frame. */
 export function stillFrame(S: FlameSettings = FLAME): FlameFrame {
   return endlessFrames(S, STILL_SEED)();
 }
@@ -591,7 +592,7 @@ export function logoViewBox(S: FlameSettings = FLAME): string {
   return `${S.cx - 47} 0 94 146`;
 }
 
-/** The still frame's outer layer box, padded a unit and rounded out: flame.svg's viewBox. */
+/** The still frame's outer layer box, padded a unit and rounded out. */
 export function flameViewBox(S: FlameSettings = FLAME): [number, number, number, number] {
   const n = (stillFrame(S)[0].match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
   const xs = n.filter((_, i) => i % 2 === 0);
@@ -599,24 +600,4 @@ export function flameViewBox(S: FlameSettings = FLAME): [number, number, number,
   const x = Math.floor(Math.min(...xs)) - 1;
   const y = Math.floor(Math.min(...ys)) - 1;
   return [x, y, Math.ceil(Math.max(...xs)) + 1 - x, Math.ceil(Math.max(...ys)) + 1 - y];
-}
-
-/** flame.svg's text: the still frame's three layers, one over the other (each its own heat field,
- *  so none is clipped to another), filled with the given colours (HDS primitives: `npm run icons`
- *  reads them from variables.css). The classes let the app recolour each layer (base.css) and let
- *  flameMotion find the layers it animates. */
-export function flameSvgFile(fills: [string, string, string], S: FlameSettings = FLAME): string {
-  const d = stillFrame(S);
-  return (
-    '<!-- The flame: the one source of the logo, the still frame of src/brand/flameEngine.ts.\n' +
-    '     Written by `npm run icons`; change the engine or its settings, run it, commit. -->\n' +
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${flameViewBox(S).join(' ')}">\n` +
-    d
-      .map(
-        (p, i) =>
-          `  <path class="flame-${i + 1}" fill="${fills[i]}" fill-rule="evenodd" d="${p}"/>\n`,
-      )
-      .join('') +
-    '</svg>\n'
-  );
 }

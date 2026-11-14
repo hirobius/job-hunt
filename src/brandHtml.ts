@@ -1,10 +1,9 @@
 // Fills index.html's %BRAND_*% placeholders from brand.ts at build/dev time (the `brand-html`
 // plugin in vite.config.ts). Pure but for reading the flame, so the test can check index.html
-// without a build. %BRAND_FLAME% is the boot splash's mark: the flame's still frame, which
-// brand/bootFlame.ts then sets burning.
+// without a build. %BRAND_FLAME% is the boot splash's mark: flame.svg, the hand-drawn still mark
+// (R5, 2026-11-14), which brand/bootFlame.ts then sets burning.
 import { readFileSync } from 'node:fs';
 import { BRAND } from './brand.ts';
-import { flameViewBox, stillFrame } from './brand/flameEngine.ts';
 
 const escapeAttr = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -17,10 +16,14 @@ export function bootFlame(svg = readFileSync('src/brand/flame.svg', 'utf8')): st
   const fills = [1, 2, 3].map(
     (n) => new RegExp(`class="flame-${n}" fill="([^"]+)"`).exec(svg)?.[1] ?? 'currentColor',
   );
+  const paths = [1, 2, 3].map(
+    (n) => new RegExp(`class="flame-${n}"[^>]*\\sd="([^"]*)"`).exec(svg)?.[1] ?? '',
+  );
+  const viewBox = /viewBox="([^"]+)"/.exec(svg)?.[1] ?? '';
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${flameViewBox().join(' ')}" height="60" ` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" height="60" ` +
     'aria-hidden="true" focusable="false">' +
-    stillFrame()
+    paths
       .map(
         (d, i) => `<path class="flame-${i + 1}" fill="${fills[i]}" fill-rule="evenodd" d="${d}"/>`,
       )

@@ -20,6 +20,7 @@ import {
   type FlameSettings,
 } from './flameEngine';
 // Late shell styles ride this chunk: it always loads just after first paint (the app bar's logo).
+import { STILL_MARK } from './flameSvg';
 import '../theme/late.css';
 
 /* eslint-disable react-refresh/only-export-components -- #556: the nudge stays in this file, beside the logo it moves (flameEngine.test.ts reads it). */
@@ -120,7 +121,12 @@ function useFlame(animated = true, settings: FlameSettings = FLAME) {
   const reduced = useMotionPaused();
   const visible = usePageVisible();
   const on = animated && !reduced;
-  const still = useMemo(() => stillFrame(settings), [settings]);
+  // Still (reduced motion, Pause animations): the brand's hand-drawn mark, flame.svg (R5), which sits
+  // in the engine's coordinates; a tuner's own settings still show their own first frame.
+  const still = useMemo(
+    () => (settings === FLAME ? STILL_MARK : stillFrame(settings)),
+    [settings],
+  );
   // One live fire per settings, kept across a pause so a hidden tab resumes where it was.
   const next = useMemo(() => freshEndless(settings), [settings]);
   const ticks = useRef(0);
