@@ -8,8 +8,8 @@ import { LEGAL_TITLES } from './legalRoute';
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
  *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. The legal gaps
  *  revision (2026-11-13: privacy contact, erasure of the sign-in, processors and region, retention)
- *  waits for his review. */
-export const LEGAL_DRAFT = true;
+ *  he approved on 2026-11-14, with the delete_my_data migration applied. */
+export const LEGAL_DRAFT = false;
 export const LEGAL_UPDATED = '13 November 2026';
 export const OPERATOR = 'Hirobius';
 /** The one contact for privacy requests and questions (Adrian 2026-11-13: a public business address). */

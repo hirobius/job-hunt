@@ -902,7 +902,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   redirect to it in place. Menu item "Privacy and terms", last before Sign out. The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
-  false); set it true while a revision is under review. **Legal gaps revision (2026-11-13, `LEGAL_DRAFT` true until Adrian's ship-it):** one contact,
+  false); set it true while a revision is under review. **Legal gaps revision (2026-11-13, approved by Adrian 2026-11-14, `LEGAL_DRAFT` false; migration `20261113100000` applied):** one contact,
   `CONTACT_EMAIL` info@hirobius.com (a public business address) <!-- pii-allow -->, with a Privacy requests line; Supabase and Vercel
   named as processors, Supabase's region `DATA_REGION` (us-east-2, read from the project); retention per kind
   (account until deleted, Recently removed 30 days, crash reports 90, rate-limit hashes 2, Daily picks 60); and
