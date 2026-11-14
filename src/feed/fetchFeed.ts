@@ -419,7 +419,7 @@ export async function fetchFeed(
     onProgress?: (p: FeedProgress) => void;
     /** Read only these sources (by `SourceStatus.key`) — "Retry" on a failed source. */
     only?: string[];
-    /** The profile's inclusion check. With one that reads titles only, a phone reads Greenhouse
+    /** The profile's inclusion check. With one that reads titles only, a browser reads Greenhouse
      *  boards as plain lists and then reads the description of each posting it lets in (lightText.ts),
      *  so what can be listed ranks as a full read does. */
     include?: IncludeRule;
@@ -494,7 +494,7 @@ export async function fetchFeed(
   };
 
   const boards = boardsFromUrls(req.boardUrls, Infinity);
-  // A phone reads a Greenhouse board's plain list (lightBoards.ts) when the inclusion check reads
+  // A browser reads a Greenhouse board's plain list (lightBoards.ts) when the inclusion check reads
   // titles only, then the description of each posting that passes it.
   const include = req.include;
   const light = !!include && lightBoards() && !includeFields(include).text ? include : null;
