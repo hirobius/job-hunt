@@ -897,7 +897,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   redirect to it in place. Menu item "Privacy and terms", last before Sign out. The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
-  false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
+  false); set it true while a revision is under review. **Legal gaps revision (2026-11-13, approved by Adrian 2026-11-14, `LEGAL_DRAFT` false; migration `20261113100000` applied):** one contact,
+  `CONTACT_EMAIL` info@hirobius.com (a public business address) <!-- pii-allow -->, with a Privacy requests line; Supabase and Vercel
+  named as processors, Supabase's region `DATA_REGION` (us-east-2, read from the project); retention per kind
+  (account until deleted, Recently removed 30 days, crash reports 90, rate-limit hashes 2, Daily picks 60); and
+  **Delete my data deletes the sign-in too**: migration `20261113100000_delete_my_data_auth_user.sql` ends
+  `delete_my_data` with `delete from auth.users where id = uid` (after every table; the function's owner, postgres,
+  may delete there), and the client then signs out with `scope: 'local'`. Apply the migration before the policy
+  ships. Pinned in `account/deleteMyData.test.ts`, `account/CloudSyncProvider.test.tsx`, `legal.test.ts`. Back up is the full "download all my data" export: it carries every synced
   store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
   **Crash reports (#47):** `src/errorReport.ts` sends a scrubbed report (kind, message, stack, tab,
   browser; no user id, email, job text, URL query or job id; 5 per page load) to the insert-only

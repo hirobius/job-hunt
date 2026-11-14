@@ -216,14 +216,31 @@ describe('CloudSyncProvider (via the account menu)', () => {
       ];
     // The one call does it all: a per-table delete is never sent.
     fake().failNext('groups', 'delete');
+    const signOut = vi.spyOn(fake().client.auth, 'signOut');
     await chooseDataAction('Delete my data');
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    // The server deleted the auth user and its sessions too: sign out on this device only.
+    await waitFor(() => expect(signOut).toHaveBeenCalledWith({ scope: 'local' }));
     for (const t of ['watched_companies', 'postings', 'skips', 'sync_log'])
       expect(
         fake().tables[t].map((r) => r.user_id),
         t,
       ).toEqual(['u2']);
     expect(screen.queryByText('Delete incomplete')).toBeNull();
+  });
+
+  // Without the function (the per-table fallback) the auth user stays, so sign-out stays global.
+  it('Delete my data without delete_my_data signs out everywhere', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    const signOut = vi.spyOn(fake().client.auth, 'signOut');
+    await chooseDataAction('Delete my data');
+    await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    await waitFor(() => expect(signOut).toHaveBeenCalledWith(undefined));
   });
 
   // A tab's shared session can flip to another tab's account between its check and the call:
