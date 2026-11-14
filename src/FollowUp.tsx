@@ -6,7 +6,7 @@
 // once the follow-up is sent doesn't take the dialog with it.
 import { useBackCloses } from './useBackCloses';
 import { useRef, useState } from 'react';
-import { Copy, ExternalLink, Pencil } from 'lucide-react';
+import { Copy, Pencil } from 'lucide-react';
 import {
   Alert,
   Box,
@@ -235,9 +235,8 @@ function FollowUpContent({ job }: { job: Job }) {
                     Copy again
                   </Button>
                 ) : (
-                  <Button asChild size="md" variant="secondary" style={LINK_AS_BUTTON}>
+                  <Button asChild size="md" variant="secondary" style={LINK_AS_BUTTON} external>
                     <a href={job.url} target="_blank" rel="noopener noreferrer">
-                      <Icon icon={ExternalLink} />
                       Open posting
                     </a>
                   </Button>

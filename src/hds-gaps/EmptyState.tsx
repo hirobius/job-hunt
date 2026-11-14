@@ -1,6 +1,5 @@
-// HDS EmptyState with two gaps closed (docs/hds-upstream-asks-0.9.md):
-//   - HDS 0.30 sets its title in italic (`hds-type-ui italic`). Rev-3 has no italic anywhere, so
-//     every empty state here is `not-italic` (tailwind-merge in HDS's `cn` lets it win).
+// HDS EmptyState with one gap closed (docs/hds-upstream-asks-0.9.md). (The italic title, G10
+// hds#1441, is fixed in HDS 0.43: the title is upright by default, so `not-italic` is gone.)
 //   - HDS's empty state is a left-aligned typographic line with a bare icon. The rev-3 mock's
 //     teaching empty (Pipeline, empty; filtered to nothing) is centred: an icon tile, a bold title,
 //     one sentence and the actions in one centred column. `centered` draws that; `framed` also
@@ -9,8 +8,7 @@
 //     centred, with room above and below, no card.
 //   - HDS's children sit gap-1 (4px) apart, so the actions crowd the sentence; centred empties put
 //     16px more above the actions (rev-3: about 16-20px).
-// Every app empty state imports this one, not HDS's, so the italic can't come back on a new screen.
-// hds-gap: hirobius/hds#1441 (G10: the italic EmptyState title)
+// Every app empty state imports this one, not HDS's.
 import type { ReactNode } from 'react';
 import {
   Box,
@@ -22,8 +20,7 @@ import {
   type EmptyStateProps,
 } from '@hirobius/design-system';
 
-const NOT_ITALIC = 'not-italic';
-const CENTERED = 'not-italic items-center text-center';
+const CENTERED = 'items-center text-center';
 
 export function EmptyState({
   centered = false,
@@ -46,14 +43,7 @@ export function EmptyState({
   onPage?: boolean;
 }) {
   if (!centered && !framed && !onPage)
-    return (
-      <HdsEmptyState
-        {...rest}
-        icon={icon}
-        title={title}
-        className={className ? `${NOT_ITALIC} ${className}` : NOT_ITALIC}
-      />
-    );
+    return <HdsEmptyState {...rest} icon={icon} title={title} className={className} />;
   const body: ReactNode = (
     <Stack gap="xs" align="center">
       {icon && (
