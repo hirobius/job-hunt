@@ -120,7 +120,7 @@ export default defineConfig({
           // @radix-ui/react-* and lucide-react (HDS deps), splitting HDS across chunks
           // and creating a circular-init crash ("createContext of undefined").
           if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react';
-          return 'vendor';
+          return undefined;
         },
       },
     },
