@@ -1,16 +1,17 @@
-// Phones read board lists without descriptions (2026-11-07, the phone profile on #496): a Greenhouse
-// board with `?content=true` is 2-3 MB, and its JSON.parse alone was a long task of ~3 s at 4x CPU
-// throttle. Below lg, Greenhouse boards are read as their plain list (~14x smaller); a posting's
-// text is fetched when it is opened (postingText.ts). Off where matchMedia is missing: the server
+// Browsers read board lists without descriptions (2026-11-07 on phones, the phone profile on #496;
+// every width since the perf pass of 2026-11-14): a Greenhouse board with `?content=true` is 2-10 MB,
+// and its JSON.parse plus the HTML-to-text of every job was a long task of ~3 s at 4x CPU throttle
+// (1.6 s of blocking time on Review at 1350px). Greenhouse boards are read as their plain list (~14x
+// smaller), the postings the title check lets in get their text (lightText.ts), and an opened one
+// reads its whole description anyway (postingBody.ts). Off where matchMedia is missing: the server
 // sync (Deno), the scripts and jsdom tests read full boards as before.
-const PHONE = '(max-width: 1023.98px)';
 
 let forced: boolean | null = null;
 
-/** True when board lists should be read without descriptions (a phone-sized window). */
+/** True when board lists should be read without descriptions (any browser window). */
 export function lightBoards(): boolean {
   if (forced !== null) return forced;
-  return typeof matchMedia === 'function' && matchMedia(PHONE).matches;
+  return typeof matchMedia === 'function';
 }
 
 /** Tests: force light reads on or off (null: follow the window). */

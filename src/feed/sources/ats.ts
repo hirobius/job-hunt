@@ -378,7 +378,7 @@ export async function fetchBoard(
   fetchJson: FetchJson,
   opts: { light?: boolean } = {},
 ): Promise<Posting[]> {
-  // Light: a Greenhouse board's plain list, no descriptions (phones; lightBoards.ts).
+  // Light: a Greenhouse board's plain list, no descriptions (browsers; lightBoards.ts).
   const url = opts.light && b.kind === 'greenhouse' ? greenhouseListUrl(b.slug) : boardApiUrl(b);
   const body = await fetchJson(url);
   const found = boardJobs(b, body);

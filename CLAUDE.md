@@ -807,8 +807,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `matchText.test.ts` holds the rank parity; the table read is the fallback only while the RPC is missing; and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
   only the request's rows (its boards; feeds when it searches a title), with one progress call. No rows yet (a new
   account before its first sync) or a failed read falls back to the browser read, and a company or title added
-  since the last read is read in the browser (the server has not read it yet). **Phones** (`feed/lightBoards.ts`,
-  below lg, only with a titles-only inclusion check): Greenhouse boards are read as the plain list
+  since the last read is read in the browser (the server has not read it yet). **Light board reads** (`feed/lightBoards.ts`,
+  every browser width since the 2026-11-14 perf pass (was below lg), only with a titles-only inclusion check): Greenhouse boards are read as the plain list
   (`greenhouseListUrl`), then each posting the check lets in gets its description from the single-job endpoint
   (`feed/lightText.ts` `fillTexts`, ≤ 25 per board, outside the list read's 15 s timeout with its own deadline: the list is never lost, texts not read in time load on open, and the reads still queued at the deadline are given up through an
   `AbortSignal`, #499), so everything that can be listed ranks exactly as on a full
