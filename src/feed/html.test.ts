@@ -60,11 +60,11 @@ describe('fast paths match the plain replaces', () => {
       return NAMED[e.toLowerCase()] ?? m;
     });
   const refTidy = (s: string) =>
-    s.replace(/[ \t\f\v ]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim();
+    s.replace(/[ \t\f\v\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim();
   const cases = [
     '', 'plain', '&', '&&amp;', '&amp;lt;p&amp;gt;', '&AMP; &Amp; &LT;', '&#0; &#x110000; &#65;&#X41;&#x41;',
     '&nope; &amp &amp;amp;', 'a&b&c;&d&gt;', '&#xZZ; &#; &x41;', '&lt;p&gt;Hi&nbsp;there&lt;/p&gt;',
-    'a  b\t\tc   d\v\fe', ' \n  \n\t x \n', 'x\n\n\n y', ' ', ' a ', '\t', 'a \nb\n c',
+    'a  b\t\tc \u00a0 d\v\fe', ' \n  \n\t x \n', 'x\n\n\n y', '\u00a0', ' a ', '\t', 'a \nb\n c',
   ];
   it('decodeEntities', () => {
     for (const c of cases) expect(decodeEntities(c)).toBe(refDecode(c));
