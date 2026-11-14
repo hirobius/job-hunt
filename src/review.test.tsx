@@ -1,4 +1,4 @@
-// Review new (simplify 5/9, #386): Browse by default, the Deck as a toggle, Skip hides only that
+// Review new (simplify 5/9, #386): one list (no Deck since 2026-11-13), Skip hides only that
 // posting, Not this company mutes the company, Save makes a Job and follows its company.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -93,11 +93,7 @@ const renderFindPage = () =>
   render(
     <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
       <ToastProvider>
-        <ReviewView
-          header={({ selected, deckPlace }) => (
-            <FindHeader heading={!selected} deckPlace={deckPlace} />
-          )}
-        />
+        <ReviewView header={({ selected }) => <FindHeader heading={!selected} />} />
         <NoticeHost />
       </ToastProvider>
     </CloudSyncContext.Provider>,
@@ -162,8 +158,10 @@ describe('Review new: Browse', () => {
     const { container } = renderReview();
     const ul = await list();
     expect(titles(ul)).toHaveLength(3);
-    // Said to a screen reader only: no status text above Browse / Deck (Adrian 2026-11-08).
-    expect(screen.getByRole('status')).toHaveTextContent('3 new today from 2 sources');
+    // Said to a screen reader only: no status text above the list (Adrian 2026-11-08).
+    expect(
+      screen.getAllByRole('status').some((e) => e.textContent === '3 new today from 2 sources'),
+    ).toBe(true);
     // Sources that didn't answer are the Account menu's Scan details, not a line on the page.
     expect(screen.queryByText(/source unavailable/)).toBeNull();
     expect(getScanDetails()?.failed.map((f) => f.label)).toEqual([
@@ -300,7 +298,7 @@ describe('Review new: Browse', () => {
     );
   });
 
-  it('sorts, filters with chips and loads more', async () => {
+  it('lists newest first with no filters and loads more', async () => {
     const many = Array.from({ length: REVIEW_PAGE + 5 }, (_, i) =>
       post(
         `hn:${i + 10}`,
@@ -323,219 +321,113 @@ describe('Review new: Browse', () => {
     expect(titles(ul)).toHaveLength(REVIEW_PAGE + 5);
     // No Sort on Find (Adrian 2026-11-13): newest first, always.
     expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
-    // Two filters only (Adrian 2026-10-28): New (was "New today", #615) and Remote.
-    expect(
-      within(screen.getByRole('group', { name: 'Filter postings' }))
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['New 30', 'Remote']);
+    // No filters on Review (Adrian 2026-11-13): it follows the Search profile's work mode.
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Filter postings' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(New|Remote)\b/ })).toBeNull();
   });
 });
 
-describe('Review new: Deck', () => {
-  it('List | Deck is one toggle: a press flips the view, both icons show (Adrian 2026-11-13)', async () => {
-    const user = userEvent.setup();
+describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
+  const current = () => screen.getByRole('group', { name: 'Postings in the list' });
+  it('has no view switch and no Deck', async () => {
     renderReview();
     await list();
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
     expect(screen.queryByRole('group', { name: 'Review view' })).toBeNull();
-    const toggle = screen.getByRole('button', { name: 'View: List, switch to Deck' });
-    // Drawn as the Find | Apply rail: .rjb-segs, both icons inside, the open one marked.
-    expect(toggle).toHaveClass('rjb-segs', 'rjb-view-segs', 'rjb-hit-44');
-    const icons = toggle.querySelectorAll('.rjb-seg-icon');
-    expect(icons).toHaveLength(2);
-    expect(icons[0]).toHaveAttribute('data-on');
-    expect(icons[1]).not.toHaveAttribute('data-on');
-    expect(toggle.textContent).toBe('');
-    await user.click(toggle);
-    expect(toggle).toHaveAccessibleName('View: Deck, switch to List');
-    expect(icons[1]).toHaveAttribute('data-on');
-    // Space and Enter flip it too.
-    toggle.focus();
-    await user.keyboard(' ');
-    expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
-    await user.keyboard('{Enter}');
-    expect(toggle).toHaveAccessibleName('View: Deck, switch to List');
+    expect(document.querySelector('.rjb-deck, .rjb-deck-excerpt')).toBeNull();
   });
 
-  it('shows one card at a time; a decided card makes way for the next', async () => {
+  it('below lg, "‹ › 1 of N": the arrows step a current card; focus stays on the arrow', async () => {
     const user = userEvent.setup();
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
     renderReview();
-    await list();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    const first = screen.getByRole('article');
-    const name = first.getAttribute('aria-label');
-    // Skip is in the action dock (#545), not on the card.
-    await user.click(
-      within(screen.getByRole('group', { name: `Actions for ${name}` })).getByRole('button', {
-        name: /^Skip /,
+    const ul = await list();
+    const pager = current();
+    const [prev, next] = within(pager).getAllByRole('button');
+    expect(prev).toHaveAccessibleName('Previous posting');
+    expect(next).toHaveAccessibleName('Next posting');
+    // Arrows first, then the count; nothing else on the row.
+    expect(pager.textContent).toBe('1 of 3');
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(prev).toBeDisabled();
+    await user.click(next);
+    expect(pager).toHaveTextContent('2 of 3');
+    // Review of #714: focus stays on the arrow, so it can be pressed again; the step is said once,
+    // politely, and the visible count is not a live region (it follows the scroll).
+    expect(next).toHaveFocus();
+    const second = within(ul).getAllByRole('heading', { level: 3 })[1];
+    const said = screen.getAllByRole('status').find((e) => /^2 of 3: /.test(e.textContent ?? ''));
+    expect(said?.textContent).toContain(second.textContent!.split('\u2060')[0]);
+    expect(pager.querySelector('[aria-live]')).toBeNull();
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
+    await user.click(next);
+    expect(pager).toHaveTextContent('3 of 3');
+    expect(next).toBeDisabled();
+    // At the end, focus moves to the arrow that is still on.
+    await waitFor(() => expect(prev).toHaveFocus());
+    await user.click(prev);
+    expect(pager).toHaveTextContent('2 of 3');
+  });
+
+  it('below lg, the current card follows scrolling, so the count stays true', async () => {
+    renderReview();
+    const ul = await list();
+    const pager = current();
+    const items = Array.from(ul.querySelectorAll<HTMLElement>(':scope > li'));
+    // The first card has scrolled above a quarter of the screen; the second is the first past it.
+    items.forEach((li, i) => {
+      li.getBoundingClientRect = () => ({ bottom: i === 0 ? 10 : 400 + i * 300 }) as DOMRect;
+    });
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    await waitFor(() => expect(pager).toHaveTextContent('2 of 3'));
+  });
+
+  it('↓ past the pages shown shows the next page, so its card is there (review of #714)', async () => {
+    const many = Array.from({ length: REVIEW_PAGE + 3 }, (_, i) =>
+      post(`hn:${i + 100}`, `Design Systems Designer ${i}`, `Co ${i}`, {
+        postedAt: new Date(Date.now() - i * 864e5).toISOString(),
       }),
     );
-    await waitFor(() =>
-      expect(screen.getByRole('article')).not.toHaveAttribute('aria-label', name!),
-    );
-    expect(screen.getAllByRole('article')).toHaveLength(1);
-  });
-
-  const deckTitle = () => screen.getByRole('article').getAttribute('aria-label');
-
-  it('after Skip or Save in the dock, focus goes to the next card title, then Find’s h1 (#545)', async () => {
+    feed.fetchFeed.mockResolvedValue(result(many));
+    Element.prototype.scrollIntoView = vi.fn();
     const user = userEvent.setup();
-    feed.fetchFeed.mockResolvedValue(result(BASIC.slice(0, 2)));
-    render(
-      <ToastProvider>
-        <main>
-          <ReviewView header={<h1>Review</h1>} />
-        </main>
-        <NoticeHost />
-      </ToastProvider>,
-    );
-    await list();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    const first = deckTitle();
-    await user.click(screen.getByRole('button', { name: `Skip ${first}` }));
-    // The next card's title takes focus, not the dock key or <body>.
-    await waitFor(() => {
-      const h = within(screen.getByRole('article')).getByRole('heading', { level: 3 });
-      expect(h).toHaveFocus();
-      expect(deckTitle()).not.toBe(first);
-    });
-    resetAnswerGuard();
-    await user.click(screen.getByRole('button', { name: `Save ${deckTitle()}` }));
-    // The deck is empty: Find's h1 takes focus.
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toHaveFocus(),
-    );
-  });
-
-  it('at lg, after the Deck’s last card Find’s h1 keeps focus as the list stands alone (#546)', async () => {
-    const user = userEvent.setup();
-    feed.fetchFeed.mockResolvedValue(result(BASIC.slice(0, 1)));
     renderFind();
-    await list();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    await user.click(screen.getByRole('button', { name: `Skip ${deckTitle()}` }));
-    // The two columns go with the last posting: the new heading node takes the focus.
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toHaveFocus(),
-    );
-    expect(screen.getByText('You’re all caught up')).toBeInTheDocument();
-    // The toggle went with the last card; focus never sat on it.
-    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
+    const ul = await list();
+    await screen.findByRole('heading', { level: 1, name: 'Design Systems Designer 0' });
+    const firstPage = titles(ul);
+    expect(firstPage).toHaveLength(REVIEW_PAGE);
+    await user.keyboard('{ArrowDown}'.repeat(REVIEW_PAGE));
+    // The selection went past the first page, and its card is in the list now, to scroll to.
+    const h1 = screen.getAllByRole('heading', { level: 1 })[0].textContent!;
+    expect(firstPage).not.toContain(h1);
+    await waitFor(() => expect(titles(ul)).toContain(h1));
   });
 
-  it("steps the Deck by the arrow keys; its place is Find's (#545)", async () => {
+  it('at lg there is no pager; ↑ / ↓ move the selection, never from a text field', async () => {
     const user = userEvent.setup();
-    render(
-      <ToastProvider>
-        <ReviewView
-          header={({ deckPlace: place }) => (
-            <p data-testid="caption">{place ? `${place.at + 1} of ${place.count}` : 'no place'}</p>
-          )}
-        />
-        <NoticeHost />
-      </ToastProvider>,
-    );
-    await list();
-    expect(screen.getByTestId('caption')).toHaveTextContent('no place');
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    expect(screen.queryByRole('navigation', { name: 'Postings' })).toBeNull();
-    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
-    // The arrow keys on the card step it, like a swipe.
-    await user.click(within(screen.getByRole('article')).getByRole('heading', { level: 3 }));
-    await user.keyboard('{ArrowRight}');
-    expect(screen.getByTestId('caption')).toHaveTextContent('2 of 3');
-    await user.keyboard('{ArrowLeft}{ArrowLeft}');
-    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
-  });
-
-  it('a sideways swipe on the card steps the deck; a short or upright one does not (#545)', async () => {
-    const user = userEvent.setup();
-    renderReview();
-    await list();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    const first = deckTitle();
-    const swipe = (dx: number, dy = 0) => {
-      const el = within(screen.getByRole('article')).getByRole('heading', { level: 3 });
-      const touch = (x: number, y: number) => ({ clientX: x, clientY: y }) as Touch;
-      act(() => {
-        el.dispatchEvent(
-          Object.assign(new Event('touchstart', { bubbles: true }), {
-            touches: [touch(200, 200)],
-          }),
-        );
-        el.dispatchEvent(
-          Object.assign(new Event('touchend', { bubbles: true }), {
-            changedTouches: [touch(200 + dx, 200 + dy)],
-          }),
-        );
-      });
-    };
-    swipe(-30);
-    expect(deckTitle()).toBe(first);
-    swipe(-100, 120);
-    expect(deckTitle()).toBe(first);
-    swipe(-100);
-    expect(deckTitle()).not.toBe(first);
-    swipe(100);
-    expect(deckTitle()).toBe(first);
-  });
-
-  it('walks the deck newest first with no Sort; More ends the key row (2026-11-13)', async () => {
-    const user = userEvent.setup();
-    feed.fetchFeed.mockResolvedValue(
-      result([
-        post('hn:1', 'Design Systems Designer', 'Zeta', { postedAt: '2026-11-12T10:00:00Z' }),
-        post('hn:2', 'Design Systems Engineer', 'Acme', { postedAt: '2026-11-11T10:00:00Z' }),
-        post('hn:3', 'Design Systems Lead', 'Mono', { postedAt: '2026-11-10T10:00:00Z' }),
-      ]),
-    );
-    render(
-      <ToastProvider>
-        <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
-          <ReviewView
-            header={({ deckPlace: place }) => (
-              <>
-                <p data-testid="caption">{place ? `${place.at + 1} of ${place.count}` : ''}</p>
-                <FindHeader deckPlace={place} />
-              </>
-            )}
-          />
-        </CloudSyncContext.Provider>
-        <NoticeHost />
-      </ToastProvider>,
-    );
-    await list();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    // Newest first: Zeta's posting, 1 of 3.
-    expect(deckTitle()).toBe('Design Systems Designer at Zeta');
-    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
-    // The page bar's pager (2026-11-12): "‹ 1 of 3 ›", Previous off at the start.
-    const pager = screen.getByRole('navigation', { name: 'Postings in the deck' });
-    expect(within(pager).getByRole('button', { name: /previous/i })).toBeDisabled();
-    await user.click(within(pager).getByRole('button', { name: /next/i }));
-    expect(screen.getByTestId('caption')).toHaveTextContent('2 of 3');
-    await user.click(within(pager).getByRole('button', { name: /previous/i }));
-    expect(screen.getByTestId('caption')).toHaveTextContent('1 of 3');
-    // More (Not this company) is not by the title (2026-11-13): it ends the key row, Skip | Save | More.
-    expect(within(screen.getByRole('article')).queryByRole('button', { name: /^More/ })).toBeNull();
-    const keys = screen.getByRole('group', { name: /^Actions for / });
-    expect(
-      within(keys)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label')),
-    ).toEqual([
-      'Skip Design Systems Designer at Zeta',
-      'Save Design Systems Designer at Zeta',
-      'More actions: Design Systems Designer at Zeta',
-    ]);
-    await user.click(within(keys).getByRole('button', { name: /^More actions/ }));
-    expect(await screen.findByRole('menuitem', { name: 'Not this company: Zeta' })).toBeTruthy();
-    await user.keyboard('{Escape}');
-    // No Sort on Find (2026-11-13): the deck is newest first.
-    expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
-    await user.click(within(screen.getByRole('article')).getByRole('heading', { level: 3 }));
-    await user.keyboard('{ArrowRight}');
-    expect(deckTitle()).toBe('Design Systems Engineer at Acme');
+    renderFind();
+    const ul = await list();
+    const names = titles(ul);
+    expect(screen.queryByRole('group', { name: 'Postings in the list' })).toBeNull();
+    expect(screen.queryByText(/^\d+ of \d+$/)).toBeNull();
+    // No filter row at lg: the list starts under the tabs.
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    await screen.findByRole('heading', { level: 1, name: names[0] });
+    await user.keyboard('{ArrowDown}');
+    expect(await screen.findByRole('heading', { level: 1, name: names[1] })).toBeInTheDocument();
+    await user.keyboard('{ArrowDown}{ArrowUp}');
+    expect(await screen.findByRole('heading', { level: 1, name: names[1] })).toBeInTheDocument();
+    // In a text field the arrows are the field's.
+    const field = document.createElement('input');
+    document.body.append(field);
+    field.focus();
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('heading', { level: 1, name: names[1] })).toBeInTheDocument();
+    field.remove();
   });
 });
 
@@ -583,78 +475,59 @@ describe('Review new: pay read from a Hacker News post (#547)', () => {
   });
 });
 
-describe('Review new: Deck card anatomy (#458)', () => {
+describe('Review new: card anatomy (#458)', () => {
   const ONE = post('hn:1', 'Design Systems Designer', 'Acme', {
     location: 'Lisbon',
     mode: 'remote',
     salaryMin: 95000,
     salaryMax: 120000,
   });
-  const openDeck = async (p: Posting) => {
+  const openCard = async (p: Posting) => {
     feed.fetchFeed.mockResolvedValue(result([p]));
-    const user = userEvent.setup();
     renderReview();
-    await list();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    return screen.getByRole('article');
+    return within(await list()).getByRole('article');
   };
   const before = (a: Node, b: Node) =>
     Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  it('stacks title (full width), company, meta lines, pay, the excerpt; Skip and Save in the dock (#545)', async () => {
-    const card = await openDeck(ONE);
+  it('stacks title, company, meta lines, pay, the excerpt, then Save | Skip | More', async () => {
+    const card = await openCard(ONE);
     const title = within(card).getByRole('heading', { level: 3 });
     const company = within(card).getByText('Acme');
     const place = within(card).getByText('Lisbon');
     const mode = within(card).getByText('Remote');
     const posted = within(card).getByText('Posted today');
     const pay = within(card).getByText('$95k to $120k');
-    // The text shows at once (no disclosure), cut at 7 lines, then the link to the full posting.
     const text = within(card).getByText('Own the design system.');
-    expect(text).toHaveClass('rjb-deck-excerpt');
+    expect(text).toHaveClass('rjb-clamp-2');
     // Inline company mark, 24px before the name (2026-11-13).
     expect(card.querySelector('[data-rjb-logo]')).toHaveClass('rjb-logo-inline');
-    expect(within(card).queryByRole('button', { name: /description/i })).toBeNull();
-    const full = within(card).getByRole('link', { name: /Read the full posting/ });
-    expect(full).toHaveAttribute('href', ONE.url);
-    // More left the title's side (2026-11-13): it ends the key row under the card.
-    expect(within(card).queryByRole('button', { name: /^More actions/ })).toBeNull();
-    const order = [title, company, place, mode, posted, pay, text, full];
-    order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
-    // Save and Skip left the card for the dock: Skip (grey) first, Save (filled) on the right.
-    expect(within(card).queryByRole('button', { name: /^(Save|Skip) / })).toBeNull();
-    expect(within(card).queryByRole('link', { name: /^Open posting for/ })).toBeNull();
-    const dock = screen.getByRole('group', {
-      name: 'Actions for Design Systems Designer at Acme',
-    });
-    const keys = within(dock).getAllByRole('button');
+    const keys = within(card)
+      .getAllByRole('button')
+      .filter((b) => /^(Save|Skip|More actions)/.test(b.getAttribute('aria-label') ?? ''));
     expect(keys.map((k) => k.getAttribute('aria-label'))).toEqual([
-      'Skip Design Systems Designer at Acme',
       'Save Design Systems Designer at Acme',
+      'Skip Design Systems Designer at Acme',
       'More actions: Design Systems Designer at Acme',
     ]);
-    expect(keys[2]).toHaveClass('rjb-deck-more');
-    expect(keys[1]).toHaveAttribute('data-variant', 'primary');
-    expect(keys[0]).toHaveAttribute('data-variant', 'secondary');
-    // In flow under the card at every width (2026-11-13): no fixed dock on Find.
-    expect(dock).toHaveClass('rjb-dock-row');
-    expect(dock).not.toHaveClass('rjb-dock');
-    expect(dock.parentElement).toHaveClass('rjb-deck');
-    // The meta lines carry their icons (lucide marks them aria-hidden svgs).
+    expect(keys[0]).toHaveAttribute('data-variant', 'primary');
+    expect(keys[1]).toHaveAttribute('data-variant', 'secondary');
+    const order = [title, company, place, mode, posted, pay, text, keys[0]];
+    order.slice(1).forEach((el, i) => expect(before(order[i], el)).toBe(true));
     expect(
       card.querySelectorAll('svg.lucide-map-pin, svg.lucide-briefcase, svg.lucide-calendar'),
     ).toHaveLength(3);
   });
 
   it('says "Company not stated" for a posting with none, and has no More (2026-11-12)', async () => {
-    const card = await openDeck(post('hn:5', 'Design Systems Designer', ''));
+    const card = await openCard(post('hn:5', 'Design Systems Designer', ''));
     expect(within(card).getByText('Company not stated')).toBeInTheDocument();
     // More would hold only Not this company: with no company there is none.
     expect(within(card).queryByRole('button', { name: /^More actions/ })).toBeNull();
   });
 
-  it('shows no pay when the source states none, and Save still sits in the dock', async () => {
-    const card = await openDeck(post('hn:1', 'Design Systems Designer', 'Acme'));
+  it('shows no pay when the source states none, and Save still shows', async () => {
+    const card = await openCard(post('hn:1', 'Design Systems Designer', 'Acme'));
     expect(within(card).queryByText(/\$|EUR|GBP|\bk\b/)).toBeNull();
     expect(within(card).queryByText(/pay|salary/i)).toBeNull();
     expect(
@@ -663,7 +536,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
   });
 
   it('shows no source or New badge, new or seen (#557 cuts); the kept facts stay', async () => {
-    const card = await openDeck(ONE);
+    const card = await openCard(ONE);
     expect(within(card).queryByText('Hacker News')).toBeNull();
     expect(within(card).queryByText('New')).toBeNull();
     expect(card.querySelector('[data-tone="info"]')).toBeNull();
@@ -674,7 +547,7 @@ describe('Review new: Deck card anatomy (#458)', () => {
     localStorage.setItem(SEEN_KEY, JSON.stringify({ [postingFingerprint(ONE)]: '2020-01-01' }));
     resetViewMemory();
     resetScan();
-    const seen = await openDeck(ONE);
+    const seen = await openCard(ONE);
     expect(within(seen).queryByText('Hacker News')).toBeNull();
     expect(within(seen).queryByText('New')).toBeNull();
   });
@@ -709,15 +582,16 @@ describe('Review new: Deck card anatomy (#458)', () => {
     // No blue New badge in the title block: status there is neutral.
     expect(within(block).queryByText('New')).toBeNull();
     await user.click(save);
-    // No posting left: the list alone says so (Adrian 2026-11-12), nothing beside it.
+    // No posting left: the two columns stay and the right one says so (Adrian 2026-11-13).
     expect(await screen.findByText('You’re all caught up')).toBeInTheDocument();
     await waitFor(() => expect(window.location.hash).toBe('#/review'));
     expect(screen.queryByText('Pick a posting')).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
+    const empty = screen.getByRole('region', { name: 'No postings' });
+    expect(empty.closest('.rjb-find-detail')).not.toBeNull();
   });
 
-  it('at lg Browse opens on the first posting, in place; the Deck keeps none (#546)', async () => {
-    const user = userEvent.setup();
+  it('at lg the list opens on the first posting, in place (#546)', async () => {
     renderFind();
     const ul = await list();
     const first = titles(ul)[0]!;
@@ -725,10 +599,6 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(window.location.hash).toMatch(/^#\/review\/./);
     expect(within(ul).getAllByRole('article', { current: true })).toHaveLength(1);
     expect(screen.queryByText('Pick a posting')).toBeNull();
-    // The Deck walks its own card: the selection goes and Find's header shows again.
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/review'));
-    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
   });
 
   // #544 (redesign §5.1): the compact Browse card is the title (bold body, 3 lines at most; it opens
@@ -764,14 +634,11 @@ describe('Review new: Deck card anatomy (#458)', () => {
     expect(within(card).queryByRole('link', { name: /^Open posting/ })).toBeNull();
   });
 
-  it('Browse and Deck cards draw no outline (soft surfaces: never bordered)', async () => {
-    const user = userEvent.setup();
+  it('list cards draw no outline (soft surfaces: never bordered)', async () => {
     feed.fetchFeed.mockResolvedValue(result([ONE]));
     renderReview();
     const ul = await list();
     expect(within(ul).getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    expect(screen.getByRole('article')).not.toHaveAttribute('data-bordered', 'true');
   });
 
   // #616 (Adrian 2026-11-12): one fact per line, in one order: place, work mode, posted day. The
@@ -932,8 +799,8 @@ describe('Review new: the caught-up empty state (Adrian 2026-11-08)', () => {
     // The framed teaching empty: its icon tile and centred column inside one panel.
     expect(within(section).getByText(/saved or skipped/)).toBeInTheDocument();
     expect(section.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
-    // No postings shown: no List | Deck toggle to switch it (Adrian 2026-11-13).
-    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
+    // No postings shown: no pager.
+    expect(screen.queryByRole('group', { name: 'Postings in the list' })).toBeNull();
   });
 });
 
@@ -1081,7 +948,7 @@ describe('Review new: every design-system posting, no tiers', () => {
   });
 });
 
-describe('Find: one empty state, picked by cause, the same in List and Deck (#694)', () => {
+describe('Find: one empty state, picked by cause (#694)', () => {
   const shape = async () => {
     const section = (await screen.findByRole('region', { name: 'No postings' })) as HTMLElement;
     return {
@@ -1094,11 +961,10 @@ describe('Find: one empty state, picked by cause, the same in List and Deck (#69
       icon: section.querySelector('[aria-hidden="true"] svg')?.getAttribute('class'),
     };
   };
-  // No postings shown: the List | Deck toggle hides (Adrian 2026-11-13), so an empty state is
-  // never switched; the Deck's own empty is checked by emptying the Deck below.
+  // No postings shown: no pager either.
   const both = async (_user: ReturnType<typeof userEvent.setup>) => {
     const s = await shape();
-    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Postings in the list' })).toBeNull();
     return s;
   };
 
@@ -1124,61 +990,5 @@ describe('Find: one empty state, picked by cause, the same in List and Deck (#69
     expect(s.text).toContain('You’re all caught up');
     expect(s.keys).toEqual(['Scan now']);
     expect(s.icon).toMatch(/circle-check|check-circle/);
-  });
-
-  it('filters hide everything: "No postings with these filters" with Clear filters', async () => {
-    const user = userEvent.setup();
-    feed.fetchFeed.mockResolvedValue(
-      result([post('hn:9', 'Design Systems Designer', 'Acme', { location: '', mode: undefined })]),
-    );
-    renderReview();
-    await list();
-    await user.click(screen.getByRole('button', { name: /^Remote/ }));
-    const s = await both(user);
-    expect(s.cause).toBe('filtered');
-    expect(s.text).toContain('No postings with these filters');
-    expect(s.keys).toEqual(['Clear filters']);
-    // The chips stay (Clear is a chip away); only the toggle hides. Back to postings: it returns.
-    await user.click(screen.getByRole('button', { name: /^Remote/ }));
-    expect(
-      await screen.findByRole('button', { name: 'View: List, switch to Deck' }),
-    ).toBeInTheDocument();
-  });
-
-  it('the Deck emptied by its last decision: the same empty state, the toggle hides', async () => {
-    const user = userEvent.setup();
-    feed.fetchFeed.mockResolvedValue(result([BASIC[0]]));
-    renderReview();
-    await list();
-    await user.click(screen.getByRole('button', { name: 'View: List, switch to Deck' }));
-    const card = screen.getByRole('article').getAttribute('aria-label');
-    await user.click(screen.getByRole('button', { name: `Skip ${card}` }));
-    const s = await shape();
-    expect(s.cause).toBe('caughtUp');
-    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
-  });
-});
-
-describe('Find: the List | Deck toggle shows only beside postings (Adrian 2026-11-13)', () => {
-  const toggle = () => screen.queryByRole('button', { name: /^View: / });
-
-  it('shown while postings show', async () => {
-    feed.fetchFeed.mockResolvedValue(result(BASIC));
-    renderReview();
-    await list();
-    expect(toggle()).toBeInTheDocument();
-  });
-
-  it('hidden while loading (skeleton, no cards)', () => {
-    feed.fetchFeed.mockReturnValue(new Promise(() => {}));
-    renderReview();
-    expect(toggle()).toBeNull();
-  });
-
-  it('hidden when nothing matches', async () => {
-    feed.fetchFeed.mockResolvedValue(result([]));
-    renderReview();
-    await screen.findByRole('region', { name: 'No postings' });
-    expect(toggle()).toBeNull();
   });
 });

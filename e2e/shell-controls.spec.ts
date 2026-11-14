@@ -1,10 +1,9 @@
-import { hitArea } from './hitArea';
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
-// segmented control but still a nav of links (routing, Back, deep links); List / Deck as one
-// toggle with a tooltip (#694); Apply's Remote only switch, per device, that narrows the
+// segmented control but still a nav of links (routing, Back, deep links); Find with no view switch
+// or filter row (list only, 2026-11-13); Apply's Remote only switch, per device, that narrows the
 // pager's "n of N" and the All jobs sheet. Since #548 Find / Apply sit in the app bar's one row at
 // every width, each with its count.
 for (const width of [390, 1440]) {
@@ -59,32 +58,22 @@ for (const width of [390, 1440]) {
       await expect(nav.locator('.rjb-seg-count')).toHaveCount(1);
     });
 
-    test('List / Deck: one toggle over the whole track, with a tooltip', async ({ page }) => {
-      // No outside-host block here: Find's postings (and so this toggle) come from those reads.
+    test('Find: one list, no view switch and no filter row (2026-11-13)', async ({ page }) => {
       await seed(page);
       await page.goto('/#/review');
-      const toggle = page.getByRole('button', { name: /^View: / });
-      await expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
-      await expect(toggle).toHaveText('');
-      await expect(toggle.locator('.rjb-seg-icon')).toHaveCount(2);
-      // The whole track is its 44px target, all of it this one key.
-      const hit = await hitArea(toggle);
-      expect(hit.height).toBeGreaterThanOrEqual(44);
-      expect(hit.misses).toEqual([]);
-      // The seed's "Added to Apply" toast can land under the pointer and close the tooltip at
-      // 1440: hover again until it shows.
-      await expect(async () => {
-        await page.mouse.move(0, 0);
-        await toggle.hover();
-        await expect(page.getByRole('tooltip')).toHaveText('Switch to Deck', { timeout: 1500 });
-      }).toPass({ timeout: 10_000 });
-      // A tap on the open (List) icon still flips: the whole track is the button.
-      const box = (await toggle.boundingBox())!;
-      await page.mouse.click(box.x + 6, box.y + box.height / 2);
-      await expect(toggle).toHaveAccessibleName('View: Deck, switch to List');
-      await toggle.focus();
-      await page.keyboard.press('Space');
-      await expect(toggle).toHaveAccessibleName('View: List, switch to Deck');
+      // Postings or the empty state (at lg the right column's), whichever the reads give.
+      const list = page.getByRole('list', { name: 'New postings' });
+      await expect(list.or(page.getByRole('region', { name: 'No postings' }))).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
+      await expect(page.getByRole('checkbox')).toHaveCount(0);
+      await expect(page.getByRole('group', { name: 'Filter postings' })).toHaveCount(0);
+      // Phones keep only the pager row, beside postings; at lg there is none.
+      const listed = await list.isVisible();
+      await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(
+        width < 1024 && listed ? 1 : 0,
+      );
     });
 
     test('Remote only: narrows the list, kept on reload (a chip in the sheet, the switch at lg)', async ({
@@ -235,19 +224,17 @@ test.describe('at 390, the view picker', () => {
     expect(fill.bg).not.toBe('rgba(0, 0, 0, 0)');
     expect(fill.h).toBeCloseTo(40, 0);
     expect(fill.w).toBeCloseTo(box!.width, 0);
-    // The chip's fill: the same colour and height as Find's New chip.
-    await page.goto('/#/review');
-    const chip = page.getByRole('group', { name: 'Filter postings' }).getByRole('button').first();
-    const chipFill = await chip.evaluate((el) => {
-      const s = getComputedStyle(el.firstElementChild as Element);
-      return {
-        bg: s.backgroundColor,
-        h: (el.firstElementChild as Element).getBoundingClientRect().height,
-      };
+    // The chip's fill: HDS Tag's resting background (Find's chips went on 2026-11-13; Apply's
+    // view chips keep the same Tag).
+    const tagBg = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.background = 'var(--component-tag-background)';
+      document.body.append(probe);
+      const bg = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return bg;
     });
-    expect(chipFill.bg).toBe(fill.bg);
-    expect(chipFill.h).toBeCloseTo(fill.h, 0);
-    await page.goto('/#/apply');
+    expect(tagBg).toBe(fill.bg);
     // The caret sits inside the fill.
     const caret = await picker.locator('svg').boundingBox();
     expect(caret!.x + caret!.width).toBeLessThan(box!.x + box!.width);

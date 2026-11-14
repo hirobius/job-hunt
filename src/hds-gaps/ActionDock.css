@@ -82,7 +82,7 @@ body:has(.rjb-dock[data-hidden='false']) [role='region'][aria-label^='Notificati
 
 /* No rubber-band on a page with a dock: on iOS the bounce dragged the page (and in a home-screen
    web app the dock with it) and showed a band under it. Trade-off: no overscroll glow and no
-   pull-to-refresh on these pages only (Apply job, Find Deck below lg); other pages keep theirs. */
+   pull-to-refresh on these pages only (the Apply job below lg); other pages keep theirs. */
 html:has(.rjb-dock),
 html:has(.rjb-dock) body {
   overscroll-behavior-y: none;

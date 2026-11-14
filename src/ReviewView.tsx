@@ -1,15 +1,22 @@
 // Review new (simplify 5/9, #386; docs/specs/simplify.md): every undecided design-system posting
-// from every source, two ways. Browse (the default) is one list, newest first, to filter;
+// from every source, as one list, newest first (it follows the Search profile's work mode);
 // a title selects the posting (#471 slice 3: `#/find/<fingerprint>`), and the posting shows in the
-// right column at lg (details, why it is listed, Save / Skip / Not this company, Open posting), or
-// as its own view with Back and a pager below lg. "Load more" pages the list. Deck is the same postings one card at a time
-// (#545): the same card, Skip and Save in the action dock, "1 of N" in Find's caption, a swipe steps; it
-// walks the list newest first. No fit tiers
+// right column at lg (details, Save / Skip / Not this company, Open posting; ↑ / ↓ move the
+// selection). Below lg the list is the tab, with a "‹ › 1 of N" pager that steps a current card
+// (Adrian 2026-11-13: list only, no view switch and no filter row). No fit tiers
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
 import { cleanPlace } from './cleanPlace';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { setScanDetails } from './feed/scanDetails';
 import { hiddenParts } from './feed/scanDetailsText';
 import {
@@ -23,7 +30,6 @@ import {
   Sidebar,
   Skeleton,
   Stack,
-  Tag,
   Text,
   Tooltip as HdsTooltip,
   useAtLeast,
@@ -40,17 +46,14 @@ import {
   Plus,
   SearchX,
   CircleCheck,
-  ListFilter,
-  Layers,
-  List,
+  ChevronLeft,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
-import { ActionDock } from './hds-gaps/ActionDock';
-import { SwipeArea } from './SwipeArea';
-import './FindDeck.css';
+import './FindList.css';
 import { useBackSheet } from './useBackCloses';
-import { findHash, postingOf, selectPosting, useRoute } from './route';
+import { findHash, getRoute, postingOf, selectPosting, useRoute } from './route';
 import { inPlaceClick } from './back';
 import { tooSoon } from './answerGuard';
 import { focusAsHeading, focusNewHeading, pageHeadingNow } from './focusRescue';
@@ -58,23 +61,13 @@ import { usePageTitle } from './pageTitle';
 import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
-import { CountBadge } from './CountBadge';
 import { useAutoLoad } from './autoLoad';
 import { spacerRef, useWindowedList } from './useWindowedList';
 import { placeSaysRemote } from './feed/placeRemote';
 import { capsToSentence } from './feed/capsCase';
 import CompanyLogo from './CompanyLogo';
 import { NoResultsKeys } from './AutoScanViews';
-import {
-  FILTER_LABEL,
-  filterCounts,
-  filterRows,
-  newTodayLine,
-  payLabel,
-  sortRows,
-  type FeedFilter,
-  type FeedRow,
-} from './feed/feed';
+import { filterCounts, newTodayLine, payLabel, sortRows, type FeedRow } from './feed/feed';
 import { companyKey, decide, muteCompany, undecide } from './feed/decided';
 import { followPosting } from './feed/follow';
 import { jobFieldsFor } from './feed/toJob';
@@ -85,25 +78,16 @@ import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNo
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
 import { saveRow } from './saveFlight';
-import { usePostingText } from './feed/postingText';
 import PostingDescription from './PostingDescription';
 import { httpUrl } from './httpUrl';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
-// Two filters (Adrian 2026-10-28): contract and first-hire chips are gone with the fit tiers.
-const FILTERS: FeedFilter[] = ['new', 'remote'];
-type Mode = 'browse' | 'deck';
-const VIEW_TOGGLE: { value: Mode; label: string; icon: LucideIcon }[] = [
-  { value: 'browse', label: 'List', icon: List },
-  { value: 'deck', label: 'Deck', icon: Layers },
-];
 
-/** "View: List, switch to Deck": the one toggle's name says the open view and what a press does. */
-function viewToggleName(mode: Mode): string {
-  return mode === 'deck' ? 'View: Deck, switch to List' : 'View: List, switch to Deck';
-}
+/** ↑ / ↓ at lg leave these alone: a text field, a select, a menu or a dialog has its own keys. */
+const KEY_OWNERS =
+  'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="menu"], [role="menuitem"], [role="listbox"], [role="dialog"]';
 
 export default function ReviewView({
   label = 'New postings',
@@ -118,8 +102,7 @@ export default function ReviewView({
   scanStatus?: boolean;
   /** The page's head (its h1), shown while no posting is selected: a selected posting's title is
    *  the page's h1 then (#363, as a job's is on Apply). Find passes a function and gets what its
-   *  short header shows (#544): the new count, whether a posting is selected and the
-   *  Deck's place ("1 of 4", #545; null outside the Deck). */
+   *  short header shows (#544): the new count and whether a posting is selected. */
   header?: ReactNode | ((tools: FindTools) => ReactNode);
   /** Find's list column, above the list: Daily picks. */
   before?: ReactNode;
@@ -137,14 +120,28 @@ export default function ReviewView({
     });
   }, [view]);
   const kept = (k: string) => `review:${k}`;
-  const [mode, setMode] = useRemembered<Mode>(kept('mode'), 'browse');
-  const [on, setOn] = useRemembered<FeedFilter[]>(kept('filters'), []);
+  // No filters on Review (Adrian 2026-11-13): it follows the Search profile's work mode only
+  // (remote by default); an older remembered New or Remote filter is not read.
   const [shown, setShown] = useRemembered(kept('shown'), REVIEW_PAGE);
-  const [card, setCard] = useRemembered(kept('card'), 0);
+  // A step past the pages shown (↑ / ↓ at lg, the phone pager) shows enough pages first, so its
+  // card is in the list to scroll to (review of #714).
+  const shownRef = useRef(shown);
+  useEffect(() => {
+    shownRef.current = shown;
+  }, [shown]);
+  const showUpTo = useCallback(
+    (at: number) => {
+      if (at < shownRef.current) return;
+      const n = Math.ceil((at + 1) / REVIEW_PAGE) * REVIEW_PAGE;
+      shownRef.current = n;
+      setShown(n);
+    },
+    [setShown],
+  );
 
   // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
   const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
-  const listed = useMemo(() => filterRows(rows, on), [rows, on]);
+  const listed = rows;
   const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   // The selected posting is in the route (#/find/<fingerprint>), so a link to it is shareable and
   // survives a reload. At lg Browse opens on the first posting, as Apply opens on its first job
@@ -164,13 +161,13 @@ export default function ReviewView({
   useEffect(() => {
     if (!wide && selectedFp) selectPosting(null, true);
   }, [wide, selectedFp]);
-  // At lg, Browse with nothing selected selects the list's first posting, in place (#546). The
-  // Deck walks its own card, so it keeps no selection: Find's header shows its "1 of N".
+  // At lg, with nothing selected the list's first posting is selected, in place (#546), so the
+  // detail column is never empty.
   // A decided posting stays in the list while its card collapses: it is never picked again.
   const columns = wide && !!header;
   const alone = !selectedFp && !!view && !listed.length;
-  // The list leaves the two columns when the last posting goes, so its heading is a new node: the
-  // focus a decision gave Find's h1 (or one dropped to body) moves to it.
+  // When the last posting goes (or the list turns out empty) the right column's content changes
+  // under the focus a decision or a closing dialog gave: focus left on <body> goes to Find's h1.
   const wasAlone = useRef(alone);
   useLayoutEffect(() => {
     const now = columns && alone;
@@ -192,29 +189,97 @@ export default function ReviewView({
   // Never under a dialog on the route (Documents, Privacy and terms): a new page would close it.
   const dialogOpen = route.documents != null || route.legal != null;
   useEffect(() => {
-    if (!columns || dialogOpen) return;
-    if (mode === 'deck') {
-      if (selectedFp) selectPosting(null, true);
-      return;
-    }
-    if (selectedFp) return;
+    if (!columns || dialogOpen || selectedFp) return;
     const gone = deciding.on === listed ? deciding.gone : [];
     const first = listed.find((x) => !gone.some((g, i) => goneWith(g, deciding.mute[i])(x)));
     if (first) selectPosting(first.fingerprint, true);
-  }, [columns, dialogOpen, mode, selectedFp, listed, deciding]);
+  }, [columns, dialogOpen, selectedFp, listed, deciding]);
 
-  // The Deck's card (#545), and where it sits in the list as it shows ("1 of 4" in Find's caption).
-  const deckAt = Math.min(card, Math.max(0, listed.length - 1));
-  const deckPlace: DeckPlace | null =
-    view && mode === 'deck' && listed.length
-      ? { at: deckAt, count: listed.length, onAt: setCard }
-      : null;
-  const toggle = (f: FeedFilter) => {
-    setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
-    setShown(REVIEW_PAGE);
-    setLoadedMore('');
-    setCard(0);
+  // ↑ / ↓ at lg move the selection through the list as it shows (in place), and its card scrolls
+  // into view. Never while a text field, a menu or a dialog holds focus.
+  const listedRef = useRef(listed);
+  useEffect(() => {
+    listedRef.current = listed;
+  }, [listed]);
+  useEffect(() => {
+    if (!columns) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const t = e.target as Element | null;
+      if (t?.closest?.(KEY_OWNERS)) return;
+      if (document.querySelector('[role="dialog"], [role="menu"]')) return;
+      const rows = listedRef.current;
+      const fp = postingOf(getRoute());
+      const at = rows.findIndex((x) => x.fingerprint === fp);
+      const to = rows[at < 0 ? 0 : at + (e.key === 'ArrowDown' ? 1 : -1)];
+      if (!to) return;
+      e.preventDefault();
+      showUpTo(rows.indexOf(to));
+      selectPosting(to.fingerprint, true);
+      scrollWhenMounted(to.fingerprint, 'nearest');
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [columns, showUpTo]);
+
+  // Below lg (Adrian 2026-11-13): "‹ › 1 of N" steps a current card through the list. An arrow
+  // scrolls its card to the top and focuses its title; scrolling moves the current card with it
+  // (the first card whose bottom is past a quarter of the screen), so the count stays true.
+  const [cur, setCur] = useState<{ fp: string | null; at: number }>({ fp: null, at: 0 });
+  const curFound = cur.fp ? listed.findIndex((x) => x.fingerprint === cur.fp) : -1;
+  const curAt = listed.length
+    ? curFound >= 0
+      ? curFound
+      : Math.min(cur.at, listed.length - 1)
+    : 0;
+  const stepping = useRef(0);
+  // What an arrow press says (polite): the count alone would speak on every scroll (review of #714).
+  const [stepSaid, setStepSaid] = useState('');
+  const prevKey = useRef<HTMLButtonElement>(null);
+  const nextKey = useRef<HTMLButtonElement>(null);
+  const step = (d: -1 | 1) => {
+    const at = curAt + d;
+    const to = listed[at];
+    if (!to) return;
+    stepping.current = Date.now();
+    showUpTo(at);
+    setCur({ fp: to.fingerprint, at });
+    setStepSaid(`${at + 1} of ${listed.length}: ${rowName(to)}`);
+    // Focus stays on the arrow, so it can be pressed again (review of #714); at an end, where that
+    // arrow turns off, it moves to the other one.
+    if (at <= 0) requestAnimationFrame(() => nextKey.current?.focus());
+    else if (at >= listed.length - 1) requestAnimationFrame(() => prevKey.current?.focus());
+    scrollWhenMounted(to.fingerprint, 'start', () => (stepping.current = Date.now()));
   };
+  const pager = !wide && !!view && listed.length > 0 && !feed.error;
+  useEffect(() => {
+    if (!pager) return;
+    let raf = 0;
+    const follow = () => {
+      raf = 0;
+      // An arrow's own scroll (and the smooth tail of it) does not move the current card.
+      if (Date.now() - stepping.current < 600) return;
+      const line = window.innerHeight / 4;
+      const items = document.querySelectorAll<HTMLElement>('.rjb-find-list > li[data-window-key]');
+      for (const el of items) {
+        if (el.getBoundingClientRect().bottom > line) {
+          const fp = el.dataset.windowKey ?? null;
+          const at = listedRef.current.findIndex((x) => x.fingerprint === fp);
+          if (at >= 0) setCur((c) => (c.fp === fp ? c : { fp, at }));
+          return;
+        }
+      }
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(follow);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [pager]);
 
   // A decision that takes the selected posting away (its own, from the detail or its list card, or
   // Not this company on another card of its company) moves on to the next one in the list as it
@@ -269,56 +334,14 @@ export default function ReviewView({
   const open = (r: FeedRow) => selectPosting(r.fingerprint, true);
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
-  // Find's one empty state (#694): List and Deck show the same one, picked by cause, not by view.
-  const emptyCause: EmptyCause = on.length
-    ? 'filtered'
-    : view && decidedAny(view.hidden)
-      ? 'caughtUp'
-      : 'none';
-  const empty = <FindEmpty cause={emptyCause} onClear={() => setOn([])} />;
-  // One row under the hidden heading (2026-11-12): the New / Remote chips on the left, Browse | Deck
-  // (a compact two-icon segmented group) on the right; it wraps at narrow widths.
-  // The toggle shows only beside postings (Adrian 2026-11-13): no cards on screen (nothing read
-  // yet, loading, an error, or FindEmpty: none / caughtUp / filtered, incl. a Deck emptied by its
-  // last decision) and it hides, so it never floats alone. Where it shows, it stays put.
-  const showToggle = listed.length > 0 && !feed.error;
-  const showChips = !!view && view.rows.length > 0;
-  const tools = showToggle && (
-    <Stack direction="row" gap="px16" align="center" className="rjb-review-tools">
-      {/* List | Deck as one toggle (Adrian 2026-11-13): one HDS Button over the whole track, a tap
-          anywhere flips to the other view (Space and Enter too). Both icons show, the open one
-          filled; its name says the open view and what a press does. 44px hit area (.rjb-hit-44). */}
-      <HdsTooltip>
-        <HdsTooltip.Trigger asChild>
-          <Button
-            size="sm"
-            variant="tertiary"
-            aria-label={viewToggleName(mode)}
-            className="rjb-segs rjb-view-segs rjb-view-toggle rjb-hit-44"
-            data-mode={mode}
-            onClick={() => setMode(mode === 'deck' ? 'browse' : 'deck')}
-          >
-            {VIEW_TOGGLE.map(({ value, icon }) => (
-              <span
-                key={value}
-                aria-hidden="true"
-                className="rjb-seg-icon"
-                data-on={mode === value ? '' : undefined}
-              >
-                <Icon icon={icon} />
-              </span>
-            ))}
-          </Button>
-        </HdsTooltip.Trigger>
-        <HdsTooltip.Content>{`Switch to ${mode === 'deck' ? 'List' : 'Deck'}`}</HdsTooltip.Content>
-      </HdsTooltip>
-    </Stack>
-  );
+  // Find's one empty state (#694), picked by cause.
+  const emptyCause: EmptyCause = view && decidedAny(view.hidden) ? 'caughtUp' : 'none';
+  const empty = <FindEmpty cause={emptyCause} />;
   const panel = (
     <Panel label={label} title={label} titleHidden flat>
       <PanelBody>
         <Stack gap="normal">
-          {/* No status text above Browse / Deck (Adrian 2026-11-08): the source health and the "not
+          {/* No status text above the list (Adrian 2026-11-08): the source health and the "not
               shown" counts are the Account menu's Scan details. Screen readers still hear progress. */}
           {/* The counts left the heading and Find's caption (the New and Remote chips show them);
               a screen reader still hears them here, politely. */}
@@ -331,50 +354,49 @@ export default function ReviewView({
                     ? `${listed.length} postings, ${counts.new} new`
                     : ''))}
           </VisuallyHidden>
-          {(showChips || showToggle) && (
-            <Stack
-              direction="row"
-              gap="px8"
-              align="center"
-              justify="space-between"
-              className="rjb-review-row"
-            >
-              {showChips && (
-                <Stack
-                  direction="row"
-                  wrap="wrap"
-                  gap="xs"
-                  role="group"
-                  aria-label="Filter postings"
-                  className="rjb-review-chips"
-                >
-                  {FILTERS.map((f) => (
-                    <Tag
-                      key={f}
-                      active={on.includes(f)}
-                      aria-pressed={on.includes(f)}
-                      // New keeps its count; Remote is a plain toggle (Find controls, 2026-11-13). The
-                      // name says what is shown, label then count (axe label-content-name-mismatch).
-                      aria-label={f === 'new' ? `${FILTER_LABEL[f]} ${counts[f]}` : FILTER_LABEL[f]}
-                      onClick={() => toggle(f)}
-                    >
-                      {f === 'new' ? (
-                        <Stack as="span" direction="row" gap="px4" align="center">
-                          {FILTER_LABEL[f]}{' '}
-                          <CountBadge count={counts[f]} className="rjb-chip-count" />
-                        </Stack>
-                      ) : (
-                        FILTER_LABEL[f]
-                      )}
-                    </Tag>
-                  ))}
-                </Stack>
-              )}
-              {tools}
-            </Stack>
-          )}
         </Stack>
       </PanelBody>
+      {/* Below lg only, the pager row (Adrian 2026-11-13): "‹ › 1 of N" at its start. At lg
+          there is no row: the list starts under the tabs. A direct child of the panel, so it stays
+      stuck at the top while the list scrolls under it. */}
+      {pager && (
+        <Stack
+          direction="row"
+          gap="px8"
+          align="center"
+          role="group"
+          aria-label="Postings in the list"
+          className="rjb-find-pager"
+        >
+          <Button
+            ref={prevKey}
+            variant="tertiary"
+            iconOnly
+            label="Previous posting"
+            iconLeft={<Icon icon={ChevronLeft} />}
+            disabled={curAt <= 0}
+            onClick={() => step(-1)}
+          />
+          <Button
+            ref={nextKey}
+            variant="tertiary"
+            iconOnly
+            label="Next posting"
+            iconLeft={<Icon icon={ChevronRight} />}
+            disabled={curAt >= listed.length - 1}
+            onClick={() => step(1)}
+          />
+          {/* Not live: it follows the scroll. An arrow press is said once, below. */}
+          <Text variant="ui" as="span" className="rjb-find-pager-count">
+            {`${curAt + 1} of ${listed.length}`}
+          </Text>
+        </Stack>
+      )}
+      {pager && (
+        <VisuallyHidden as="p" role="status" aria-live="polite">
+          {stepSaid}
+        </VisuallyHidden>
+      )}
       {feed.error ? (
         <PanelBody>
           <EmptyState
@@ -402,17 +424,6 @@ export default function ReviewView({
             />
           </PanelBody>
         )
-      ) : mode === 'deck' ? (
-        <PanelBody>
-          <Deck
-            rows={listed}
-            at={deckAt}
-            onAt={setCard}
-            now={feed.at}
-            actions={actions}
-            empty={empty}
-          />
-        </PanelBody>
       ) : listed.length ? (
         <RowList
           label="New postings"
@@ -427,8 +438,10 @@ export default function ReviewView({
           onOpen={wide ? open : undefined}
           linked={wide ? null : linked}
           selected={selectedFp}
+          current={pager ? (listed[curAt]?.fingerprint ?? null) : null}
         />
-      ) : (
+      ) : columns ? null : (
+        // At lg the empty state is the right column's (the two columns stay, Adrian 2026-11-13).
         empty
       )}
     </Panel>
@@ -438,7 +451,6 @@ export default function ReviewView({
       ? header({
           newCount: view ? counts.new : null,
           selected: !!selectedFp,
-          deckPlace,
         })
       : !selectedFp && header;
   const list = (
@@ -449,7 +461,9 @@ export default function ReviewView({
     </Stack>
   );
   if (!header) return list;
-  const detail = (
+  const detail = alone ? (
+    empty
+  ) : (
     <PostingDetail
       key={selected?.fingerprint ?? selectedFp ?? 'none'}
       r={selected}
@@ -460,8 +474,8 @@ export default function ReviewView({
     />
   );
   // At lg: the list column beside the selected posting (the first one until another is picked).
-  // With no posting left, the list alone says so: there is nothing to show beside it.
-  if (columns && !alone)
+  // With no posting left, the right column says why (caught up, or nothing matches).
+  if (columns)
     return (
       <Sidebar side="start" sideWidth="26rem" contentMin="50%" gap="normal">
         {list}
@@ -480,20 +494,33 @@ const goneWith = (r: FeedRow, mute: boolean) => (x: FeedRow) =>
 
 const EMPTY_TITLE_ID = 'rjb-review-empty-title';
 
-/** What Find's short header shows (#544). */
-export interface DeckPlace {
-  /** The card shown, from 0. */
-  at: number;
-  count: number;
-  onAt: (n: number) => void;
+/** The mounted card of a posting in Find's list, if any. */
+/** Scroll a card into view once it is mounted (a page just shown mounts it a frame or two later). */
+function scrollWhenMounted(fp: string, block: ScrollLogicalPosition, onScroll?: () => void) {
+  let frames = 30;
+  const tick = () => {
+    const el = cardEl(fp);
+    if (!el) {
+      if (frames-- > 0) requestAnimationFrame(tick);
+      return;
+    }
+    onScroll?.();
+    el.scrollIntoView({ block });
+  };
+  requestAnimationFrame(tick);
 }
 
+function cardEl(fp: string): HTMLElement | null {
+  for (const el of document.querySelectorAll<HTMLElement>('.rjb-find-list > li[data-window-key]'))
+    if (el.dataset.windowKey === fp) return el;
+  return null;
+}
+
+/** What Find's short header shows (#544). */
 export interface FindTools {
   newCount: number | null;
   /** A posting is selected (at lg its title is the page's h1). */
   selected: boolean;
-  /** The Deck's place (#545): "‹ 1 of 4 ›" in the page bar; null outside the Deck. */
-  deckPlace: DeckPlace | null;
 }
 
 /** After a decision on a Browse card, focus goes to the title of the card that takes its place
@@ -535,10 +562,9 @@ function EmptySection({ children, cause }: { children: ReactNode; cause: EmptyCa
   );
 }
 
-/** Why Find has nothing to show (#694). One cause, one icon tile, one set of keys, in Browse and the
- *  Deck alike: `none` nothing read or nothing matches, `caughtUp` every posting is saved or
- *  skipped, `filtered` the filters hide them all. */
-type EmptyCause = 'none' | 'caughtUp' | 'filtered';
+/** Why Find has nothing to show (#694). One cause, one icon tile, one set of keys: `none` nothing
+ *  read or nothing matches, `caughtUp` every posting is saved or skipped. */
+type EmptyCause = 'none' | 'caughtUp';
 
 const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; description: string }> = {
   none: {
@@ -552,14 +578,9 @@ const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; descript
     description:
       'Every posting from your sources is saved or skipped. The next scan brings new ones.',
   },
-  filtered: {
-    icon: ListFilter,
-    title: 'No postings with these filters',
-    description: 'Turn a filter off to see more.',
-  },
 };
 
-function FindEmpty({ cause, onClear }: { cause: EmptyCause; onClear: () => void }) {
+function FindEmpty({ cause }: { cause: EmptyCause }) {
   const copy = EMPTY_COPY[cause];
   return (
     <EmptySection cause={cause}>
@@ -569,15 +590,7 @@ function FindEmpty({ cause, onClear }: { cause: EmptyCause; onClear: () => void 
         titleId={EMPTY_TITLE_ID}
         title={copy.title}
         description={copy.description}
-        action={
-          cause === 'filtered' ? (
-            <Button variant="primary" onClick={onClear}>
-              Clear filters
-            </Button>
-          ) : (
-            <NoResultsKeys caughtUp={cause === 'caughtUp'} />
-          )
-        }
+        action={<NoResultsKeys caughtUp={cause === 'caughtUp'} />}
       />
     </EmptySection>
   );
@@ -635,6 +648,7 @@ function RowList({
   onOpen,
   selected,
   linked = null,
+  current = null,
 }: {
   label: string;
   rows: FeedRow[];
@@ -649,6 +663,8 @@ function RowList({
   selected: string | null;
   /** Below lg, an old #/find/<fingerprint> link's posting: scrolled into view. */
   linked?: string | null;
+  /** Below lg, the pager's current card: kept mounted. */
+  current?: string | null;
 }) {
   const left = rows.length - shown;
   // Auto-load (2026-11-12): the sentinel pages the list; Review's polite status says "Loaded N more".
@@ -658,7 +674,7 @@ function RowList({
   const visible = rows.slice(0, shown);
   const { listRef, itemRef, segments } = useWindowedList(
     visible.map((r) => r.fingerprint),
-    [selected, linked],
+    [selected, linked, current],
   );
   // The linked card is found by its key on the mounted list (it is always kept mounted), so no
   // element reference outlives its card.
@@ -678,6 +694,7 @@ function RowList({
         as="ul"
         ref={listRef}
         aria-label={label}
+        className="rjb-find-list"
         sx={{
           listStyle: 'none',
           m: 0,
@@ -799,19 +816,16 @@ function postingKeys(r: FeedRow, actions: RowActions, openKey = true): ReactNode
 function PostingActions({
   r,
   actions,
-  decide = true,
   openKey = true,
 }: {
   r: FeedRow;
   actions: RowActions;
-  /** False in the Deck (#545): Save, Skip and More sit in the Deck's action row. */
-  decide?: boolean;
   /** The Open posting key; a compact Browse card has none (its title is the way in, #544). */
   openKey?: boolean;
 }) {
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      {decide && postingKeys(r, actions, openKey)}
+      {postingKeys(r, actions, openKey)}
       <PostingMenu r={r} actions={actions} />
     </Stack>
   );
@@ -819,16 +833,7 @@ function PostingActions({
 
 /** More (…): Not this company. On a card it ends the action row; in the detail it sits beside
  *  the title block, as a job's More does (one detail template, #546). */
-function PostingMenu({
-  r,
-  actions,
-  className,
-}: {
-  r: FeedRow;
-  actions: RowActions;
-  /** The Deck's dock (2026-11-13): a fixed 44px key at the row's end (FindDeck.css). */
-  className?: string;
-}) {
+function PostingMenu({ r, actions }: { r: FeedRow; actions: RowActions }) {
   // Not this company is picked in the menu (a portal): its feedback anchors on the trigger.
   const more = useRef<HTMLButtonElement>(null);
   const sheet = useBackSheet(`posting-more:${r.fingerprint}`);
@@ -843,7 +848,6 @@ function PostingMenu({
           iconOnly
           iconLeft={<Icon icon={Ellipsis} />}
           label={`More actions: ${rowName(r)}`}
-          className={className}
         />
       </Menu.Trigger>
       <Menu.Content align="start">
@@ -855,23 +859,14 @@ function PostingMenu({
   );
 }
 
-/** Save, the filled key, and Skip, the grey key: on a card's action row, or in the Deck's dock
- *  (#545), where `from` is the Deck's card so it collapses as it goes. */
-function SaveKey({
-  r,
-  actions,
-  from,
-}: {
-  r: FeedRow;
-  actions: RowActions;
-  from?: () => Element | null;
-}) {
+/** Save, the filled key, and Skip, the grey key, on a card's action row and in the detail. */
+function SaveKey({ r, actions }: { r: FeedRow; actions: RowActions }) {
   return (
     <Button
       size="md"
       variant="primary"
       aria-label={`Save ${rowName(r)}`}
-      onClick={(e) => actions.save(r, from ? from() : e.currentTarget)}
+      onClick={(e) => actions.save(r, e.currentTarget)}
     >
       <Icon icon={Plus} />
       Save
@@ -879,21 +874,13 @@ function SaveKey({
   );
 }
 
-function SkipKey({
-  r,
-  actions,
-  from,
-}: {
-  r: FeedRow;
-  actions: RowActions;
-  from?: () => Element | null;
-}) {
+function SkipKey({ r, actions }: { r: FeedRow; actions: RowActions }) {
   return (
     <Button
       size="md"
       variant="secondary"
       aria-label={`Skip ${rowName(r)}`}
-      onClick={(e) => actions.skip(r, from ? from() : e.currentTarget)}
+      onClick={(e) => actions.skip(r, e.currentTarget)}
     >
       Skip
     </Button>
@@ -912,9 +899,7 @@ function PostingCard({
   onOpen,
   keys = true,
   compact = false,
-  decide = true,
   actions,
-  children,
 }: {
   r: FeedRow;
   now: number;
@@ -924,11 +909,7 @@ function PostingCard({
   keys?: boolean;
   /** A Browse card (#544): three cards and part of a fourth fit on a phone. */
   compact?: boolean;
-  /** False in the Deck (#545): Save and Skip are in the action dock. */
-  decide?: boolean;
   actions: RowActions;
-  /** Extra content above the footer (the Deck's excerpt). */
-  children?: ReactNode;
 }) {
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
@@ -981,10 +962,9 @@ function PostingCard({
           </Text>
         )}
         {compact && <BrowseExcerpt r={r} />}
-        {children}
-        {keys && (decide || compact) && (
+        {keys && (
           <Box sx={{ pt: compact ? undefined : 'xs' }}>
-            <PostingActions r={r} actions={actions} decide={decide} openKey={!compact} />
+            <PostingActions r={r} actions={actions} openKey={!compact} />
           </Box>
         )}
       </Stack>
@@ -1011,100 +991,6 @@ function CardTitleLink({ r, onOpen }: { r: FeedRow; onOpen?: (r: FeedRow) => voi
     </InlineLink>
   ) : (
     <>{r.title}</>
-  );
-}
-
-/** One card at a time (#545): the same posting card, its text at once (7 lines) with "Read the
- *  full posting", and Skip (grey), Save (filled) and More (…, Not this company) in one row under it (inline under the card at lg). "1 of N" is Find's caption, not a pager row;
- *  a sideways swipe, or the arrow keys on the card, steps it. A decided card leaves the deck, so
- *  the next one takes its place. */
-function Deck({
-  rows,
-  at,
-  onAt,
-  now,
-  actions,
-  empty,
-}: {
-  rows: FeedRow[];
-  at: number;
-  onAt: (n: number) => void;
-  now: number;
-  actions: RowActions;
-  /** Find's shared empty state (`FindEmpty`), the same one Browse shows. */
-  empty: ReactNode;
-}) {
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  // After Save, Skip or Not this company the decided card leaves: focus goes to the title of the
-  // card that takes its place, or to Find's h1 once the deck is empty (#545 follow-up), never left
-  // on the dock key or dropped to <body>. A decision that does not land (the double-tap guard, a
-  // double Save) lets the mark lapse.
-  const decided = useRef<{ fp: string; until: number } | null>(null);
-  const shown = rows[at]?.fingerprint ?? null;
-  useEffect(() => {
-    const mark = decided.current;
-    if (!mark || shown === mark.fp) return;
-    decided.current = null;
-    if (Date.now() > mark.until) return;
-    const title = cardRef.current?.querySelector<HTMLElement>('h3');
-    if (shown && title) focusAsHeading(title);
-    else focusNewHeading(null);
-  }, [shown]);
-  const mark = (row: FeedRow) => {
-    decided.current = { fp: row.fingerprint, until: Date.now() + 2000 };
-  };
-  const deckActions: RowActions = {
-    save: (row, from) => {
-      mark(row);
-      actions.save(row, from);
-    },
-    skip: (row, from) => {
-      mark(row);
-      actions.skip(row, from);
-    },
-    mute: (row, from) => {
-      mark(row);
-      actions.mute(row, from);
-    },
-  };
-  if (!rows.length) return <>{empty}</>;
-  const r = rows[at];
-  const step = (d: -1 | 1) => {
-    const to = at + d;
-    if (to >= 0 && to < rows.length) onAt(to);
-  };
-  const from = () => cardRef.current;
-  return (
-    <Stack gap="normal" className="rjb-deck">
-      <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
-        <Card
-          ref={cardRef}
-          as="article"
-          aria-label={rowName(r)}
-          padding="none"
-          onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
-            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-            if ((e.target as Element).closest('input, textarea, [role="menu"]')) return;
-            e.preventDefault();
-            step(e.key === 'ArrowLeft' ? -1 : 1);
-          }}
-        >
-          <DeckBody>
-            <PostingCard r={r} now={now} actions={deckActions} decide={false}>
-              <DeckExcerpt r={r} />
-            </PostingCard>
-          </DeckBody>
-        </Card>
-      </SwipeArea>
-      {/* In flow under the card, its width, at every width (Adrian 2026-11-13): no fixed dock on Find. */}
-      <ActionDock docked={false} row label={`Actions for ${rowName(r)}`}>
-        <SkipKey r={r} actions={deckActions} from={from} />
-        <SaveKey r={r} actions={deckActions} from={from} />
-        {/* More (Not this company) ends the row (Adrian 2026-11-13): beside the title it shrank as
-            the title wrapped; here it is a fixed 44px key and the title has the card's width. */}
-        <PostingMenu r={r} actions={deckActions} className="rjb-deck-more" />
-      </ActionDock>
-    </Stack>
   );
 }
 
@@ -1147,45 +1033,6 @@ function BrowseExcerpt({ r }: { r: FeedRow }) {
   );
 }
 
-/** The Deck's excerpt (#545): the posting's text at once, cut at 7 lines, then "Read the full
- *  posting" (the posting itself, in a new tab). No disclosure. */
-function DeckExcerpt({ r }: { r: FeedRow }) {
-  const { text, loading } = usePostingText(r);
-  const raw = text.trim() ? excerpt(text, 1200) : r.snippet;
-  // All-caps runs ("ABOUT RAMP") read as a sentence, as Browse's excerpt does.
-  const body = raw ? capsToSentence(raw) : raw;
-  const link = httpUrl(r.url);
-  return (
-    <Stack gap="px8">
-      {body ? (
-        <Text variant="body" as="p" tone="secondary" className="rjb-deck-excerpt">
-          {body}
-        </Text>
-      ) : loading ? (
-        <Stack gap="px8" aria-busy="true">
-          <Skeleton variant="text" width="90%" />
-          <Skeleton variant="text" width="70%" />
-        </Stack>
-      ) : null}
-      {link && (
-        <Text as="p" variant="ui">
-          <InlineLink href={r.url} standalone size="sm">
-            Read the full posting
-          </InlineLink>
-        </Text>
-      )}
-    </Stack>
-  );
-}
-
-function DeckBody({ children }: { children: ReactNode }) {
-  return (
-    <Box sx={{ p: 'md' }}>
-      <Stack gap="normal">{children}</Stack>
-    </Box>
-  );
-}
-
 function LoadingRows() {
   return (
     <Box aria-busy>
@@ -1207,8 +1054,7 @@ function LoadingRows() {
 /** The selected posting (#471 slice 3; was the preview dialog, Adrian 2026-10-28): its details,
  *  why it is listed and a first look at its text, with Save, Skip and Not this company, and Open
  *  posting one tap away. Its title is the page's h1. At lg it is the right column ("Pick a
- *  posting" until one is picked); below lg its own view, with Back to the list and "‹ 2 of N ›"
- *  over the list as it shows. A decision moves on to the next posting. */
+ *  posting" until one is picked). A decision moves on to the next posting. */
 function PostingDetail({
   r,
   waiting,

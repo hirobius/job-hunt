@@ -22,14 +22,12 @@ export default function Today() {
   if (profile)
     return (
       // The short header (#544: "Find", "Scanned 2 h ago", one More menu), then every
-      // design-system posting, newest first, as a list (the Deck is a toggle inside). Review hosts
+      // design-system posting, newest first, as a list (list only since 2026-11-13). Review hosts
       // the header, so its count is the Feed's own.
       <ReviewView
         label="New postings"
         scanStatus
-        header={({ selected, deckPlace }) => (
-          <FindHeader heading={!selected} deckPlace={deckPlace} />
-        )}
+        header={({ selected }) => <FindHeader heading={!selected} />}
         before={picks}
       />
     );

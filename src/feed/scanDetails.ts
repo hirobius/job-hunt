@@ -1,5 +1,5 @@
 // What Review new last read, for the Account menu's Scan details (Adrian 2026-11-08): Find shows no
-// status text above Browse / Deck, so the source health and the "not shown" counts live there.
+// status text above its list, so the source health and the "not shown" counts live there.
 // Review new writes it as its view changes; the dialog reads it. In memory, per page load.
 // Only the store lives here (CloudSyncProvider, in the entry, clears it); its wording is
 // scanDetailsText.ts, so the strings stay out of the entry.

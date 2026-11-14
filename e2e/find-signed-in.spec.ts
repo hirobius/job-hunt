@@ -1,4 +1,4 @@
-// Find shows no status text above Browse / Deck (Adrian 2026-11-08). Signed in, the server syncs
+// Find shows no status text above the list (Adrian 2026-11-08). Signed in, the server syncs
 // every 15 minutes: no Scan now; "Updated N min ago" from the last sync_log run is in Scan details
 // (the Account menu's Search profile, #549). Signed out, one compact Scan now beside the Review new heading. Supabase is faked at the network:
 // a stored session, an empty cloud copy and a sync_log run 4 minutes ago.
@@ -53,11 +53,11 @@ for (const width of [390, 1440]) {
     await fakeSupabase(page, new Date(Date.now() - 4 * 60_000).toISOString());
     await signIn(page);
     await page.goto('/#/review');
-    // No postings yet: the empty state, never the List | Deck toggle alone (Adrian 2026-11-13).
+    // No postings yet: the empty state, never a pager alone (2026-11-13).
     await expect(page.getByRole('region', { name: 'No postings' })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
+    await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
     await page.waitForTimeout(1500);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
     await expect(
@@ -79,7 +79,7 @@ for (const width of [390, 1440]) {
 }
 
 // #694: no More menu on Find. Scan now (signed out) sits in the Account menu beside Search profile;
-// the Review row's right side is List | Deck alone (no Sort since 2026-11-13). No Scan now key on the page.
+// Find has no filter row or view switch (2026-11-13). No Scan now key on the page.
 test('signed out: Scan now is in the Account menu, beside Search profile (390)', async ({
   page,
 }) => {
@@ -89,8 +89,8 @@ test('signed out: Scan now is in the Account menu, beside Search profile (390)',
   await expect(review.getByRole('region', { name: 'No postings' })).toBeVisible({
     timeout: 15_000,
   });
-  // No postings shown: no List | Deck toggle (Adrian 2026-11-13).
-  await expect(review.getByRole('button', { name: /^View: / })).toHaveCount(0);
+  // No postings shown: no pager (2026-11-13).
+  await expect(review.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
   // No Scan now key on the page outside the empty state's own key (#694).
   const empty = review.getByRole('region', { name: 'No postings' });
   await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(
