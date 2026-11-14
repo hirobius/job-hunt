@@ -40,26 +40,27 @@ for (const width of [390, 1440]) {
         expect(account!.x).toBeGreaterThan(logo!.x + logo!.width - 1);
         expect(account!.width).toBeGreaterThanOrEqual(44);
       }).toPass({ timeout: 10_000 });
-      await topTab(page, 'Find').click();
-      await expect(page).toHaveURL(/#\/find/);
-      await expect(topTab(page, 'Find')).toHaveAttribute('aria-current', 'page');
+      await topTab(page, 'Review').click();
+      await expect(page).toHaveURL(/#\/review/);
+      await expect(topTab(page, 'Review')).toHaveAttribute('aria-current', 'page');
       await page.goBack();
       await expect(page).toHaveURL(/#\/apply/);
       await expect(topTab(page, 'Apply')).toHaveAttribute('aria-current', 'page');
     });
 
-    test('the top tabs show no counts (2026-11-13)', async ({ page }) => {
-      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    test('Review shows its count, Apply none (2026-11-13)', async ({ page }) => {
+      await manyPostings(page, 12);
       await seed(page);
-      await page.goto('/#/apply');
+      await page.goto('/#/review');
       const nav = page.getByRole('navigation', { name: 'Sections' });
+      await expect(nav.getByRole('link', { name: /^Review/ })).toHaveAccessibleName('Review 12');
       await expect(nav.getByRole('link', { name: /^Apply/ })).toHaveAccessibleName('Apply');
-      await expect(nav.getByRole('link', { name: /^Find/ })).toHaveAccessibleName('Find');
+      await expect(nav.locator('.rjb-seg-count')).toHaveCount(1);
     });
 
     test('Find: one list, no view switch and no filter row (2026-11-13)', async ({ page }) => {
       await seed(page);
-      await page.goto('/#/find');
+      await page.goto('/#/review');
       // Postings or the empty state (at lg the right column's), whichever the reads give.
       const list = page.getByRole('list', { name: 'New postings' });
       await expect(list.or(page.getByRole('region', { name: 'No postings' }))).toBeVisible({
@@ -169,25 +170,31 @@ for (const width of [390, 1440]) {
   });
 }
 
-// Equal segments, no counts (2026-11-13): Find | Apply are two
-// equal segments, each 44px tall on a phone; the page bar fits on one row at 375 and 390 and wraps,
-// never scrolls sideways, at 320.
-for (const width of [320, 375, 390]) {
-  test(`Find | Apply: equal segments, no counts, fit at ${width}`, async ({ page }) => {
+// Equal segments, Review's count (2026-11-13): Review | Apply are two equal segments, each 44px
+// tall on a phone, on one row. Below 400px the count pill is hidden visually (it stays in the name),
+// so the page bar never runs past the screen or overlaps its tools; from 400 the "99+" pill shows
+// inside its segment.
+for (const width of [320, 375, 390, 414]) {
+  test(`Review | Apply: equal segments, a 99+ count, fit at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await manyPostings(page, 120);
     await seed(page);
-    await page.goto('/#/apply');
+    await page.goto('/#/review');
     const nav = page.getByRole('navigation', { name: 'Sections' });
+    const review = nav.getByRole('link', { name: /^Review/ });
+    await expect(review).toHaveAccessibleName('Review 99+');
     const apply = nav.getByRole('link', { name: /^Apply/ });
     await expect(apply).toHaveAccessibleName('Apply');
-    await expect(nav.locator('.rjb-seg-count')).toHaveCount(0);
-    const [find, app] = [await topTab(page, 'Find').boundingBox(), await apply.boundingBox()];
-    expect(Math.abs(find!.width - app!.width)).toBeLessThan(1);
-    expect(Math.abs(find!.y - app!.y)).toBeLessThan(1);
-    expect(find!.height).toBeGreaterThanOrEqual(44);
+    const [rev, app] = [await review.boundingBox(), await apply.boundingBox()];
+    expect(Math.abs(rev!.width - app!.width)).toBeLessThan(1);
+    expect(Math.abs(rev!.y - app!.y)).toBeLessThan(1);
+    expect(rev!.height).toBeGreaterThanOrEqual(44);
     const navBox = await nav.boundingBox();
     expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(width);
+    const pill = await nav.locator('.rjb-seg-count').boundingBox();
+    if (width < 400) expect(pill!.width).toBeLessThanOrEqual(1);
+    // From 400 the pill shows, inside its segment.
+    else expect(pill!.x + pill!.width).toBeLessThanOrEqual(rev!.x + rev!.width);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
@@ -233,3 +240,42 @@ test.describe('at 390, the view picker', () => {
     expect(caret!.x + caret!.width).toBeLessThan(box!.x + box!.width);
   });
 });
+
+/** n synthetic design-system postings from one Hacker News thread; every other host answers empty
+ *  (no real people). Review reads them as new, so its tab shows the count. */
+async function manyPostings(page: Page, n: number) {
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+    const url = r.request().url();
+    const json = (body: unknown) =>
+      r.fulfill({
+        status: 200,
+        headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    if (url.startsWith('https://remotive.com/') || url.startsWith('https://jobicy.com/'))
+      return json({ jobs: [] });
+    if (url.startsWith('https://api.lever.co/')) return json([]);
+    if (/^https:\/\/(boards-api\.greenhouse\.io|api\.ashbyhq\.com)\//.test(url))
+      return json({ jobs: [] });
+    if (!url.startsWith('https://hn.algolia.com/')) return r.abort();
+    if (url.includes('search_by_date'))
+      return json({
+        hits: [
+          {
+            objectID: '9',
+            title: 'Ask HN: Who is hiring? (October 2026)',
+            created_at: '2026-10-01',
+          },
+        ],
+      });
+    return json({
+      hits: Array.from({ length: n }, (_, i) => ({
+        objectID: `p-${i}`,
+        story_id: 9,
+        parent_id: 9,
+        created_at: new Date().toISOString(),
+        comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+      })),
+    });
+  });
+}

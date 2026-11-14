@@ -101,11 +101,11 @@ const renderFindPage = () =>
 /** Find's two columns (#471 slice 3): the list and the selected posting, at lg. */
 const renderFind = () => {
   viewport(1280);
-  window.location.hash = '#/find';
+  window.location.hash = '#/review';
   return render(
     <ToastProvider>
       <main>
-        <ReviewView header={<h1>Find</h1>} />
+        <ReviewView header={<h1>Review</h1>} />
       </main>
       <NoticeHost />
     </ToastProvider>,
@@ -584,9 +584,9 @@ describe('Review new: card anatomy (#458)', () => {
     await user.click(save);
     // No posting left: the two columns stay and the right one says so (Adrian 2026-11-13).
     expect(await screen.findByText('You’re all caught up')).toBeInTheDocument();
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     expect(screen.queryByText('Pick a posting')).toBeNull();
-    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
     const empty = screen.getByRole('region', { name: 'No postings' });
     expect(empty.closest('.rjb-find-detail')).not.toBeNull();
   });
@@ -596,7 +596,7 @@ describe('Review new: card anatomy (#458)', () => {
     const ul = await list();
     const first = titles(ul)[0]!;
     expect(await screen.findByRole('heading', { level: 1, name: first })).toBeInTheDocument();
-    expect(window.location.hash).toMatch(/^#\/find\/./);
+    expect(window.location.hash).toMatch(/^#\/review\/./);
     expect(within(ul).getAllByRole('article', { current: true })).toHaveLength(1);
     expect(screen.queryByText('Pick a posting')).toBeNull();
   });
@@ -702,12 +702,12 @@ describe('Review new: card anatomy (#458)', () => {
 });
 
 describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
-  const renderPhoneFind = (hash = '#/find') => {
+  const renderPhoneFind = (hash = '#/review') => {
     window.location.hash = hash;
     return render(
       <ToastProvider>
         <main>
-          <ReviewView header={<h1>Find</h1>} />
+          <ReviewView header={<h1>Review</h1>} />
         </main>
         <NoticeHost />
       </ToastProvider>,
@@ -732,19 +732,19 @@ describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
       'true',
     );
     expect(within(card).getByRole('link', { name: /Read the full posting/ })).toBeInTheDocument();
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
   });
 
-  it('an old #/find/<fingerprint> link opens Find with that card in view', async () => {
+  it('an old #/find/<fingerprint> link (Find was renamed Review) opens Review with that card in view', async () => {
     const seen: Element[] = [];
     Element.prototype.scrollIntoView = vi.fn(function (this: Element) {
       seen.push(this);
     });
     renderPhoneFind(`#/find/${encodeURIComponent(postingFingerprint(BASIC[2]))}`);
     const ul = await list();
-    await waitFor(() => expect(window.location.hash).toBe('#/find'));
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     // The page itself, not a posting view: Find's h1 and the list.
-    expect(screen.getByRole('heading', { level: 1, name: 'Find' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
     const card = within(ul)
       .getAllByRole('article')
       .find((a) => within(a).queryByText('Beta'))!;
@@ -891,7 +891,7 @@ describe('Review new: every design-system posting, no tiers', () => {
     const next = await screen.findByRole('heading', { level: 1 });
     await waitFor(() => expect(next).not.toHaveTextContent('Design Systems Engineer, Web'));
     expect(screen.queryByText('Pick a posting')).toBeNull();
-    expect(window.location.hash).toMatch(/^#\/find\/./);
+    expect(window.location.hash).toMatch(/^#\/review\/./);
     await waitFor(() => expect(titles(ul)).toHaveLength(2));
     expect(getAllDecided().decided).toHaveLength(1);
   });
@@ -920,7 +920,7 @@ describe('Review new: every design-system posting, no tiers', () => {
     await user.click(
       within(next.closest('section') as HTMLElement).getByRole('button', { name: /^Skip / }),
     );
-    const find = await screen.findByRole('heading', { level: 1, name: 'Find' });
+    const find = await screen.findByRole('heading', { level: 1, name: 'Review' });
     await waitFor(() => expect(find).toHaveFocus());
   });
 

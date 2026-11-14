@@ -142,12 +142,12 @@ describe('a job page goes back to where it was opened from', () => {
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await waitFor(() => expect(findJobByUrl(A)).toBeUndefined());
-    window.location.hash = '#/find';
-    await at('#/find');
+    window.location.hash = '#/review';
+    await at('#/review');
     await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
     await waitFor(() => expect(findJobByUrl(A)).toBeDefined());
-    expect(getRoute()).toMatchObject({ tab: 'find' });
-    expect(window.location.hash).toBe('#/find');
+    expect(getRoute()).toMatchObject({ tab: 'review' });
+    expect(window.location.hash).toBe('#/review');
   });
 
   it('a Remove: Undo brings the row back in the list in place with its flash, no route change (#593)', async () => {
@@ -340,7 +340,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   };
 
   it('Sign in, picked from the Account menu, with an email typed', async () => {
-    await over('#/find', '#/apply');
+    await over('#/review', '#/apply');
     await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
@@ -350,7 +350,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     await closesOnBack(() => screen.queryByRole('dialog', { name: 'Sign in' }), '#/apply');
     // No step left behind by the menu: the next Back leaves the page.
     window.history.back();
-    await at('#/find');
+    await at('#/review');
   });
 
   it('Recently removed', async () => {
@@ -387,14 +387,14 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   });
 
   it("Remove from a job page opened on its own: Back doesn't come back to the removed job", async () => {
-    await over('#/find', `#/apply/${idA}`);
+    await over('#/review', `#/apply/${idA}`);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove from Apply' }));
     await at('#/apply');
     await new Promise((r) => setTimeout(r, 80));
     window.history.back();
-    await at('#/find');
+    await at('#/review');
   });
 
   it('closing it on screen leaves no extra step for Back', async () => {
@@ -526,28 +526,28 @@ describe('one navigation per Remove, Delete or double click', () => {
     expect(pops.count()).toBe(1);
   });
 
-  it('a double click on Back to Find goes back once', async () => {
-    await startAt('#/find', `#/apply/${idA}?from=%2Ffind`);
+  it('a double click on Back to Review goes back once', async () => {
+    await startAt('#/review', `#/apply/${idA}?from=%2Ffind`);
     await heading('Fabricator');
     const pops = countPops();
-    doubleClick(screen.getByRole('button', { name: 'Back to Find' }));
-    await staysAt('#/find');
+    doubleClick(screen.getByRole('button', { name: 'Back to Review' }));
+    await staysAt('#/review');
     pops.stop();
     expect(pops.count()).toBe(1);
   });
 
-  it('a double click on Back to Find goes back once, even when the page stalls past the grace', async () => {
-    await startAt('#/find', `#/apply/${idA}?from=%2Ffind`);
+  it('a double click on Back to Review goes back once, even when the page stalls past the grace', async () => {
+    await startAt('#/review', `#/apply/${idA}?from=%2Ffind`);
     await heading('Fabricator');
     const pops = countPops();
-    doubleClick(screen.getByRole('button', { name: 'Back to Find' }));
+    doubleClick(screen.getByRole('button', { name: 'Back to Review' }));
     // A busy machine: the main thread stalls past the 2 s grace before the pop's task runs. The
     // grace timer then fired first and let the second click pop again (route.ts startPop).
     const stalled = Date.now();
     while (Date.now() - stalled < 2100) {
       // stalled
     }
-    await staysAt('#/find');
+    await staysAt('#/review');
     pops.stop();
     expect(pops.count()).toBe(1);
   });

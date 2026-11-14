@@ -52,8 +52,8 @@ describe('App top-level tab wiring', () => {
   it('renders the two top tabs (Find · Apply) as links in a nav, each to its page', () => {
     renderApp();
     const tabs = topTabs();
-    expect(tabs.map((t) => t.textContent)).toEqual(['Find', 'Apply']);
-    expect(tabs.map((t) => t.getAttribute('href'))).toEqual(['#/find', '#/apply']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Review', 'Apply']);
+    expect(tabs.map((t) => t.getAttribute('href'))).toEqual(['#/review', '#/apply']);
     // Links, not ARIA tabs: no tab list, no tab panel (each opens a page).
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.queryByRole('tabpanel')).toBeNull();
@@ -63,25 +63,25 @@ describe('App top-level tab wiring', () => {
     window.location.hash = '#/apply';
     renderApp();
     expect(topTab('Apply')).toHaveAttribute('aria-current', 'page');
-    expect(topTab('Find')).not.toHaveAttribute('aria-current');
+    expect(topTab('Review')).not.toHaveAttribute('aria-current');
   });
 
   it('drawn as a segmented control but still a nav of links: a tap routes, Back returns (2026-11-09)', async () => {
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     expect(screen.queryByRole('radiogroup')).toBeNull();
-    expect(topTab('Find').className).toBe('rjb-seg');
+    expect(topTab('Review').className).toBe('rjb-seg');
     topTab('Apply').click();
     await vi.waitFor(() => expect(window.location.hash).toMatch(/^#\/apply/));
     await vi.waitFor(() => expect(topTab('Apply')).toHaveAttribute('aria-current', 'page'));
     window.history.back();
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/find'));
-    await vi.waitFor(() => expect(topTab('Find')).toHaveAttribute('aria-current', 'page'));
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/review'));
+    await vi.waitFor(() => expect(topTab('Review')).toHaveAttribute('aria-current', 'page'));
   });
 
   it('defaults to the Today tab when the hash carries no route (#383)', () => {
     renderApp();
-    expect(currentTab()).toHaveAccessibleName('Find');
+    expect(currentTab()).toHaveAccessibleName('Review');
   });
 });
 
@@ -93,8 +93,8 @@ describe('an unknown route (review nit)', () => {
     // No top tab is current.
     expect(queryCurrentTab()).toBeNull();
     expect(screen.queryByRole('tabpanel')).toBeNull();
-    screen.getByRole('button', { name: 'Go to Find' }).click();
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/find'));
+    screen.getByRole('button', { name: 'Go to Review' }).click();
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/review'));
   });
 
   // Supabase's email link signs in through the hash (implicit flow), and an expired or used link
@@ -109,15 +109,15 @@ describe('an unknown route (review nit)', () => {
   ])('a sign-in callback (%s) lands on Today, not Page not found', (hash, kept) => {
     window.location.hash = hash;
     renderApp();
-    expect(currentTab('Find')).toBeInTheDocument();
+    expect(currentTab('Review')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
-    expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/find');
+    expect(window.location.hash).toBe(kept === 'kept' ? hash : '#/review');
   });
 
   it('the old Trades slug (#/apprenticeships) still lands on home', () => {
     window.location.hash = '#/apprenticeships';
     renderApp();
-    expect(currentTab('Find')).toBeInTheDocument();
+    expect(currentTab('Review')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
   });
 });
@@ -147,7 +147,7 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
     // A page-kind change replays the motion by restarting the class on the same node.
     const removed = vi.spyOn(stack.classList, 'remove');
     await act(async () => {
-      window.location.hash = '#/find';
+      window.location.hash = '#/review';
     });
     expect(removed).toHaveBeenCalledWith('rjb-view-enter');
     expect(stack.classList.contains('rjb-view-enter')).toBe(true);
@@ -171,22 +171,23 @@ describe('the one-row app bar (#548)', () => {
     expect(bar.parentElement).toBe(screen.getByRole('main'));
     expect(bar.parentElement?.firstElementChild).toBe(bar);
     // The app bar's one row: the logo and Account, no tabs.
-    const logo = screen.getByRole('link', { name: `${BRAND.name}, Find` });
+    const logo = screen.getByRole('link', { name: `${BRAND.name}, Review` });
     const row = logo.parentElement as HTMLElement;
     expect(row.contains(screen.getByRole('button', { name: /^Account/ }))).toBe(true);
     expect(row.contains(nav)).toBe(false);
     expect(screen.getAllByRole('navigation', { name: 'Sections' })).toHaveLength(1);
   });
 
-  it('the tabs show no counts (Find controls, 2026-11-13)', async () => {
+  it('Review shows its count, Apply none (2026-11-13)', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     setScanDetails({ failed: [], hidden: [], newToday: 7, sourcesRead: 3 });
     window.location.hash = '#/apply';
     renderApp();
     await screen.findByRole('navigation', { name: 'Sections' });
     expect(topTab('Apply')).toHaveAccessibleName('Apply');
-    expect(topTab('Find')).toHaveAccessibleName('Find');
-    expect(topTab('Find').textContent).toBe('Find');
+    expect(await screen.findByRole('link', { name: 'Review 7' })).toBeInTheDocument();
+    setScanDetails({ failed: [], hidden: [], newToday: 0, sourcesRead: 3 });
+    await vi.waitFor(() => expect(topTab('Review').textContent).toBe('Review'));
     expect(topTab('Apply').textContent).toBe('Apply');
   });
 });

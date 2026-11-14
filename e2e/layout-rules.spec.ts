@@ -286,8 +286,8 @@ for (const theme of THEMES) {
       test('the focused top tab draws one ring around its label', async ({ page }) => {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
-        await page.goto('/#/find');
-        const tab = topTab(page, 'Find');
+        await page.goto('/#/review');
+        const tab = topTab(page, 'Review');
         await expect(tab).toBeVisible();
         await page.keyboard.press('Shift'); // a key press first, so focus shows as focus-visible
         await tab.focus();

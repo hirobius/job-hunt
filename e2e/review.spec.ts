@@ -83,9 +83,9 @@ async function templateOf(page: Page) {
 
 async function setUp(page: Page) {
   await feed(page);
-  await page.goto('/#/find');
+  await page.goto('/#/review');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
-  await expect(page).toHaveURL(/#\/find$/);
+  await expect(page).toHaveURL(/#\/review$/);
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
   // The profile has landed (the list shows), so the page no longer swaps under the click. Signed
   // out, nothing scans on open (2026-11-07): Scan now does.
@@ -157,13 +157,13 @@ for (const width of [390, 1440]) {
 
     if (width >= 1024) {
       // At lg Find opens on the first posting (Adrian 2026-11-12, #546), like Apply's first job.
-      await expect(page).toHaveURL(/#\/find\/.+/);
+      await expect(page).toHaveURL(/#\/review\/.+/);
       const first = await list.getByRole('heading', { level: 3 }).first().innerText();
       await expect(page.getByRole('heading', { level: 1, name: first })).toBeVisible();
       await expect(page.getByText('Pick a posting')).toHaveCount(0);
       // A title selects another posting for the detail column (#471 slice 3), in place.
       await list.getByRole('link', { name: 'Design Systems Designer', exact: true }).click();
-      await expect(page).toHaveURL(/#\/find\/.+/);
+      await expect(page).toHaveURL(/#\/review\/.+/);
       await expect(
         page.getByRole('heading', { level: 1, name: 'Design Systems Designer' }),
       ).toBeVisible();
@@ -191,9 +191,9 @@ for (const width of [390, 1440]) {
       await expect(link).toHaveAttribute('target', '_blank');
       await expect(card.getByRole('button', { name: /description/ })).toHaveCount(0);
       await expect(card.getByRole('link', { name: /^Open posting for / })).toHaveCount(0);
-      await expect(page).toHaveURL(/#\/find$/);
+      await expect(page).toHaveURL(/#\/review$/);
       await page.screenshot({ path: `test-results/review-selected-${width}.png` });
-      await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible();
     }
 
     // Skip hides only that posting: Orbit's other one stays.
@@ -321,7 +321,7 @@ for (const width of [375, 390]) {
         })),
       });
     });
-    await page.goto('/#/find');
+    await page.goto('/#/review');
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
     const since = await page.evaluate(() => Date.now());

@@ -12,7 +12,7 @@ export function FindHeader({
 }) {
   return heading ? (
     <Text as="h1" variant="title" className="sr-only">
-      Find
+      Review
     </Text>
   ) : null;
 }

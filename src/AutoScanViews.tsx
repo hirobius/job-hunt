@@ -109,7 +109,7 @@ export function NewCompanies() {
     const undo = followFound(f.key);
     showNotice({
       title: `Following ${f.name}`,
-      description: 'Its jobs show in Find.',
+      description: 'Its jobs show in Review.',
       tone: 'success',
       actions: [{ label: 'Undo', run: undo }],
     });
@@ -130,7 +130,7 @@ export function NewCompanies() {
   return (
     <Stack gap="tight">
       <Text variant="caption" as="p" tone="secondary">
-        Found by the scan. A confirmed board’s matching jobs are already in Find.
+        Found by the scan. A confirmed board’s matching jobs are already in Review.
       </Text>
       {matching.length > 0 && (
         <ItemList label="Found companies" inset="none">

@@ -175,7 +175,7 @@ describe('Pipeline panels (rev-3)', () => {
 describe('Today: no cards within cards (#449)', () => {
   it('Review new is a plain section (heading + count), not a card', async () => {
     viewport(390);
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     const { container } = renderApp();
     const review = await screen.findByRole('region', { name: /^New postings$/ });
     expect(isCard(review)).toBe(false);

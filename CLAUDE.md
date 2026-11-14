@@ -42,7 +42,7 @@ the still mark (`brandHtml.ts`); `src/brand/bootFlame.ts`, its own small chunk p
 budget), runs the simulation on those paths until React replaces the splash; reduced motion / no script shows the still
 mark. No flame anywhere repeats: `loopFrames`, the baked frames and the `rjb-boot-frame` CSS are gone
 (`flameEngine.test.ts` fails if a loop comes back). The splash still fades in after a short beat.
-**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Find, #620;
+**Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Review, #620;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
 `.rjb-wordmark-l` for the flicker; the og-image keeps a plain run). `wordmark.css` sets them on one baseline, the
@@ -231,8 +231,19 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
-- **Two screens: Find and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
-  top tabs and no other full page; each is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
+- **Two screens: Review and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
+  top tabs and no other full page. **Find was renamed Review (Adrian 2026-11-13):** the tab, its h1, `document.title`,
+  the logo's name ("roleflame, Review"), routeLabel ("← Review") and the copy that names the tab say Review; the slug
+  is `review` (`route.ts` `FIND_TAB = 'review'`; code identifiers such as `FIND_TAB`, `Today.tsx`, `FindHeader`,
+  `findHash` keep their names), and `redirectOf` sends `#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place
+  (no history step; an old `?from=/find` reads as Review). Where a section below says Find, read Review. The Find
+  box (Add job's "Type a company or title instead") and "Find more jobs" are verbs and keep the word. **Review's
+  count (2026-11-13):** the Review tab shows the postings still to decide, the number the New chip showed until #714 removed it
+  (`scanDetails.newToday`), as a `CountBadge` (99+, the chip's #694 fills; `TopTabCount.tsx`, a lazy chunk), none at 0;
+  Apply has none. Below 400px the pill is hidden visually (`TopTabCount.css`, in its lazy chunk), so the app bar stays one row with no overlapping
+  hit areas; the name keeps the count at every width ("Review 12"; `test/topTabs.ts`, `e2e/routes.ts` `topTab`)
+  (Adrian 2026-11-13 chose this over the wrap). The Review page has no visible title: its h1 is `.sr-only` (`FindHeader.tsx`), so the tab is the one visible "Review". Pinned in `e2e/shell-controls.spec.ts` (320, 375, 390, 414).
+  Each screen is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
   selection is the route; Documents and Privacy and terms are dialogs in the page's URL. **This section is the current
   shell: where an older section below (Job routes, Final shell, Rapid apply, Pipeline panels, Return paths) says
   Pipeline, `#/queue`, Today, Apply mode or a Documents / Legal page, read it as history.** The top tabs are **Find** (slug `find`,
@@ -275,7 +286,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   signed-in device with no jobs yet shows "Loading your jobs…" first (#478), at every width. **Find (slice 3):**
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
-- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Find**
+- **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Review** (was Find)
   (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
   tab pages (a job, a posting, a Company) and two dialogs over them (Documents, Privacy and terms; #471 slice 4). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Find.
@@ -513,9 +524,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   logo · Find / Apply · Account (the phone's 52px second row is gone; below sm the segments' sides narrow to 6 and the
   row's minimum gap is 4, so it fits at 375 and 390; where it cannot fit, a 320 screen, it wraps the tabs under the logo). Concentric corners (hds#1470): `.rjb-segs` sets
   `--seg-rail-radius`, `--seg-rail-pad` (= its real padding) and `--seg-inner-radius`, which `.rjb-seg` takes. The tabs
-  show **no counts** (Find controls, 2026-11-13: `TopTabCount.tsx` is deleted; the To apply view chip keeps Apply's number,
-  and Find shows none since the New chip went (#714); the bar wraps at 320, `e2e/shell-controls.spec.ts`). Find and Apply are equal segments (`.rjb-segs`
-  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label alone ("Apply"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Find", never a heading;
+  show **a count on Review only** (see Two screens, Review's count: `TopTabCount.tsx`, `scanDetails.newToday`; Apply has
+  none, the To apply view chip keeps its number; the bar wraps at 320, `e2e/shell-controls.spec.ts`). Review and Apply are equal segments (`.rjb-segs`
+  `grid-template-columns: 1fr 1fr`, label centred, the whole segment the target, 44px tall on a phone): the link's name is its label and count ("Review 12"; `test/topTabs.ts`). **The logo is the home link (#620):** `.rjb-logo-link` around the `.rjb-logo` box (its 44px min-height is the target), named "roleflame, Review", never a heading;
   a plain click opens Find at its root from anywhere (on Find, back to its root, or to the top at the root), unlike
   a tab tap, which reopens where the tab was left. Find has no List / Deck switch since 2026-11-13 (list only). Segment pills
   nest in their track (`--seg-inner-radius` = rail radius less its pad) and draw the ledge as a gradient clipped by

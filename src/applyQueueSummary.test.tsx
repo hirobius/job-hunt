@@ -97,7 +97,12 @@ describe('Follow up says the same number as its view chip (prod audit 2026-11-12
     const now = new Date(2026, 9, 30, 12);
     const jobs = [
       { url: 'https://a.example.com/1', label: 'Due', status: 'Applied', applied: '2026-10-20' },
-      { url: 'https://a.example.com/2', label: 'Waiting', status: 'Applied', applied: '2026-10-28' },
+      {
+        url: 'https://a.example.com/2',
+        label: 'Waiting',
+        status: 'Applied',
+        applied: '2026-10-28',
+      },
       {
         url: 'https://a.example.com/3',
         label: 'Snoozed',

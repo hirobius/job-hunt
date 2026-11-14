@@ -80,7 +80,7 @@ describe('a first visit', () => {
     // The seed list, followed with no step at all.
     expect(getSources()).toHaveLength(seedSources().length);
     expect(seedSources().length).toBeGreaterThan(20);
-    expect(window.location.hash).toBe('#/find');
+    expect(window.location.hash).toBe('#/review');
     expect(await screen.findByRole('region', { name: /^New postings$/ })).toBeInTheDocument();
     // No setup screen and no step counter anywhere.
     expect(screen.queryByText('Set up your search')).toBeNull();
@@ -97,7 +97,7 @@ describe('a first visit', () => {
 
   it('jobs saved before a profile existed get the profile too, with no setup screen', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     renderApp();
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();

@@ -85,7 +85,7 @@ const EMAIL = `Email${SIGN_IN_HOW}`;
 
 describe('SignInDialog', () => {
   it('ends with one legal line whose two links open Privacy and terms on their tab (2026-11-13)', () => {
-    window.location.hash = '#/find';
+    window.location.hash = '#/review';
     const { dialog } = setup();
     const line = within(dialog).getByText(/^By signing in, you agree to/);
     expect(line).toHaveTextContent(
@@ -93,11 +93,11 @@ describe('SignInDialog', () => {
     );
     expect(within(line).getByRole('link', { name: 'Terms of use' })).toHaveAttribute(
       'href',
-      '#/find?legal=terms',
+      '#/review?legal=terms',
     );
     expect(within(line).getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
       'href',
-      '#/find?legal=privacy',
+      '#/review?legal=privacy',
     );
     // The only legal links on the screen, and the last thing in it.
     expect(

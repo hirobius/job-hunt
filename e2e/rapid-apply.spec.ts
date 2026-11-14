@@ -43,7 +43,7 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   });
 
   // A first visit gets the design-systems Search profile on its own (no setup screen).
-  await page.goto('/#/find');
+  await page.goto('/#/review');
 
   // Save all three postings from Review new; each leaves the list and says where it went.
   const list = page.getByRole('list', { name: 'New postings' });
