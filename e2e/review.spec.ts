@@ -265,7 +265,7 @@ for (const width of [390, 1440]) {
       await expect(
         page.locator('.rjb-find-detail').getByText('You’re all caught up'),
       ).toBeVisible();
-      await expect(page.getByRole('heading', { level: 1, name: 'Find' })).toBeFocused();
+      await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeFocused();
     } else {
       // Below lg the empty state's title takes the focus the last card left (#508).
       await expect(page.locator('#rjb-review-empty-title')).toBeFocused();
