@@ -103,19 +103,11 @@ export default defineConfig({
           c.moduleIds.some((m) => m.includes('@supabase/supabase-js'))
             ? 'assets/supabase-[hash].js'
             : 'assets/[name]-[hash].js',
-        // Split heavy vendors out of the app chunk so the initial payload is
-        // cacheable and smaller (the app was shipping as one ~657 kB bundle).
+        // React is its own long-cached chunk. Every other package is left to the bundler, so a
+        // module rides the chunk of the code that imports it: what only a lazy view uses (HDS's
+        // TokenField, Select, Pagination, their radix deps, supabase-js) stays lazy. A catch-all
+        // 'vendor' group put all of node_modules on the first load (252.8 → 227.1 kB gzip).
         manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
-          // supabase-js is a dynamic import (src/supabase.ts): leave it out of every group so it
-          // gets its own lazy chunk. A named group would also pull in its shared deps (tslib, used
-          // by HDS's radix deps), and vendor would then import the whole chunk at startup.
-          if (/[\\/]node_modules[\\/](@supabase|iceberg-js)[\\/]/.test(id)) return undefined;
-          // A lucide icon only a lazy screen uses rides that screen's chunk, not the first load's
-          // vendor (the sign-in screen's Pause / Play, #519 review). Its createLucideIcon stays in
-          // vendor; nothing at startup imports these files.
-          if (/[\\/]lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/](pause|play)\.js$/.test(id))
-            return undefined;
           // Exact react/react-dom/scheduler only. A loose includes('react') also caught
           // @radix-ui/react-* and lucide-react (HDS deps), splitting HDS across chunks
           // and creating a circular-init crash ("createContext of undefined").
