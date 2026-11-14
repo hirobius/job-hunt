@@ -29,3 +29,6 @@ d22c251c3ea6f9d19c8ee63bfd5314a4fe1d4f5e:index.html:generic-api-key:805
 # the public Supabase publishable key (RLS-protected by design) and the test JWT fixture.
 1a3f4b6ef8ab398a017b8080c8ac394a66d44d6b:src/config.ts:generic-api-key:4
 1a3f4b6ef8ab398a017b8080c8ac394a66d44d6b:src/errorReport.test.ts:jwt:36
+# board-keys.json is one minified line of ATS slugs: "headout","linkedin","<slug>" reads as a LinkedIn secret.
+1a3f4b6ef8ab398a017b8080c8ac394a66d44d6b:src/feed/data/board-keys.json:linkedin-client-secret:1
+0dfea02c990274caabc7248793a7a60d9fabcbcc:src/feed/data/board-keys.json:linkedin-client-secret:1
