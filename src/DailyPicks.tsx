@@ -10,6 +10,7 @@ import {
   Badge,
   Box,
   Button,
+  Card,
   Icon,
   InlineLink,
   Stack,
@@ -23,7 +24,6 @@ import { decided } from './decided';
 import { collapseRow } from './feedback';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { copyFilled } from './templateCopy';
-import { FactLines } from './hds-gaps/FactLines';
 import { loadPicks, openPicks, pickFacts, pickJobFields, shortDay, type DailyPick } from './picks';
 
 type OpenPick = ReturnType<typeof openPicks>[number];
@@ -125,7 +125,11 @@ function PickRow({ pick: p }: { pick: OpenPick }) {
               <Badge tone={p.employment === 'contract' ? 'info' : 'neutral'}>{kind}</Badge>
             </Stack>
             {/* One fact per line, the icon on the first line (#616; 2026-11-12). */}
-            <FactLines
+            <Card.Facts
+              className="p-0"
+              // Plain lines, not a list inside each card's list item (as FactLines was): a list of
+              // cards counts only its cards.
+              role="presentation"
               items={[
                 { icon: Banknote, label: pay },
                 { icon: Calendar, label: postedLine },
