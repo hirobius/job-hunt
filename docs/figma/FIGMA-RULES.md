@@ -44,6 +44,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   right; the first posting is selected, so the detail is never empty; ↑ / ↓ move the selection. Below
   1024 px: the list alone, scrolled, with **no pager** (Adrian 2026-11-14: in a scrolled list its arrows only
   jumped the page). No pager at any width.
+- **"N new postings" (2026-11-15).** Postings that arrive after the list has loaded, or once the person is reading,
+  wait behind a small secondary key with an up arrow, "3 new postings", centred at the top of the list and stuck there
+  as it scrolls; it floats over the cards (no height of its own), so nothing moves. A tap puts them in at the top and
+  goes there. Every width.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 
@@ -112,7 +116,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   line or sample line: Remote only follows the Search profile's work mode (every count and the pager
   follow it), the list is newest first, a closed job shows by its Closed badge, and Clear sample
   data is in the Account menu. Focus rings and the selected fill are never clipped at the column's edges.
-- **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
+- **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: signed out the label "On this device only. Sign in to sync your jobs across devices.", then
   "Sign in" as a grey key (signed in: the email, the sync
   line, Sign out). Then Documents, Search profile, Scan now (signed out only; Stop scan while one runs), Companies, Data. Then Pause animations as a
   toggle with a switch on the right that shows the state (the theme is the app bar's sun/moon
@@ -164,7 +168,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The app bar logo (#639):** the flame's mass sits on the name's x-height centre (not its box
   centre): the flame sits about 3 px lower than a box-centred one at 19 px.
 - **Sign-in (#555, #556):** the stacked flame and name, centred by the flame's mass (not its box),
-  then the benefit: "Sign in to see your jobs on any device." (body, primary). Continue with Google
+  then the benefit: "Sign in to sync your jobs across devices." (body, primary). Continue with Google
   and LinkedIn are secondary with no raised edge (shadow none), so Send link leads. Then the email
   field with its helper under it, "We email you a sign-in link. No password needed." (caption,
   secondary), Send link (filled) and Continue without an account (underlined exit). At the foot, one

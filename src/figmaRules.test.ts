@@ -31,7 +31,7 @@ describe('FIGMA-RULES.md', () => {
   it('keeps the sign-in words as the code says them (#555)', () => {
     const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');
     for (const line of [
-      'Sign in to see your jobs on any device.',
+      'Sign in to sync your jobs across devices.',
       'We email you a sign-in link. No password needed.',
     ]) {
       expect(RULES).toContain(line);
@@ -117,13 +117,15 @@ describe('FIGMA-RULES.md', () => {
       expect(menu).toContain(name);
     // The signed-out group: a short label with the benefit, then the key "Sign in".
     const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');
+    // One benefit line (2026-11-15): the menu's label is "On this device only." + the screen's.
     for (const line of [
-      'On this device only. Sign in to sync across devices.',
+      "SIGN_IN_BENEFIT = 'Sign in to sync your jobs across devices.'",
+      'SIGN_IN_LABEL = `On this device only. ${SIGN_IN_BENEFIT}`',
       "SIGN_IN_ITEM = 'Sign in'",
     ])
       expect(COPY).toContain(line);
     for (const doc of [RULES, CLAUDE])
-      expect(doc).toContain('"On this device only. Sign in to sync across devices."');
+      expect(doc).toContain('"On this device only. Sign in to sync your jobs across devices."');
     expect(menu).toContain('<MenuToggleItem');
     expect(menu).not.toMatch(/>\s*Scan details\s*</);
     expect(fs.readFileSync('src/hds-gaps/MenuToggleItem.tsx', 'utf8')).toContain(
@@ -184,6 +186,15 @@ describe('FIGMA-RULES.md', () => {
     expect(RULES).toMatch(/A job with no link\s+never shows Open application/);
     expect(fs.readFileSync('src/dockKeys.ts', 'utf8')).toContain(
       "{ id: 'addLink', rank: 'secondary' }",
+    );
+  });
+
+  it('pins "N new postings" (2026-11-15): late postings wait; nothing moves', () => {
+    expect(RULES).toMatch(/\*\*"N new postings" \(2026-11-15\)\.\*\*/);
+    expect(CLAUDE).toMatch(/\*\*Late postings wait \(Adrian\s+2026-11-15/);
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('useHeldPostings(');
+    expect(fs.readFileSync('src/FindList.css', 'utf8')).toMatch(
+      /\.rjb-find-new \{[^}]*block-size: 0;/,
     );
   });
 

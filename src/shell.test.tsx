@@ -211,7 +211,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
-      'label:On this device only. Sign in to sync across devices.',
+      'label:On this device only. Sign in to sync your jobs across devices.',
       'item:Sign in',
       '---',
       'item:Documents',

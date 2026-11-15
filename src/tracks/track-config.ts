@@ -29,6 +29,14 @@ export const DESIGN_ENGINEER_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\b(desig
 /** Design Technologist titles, with the same guard. */
 export const DESIGN_TECHNOLOGIST_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\bdesign technologists?\\b`;
 
+/** Product-design titles that count when the description confirms design-systems work (Adrian
+ *  2026-11-15): Product, UX, UI, Visual or Interaction Designer. Adjacent in the scorer (two body
+ *  signals queue it, one holds it for review, none rejects it), and the Feed's inclusion check
+ *  lets the same titles in on the same evidence (feed/include.ts `bodyConfirms`). */
+export const PRODUCT_DESIGN_TITLE = '(product|ux|ui|visual|interaction) designer';
+/** Body signals a product-design title needs for the Feed to list it: the scorer's queue bar. */
+export const BODY_SIGNALS_TO_LIST = 2;
+
 export const designSystemsTrack: TrackConfig = {
   slug: 'design-systems',
   name: 'Design Systems',
@@ -51,8 +59,10 @@ export const designSystemsTrack: TrackConfig = {
   titleAdjacent: [
     'creative technologist',
     'ui engineer',
-    'front[- ]end (engineer|developer).*(design|ui|component)',
-    '(product|ux|ui) designer.*(platform|infrastructure|systems|foundations|core)',
+    // "Frontend" too (2026-11-15: "Frontend Engineer, UI Platform" matched nothing).
+    'front[- ]?end (engineer|developer).*(design|ui|component)',
+    '(software|web|platform) engineer.*(ui platform|design infrastructure|component librar)',
+    PRODUCT_DESIGN_TITLE,
     'design.*foundations',
     'foundations (designer|engineer)',
     'pattern library',
@@ -116,7 +126,7 @@ export const designSystemsTrack: TrackConfig = {
       weight: 1,
     },
   ],
-  adjacentSignalsToQueue: 2,
+  adjacentSignalsToQueue: BODY_SIGNALS_TO_LIST,
   adjacentSignalsToReview: 1,
   aggregatorQueries: [
     '"design systems" engineer remote',

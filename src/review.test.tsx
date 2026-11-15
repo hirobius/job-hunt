@@ -154,6 +154,48 @@ describe('Review new: Browse', () => {
     await waitFor(async () => expect(titles(await list())).toEqual(['Design Systems Lead']));
   });
 
+  it('a posting that answers late waits behind "1 new posting"; nothing moves (Adrian 2026-11-15)', async () => {
+    const first = renderReview();
+    await list();
+    await waitFor(() => expect(localStorage.getItem('rjb_feed_last')).not.toBeNull());
+    first.unmount();
+    resetViewMemory();
+    let answer: (r: FeedResult) => void = () => {};
+    feed.fetchFeed.mockReset().mockReturnValue(new Promise<FeedResult>((r) => (answer = r)));
+    const user = userEvent.setup();
+    renderReview();
+    expect(titles(await list())).toHaveLength(3);
+    // The person is reading the list: a scroll.
+    act(() => {
+      document.dispatchEvent(new Event('scroll'));
+    });
+    const late = post('hn:9', 'Principal Design Systems Engineer', 'Latecomer', {
+      postedAt: new Date(Date.now() + 1000).toISOString(),
+    });
+    await act(async () => answer(result([late, ...BASIC])));
+    const key = await screen.findByRole('button', { name: '1 new posting' });
+    // Held: the cards on screen stay where they were, the late one is not above them.
+    expect(titles(await list())).not.toContain('Principal Design Systems Engineer');
+    expect(titles(await list())).toHaveLength(3);
+    expect(screen.getAllByRole('status').some((e) => e.textContent === '1 new posting')).toBe(true);
+    const scrolled = vi.fn();
+    window.scrollTo = scrolled as typeof window.scrollTo;
+    await user.click(key);
+    expect(screen.queryByRole('button', { name: /new posting/ })).toBeNull();
+    expect(titles(await list())[0]).toBe('Principal Design Systems Engineer');
+    expect(scrolled).toHaveBeenCalledWith({ top: 0 });
+    // Focus goes to the top card's title, not <body>.
+    await waitFor(() =>
+      expect(document.activeElement?.textContent).toMatch(/^Principal Design Systems Engineer/),
+    );
+  });
+
+  it('postings of the first load show as they come, with no "new postings" key', async () => {
+    renderReview();
+    expect(titles(await list())).toHaveLength(3);
+    expect(screen.queryByRole('button', { name: /new posting/ })).toBeNull();
+  });
+
   it('lists every undecided posting and says how many are new from how many sources', async () => {
     const { container } = renderReview();
     const ul = await list();

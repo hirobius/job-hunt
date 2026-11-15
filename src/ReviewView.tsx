@@ -47,6 +47,7 @@ import {
   SearchX,
   WifiOff,
   CircleCheck,
+  ArrowUp,
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
@@ -61,6 +62,7 @@ import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
 import { useAutoLoad } from './autoLoad';
+import { useHeldPostings } from './heldPostings';
 import { spacerRef, useWindowedList } from './useWindowedList';
 import { placeSaysRemote } from './feed/placeRemote';
 import { capsToSentence } from './feed/capsCase';
@@ -138,15 +140,26 @@ export default function ReviewView({
     [setShown],
   );
 
-  // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
-  const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
-  const listed = rows;
-  const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   // The selected posting is in the route (#/find/<fingerprint>), so a link to it is shareable and
   // survives a reload. At lg Browse opens on the first posting, as Apply opens on its first job
   // (Adrian 2026-11-12, #546); below lg nothing is selected (no posting page).
   const route = useRoute();
   const selectedFp = postingOf(route);
+  // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
+  const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
+  // Late postings wait behind "N new postings" (Adrian 2026-11-15): no jump under the cards read.
+  // A change the person makes to what the list is (the Search profile, a company followed) fills it
+  // as a first load again, so a new company's jobs still show at once (2026-10-28).
+  const {
+    shown: listed,
+    held,
+    showHeld,
+  } = useHeldPostings(rows, {
+    settled: !!view && !feed.loading && !feed.progress,
+    keep: [selectedFp],
+    reset: [feed.profile, feed.sources],
+  });
+  const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   const selected = selectedFp
     ? (view?.rows.find((r) => r.fingerprint === selectedFp) ?? null)
     : null;
@@ -294,6 +307,7 @@ export default function ReviewView({
               a screen reader still hears them here, politely. */}
           <VisuallyHidden as="p" role="status" aria-live="polite">
             {loadedMore ||
+              (held.length ? newPostingsLabel(held.length) : null) ||
               ((scanStatus ? null : line) ??
                 (feed.loading
                   ? 'Reading your sources…'
@@ -331,20 +345,39 @@ export default function ReviewView({
           </PanelBody>
         )
       ) : listed.length ? (
-        <RowList
-          label="New postings"
-          rows={listed}
-          shown={shown}
-          onMore={(added) => {
-            setLoadedMore(`Loaded ${added} more`);
-            setShown((n) => n + REVIEW_PAGE);
-          }}
-          now={feed.at}
-          actions={actions}
-          onOpen={wide ? open : undefined}
-          linked={wide ? null : linked}
-          selected={selectedFp}
-        />
+        <>
+          {held.length > 0 && (
+            // Sticky at the top of the list, so it shows wherever the person is reading.
+            <Box className="rjb-find-new">
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Icon icon={ArrowUp} />}
+                onClick={() => {
+                  showHeld();
+                  window.scrollTo({ top: 0 });
+                  if (rows[0]) focusTitleOf(rows[0].fingerprint);
+                }}
+              >
+                {newPostingsLabel(held.length)}
+              </Button>
+            </Box>
+          )}
+          <RowList
+            label="New postings"
+            rows={listed}
+            shown={shown}
+            onMore={(added) => {
+              setLoadedMore(`Loaded ${added} more`);
+              setShown((n) => n + REVIEW_PAGE);
+            }}
+            now={feed.at}
+            actions={actions}
+            onOpen={wide ? open : undefined}
+            linked={wide ? null : linked}
+            selected={selectedFp}
+          />
+        </>
       ) : columns ? null : (
         // At lg the empty state is the right column's (the two columns stay, Adrian 2026-11-13).
         empty
@@ -426,6 +459,20 @@ export interface FindTools {
   newCount: number | null;
   /** A posting is selected (at lg its title is the page's h1). */
   selected: boolean;
+}
+
+/** "1 new posting" / "12 new postings": the key that shows the postings held back. */
+const newPostingsLabel = (n: number) => `${n} new posting${n === 1 ? '' : 's'}`;
+
+/** After "N new postings", focus goes to the top card's title (no ring), once it is mounted. */
+function focusTitleOf(fp: string) {
+  let frames = 30;
+  const tick = () => {
+    const h = cardEl(fp)?.querySelector<HTMLElement>('h3');
+    if (h) focusAsHeading(h);
+    else if (frames-- > 0) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 /** After a decision on a Browse card, focus goes to the title of the card that takes its place
@@ -535,7 +582,7 @@ const rowActions: RowActions = {
     saveRow(from, () => {
       // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
       if (alreadyInApply(r.url)) return;
-      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
+      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review'));
       if (!url) {
         showNotice({
           title: 'Couldn’t save that posting',
