@@ -4,3 +4,27 @@
 .rjb-window-spacer {
   block-size: var(--rjb-spacer-h, 0px);
 }
+
+/* "N new postings" (Adrian 2026-11-15): late postings wait behind it, stuck at the top of the list
+ * so it shows wherever the person is reading. It takes no height (it floats over the cards), so
+ * the list does not move when it comes or goes. */
+[data-hds] .rjb-find-new {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  block-size: 0;
+  overflow: visible;
+  display: flex;
+  justify-content: center;
+}
+[data-hds] .rjb-find-new > button {
+  margin-block-start: var(--primitive-space-2);
+}
+
+/* HDS sets `overflow-x: hidden` on html and body. With both set, body is a scroll container that
+ * never scrolls (the viewport does), so `position: sticky` never sticks. While the key shows,
+ * `clip` stops sideways scroll the same way without a scroll container. */
+html:has(.rjb-find-new),
+body[data-hds]:has(.rjb-find-new) {
+  overflow-x: clip;
+}
