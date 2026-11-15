@@ -11,6 +11,7 @@ const named = <P extends object>(c: ComponentType<P>) => ({ default: c });
 
 export const SignInDialog = lazyView(importFresh(() => import('./account/SignInDialog')));
 export const MergeConfirmDialog = lazyView(importFresh(() => import('./account/AuthGuards')));
+export const SignOutConfirmDialog = lazyView(importFresh(() => import('./account/SignOutConfirm')));
 export const LinkConfirmScreen = lazyView(importFresh(() => import('./account/LinkConfirmScreen')));
 export const ExportLinksDialog = lazyView(importFresh(() => import('./ExportLinksDialog')));
 export const CompaniesDialog = lazyView(importFresh(() => import('./CompaniesDialog')));
@@ -41,6 +42,7 @@ export const preloadDialogs = () =>
       SignInDialog,
       LinkConfirmScreen,
       MergeConfirmDialog,
+      SignOutConfirmDialog,
       ExportLinksDialog,
       CompaniesDialog,
       SearchProfileDialog,

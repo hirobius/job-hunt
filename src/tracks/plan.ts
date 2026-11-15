@@ -9,7 +9,7 @@
 // wrote. Pure, no React or storage: the edge function, the dry-run script and the tests load it.
 import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.ts';
 import { BOARD_KINDS, BOARD_SLUG } from '../feed/boardSet.ts';
-import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
+import { DEFAULT_SCORER, profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
 import { nameKey, sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
 import { SERVER_FEEDS, WHOLE_LIST_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
@@ -146,13 +146,16 @@ export function compileProfile(p: {
 }
 
 /** A v12 profile as a scorer config. Related titles count only on a design systems scorer (the
- *  app's rule: mustInclude.ts lets them in on a "design system(s)" rule only). */
+ *  app's rule: mustInclude.ts lets them in on a "design system(s)" rule only). A profile that names
+ *  no scorer is read with `DEFAULT_SCORER` (profileModel.ts), as the Feed reads it; one with no
+ *  title on searches nothing, so it stays no plan. */
 export function configForProfile(p: Profile): TrackConfig | null {
   const relatedOff =
     p.include.related === false ? Object.keys(RELATED_PATTERNS) : (p.include.relatedOff ?? []);
+  const titles = profileTitles(p);
   return compileProfile({
-    titles: profileTitles(p),
-    scorer: p.scorer,
+    titles,
+    scorer: p.scorer ?? (titles.length ? DEFAULT_SCORER : undefined),
     relatedOff,
     mustInclude: p.include.terms,
     leaveOut: p.leaveOut,
@@ -207,6 +210,20 @@ const cleanTerms = (titles: string[]) => {
     .slice(0, MAX_TERMS_PER_USER);
 };
 
+/** What a design systems plan searches the term feeds for (HN, Remotive, Jobicy), 2026-11-15:
+ *  the profile's first design-system title (a feed that matches whole phrases finds it), then
+ *  "design systems" (every design-system title; the old list's cap of 3 cut it), then the related
+ *  titles that are on, which the old list never searched, then the profile's other design-system
+ *  titles. `cleanTerms` keeps the first `MAX_TERMS_PER_USER`, so with a title of its own a
+ *  profile searches that, "design systems" and "design engineer". */
+export function designSystemsTerms(titles: string[], config: TrackConfig): string[] {
+  const related = Object.entries(RELATED_PATTERNS)
+    .filter(([, pattern]) => config.titleStrong.includes(pattern))
+    .map(([id]) => id);
+  const [first, ...rest] = titles.filter(saysDesignSystem);
+  return [...(first ? [first] : []), 'design systems', ...related.sort(), ...rest];
+}
+
 const isV12 = (o: O) =>
   (typeof o.v === 'number' && o.v >= 12) || Array.isArray(o.sources) || Array.isArray(o.profiles);
 
@@ -246,9 +263,7 @@ function planV12(o: O): SyncPlan | null | undefined {
     for (const f of ['rss', ...SERVER_FEEDS] as const) feeds.delete(f);
   const titles = profileTitles(p);
   const terms =
-    config.slug === designSystemsTrack.slug
-      ? titles.filter(saysDesignSystem).concat('design systems')
-      : titles;
+    config.slug === designSystemsTrack.slug ? designSystemsTerms(titles, config) : titles;
   return {
     from: 'v12',
     config,

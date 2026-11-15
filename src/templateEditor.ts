@@ -9,7 +9,7 @@ export const TOKEN_CHIPS = [
   { token: '[Role]', hint: "Fills from the job's title" },
   { token: '[Contact]', hint: "Fills from the job's contact" },
   { token: '[Angle]', hint: "Fills from the job's angle (why you fit)" },
-  { token: '[Your name]', hint: 'Fills from your Application kit name, or set it here' },
+  { token: '[Your name]', hint: 'Your name. Set it here' },
 ] as const;
 
 /** Put `text` at the caret (or over the selection); with no caret it goes on the end. */

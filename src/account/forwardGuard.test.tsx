@@ -21,6 +21,7 @@ import {
   renderAccount,
   addDeviceDataIfAsked,
   chooseAccountItem,
+  answerSignOutAsk,
   chooseDataAction,
   openAccount,
 } from '../test/renderAccount';
@@ -139,10 +140,9 @@ describe('a newer blob version in the cloud (#382)', () => {
 
   it('Sign out still signs out (a reload alone would stop again), and pushes nothing', async () => {
     const { signOut, reload } = await stoppedByNewer();
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     await chooseAccountItem('Sign out');
+    await answerSignOutAsk(true); // this device's job never reached the cloud: asked first
     await waitFor(() => expect(reload).toHaveBeenCalled());
-    expect(confirm).toHaveBeenCalled(); // this device's job never reached the cloud: asked first
     expect(signOut).toHaveBeenCalled();
     expect(localStorage.getItem('rjb_shortlist') ?? '').not.toContain('jobs/local');
     expect(row()!.data).toEqual(NEWER);

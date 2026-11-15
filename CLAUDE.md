@@ -60,7 +60,7 @@ copy, max 4 s.
 **Animated logo (Adrian 2026-11-06): `src/brand/RoleFlame.tsx`** (flameEngine's flame + the flickering name, kept as
 code, never an SVG/image) is the **app bar** (`BrandLogo` → `LazyRoleFlameLogo`, fontSize 19; a lazy chunk behind the still
 `Wordmark still`, so the entry stays under budget) and the **sign-in screen** (`layout="stacked"`, centred; two sizes, 40px with the keyboard closed and 20px open
-(`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523; **mass-centred, #556:** the stacked flame moves right by `STACKED_FLAME_NUDGE_EM`, the name's ink offset (`NAME_INK_OFFSET_EM`, measured again in `e2e/brand.spec.ts`) less the flame's mean mass offset (`FLAME_MASS`, measured again over 300 frames in `flameEngine.test.ts`, which fails on a tuning that moves it); the app bar row drops by `INLINE_FLAME_NUDGE_EM` (0.123em, #639; was 0.152em on the x-height centre, which read low, Adrian 2026-11-13) so the flame's mass sits on the word's optical centre, the ink centroid of "roleflame" in Sora 800 (`WORD_INK_CENTRE_EM` 0.031em: the x-height band, the f and l ascenders counting by their area; `X_HEIGHT_CENTRE_EM` 0.06 stays as the lower bound; both measured again in `e2e/brand.spec.ts`), within 0.5px at 19px (`flameEngine.test.ts`); both are transforms, so no box moves). **Sign-in copy (redesign §5.8, #555):** under the wordmark, the benefit: "Sign in to see your jobs on any device." (body, primary), which describes the form step; "We email you a sign-in link. No password needed." is the Email field's HDS `helperText` (caption, secondary, its description; Adrian 2026-11-12) (`account/signInCopy.ts`); Continue with Google / LinkedIn are HDS secondary `shadow="none"` (HDS 0.41 names it `shadow`, not `depth`) so Send link leads; the Account menu's signed-out group is shorter (Adrian's phone test, 2026-11-12): the label "On this device only. Sign in to sync across devices." then the grey key "Sign in" (`SIGN_IN_LABEL`, `SIGN_IN_ITEM`); the top right control is Pause animations with its icon; Continue without an account stays the underlined exit. **One legal line at the foot** (Adrian 2026-11-13, after Tailscale's login page): "By signing in, you agree to <BRAND>’s Terms of use and Privacy policy.", a caption whose two HDS InlineLinks are the page's hash with `?legal=terms|privacy` (`route.legalHash`), so Privacy and terms opens on its tab over the screen and Escape / Back return to it; the screen's only legal links (`SIGN_IN_AGREE`, pinned in `SignInDialog.test.tsx`, `e2e/sign-in.spec.ts`). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
+(`data-keyboard`, visible height < 80% of innerHeight), one eased transform transition started only on a state change; the panel is fixed, inset 0 and opaque, and only its inner box follows the visual viewport, 2026-11-09 #523; **mass-centred, #556:** the stacked flame moves right by `STACKED_FLAME_NUDGE_EM`, the name's ink offset (`NAME_INK_OFFSET_EM`, measured again in `e2e/brand.spec.ts`) less the flame's mean mass offset (`FLAME_MASS`, measured again over 300 frames in `flameEngine.test.ts`, which fails on a tuning that moves it); the app bar row drops by `INLINE_FLAME_NUDGE_EM` (0.123em, #639; was 0.152em on the x-height centre, which read low, Adrian 2026-11-13) so the flame's mass sits on the word's optical centre, the ink centroid of "roleflame" in Sora 800 (`WORD_INK_CENTRE_EM` 0.031em: the x-height band, the f and l ascenders counting by their area; `X_HEIGHT_CENTRE_EM` 0.06 stays as the lower bound; both measured again in `e2e/brand.spec.ts`), within 0.5px at 19px (`flameEngine.test.ts`); both are transforms, so no box moves). **Sign-in copy (redesign §5.8, #555):** under the wordmark, the benefit: "Sign in to sync your jobs across devices." (body, primary) (one line with the Account menu's label, `SIGN_IN_BENEFIT`, Adrian 2026-11-15), which describes the form step; "We email you a sign-in link. No password needed." is the Email field's HDS `helperText` (caption, secondary, its description; Adrian 2026-11-12) (`account/signInCopy.ts`); Continue with Google / LinkedIn are HDS secondary `shadow="none"` (HDS 0.41 names it `shadow`, not `depth`) so Send link leads; the Account menu's signed-out group is shorter (Adrian's phone test, 2026-11-12): the label "On this device only. Sign in to sync your jobs across devices." then the grey key "Sign in" (`SIGN_IN_LABEL`, `SIGN_IN_ITEM`); the top right control is Pause animations with its icon; Continue without an account stays the underlined exit. **One legal line at the foot** (Adrian 2026-11-13, after Tailscale's login page): "By signing in, you agree to <BRAND>’s Terms of use and Privacy policy.", a caption whose two HDS InlineLinks are the page's hash with `?legal=terms|privacy` (`route.legalHash`), so Privacy and terms opens on its tab over the screen and Escape / Back return to it; the screen's only legal links (`SIGN_IN_AGREE`, pinned in `SignInDialog.test.tsx`, `e2e/sign-in.spec.ts`). Colours are HDS primitives on `.rjb-rf` in base.css (light/dark), the name is
 `BRAND.name` in **Sora 800** (Adrian 2026-11-10; `src/brand/fonts/sora-800.woff2` + its OFL licence, the logo's one font of its own: the HDS variable Sora covers 400–700 and the logo keeps its own Sora 800; `roleFlameType.test.ts`), its dynamic styles come from helpers (no
 inline-style literals); reduced motion at load shows the still frame, and **Pause animations (or reduced motion turned on) mid-run freezes it on the frame on screen**, Play going on from there (Adrian 2026-11-13; `useFlame` in `RoleFlame.tsx`). It pauses while the tab is hidden and **never stops on its own**, app bar and sign-in alike (Adrian 2026-11-09: the 5 s
 limit is gone), still under reduced motion and under the Account menu's **Pause animations** toggle (WCAG 2.2.2;
@@ -320,7 +320,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
-  (**8 items in 4 groups, redesign §5.9, #549**; 9 signed out, with Scan now, #694; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Signed out: "On this device only. Sign in to sync across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
+  (**8 items in 4 groups, redesign §5.9, #549**; 9 signed out, with Scan now, #694; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Signed out: "On this device only. Sign in to sync your jobs across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
   in" as a grey key** (`signInCopy.ts` `SIGN_IN_ITEM`; HDS secondary `Button` as the
   `Menu.Item`, `.rjb-menu-key`); signed in: "Signed in as <email>" + sync line as labels, Retry sync when it failed, and
   Sign out. Things = Documents, Search profile, Scan now / Stop scan (signed out only, #694), Companies, Data. Display = **Pause animations**,
@@ -429,7 +429,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (remote by default; an older remembered `review:filters` / `review:mode` / `review:card` is not read; Apply's Remote only
   follows the profile too since 2026-11-13). At lg the list starts under the tabs. **No pager below lg (Adrian 2026-11-14):** the "[‹][›] 1 of N" row of #714 is gone; in a list that
   scrolls, its arrows only jumped the page (`FindList.css` keeps only the window spacer). A step past the pages
-  shown by ↑ / ↓ at lg shows enough pages first (`showUpTo`), so its card is there to scroll to. **At lg** ↑ / ↓ move
+  shown by ↑ / ↓ at lg shows enough pages first (`showUpTo`), so its card is there to scroll to. **Late postings wait (Adrian
+  2026-11-15, the layout-jump fix):** `heldPostings.ts` `useHeldPostings`: once the list has settled (its read fully
+  answered) or the person has started reading it (a scroll, tap or key on the page), a posting that arrives later is
+  held, never put in above the cards on screen; a sticky "N new postings" key (HDS secondary, ArrowUp; `.rjb-find-new`
+  in `FindList.css`, zero height so it floats over the list and nothing moves when it comes or goes) puts them in,
+  scrolls to the top and focuses the top card's title; Review's polite status says "N new postings". Postings of the
+  first load show as they come; the selected posting is never held; a change to the Search profile or the Sources (a
+  company followed) fills the list as a first load again, so a new company's jobs still show at once (2026-10-28);
+  when none of the shown cards is left, everything shows. Pinned in `heldPostings.test.ts`, `review.test.tsx`,
+  `e2e/review.spec.ts`. **At lg** ↑ / ↓ move
   the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
   text field, select, menu, listbox or dialog, or a menu / dialog is open. Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
@@ -469,7 +478,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   **Recently closed** (`isClosed`: gone from the board or past its day; #602, where closed jobs collect and each is
   removed or kept; the automatic check is #602's own work), **Passed** (Adrian 2026-11-13, `passed.ts` +
   `PassedList.tsx`: jobs marked Not a fit or set aside (`archived`), each row with Delete (`removeWithUndo`: to Recently
-  removed, Undo; Delete forever stays there), then "Skipped in Find": the `decided[]` Skips not `hidden`, newest
+  removed, Undo; Delete forever stays there), then "Skipped in Review": the `decided[]` Skips not `hidden`, newest
   first, with Save (`addJobDetailed`, verdict saved, Undo skips again), Undo skip (`decided.undo`, back in Find, Undo
   skips again) and Delete (`decided.hide`: `hidden: true`, stamped now so the later decision wins a merge; still
   decided, so it never comes back in Find; Undo lists it again). A Skip now keeps the posting's `title`, `company` and
@@ -761,7 +770,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   inclusion check uses (`termRegex`, `passesInclude`: whole words, "systems" ↔ "design system", never "ecosystem";
   **phrases break at separators**: a spaced hyphen, en/em dash, `, | / : ; & · •`; a hyphen inside a word joins).
   **A design system rule reads the title only** (`hasRelatedTitles`), so Design Engineers never come in through a
-  description; **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  description; **one exception (Adrian 2026-11-15): a product-design title (`track-config.ts` `PRODUCT_DESIGN_TITLE`:
+  Product / UX / UI / Visual / Interaction Designer) is listed when its description shows at least
+  `BODY_SIGNALS_TO_LIST` (2) of the scorer's body signals** (`feed/include.ts` `bodyConfirms`; one mention of "design
+  system" is not enough; same guard as the related titles). The scorer has the same titles as adjacent at the same
+  bar, and a phone's light read fetches their descriptions (`bodyCanConfirm`). The design systems plan searches the
+  term feeds for its first design-system title, "design systems", then the related titles that are on (`plan.ts` `designSystemsTerms`, first 3 kept); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
   2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
   `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
   process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
@@ -790,7 +804,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (#448, Adrian 2026-11-06):** migration `20261106100000` (06:23 keeps the feeds); a 429/5xx/timeout is read once more
   after 2 s (`tracks/retry.ts`); Scan details says "Updated N min ago" for a signed-in user (#694; Find shows no scan line)
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
-  `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
+  `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. **A run that always finishes
+  (2026-11-15, migration `20261115100000`, applied after the function, `deploy-order.json`):** runs stopped in their
+  4th slice with "CPU Time exceeded" and no `sync_log` row (2026-11-14: 48 of 157 boards read, no feeds). Each slice
+  now saves where the next one starts (`save_sync_cursor`, also a heartbeat after each board batch); the resume tick
+  (`{"resume": true}`, every minute, `claim_sync_resume`) goes on with a run whose place stood still for
+  `RESUME_STALE_MS` (150 s), under the run's own start time, logs the stop as a `failed` row, and gives the run up
+  after `RESUME_MAX` (6) tries on one place. **A stopped slice is read again smaller** (first live run, 2026-11-15: 16
+  Greenhouse boards stopped a fresh invocation 3 times): each try halves it (`resumeSlice`: 8, 4, 2, 1), the size that
+  worked goes on with the run (`size` in the chain and the saved place), and one board that stops the function alone
+  is skipped for that run from try `RESUME_SKIP_AT` (5), logged, nothing on it closed. The last slice reads no board: the feeds and the closing have their own
+  invocation. Pinned in `tracks/syncResume.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
   `serverFirstReader`, in `useFeed`):** reads the server's rows through the `feed_rows` RPC (#499, migration `20261109100000`: each row's
@@ -1019,7 +1043,17 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `CloudSyncProvider`); a `TOKEN_REFRESHED`/`USER_UPDATED` skips it only for that same user (an expired
   crafted link arrives as a refresh), and a link's session for another email than it named is never
   taken up (no pull before the sign-out). The device-data count is only what the person made (`deviceData.ts`): not sample jobs, starter documents left as they came, the auto profile (kept auto when re-saved unchanged, `profile.ts` `keepAuto`) or its starter companies, the keyless feeds, work modes or sweep titles.
-  Tests sign in with `addDeviceDataIfAsked()` (`test/renderAccount.tsx`). Pinned in
+  **Asked once per account per device (Adrian 2026-11-15):** sign-out wipes the sync base, so
+  `account/deviceAccount.ts` keeps the id (never the email) of the account this device last synced with in
+  `rjb_device_account`, which sign-out's wipe keeps (`KEPT_ON_SIGN_OUT`) and Delete my data drops; that same account
+  signs in again with no ask (a seed merge, the union); any other account is still asked. An auth event for the user
+  already through the path (supabase-js repeats SIGNED_IN on focus or from another tab) starts nothing, so it never
+  resets the sync state. **Sign-out with changes the cloud lacks** (a failed push, track writes refused or in flight)
+  asks in an HDS AlertDialog (`account/SignOutConfirm.tsx`, lazy; `SIGN_OUT_UNSYNCED` in `cloudMessages.ts`:
+  "Sign out and lose recent changes?", Cancel underlined, Sign out anyway danger), never `window.confirm`; nothing
+  changed since the last pull or push counts as flushed. Pinned in `CloudSyncProvider.test.tsx` ("the same account on
+  this device").
+  Tests sign in with `addDeviceDataIfAsked()` (`test/renderAccount.tsx`); `answerSignOutAsk` answers sign-out's ask. Pinned in
   `account/authLink.test.tsx`. **Other tabs (#288):** `src/tabAccount.ts` holds the account this
   tab took through that path; when another tab signs out or in as someone else (Supabase's auth
   broadcast, the `sb-…-auth-token` storage event, or a send that finds the shared session naming

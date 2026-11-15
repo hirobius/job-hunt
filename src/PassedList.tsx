@@ -53,9 +53,9 @@ export default function PassedList({
         />
       )}
       {skipped.length > 0 && (
-        <Stack gap="tight" as="section" aria-label="Skipped in Find">
+        <Stack gap="tight" as="section" aria-label="Skipped in Review">
           <Text variant="body" as="h3" className="rjb-semibold">
-            Skipped in Find
+            Skipped in Review
           </Text>
           <ItemList inset="none" label="Skipped postings">
             {skipped.map((d) => {
