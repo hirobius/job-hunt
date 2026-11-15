@@ -155,6 +155,8 @@ export function installFocusRescue(shown = shownInBrowser): void {
 
   const check = () => {
     timer = undefined;
+    // The page is gone (a test's environment closed before this 30 ms timer ran): nothing to do.
+    if (typeof document === 'undefined') return;
     const onHeading = document.activeElement?.hasAttribute('data-focus-heading');
     if (!lost() && !onHeading) return;
     if (pageChanged && Date.now() - pageChanged < HEADING_WAIT_MS) {
