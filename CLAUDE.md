@@ -813,12 +813,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   after `RESUME_MAX` (6) tries on one place. **A stopped slice is read again smaller** (first live run, 2026-11-15: 16
   Greenhouse boards stopped a fresh invocation 3 times): each try halves it (`resumeSlice`: 8, 4, 2, 1), the size that
   worked goes on with the run (`size` in the chain and the saved place), and one board that stops the function alone
-  is skipped for that run from try `RESUME_SKIP_AT` (5), logged, nothing on it closed. The last slice reads no board: the feeds and the closing have their own
+  is skipped for that run from try `RESUME_SKIP_AT` (5), logged, nothing on it closed. After a stop the size grows back with each slice
+  that works (`nextSliceSize`: doubles, up to half of `SLICE`). The last slice reads no board: the feeds and the closing have their own
   invocation. Pinned in `tracks/syncResume.test.ts`. **Unchanged rejected rows
   are reused (2026-11-15, migration `20261115110000`, before the function):** a rejected row keeps no description, so
   the Greenhouse delta read counted every rejected job as changed and fell back to the full list on each run (the CPU
   that stopped the sync). Each row now stores `score_key` (`tracks/scoreKey.ts`: FNV over `SCORE_RULES` and the whole
-  config; bump `SCORE_RULES` when score.ts, the fit rule or the design role guard change a verdict). A job is not
+  config; bump `SCORE_RULES` when score.ts, the fit rule or the design role guard change a verdict; `reuseRejects.test.ts`
+  pins a hash of those three files, so a change to one fails until the choice is made). A job is not
   downloaded or scored again when, for every follower of its board, the stored row is an open reject with that
   follower's current key and the same stamp, title, link and place (`sameReject`; `known_reject_rows`, paged). Its row
   is kept as seen by `touch_reject_rows`; a touch that keeps fewer rows than asked counts those boards as not

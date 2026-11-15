@@ -70,7 +70,7 @@ describe('sync run resume', () => {
 
   it('each slice saves its place before it reads and before it calls the next one', () => {
     expect(fn).toContain('if (!(await savePlace(after)))');
-    const end = fn.indexOf('const mine = await savePlace(next, sliceSize);');
+    const end = fn.indexOf('const mine = await savePlace(next, nextSize);');
     expect(end).toBeGreaterThan(-1);
     expect(end).toBeLessThan(fn.indexOf('const broke = await chainNext('));
     // The heartbeat after each board batch.
@@ -107,10 +107,24 @@ describe('sync run resume', () => {
     expect(skipAt).toBeLessThan(max);
     expect(fn).toContain('sliceSize = resumeSlice(baseSize, row.resumes);');
     // The size that worked goes on with the run: the next slice, and the saved place.
-    expect(fn).toContain('...(sliceSize < SLICE && { size: sliceSize }),');
+    expect(fn).toContain('...(nextSize < SLICE && { size: nextSize }),');
     expect(fn).toContain('const skipped = skipFirst ? rest.shift() : undefined;');
     expect(fn).toContain('const boards = rest.slice(0, sliceSize);');
-    expect(fn).toContain('skipped for this run');
+    expect(fn).toContain(
+      'skipped for this run. Its slice stopped the function at every size down to this one board',
+    );
+  });
+
+  it('after a stop the size grows back with each slice that works, up to half a slice', () => {
+    expect(fn).toMatch(
+      /const nextSliceSize = \(worked: number\) =>\s+worked >= SLICE \? SLICE : Math\.min\(SLICE >> 1, Math\.max\(1, worked\) \* 2\);/,
+    );
+    const slice = Number(/const SLICE = (\d+)/.exec(fn)![1]);
+    const next = (w: number) => (w >= slice ? slice : Math.min(slice >> 1, Math.max(1, w) * 2));
+    // A run that never stopped stays whole; one that did climbs 1, 2, 4, 8 and stays there.
+    expect(next(slice)).toBe(slice);
+    expect([1, 2, 4, 8].map(next)).toEqual([2, 4, 8, 8]);
+    expect(fn).toContain('const nextSize = nextSliceSize(sliceSize);');
   });
 
   it('the feeds and the closing have an invocation with no board in it', () => {

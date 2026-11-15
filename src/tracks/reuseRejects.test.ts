@@ -1,8 +1,10 @@
 // Reuse of unchanged rejected rows (2026-11-15): the database half and the function's wiring,
 // pinned by text (the function is Deno code, the SQL runs in the database). The read itself is
 // tested in sync.test.ts.
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { SCORE_RULES } from './scoreKey';
 
 const FILE = '20261115110000_reuse_rejected_rows.sql';
 const sql = readFileSync(`supabase/migrations/${FILE}`, 'utf8');
@@ -80,5 +82,19 @@ describe('reuse of unchanged rejected rows', () => {
   it('a reused row that was not kept as seen closes nothing', () => {
     expect(fn).toContain('if (error || data !== ids.length) {');
     expect(fn).toContain('(answeredBy.get(userId) ?? []).filter((b) => !lost.has(b))');
+  });
+
+  it('SCORE_RULES cannot go stale: the files that decide a verdict are pinned with it', () => {
+    // score.ts, the fit rule and the design role guard decide a verdict outside the config, so
+    // the score key cannot see a change to them. When this fails: if the change can give any
+    // posting another verdict, bump SCORE_RULES (every stored verdict is then scored again);
+    // then put the new hash and the SCORE_RULES value here.
+    const hash = createHash('sha256');
+    for (const f of ['score.ts', 'scoreForTrack.ts', 'designRoleGuard.ts'])
+      hash.update(readFileSync(`src/tracks/${f}`));
+    expect({ rules: SCORE_RULES, files: hash.digest('hex') }).toEqual({
+      rules: 1,
+      files: '7194be9a7995d76c45afc2431e0c660ac060cc30a2ef6ef05a7d106c84a2ad7e',
+    });
   });
 });
