@@ -72,7 +72,7 @@ describe('designsystems.jobs job page', () => {
       '"addressCountry":"France"',
       '"addressCountry":"Lithuania This role sits in the Experience Design team and owns the system"',
     );
-    expect(parseJobPage(page, DESIGNER)!.location).toBe('Hybrid, Lithuania');
+    expect(parseJobPage(page, DESIGNER)!.location).toBe('Hybrid, Lithuania…');
   });
 
   it('is null without a JobPosting', () => {

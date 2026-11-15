@@ -11,6 +11,8 @@ describe('placeText', () => {
       'Isle of Man',
       'Hybrid, France',
       'Remote within the European Union and the United Kingdom or Switzerland',
+      'London or remote',
+      'New York, NY or remote',
     ])
       expect(placeText(p)).toBe(p);
   });
@@ -20,11 +22,18 @@ describe('placeText', () => {
       placeText(
         'Lithuania This role sits in the Experience Design team and owns the unified design system powering Incogni',
       ),
-    ).toBe('Lithuania');
+    ).toBe('Lithuania…');
     expect(placeText('Vilnius, Lithuania We are looking for a designer.')).toBe(
-      'Vilnius, Lithuania',
+      'Vilnius, Lithuania…',
     );
-    expect(placeText('Berlin, Germany. Join our team today')).toBe('Berlin, Germany');
+    expect(placeText('Berlin, Germany. Join our team today')).toBe('Berlin, Germany…');
+  });
+
+  it('a cut place drops a trailing joiner and ends in an ellipsis (Adrian 2026-11-15)', () => {
+    expect(placeText('San Francisco, CA, or remote work possible')).toBe('San Francisco, CA…');
+    expect(placeText('Austin, TX and remote across the US')).toBe('Austin, TX…');
+    expect(placeText('Paris & remote friendly team')).toBe('Paris…');
+    expect(placeText('Remote, Lithuania This role sits in the team')).toBe('Remote, Lithuania…');
   });
 
   it('reads the first line only', () => {
