@@ -132,7 +132,14 @@ const RUN_LEASE_MS = 14 * 60_000;
  *  that is still running is never taken twice. */
 const RESUME_STALE_MS = 150_000;
 /** Tries on the same place before the run is given up (the next 15-minute tick starts a new one). */
-const RESUME_MAX = 3;
+const RESUME_MAX = 6;
+/** A slice that stopped is read again smaller (first live run, 2026-11-15: the 16 Greenhouse boards
+ *  after 'greenhouse:clearstreet' stopped on the CPU limit in an invocation of their own, three
+ *  times, and the run was given up). Each try halves it: 8, 4, 2, 1 boards. */
+const resumeSlice = (base: number, resumes: number) => Math.max(1, base >> Math.max(0, resumes));
+/** From this try on, the one board left stopped the slice alone: it is skipped for this run
+ *  (logged; nothing on it closes, as it did not answer). */
+const RESUME_SKIP_AT = 5;
 /** Blobs per select (each holds a user's whole job list). */
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
@@ -656,7 +663,7 @@ async function loadPlans(
 async function chainNext(
   supabaseUrl: string,
   secret: string,
-  payload: { rss?: boolean; keyed?: boolean; after: string; runStart: string },
+  payload: { rss?: boolean; keyed?: boolean; size?: number; after: string; runStart: string },
 ): Promise<string | null> {
   let why = '';
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -702,7 +709,7 @@ type DeadRow = {
 type ResumeRow = {
   run_start: string;
   after: string;
-  payload: { rss?: boolean; keyed?: boolean } | null;
+  payload: { rss?: boolean; keyed?: boolean; size?: number } | null;
   resumes: number;
   gave_up: boolean;
 };
@@ -1037,6 +1044,8 @@ Deno.serve(async (req) => {
     runStart?: string;
     /** The resume tick: go on with a run that stopped part way, or do nothing. */
     resume?: boolean;
+    /** Boards a slice for the rest of this run: the size that worked after a stop. */
+    size?: number;
   };
   // Fail loud: name what is missing instead of a vague client error deep in the run.
   const missing = missingEnv();
@@ -1050,6 +1059,12 @@ Deno.serve(async (req) => {
   });
   if (body.rotate === true) return rotate(db);
   const logs: Log[] = [];
+  const sizeOf = (v: unknown) =>
+    typeof v === 'number' && v >= 1 && v <= SLICE ? Math.floor(v) : SLICE;
+  // What this slice started from (kept with the place, so each try halves the same number).
+  let baseSize = sizeOf(body.size);
+  let sliceSize = baseSize;
+  let skipFirst = false;
   if (body.resume === true) {
     const { data, error } = await db.rpc('claim_sync_resume', {
       p_stale_ms: RESUME_STALE_MS,
@@ -1075,6 +1090,9 @@ Deno.serve(async (req) => {
     body.runStart = row.run_start;
     body.rss = row.payload?.rss === true;
     body.keyed = row.payload?.keyed === false ? false : undefined;
+    baseSize = sizeOf(row.payload?.size);
+    sliceSize = resumeSlice(baseSize, row.resumes);
+    skipFirst = row.resumes >= RESUME_SKIP_AT;
   }
   // A cursor, not an offset: a user who drops a board shrinks the list the next slice reads.
   const after = typeof body.after === 'string' ? body.after : '';
@@ -1103,11 +1121,11 @@ Deno.serve(async (req) => {
   // The run's place, kept so a slice that dies is picked up from here (the resume tick). False:
   // the lease is another run's now, so this chain stops. An error (the migration is not applied
   // yet) changes nothing: the run goes on as before.
-  const savePlace = async (place: string | null) => {
+  const savePlace = async (place: string | null, size = baseSize) => {
     const { data, error } = await db.rpc('save_sync_cursor', {
       p_run: runStart,
       p_after: place,
-      p_payload: { rss: body.rss === true, keyed: body.keyed !== false },
+      p_payload: { rss: body.rss === true, keyed: body.keyed !== false, size },
       p_lease_ms: RUN_LEASE_MS,
     });
     return error ? true : data !== false;
@@ -1142,11 +1160,22 @@ Deno.serve(async (req) => {
   // Board passes: read BOARD_BATCH boards, log failures, write each follower's postings.
   const all = [...distinct.values()].sort((a, b) => boardOf(a).localeCompare(boardOf(b)));
   const rest = all.filter((w) => boardOf(w) > after);
-  const boards = rest.slice(0, SLICE);
+  // One board that stops the slice alone is left out of this run, so the boards after it are read.
+  const skipped = skipFirst ? rest.shift() : undefined;
+  if (skipped)
+    logs.push({
+      user_id: null,
+      kind: 'failed',
+      board: boardOf(skipped),
+      status: null,
+      message: `${boardOf(skipped)}: skipped for this run, its read stopped the function ${RESUME_SKIP_AT} times (CPU or time limit)`,
+    });
+  const boards = rest.slice(0, sliceSize);
   // The last slice reads no board (2026-11-15): the feeds, the closing and the liveness check get
   // an invocation of their own, so they never share one with 16 boards' scoring.
   const last = rest.length === 0;
   const next = last ? null : boardOf(boards[boards.length - 1]);
+  // (A skip with nothing after it leaves `rest` empty: this is then the last slice.)
   let feedsRead = 0;
   let closedLive = 0;
   let retriedReads = 0;
@@ -1397,13 +1426,15 @@ Deno.serve(async (req) => {
   if (logs.length) await db.from('sync_log').insert(logs);
   // Where the next slice starts, saved before it is called: if that call or the slice dies, the
   // resume tick goes on from here. Null: the run is done.
-  const mine = await savePlace(next);
+  // The size that worked goes with the new place, and to the next slice.
+  const mine = await savePlace(next, sliceSize);
   if (!next) await releaseRun();
   if (next && !mine) return json({ skipped: 'a newer run holds the lease', after });
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,
       ...(body.keyed === false && { keyed: false }),
+      ...(sliceSize < SLICE && { size: sliceSize }),
       after: next,
       runStart,
     });
