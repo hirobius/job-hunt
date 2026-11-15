@@ -879,6 +879,8 @@ function PostingCard({
   compact?: boolean;
   actions: RowActions;
 }) {
+  // At lg the list card sits beside the detail (onOpen): title and company only.
+  const brief = compact && !!onOpen;
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
@@ -913,24 +915,28 @@ function PostingCard({
             Company not stated
           </Text>
         )}
-        <Card.Facts
-          // The place is one line on a card, cut with an ellipsis (FindList.css, 2026-11-15).
-          className="p-0 rjb-facts-place-line"
-          // Plain lines, not a list inside each card's list item (as FactLines was): a list of
-          // cards counts only its cards.
-          role="presentation"
-          items={[
-            { icon: MapPin, label: placeOf(r) },
-            ...(mode ? [{ icon: Briefcase, label: mode }] : []),
-            ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
-          ]}
-        />
-        {pay && (
+        {/* At lg a list card is the title and the company only (Adrian 2026-11-15): the place,
+            pay, posted day and text are the detail's beside it, never read twice. */}
+        {!brief && (
+          <Card.Facts
+            // The place is one line on a card, cut with an ellipsis (FindList.css, 2026-11-15).
+            className="p-0 rjb-facts-place-line"
+            // Plain lines, not a list inside each card's list item (as FactLines was): a list of
+            // cards counts only its cards.
+            role="presentation"
+            items={[
+              { icon: MapPin, label: placeOf(r) },
+              ...(mode ? [{ icon: Briefcase, label: mode }] : []),
+              ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
+            ]}
+          />
+        )}
+        {pay && !brief && (
           <Text variant="body" as="p" weight="bold">
             {pay}
           </Text>
         )}
-        {compact && <BrowseExcerpt r={r} />}
+        {compact && !brief && <BrowseExcerpt r={r} />}
         {keys && (
           <Box sx={{ pt: compact ? undefined : 'xs' }}>
             <PostingActions r={r} actions={actions} openKey={!compact} />

@@ -12,6 +12,7 @@ import { jobIdOf } from './store';
 import { jobHash } from './route';
 import { inPlaceClick } from './back';
 import { rowView } from './jobRow';
+import { metaLines } from './metaLines';
 import { dateLabel } from './jobDates';
 import { JobBadges } from './JobRowParts';
 import CompanyLogo from './CompanyLogo';
@@ -26,18 +27,24 @@ function Row({
   current,
   onPick,
   keys,
+  brief,
 }: {
   job: Job;
   current: boolean;
   onPick: (job: Job) => void;
   keys?: (job: Job) => ReactNode;
+  brief?: boolean;
 }) {
   const v = rowView(job);
   const id = useId();
   // A Remove's Undo (#593) asks for this row: it scrolls into view and flashes.
   const highlight = useHighlight<HTMLLIElement>(jobHighlightKey(job.url));
   // One date per job (Adrian 2026-10-28): posted, else found; the closing date is a badge.
-  const facts = [...v.factLines, dateLabel(job)].filter(Boolean);
+  // Beside the job at lg (`brief`, Adrian 2026-11-15) a row is its badges, title and company: the
+  // place and the date are the job's own page beside it.
+  const facts = brief
+    ? metaLines([job.archived ? 'Retired' : '', job.company])
+    : [...v.factLines, dateLabel(job)].filter(Boolean);
   return (
     <li className="rjb-job-row" ref={highlight} {...{ [JOB_ATTR]: job.url }}>
       {/* One badge row above the title (rev-3 B). */}
@@ -80,12 +87,15 @@ export default function JobRowList({
   openId,
   onPick,
   keys,
+  brief,
 }: {
   jobs: Job[];
   openId?: string;
   onPick: (job: Job) => void;
   /** A row's own keys under its facts (Apply's Passed view: Delete). */
   keys?: (job: Job) => ReactNode;
+  /** Beside the job at lg (JobRail): badges, title and company only (Adrian 2026-11-15). */
+  brief?: boolean;
 }) {
   return (
     <nav aria-label="Jobs" className="rjb-job-rows">
@@ -97,6 +107,7 @@ export default function JobRowList({
             current={jobIdOf(j.url) === openId}
             onPick={onPick}
             keys={keys}
+            brief={brief}
           />
         ))}
       </NavList>

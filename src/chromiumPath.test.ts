@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 const read = (p: string) => fs.readFileSync(p, 'utf8');
 const FILES = [
   'CLAUDE.md',
+  ...fs.readdirSync('docs/agent').map((f) => `docs/agent/${f}`),
   'playwright.config.ts',
   'docs/loop-queue.md',
   'scripts/gallery.mjs',

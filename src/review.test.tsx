@@ -899,6 +899,30 @@ describe('Review new: every design-system posting, no tiers', () => {
     expect(getAllDecided().decided).toHaveLength(1);
   });
 
+  it('at lg a list card is the title and company only; the facts are the detail’s (2026-11-15)', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('hn:7', 'Design Systems Lead', 'Delta', { location: 'Berlin', mode: 'remote' }),
+      ]),
+    );
+    renderFind();
+    const ul = await list();
+    const card = within(ul).getByRole('article');
+    expect(within(card).getByText('Delta')).toBeInTheDocument();
+    expect(within(card).queryByText(/^Posted /)).toBeNull();
+    expect(within(card).queryByText(/Berlin|Location not stated/)).toBeNull();
+    expect(within(card).queryByRole('button', { name: /^Show more/ })).toBeNull();
+    // The detail beside it holds them.
+    const detail = await detailOf('Design Systems Lead');
+    expect(within(detail).getByText(/^Posted /)).toBeInTheDocument();
+  });
+
+  it('below lg a list card keeps its facts (no detail beside it)', async () => {
+    renderReview();
+    const ul = await list();
+    expect(within(ul).getAllByText(/^Posted /).length).toBeGreaterThan(0);
+  });
+
   it('a double tap on Save in the list saves one posting', async () => {
     const user = userEvent.setup();
     renderReview();
