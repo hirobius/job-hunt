@@ -813,7 +813,8 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   after `RESUME_MAX` (6) tries on one place. **A stopped slice is read again smaller** (first live run, 2026-11-15: 16
   Greenhouse boards stopped a fresh invocation 3 times): each try halves it (`resumeSlice`: 8, 4, 2, 1), the size that
   worked goes on with the run (`size` in the chain and the saved place), and one board that stops the function alone
-  is skipped for that run from try `RESUME_SKIP_AT` (5), logged, nothing on it closed. The last slice reads no board: the feeds and the closing have their own
+  is skipped for that run from try `RESUME_SKIP_AT` (5), logged, nothing on it closed. After a stop the size grows back with each slice
+  that works (`nextSliceSize`: doubles, up to half of `SLICE`). The last slice reads no board: the feeds and the closing have their own
   invocation. Pinned in `tracks/syncResume.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`

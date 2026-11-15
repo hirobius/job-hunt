@@ -137,6 +137,12 @@ const RESUME_MAX = 6;
  *  after 'greenhouse:clearstreet' stopped on the CPU limit in an invocation of their own, three
  *  times, and the run was given up). Each try halves it: 8, 4, 2, 1 boards. */
 const resumeSlice = (base: number, resumes: number) => Math.max(1, base >> Math.max(0, resumes));
+/** The size of the slice after one that worked. A run that never stopped stays at SLICE. After a
+ *  stop the size grows back, doubling with each slice that works, up to half of SLICE (review of
+ *  #735: one heavy board left the rest of the run at 1 board an invocation). Not back to SLICE: that
+ *  size stopped in this run, and each stop costs RESUME_STALE_MS. */
+const nextSliceSize = (worked: number) =>
+  worked >= SLICE ? SLICE : Math.min(SLICE >> 1, Math.max(1, worked) * 2);
 /** From this try on, the one board left stopped the slice alone: it is skipped for this run
  *  (logged; nothing on it closes, as it did not answer). */
 const RESUME_SKIP_AT = 5;
@@ -1168,7 +1174,7 @@ Deno.serve(async (req) => {
       kind: 'failed',
       board: boardOf(skipped),
       status: null,
-      message: `${boardOf(skipped)}: skipped for this run, its read stopped the function ${RESUME_SKIP_AT} times (CPU or time limit)`,
+      message: `${boardOf(skipped)}: skipped for this run after ${RESUME_SKIP_AT} tries (the function stopped each time: CPU or time limit)`,
     });
   const boards = rest.slice(0, sliceSize);
   // The last slice reads no board (2026-11-15): the feeds, the closing and the liveness check get
@@ -1426,15 +1432,16 @@ Deno.serve(async (req) => {
   if (logs.length) await db.from('sync_log').insert(logs);
   // Where the next slice starts, saved before it is called: if that call or the slice dies, the
   // resume tick goes on from here. Null: the run is done.
-  // The size that worked goes with the new place, and to the next slice.
-  const mine = await savePlace(next, sliceSize);
+  // The next slice's size (from the one that worked) goes with the new place, and to that slice.
+  const nextSize = nextSliceSize(sliceSize);
+  const mine = await savePlace(next, nextSize);
   if (!next) await releaseRun();
   if (next && !mine) return json({ skipped: 'a newer run holds the lease', after });
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,
       ...(body.keyed === false && { keyed: false }),
-      ...(sliceSize < SLICE && { size: sliceSize }),
+      ...(nextSize < SLICE && { size: nextSize }),
       after: next,
       runStart,
     });
