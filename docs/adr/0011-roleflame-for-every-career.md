@@ -39,9 +39,15 @@ track carried its own screens and stores. This decision must not bring those bac
    `design-systems` or the category `design-systems`). `DEFAULT_SCORER` stays until every stored
    profile names its scorer; a one-time move stamps `scorer: 'design-systems'` on existing profiles
    first, so Adrian's results do not change.
-4. **The server reads shared postings once, then matches per user.** Board reads are per board,
-   not per user. The rotation stores a posting when it passes any active category's title rule;
-   each user's Review is a query over shared rows by their profile. No per-user fetch of a board.
+4. **One shared job database; the browser never scans** (Adrian's direction, relayed by the
+   coordinating session 2026-11-15). The server reads each board and feed once for everyone and
+   tags each posting with categories at ingest. Every user, Adrian included, gets Review from one
+   capped query RPC over those rows. Removed from the browser: Scan now, `AutoScanOnOpen`, the
+   browser Feed reads (`browserReader`, `fetchFeed`, phone light reads, the description re-read),
+   the probe and board discovery, `LivenessOnOpen`, and every job host in the CSP `connect-src`.
+   Discovery moves into the sync function; "add a company" becomes a capped request the server
+   works through. The server path runs beside the browser read for one week first, and Adrian's
+   Review list must match before anything is removed.
 5. **Onboarding asks one screen of questions** (kind of work, titles, where), with defaults, and
    can be skipped. This replaces "no setup screen" for new users only; a person with a profile is
    never asked.
@@ -53,15 +59,23 @@ track carried its own screens and stores. This decision must not bring those bac
    design-systems category keeps its tuned scorer, and that removed 2026-10 content (the local
    Spokane board and its link rewriting) does not come back.
 8. **Money.** Payment is a server fact (`entitlements` table written only by a payment webhook),
-   never a client flag. The paid gate is on server work (automatic scan, sync across devices); the
-   local tracker stays free.
+   never a client flag. The paid gate is on server work (the Review list, sync across devices);
+   the local tracker stays free.
+9. **Cost safety is a rule, not a hope.** No fetch is started by a user. Per-user caps
+   (categories, titles, followed companies, rows a page, queries an hour) are enforced in the RPC.
+   Free and keyless sources come first; a paid API runs only under a global monthly budget with a
+   kill switch, off by default. Accounts per wave are capped (invite-only free beta, then a small
+   paid wave), and a cap moves up only on one month of measured cost.
 
 ## Consequences
 
 - Adrian's profile, Sources and results are unchanged at every stage; each stage has a test that
   holds his fixture's Review list equal before and after.
-- Shared postings change the cost shape from per user to per category. Stored rows grow by the
+- Shared postings change the cost shape from per user to mostly fixed. Stored rows grow by the
   number of active categories, not the number of users.
+- A signed-out visitor has no Review list unless the query is opened to anonymous callers.
+- The server must hold each posting's description (or a cut of it): the browser can no longer
+  read it from the source.
 - The 160 starter boards are no longer followed for every new user; starter companies come from
   the picked categories, or none.
 - Commercial use changes the terms position of several sources (see the plan: Remotive, Remote OK,
@@ -74,10 +88,12 @@ track carried its own screens and stores. This decision must not bring those bac
    Feed never reads.
 1. Stamp scorers on stored profiles; make the inclusion check follow the profile.
 2. Generic scorer in the browser Feed for non-design-systems profiles; onboarding screen.
-3. Server: shared postings and per-user match; category title rules in the rotation.
-4. Entitlements and payment; legal revision; launch of the first wave.
+3. Server: the shared job database, category tags, the capped query RPC, discovery on the server;
+   compare for one week, then remove the browser scans and the job hosts from the CSP.
+4. Invite-only free beta (cap 100); measure cost for one month.
+5. Entitlements and payment; legal revision; the paid wave (cap 1,000).
 
 ## Not decided here (Adrian)
 
-Price and model, the payment provider, the free tier's limit, the first-wave list, and whether a
-person may hold more than one profile.
+Price and model, the payment provider, the free tier's limit, the wave caps, whether Review needs
+a sign-in, the first-wave list, and whether a person may hold more than one profile.
