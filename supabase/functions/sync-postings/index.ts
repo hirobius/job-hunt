@@ -13,7 +13,8 @@
 // "posting closed". The sync never writes the blob: the user removes a dead board from Sources.
 // One invocation reads SLICE boards (the worker's CPU budget is ~2 s, and the first full run ran
 // out), then calls itself for the next slice. The feeds and closing unfollowed boards run on the
-// last slice; each slice closes postings missed on the boards it read.
+// last slice (which reads no board, 2026-11-15); each slice closes postings missed on the boards
+// it read. A run that stops part way is picked up by the resume tick (`{ resume: true }`).
 // Scan rotation (#src-bulk, body `{ rotate: true }`, pg_cron every minute): see `rotate` below and
 // src/tracks/rotation.ts. It reads the bulk board set a slice at a time for design systems users.
 // Auth: x-sync-secret must equal SYNC_SECRET (compared as SHA-256 digests, without an early exit).
@@ -123,6 +124,15 @@ const SLICE = 16;
 /** How long a 15-minute run holds its lease before the next tick may start anyway (#448): under
  *  the 15-minute gap, so a chain that died never blocks more than one tick. */
 const RUN_LEASE_MS = 14 * 60_000;
+/** A run that stops part way goes on (2026-11-15, migration 20261115100000): each slice saves
+ *  where the next one starts, and the resume tick (`{ resume: true }`, every minute) picks up a
+ *  run whose place has not moved for RESUME_STALE_MS. A slice also saves its place after each
+ *  board batch (the heartbeat), and the stale time is longer than a whole slice can take (two
+ *  batches, each a read, a 2 s wait and one more read, under FETCH_TIMEOUT_MS each), so a slice
+ *  that is still running is never taken twice. */
+const RESUME_STALE_MS = 150_000;
+/** Tries on the same place before the run is given up (the next 15-minute tick starts a new one). */
+const RESUME_MAX = 3;
 /** Blobs per select (each holds a user's whole job list). */
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
@@ -689,6 +699,14 @@ type DeadRow = {
   last_checked: string;
 };
 
+type ResumeRow = {
+  run_start: string;
+  after: string;
+  payload: { rss?: boolean; keyed?: boolean } | null;
+  resumes: number;
+  gave_up: boolean;
+};
+
 type Loaded = { plans: Map<string, SyncPlan>; planless: string[]; tilesError: string | null };
 /** Every user's plan, kept in a warm worker for ROTATION.plansTtlMs: the rotation runs every minute
  *  and reading every blob each time would cost more than the batch itself. A Sources change (a
@@ -1017,9 +1035,9 @@ Deno.serve(async (req) => {
     keyed?: boolean;
     after?: string;
     runStart?: string;
+    /** The resume tick: go on with a run that stopped part way, or do nothing. */
+    resume?: boolean;
   };
-  // A cursor, not an offset: a user who drops a board shrinks the list the next slice reads.
-  const after = typeof body.after === 'string' ? body.after : '';
   // Fail loud: name what is missing instead of a vague client error deep in the run.
   const missing = missingEnv();
   if (missing.length) {
@@ -1031,8 +1049,36 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
   if (body.rotate === true) return rotate(db);
-  const runStart = body.runStart ?? new Date().toISOString();
   const logs: Log[] = [];
+  if (body.resume === true) {
+    const { data, error } = await db.rpc('claim_sync_resume', {
+      p_stale_ms: RESUME_STALE_MS,
+      p_max: RESUME_MAX,
+      p_lease_ms: RUN_LEASE_MS,
+    });
+    const row = ((data ?? []) as ResumeRow[])[0];
+    // The migration is not applied yet, or no run stood still: nothing to do.
+    if (error || !row) return json({ resume: 'idle' });
+    const where = `after '${row.after}' (run ${row.run_start})`;
+    await db.from('sync_log').insert({
+      user_id: null,
+      kind: 'failed',
+      board: null,
+      status: null,
+      message: (row.gave_up
+        ? `run given up ${where}: it stopped there ${row.resumes} times. The next run starts over.`
+        : `run stopped ${where} with no error logged (CPU or time limit); going on, try ${row.resumes} of ${RESUME_MAX}`
+      ).slice(0, 2000),
+    });
+    if (row.gave_up) return json({ resume: 'gave up', after: row.after });
+    body.after = row.after;
+    body.runStart = row.run_start;
+    body.rss = row.payload?.rss === true;
+    body.keyed = row.payload?.keyed === false ? false : undefined;
+  }
+  // A cursor, not an offset: a user who drops a board shrinks the list the next slice reads.
+  const after = typeof body.after === 'string' ? body.after : '';
+  const runStart = body.runStart ?? new Date().toISOString();
   // One run at a time (#448, every 15 minutes): the first slice (no runStart yet) claims the lease
   // on the database's clock; a tick that finds the previous run's chain still going skips. The
   // last slice releases it; a chain that dies lets it expire (RUN_LEASE_MS).
@@ -1054,6 +1100,19 @@ Deno.serve(async (req) => {
     }
   }
   const releaseRun = () => db.rpc('release_sync_run', { p_run: runStart });
+  // The run's place, kept so a slice that dies is picked up from here (the resume tick). False:
+  // the lease is another run's now, so this chain stops. An error (the migration is not applied
+  // yet) changes nothing: the run goes on as before.
+  const savePlace = async (place: string | null) => {
+    const { data, error } = await db.rpc('save_sync_cursor', {
+      p_run: runStart,
+      p_after: place,
+      p_payload: { rss: body.rss === true, keyed: body.keyed !== false },
+      p_lease_ms: RUN_LEASE_MS,
+    });
+    return error ? true : data !== false;
+  };
+  if (!(await savePlace(after))) return json({ skipped: 'a newer run holds the lease', after });
 
   // Cached like the rotation's (#448): a run's chained slices land inside the TTL, so one run
   // plans once instead of re-reading every blob and tile on each of its ~10 slices.
@@ -1084,7 +1143,9 @@ Deno.serve(async (req) => {
   const all = [...distinct.values()].sort((a, b) => boardOf(a).localeCompare(boardOf(b)));
   const rest = all.filter((w) => boardOf(w) > after);
   const boards = rest.slice(0, SLICE);
-  const last = rest.length <= SLICE;
+  // The last slice reads no board (2026-11-15): the feeds, the closing and the liveness check get
+  // an invocation of their own, so they never share one with 16 boards' scoring.
+  const last = rest.length === 0;
   const next = last ? null : boardOf(boards[boards.length - 1]);
   let feedsRead = 0;
   let closedLive = 0;
@@ -1135,6 +1196,8 @@ Deno.serve(async (req) => {
       }
       for (const [userId, answered] of perUser)
         await writeGroup(db, userId, plans.get(userId)!, answered, logs, totalsOf(userId));
+      // The heartbeat: this slice is alive, so the resume tick leaves it alone.
+      await savePlace(after);
     }
 
     // The feeds, twice a day (06:23 and 14:23, #576), on the last slice: each title once across users.
@@ -1332,7 +1395,11 @@ Deno.serve(async (req) => {
     });
   }
   if (logs.length) await db.from('sync_log').insert(logs);
+  // Where the next slice starts, saved before it is called: if that call or the slice dies, the
+  // resume tick goes on from here. Null: the run is done.
+  const mine = await savePlace(next);
   if (!next) await releaseRun();
+  if (next && !mine) return json({ skipped: 'a newer run holds the lease', after });
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,

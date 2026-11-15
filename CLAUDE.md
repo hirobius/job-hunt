@@ -804,7 +804,14 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (#448, Adrian 2026-11-06):** migration `20261106100000` (06:23 keeps the feeds); a 429/5xx/timeout is read once more
   after 2 s (`tracks/retry.ts`); Scan details says "Updated N min ago" for a signed-in user (#694; Find shows no scan line)
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
-  `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
+  `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. **A run that always finishes
+  (2026-11-15, migration `20261115100000`, applied after the function, `deploy-order.json`):** runs stopped in their
+  4th slice with "CPU Time exceeded" and no `sync_log` row (2026-11-14: 48 of 157 boards read, no feeds). Each slice
+  now saves where the next one starts (`save_sync_cursor`, also a heartbeat after each board batch); the resume tick
+  (`{"resume": true}`, every minute, `claim_sync_resume`) goes on with a run whose place stood still for
+  `RESUME_STALE_MS` (150 s), under the run's own start time, logs the stop as a `failed` row, and gives the run up
+  after `RESUME_MAX` (3) tries on one place. The last slice reads no board: the feeds and the closing have their own
+  invocation. Pinned in `tracks/syncResume.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
   `serverFirstReader`, in `useFeed`):** reads the server's rows through the `feed_rows` RPC (#499, migration `20261109100000`: each row's
