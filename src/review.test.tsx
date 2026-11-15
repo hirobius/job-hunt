@@ -994,4 +994,39 @@ describe('Find: one empty state, picked by cause (#694)', () => {
     expect(s.keys).toEqual(['Scan now']);
     expect(s.icon).toMatch(/circle-check|check-circle/);
   });
+
+  it('no source answered: "Couldn’t reach your sources", and Try again reads again', async () => {
+    const user = userEvent.setup();
+    const down: FeedResult = {
+      postings: [],
+      sources: [
+        { key: 'hn', label: 'Hacker News', fetched: 0, error: 'Hacker News: couldn’t connect.' },
+        { key: 'remotive', label: 'Remotive', fetched: 0, error: 'Remotive: couldn’t connect.' },
+      ],
+    };
+    feed.fetchFeed.mockResolvedValueOnce(down).mockResolvedValue(result([BASIC[0]]));
+    renderReview();
+    const s = await both(user);
+    expect(s.cause).toBe('unreachable');
+    expect(s.title).toBe('Couldn’t reach your sources');
+    // Not "No postings match": nothing was read. One key, and it reads again.
+    expect(s.text).not.toContain('No postings match');
+    expect(s.keys).toEqual(['Try again']);
+    expect(s.icon).toContain('wifi-off');
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(titles(await list())).toHaveLength(1);
+  });
+
+  it('one source answered with nothing: still "No postings match yet"', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue({
+      postings: [],
+      sources: [
+        { key: 'hn', label: 'Hacker News', fetched: 0 },
+        { key: 'remotive', label: 'Remotive', fetched: 0, error: 'Remotive: couldn’t connect.' },
+      ],
+    } satisfies FeedResult);
+    renderReview();
+    expect((await both(user)).cause).toBe('none');
+  });
 });

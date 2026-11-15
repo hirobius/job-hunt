@@ -86,7 +86,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   No Sort on Review (2026-11-13): newest first, always. **No More menu on Review (#694):** Scan now (signed out) is in the Account menu beside
   Search profile, and "Scanned 2 h ago" lives only in Scan details (the Search profile dialog). **One empty state, by
   cause (#694):** "No postings match yet" (Scan now | Edit search profile), "You’re all caught up" (check-circle; Scan
-  now); each its own icon tile on the page background. From 1024 px it sits in the right column and the two columns
+  now), "Couldn’t reach your sources" (wifi-off; Try again, when no source answered); each its own icon tile on the page background. From 1024 px it sits in the right column and the two columns
   stay. The list loads its next
   page on its own as you near the end; "Load more (N)" stays as the fallback, one card gap below the
   last card. A Browse card: the company's logo (letter first; a 24 px inline mark, as on Apply rows and the job page's title block) before its name, on one line, or "Company not
