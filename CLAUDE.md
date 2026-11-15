@@ -343,6 +343,15 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   gives focus back to the key), Delete my data (signed in, danger, last). Restore, Export links, Recently removed and
   Delete my data close the dialog first (a modal hides a toast's actions) and hand focus back to the Account button.
   Pinned in `account/dataDialog.test.tsx`, `shell.test.tsx`, `e2e/account-menu.spec.ts`, `e2e/phone-menu.spec.ts`.
+- **Career preferences preview (2026-11-15, ADR 0011 Proposed, not in force):** behind a device flag
+  (`src/careers/careersFlag.ts`: localStorage `rjb_ui_careers_preview` = `1`, off by default, not synced) the
+  Account menu's Search profile opens `src/careers/CareerPrefsDialog.tsx` ("Job preferences": kind of work, up to 3
+  categories from `careers/careers.ts`; title and skill chips; level; where; pay; leave out). Save writes a second
+  profile, `profile-careers-preview`, behind the one in use (`withPreview`: never the first place, never when the
+  list is full), so the Feed, the scan and the server sync read what they read before. `Profile.categories` and
+  `Profile.skills` are additive (no blob bump); nothing reads them for the Feed. The design-systems-only rule and
+  `dsOnly.test.ts` stand until Adrian accepts the ADR. Pinned in `careers/careers.test.ts`,
+  `careers/careerPrefsDialog.test.tsx`.
 - **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local; update baselines with `npm run test:visual -- --update-snapshots`). **Baselines are drawn only in the pinned Playwright image** (`e2e/visual-env.json`: image digest + its Chromium, #485): `test:visual` runs the spec there through Docker (`scripts/visual-docker.mjs`); elsewhere the spec skips and an update fails (`src/visualEnv.test.ts`). Bump the digest with `@playwright/test` and re-take every baseline in the same PR.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`

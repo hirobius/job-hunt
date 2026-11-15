@@ -14,14 +14,22 @@ import { NEW_PROFILE, draftOf, fieldsOf, finishSetup, type ProfileDraft } from '
 import { showNotice } from './saveNotice';
 import { ExitButton } from './hds-gaps/ExitButton';
 import { focusClose } from './dialogFocus';
+import { careersPreviewOn } from './careers/careersFlag';
+import CareerPrefsDialog from './careers/CareerPrefsDialog';
 
-export default function SearchProfileDialog({
-  onDone,
-  onCloseAutoFocus,
-}: {
+interface Props {
   onDone: () => void;
   onCloseAutoFocus?: (e: Event) => void;
-}) {
+}
+
+/** The career preferences preview while its flag is on (ADR 0011, proposed), else the
+ *  design-systems Search profile. Read once per open. */
+export default function SearchProfileDialog(props: Props) {
+  const [preview] = useState(careersPreviewOn);
+  return preview ? <CareerPrefsDialog {...props} /> : <DesignSystemsProfileDialog {...props} />;
+}
+
+function DesignSystemsProfileDialog({ onDone, onCloseAutoFocus }: Props) {
   const profile = useProfile();
   const { settled } = useCloudSync();
   const [draft, setDraft] = useState<ProfileDraft>(() =>
