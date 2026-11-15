@@ -36,7 +36,9 @@ import {
   readAll,
   reusedRejects,
   scoreBatch,
+  scoreBatchOnce,
   TERM_FEEDS,
+  type ScoreCache,
   termsPerRun,
   type ReadOutcome,
   type ScoredPosting,
@@ -334,6 +336,7 @@ async function writeGroup(
   logs: Log[],
   totals: Totals,
   keyed = false,
+  shared?: { cache: ScoreCache; rulesKey: string },
 ): Promise<boolean> {
   let kept = true;
   const reused = reusedRejects(answered);
@@ -361,7 +364,11 @@ async function writeGroup(
     }
   }
   if (kept) totals.reject += reused.length;
-  await writeScored(db, userId, plan.config.slug, scoreBatch(answered, plan.config), logs, totals, {
+  // Followers with the same rules, boards and company names share one scoring (`shared`).
+  const scored = shared
+    ? scoreBatchOnce(shared.cache, shared.rulesKey, answered, plan.config)
+    : scoreBatch(answered, plan.config);
+  await writeScored(db, userId, plan.config.slug, scored, logs, totals, {
     match: matchOf(plan),
     ...(keyed && { extra: { score_key: scoreKey(plan.config) } }),
   });
@@ -1284,6 +1291,8 @@ Deno.serve(async (req) => {
       );
       retriedReads += retried;
       const perUser = new Map<string, ReadOutcome[]>();
+      // One scoring per rule set for this batch's reads, however many users follow them.
+      const scoreCache: ScoreCache = new Map();
       for (const r of reads) {
         if (!r.ok) failedBoards.add(r.board);
         for (const w of followers.get(r.board) ?? []) {
@@ -1322,6 +1331,7 @@ Deno.serve(async (req) => {
           logs,
           totalsOf(userId),
           rejects !== null,
+          { cache: scoreCache, rulesKey: keyOf(userId) },
         );
         // A reused row that was not kept as seen would read as missing: these boards do not
         // count as answered for this user, so nothing on them closes.

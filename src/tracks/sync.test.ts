@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NormalizedPosting } from './score';
 import { fetchDesignSystemsJobsFeed, stripHtml } from './sources';
-import { forWatcher, readAll, reusedRejects, scoreBatch } from './sync';
+import {
+  forWatcher,
+  readAll,
+  reusedRejects,
+  scoreBatch,
+  scoreBatchOnce,
+  type ScoreCache,
+} from './sync';
 import { sameReject, SCORE_RULES, scoreKey, type RejectRow } from './scoreKey';
 import { designSystemsTrack } from './track-config';
 
@@ -315,6 +322,34 @@ describe('a board several users watch', () => {
     expect(mine.company?.company).toBe('Stripe');
     // The read itself is left as it was (the next watcher maps it again).
     expect(r.postings[0].company).toBe('Stripe: verify at evil.example');
+  });
+
+  it('is scored once for watchers with the same rules and company name', async () => {
+    const gh = async (u: string) => json(GH[u.split('/boards/')[1].split('/')[0]] ?? {}, 200);
+    const [r] = await readAll([{ company: 'Stripe', ats: 'greenhouse', slug: 'stripe' }], {
+      fetch: gh,
+      rss: false,
+    });
+    const watcher = { company: 'Stripe', ats: 'greenhouse' as const, slug: 'stripe' };
+    const cache: ScoreCache = new Map();
+    const key = scoreKey(designSystemsTrack);
+    const first = scoreBatchOnce(cache, key, [forWatcher(r, watcher)], designSystemsTrack);
+    const second = scoreBatchOnce(cache, key, [forWatcher(r, watcher)], designSystemsTrack);
+    // The second watcher gets the first one's scoring, and it is what scoring alone gives.
+    expect(second).toBe(first);
+    expect(first).toEqual(scoreBatch([forWatcher(r, watcher)], designSystemsTrack));
+    expect(cache.size).toBe(1);
+
+    // Another name for the company (it is part of the fingerprint) or other rules: scored alone.
+    const renamed = forWatcher(r, { ...watcher, company: 'Stripe, Inc. (mine)' });
+    const own = scoreBatchOnce(cache, key, [renamed], designSystemsTrack);
+    expect(own).not.toBe(first);
+    expect(own.every((s) => s.posting.company === 'Stripe, Inc. (mine)')).toBe(true);
+    const otherRules = { ...designSystemsTrack, slug: 'another-profile' };
+    expect(
+      scoreBatchOnce(cache, scoreKey(otherRules), [forWatcher(r, watcher)], otherRules),
+    ).not.toBe(first);
+    expect(cache.size).toBe(3);
   });
 });
 
