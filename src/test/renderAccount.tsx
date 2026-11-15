@@ -8,6 +8,7 @@ import { ColorModeProvider } from '../ColorMode';
 import CloudSyncProvider from '../account/CloudSyncProvider';
 import DataToolsProvider from '../account/DataToolsProvider';
 import AccountMenu from '../account/AccountMenu';
+import { SIGN_OUT_UNSYNCED } from '../cloudMessages';
 
 export const renderAccount = () =>
   render(
@@ -53,3 +54,18 @@ export async function addDeviceDataIfAsked() {
   const add = screen.queryByRole('button', { name: 'Add to account' });
   if (add) await userEvent.click(add);
 }
+
+/** Sign-out with changes the cloud does not hold asks first (an HDS confirm, 2026-11-15): answer
+ *  it. Fails when it never shows. */
+export async function answerSignOutAsk(signOut: boolean) {
+  const ask = await screen.findByRole('alertdialog', { name: SIGN_OUT_UNSYNCED.title });
+  await userEvent.click(
+    within(ask).getByRole('button', {
+      name: signOut ? SIGN_OUT_UNSYNCED.confirm : SIGN_OUT_UNSYNCED.cancel,
+    }),
+  );
+}
+
+/** Whether sign-out's "lose recent changes?" confirm is on screen. */
+export const signOutAsked = () =>
+  screen.queryByRole('alertdialog', { name: SIGN_OUT_UNSYNCED.title }) !== null;

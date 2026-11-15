@@ -27,6 +27,8 @@ import {
   chooseAccountItem,
   chooseDataAction,
   addDeviceDataIfAsked,
+  answerSignOutAsk,
+  signOutAsked,
 } from '../test/renderAccount';
 import CloudSyncProvider from './CloudSyncProvider';
 import { useCloudSync } from './accountContext';
@@ -221,6 +223,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     // The server deleted the auth user and its sessions too: sign out on this device only.
     await waitFor(() => expect(signOut).toHaveBeenCalledWith({ scope: 'local' }));
+    // The account is gone: this device no longer names it as the one it synced with.
+    expect(localStorage.getItem('rjb_device_account')).toBeNull();
     for (const t of ['watched_companies', 'postings', 'skips', 'sync_log'])
       expect(
         fake().tables[t].map((r) => r.user_id),
@@ -489,7 +493,6 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   });
 
   it('sign-out warns before wiping tracks that never reached the cloud; cancel keeps them', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     await signedInWithSyncedTrack();
     fake().failNext('categories', 'upsert');
     act(() => {
@@ -497,12 +500,12 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     });
     await screen.findByText('Track changes didn’t reach the cloud');
     await chooseAccountItem('Sign out');
-    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/haven’t reached the cloud/));
+    await answerSignOutAsk(false);
     expect(label()).toEqual(['Design Systems', 'Only here']);
+    expect(localStorage.getItem('rjb_curation')).not.toBeNull();
   });
 
   it('confirming the warning signs out and wipes this browser', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     await signedInWithSyncedTrack();
     fake().failNext('categories', 'upsert');
     act(() => {
@@ -510,11 +513,11 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     });
     await screen.findByText('Track changes didn’t reach the cloud');
     await chooseAccountItem('Sign out');
+    await answerSignOutAsk(true);
     await waitFor(() => expect(localStorage.getItem('rjb_curation')).toBeNull());
   });
 
   it("sign-out clears what Review last read, so the Review tab never shows the last account's count", async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     await signedInWithSyncedTrack();
     act(() => setScanDetails({ failed: [], hidden: [], newToday: 12, sourcesRead: 3 }));
     await chooseAccountItem('Sign out');
@@ -522,22 +525,21 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   });
 
   it('a track write still in flight counts as unsynced at sign-out', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     await signedInWithSyncedTrack();
     const release = fake().holdNext('categories', 'upsert');
     act(() => {
       addCategory({ label: 'In flight' });
     });
     await chooseAccountItem('Sign out');
-    expect(confirm).toHaveBeenCalled();
+    await answerSignOutAsk(false);
     release();
   });
 
   it('with every track synced, sign-out asks nothing', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     await signedInWithSyncedTrack();
     await chooseAccountItem('Sign out');
-    expect(confirm).not.toHaveBeenCalled();
+    await waitFor(() => expect(localStorage.getItem('rjb_curation')).toBeNull());
+    expect(signOutAsked()).toBe(false);
   });
 
   it('a session that expired mid-session is loud too, not a silent skip', async () => {
@@ -932,7 +934,6 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     });
 
     it('a failed push at sign-out asks before wiping; cancel keeps everything', async () => {
-      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
       renderAccount();
       act(() => fake().signIn('u1'));
       await addDeviceDataIfAsked();
@@ -940,9 +941,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       fake().failNext('tracker', 'upsert');
       act(edit);
       await chooseAccountItem('Sign out');
-      await waitFor(() =>
-        expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/latest changes/)),
-      );
+      await answerSignOutAsk(false);
       expect(readTargets('trk')).toHaveLength(1);
       expect(readEvidence()).toBe('Led a design system');
     });
@@ -955,7 +954,6 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       fake().failNext('tracker', 'upsert');
       act(edit);
       await screen.findByText(OFFLINE_MSG);
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
       await chooseAccountItem('Sign out');
       await waitFor(() => expect(readTargets('trk')).toEqual([]));
       expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
@@ -1033,7 +1031,6 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     });
 
     it('a failed push at sign-out asks before wiping; cancel keeps everything', async () => {
-      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
       renderAccount();
       act(() => fake().signIn('u1'));
       await addDeviceDataIfAsked();
@@ -1041,9 +1038,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       fake().failNext('tracker', 'upsert');
       act(edit);
       await chooseAccountItem('Sign out');
-      await waitFor(() =>
-        expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/latest changes/)),
-      );
+      await answerSignOutAsk(false);
       expect(readTargets('trk')).toHaveLength(1);
       expect(readEvidence()).toBe('Led a design system');
     });
@@ -1056,7 +1051,6 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       fake().failNext('tracker', 'upsert');
       act(edit);
       await screen.findByText(OFFLINE_MSG);
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
       await chooseAccountItem('Sign out');
       await waitFor(() => expect(readTargets('trk')).toEqual([]));
       expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
@@ -1082,5 +1076,69 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       expect(readTargets('trk')).toHaveLength(1);
       expect(readEvidence()).toBe('Led a design system');
     });
+  });
+});
+
+// Adrian's phone, 2026-11-15: every Google sign-in to his own account asked "Add this device's
+// saved data to …?" (sign-out wipes the sync base), and a sign-out soon after a repeated SIGNED_IN
+// warned of changes that had reached the cloud.
+describe('the same account on this device', () => {
+  const ADDED = 'https://acme.example/jobs/made-signed-out';
+  const ask = () => screen.queryByRole('alertdialog', { name: /^Add this device/ });
+  async function signedInThenOut() {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    await chooseAccountItem('Sign out');
+    await waitFor(() => expect(localStorage.getItem('rjb_sync_base')).toBeNull());
+    cleanup();
+    // The page reloads signed out, and the person saves a job before signing in again.
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    act(() => {
+      addJob(ADDED, 'Made signed out');
+    });
+  }
+
+  it('signing in again is not asked to add this device’s data; it merges in', async () => {
+    await signedInThenOut();
+    expect(localStorage.getItem('rjb_device_account')).toBe('u1');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() =>
+      expect(fake().tables.tracker[0].data.jobs.map((j: Job) => j.url)).toContain(ADDED),
+    );
+    expect(fake().tables.tracker[0].data.jobs.map((j: Job) => j.url)).toContain(
+      'https://acme.example/jobs/1',
+    );
+    expect(ask()).toBeNull();
+  });
+
+  it('another account is still asked first (the login injection guard)', async () => {
+    await signedInThenOut();
+    renderAccount();
+    act(() => fake().signIn('u2'));
+    expect(await screen.findByRole('alertdialog', { name: /^Add this device/ })).toBeVisible();
+    expect(fake().tables.tracker.map((r) => r.user_id)).toEqual(['u1']);
+  });
+
+  it('a repeated SIGNED_IN for the signed-in account starts no new sign-in, so sign-out asks nothing', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    await waitFor(() => expect(screen.queryByText(/Syncing|Saving/)).toBeNull());
+    // supabase-js says SIGNED_IN again for the same session (tab focus, a broadcast). A pull it
+    // started would hold here; the old code reset the sync state and then warned on sign-out.
+    const release = fake().holdNext('tracker', 'select');
+    act(() => fake().signIn('u1'));
+    await chooseAccountItem('Sign out');
+    await waitFor(() => expect(localStorage.getItem('rjb_sync_base')).toBeNull());
+    expect(signOutAsked()).toBe(false);
+    release();
   });
 });
