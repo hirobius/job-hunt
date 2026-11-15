@@ -892,8 +892,16 @@ function PostingCard({
             source as a neutral badge; "N new" is Find's caption. */}
         {compact ? (
           // Takes focus after a decision on the card before it (no ring: focusAsHeading). titleSm,
-          // one HDS step above body (Adrian 2026-11-15); still the underlined link out.
-          <Text variant="titleSm" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>
+          // one HDS step above body (Adrian 2026-11-15). The link has no underline at rest, only on
+          // hover and keyboard focus (FindList.css, Adrian 2026-11-15); the external icon stays.
+          <Text
+            variant="titleSm"
+            as="h3"
+            weight="bold"
+            lineClamp={3}
+            tabIndex={-1}
+            className="rjb-posting-title"
+          >
             <CardTitleLink r={r} onOpen={onOpen} />
           </Text>
         ) : (
