@@ -70,7 +70,7 @@ describe('sync run resume', () => {
 
   it('each slice saves its place before it reads and before it calls the next one', () => {
     expect(fn).toContain('if (!(await savePlace(after)))');
-    const end = fn.indexOf('const mine = await savePlace(next);');
+    const end = fn.indexOf('const mine = await savePlace(next, sliceSize);');
     expect(end).toBeGreaterThan(-1);
     expect(end).toBeLessThan(fn.indexOf('const broke = await chainNext('));
     // The heartbeat after each board batch.
@@ -82,12 +82,35 @@ describe('sync run resume', () => {
   it('a resumed slice keeps the run start and the feeds flags of the run it goes on with', () => {
     expect(fn).toContain('body.runStart = row.run_start;');
     expect(fn).toContain('body.rss = row.payload?.rss === true;');
-    expect(fn).toContain('p_payload: { rss: body.rss === true, keyed: body.keyed !== false }');
+    expect(fn).toContain(
+      'p_payload: { rss: body.rss === true, keyed: body.keyed !== false, size }',
+    );
   });
 
   it('a stop and a give-up are logged (the stop itself logs nothing)', () => {
     expect(fn).toContain('run stopped ${where} with no error logged');
     expect(fn).toContain('run given up ${where}');
+  });
+
+  it('a slice that stopped is read again smaller, and one board that stops alone is skipped', () => {
+    // First live run, 2026-11-15: 16 Greenhouse boards stopped a fresh invocation three times.
+    expect(fn).toMatch(
+      /const resumeSlice = \(base: number, resumes: number\) =>\s+Math\.max\(1, base >> Math\.max\(0, resumes\)\);/,
+    );
+    const slice = Number(/const SLICE = (\d+)/.exec(fn)![1]);
+    const size = (r: number) => Math.max(1, slice >> Math.max(0, r));
+    expect([1, 2, 3, 4].map(size)).toEqual([8, 4, 2, 1]);
+    const skipAt = Number(/const RESUME_SKIP_AT = (\d+)/.exec(fn)![1]);
+    const max = Number(/const RESUME_MAX = (\d+)/.exec(fn)![1]);
+    // The skip comes after the one-board try and before the give-up.
+    expect(size(skipAt - 1)).toBe(1);
+    expect(skipAt).toBeLessThan(max);
+    expect(fn).toContain('sliceSize = resumeSlice(baseSize, row.resumes);');
+    // The size that worked goes on with the run: the next slice, and the saved place.
+    expect(fn).toContain('...(sliceSize < SLICE && { size: sliceSize }),');
+    expect(fn).toContain('const skipped = skipFirst ? rest.shift() : undefined;');
+    expect(fn).toContain('const boards = rest.slice(0, sliceSize);');
+    expect(fn).toContain('skipped for this run');
   });
 
   it('the feeds and the closing have an invocation with no board in it', () => {
