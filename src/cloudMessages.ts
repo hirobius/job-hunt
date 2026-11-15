@@ -25,13 +25,15 @@ export const TRACK_WRITE_FAILED = {
   description: 'They’re kept on this device. Use Retry sync in the Account menu to send them.',
 };
 
-/** Asked before sign-out wipes this browser while some tracks never reached the cloud. */
-export const UNSYNCED_SIGN_OUT =
-  'Some of your tracks haven’t reached the cloud yet. Signing out deletes them from this browser. Sign out anyway?';
-
-/** Asked before sign-out wipes this browser while the latest edits could not be uploaded. */
-export const UNSYNCED_CHANGES_SIGN_OUT =
-  'Your latest changes (jobs, templates, targets, saved searches, evidence) couldn’t reach the cloud. Signing out deletes them from this browser. Sign out anyway?';
+/** The HDS confirm before sign-out wipes this browser while some changes are not in the cloud
+ *  (a failed push, or a track write refused or in flight). Plain words: what is lost, and where. */
+export const SIGN_OUT_UNSYNCED = {
+  title: 'Sign out and lose recent changes?',
+  description:
+    'Some recent changes have not reached the cloud yet. Signing out deletes them from this device. To keep them, cancel and use Retry sync in the Account menu.',
+  confirm: 'Sign out anyway',
+  cancel: 'Cancel',
+};
 
 /** Child → parent, so erasure never depends on the FK cascade. */
 export const DELETE_ORDER = ['tiles', 'groups', 'categories', 'tracker'] as const;
