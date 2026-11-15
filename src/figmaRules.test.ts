@@ -113,19 +113,21 @@ describe('FIGMA-RULES.md', () => {
     );
     expect(CLAUDE).toMatch(/8 items in 4 groups, redesign §5\.9, #549/);
     const menu = fs.readFileSync('src/account/AccountMenuRows.tsx', 'utf8');
-    for (const name of ['SIGN_IN_LABEL', 'SIGN_IN_ITEM', 'Pause animations'])
+    for (const name of ['SIGN_IN_STATE', 'SIGN_IN_ITEM', 'Pause animations'])
       expect(menu).toContain(name);
     // The signed-out group: a short label with the benefit, then the key "Sign in".
     const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');
-    // One benefit line (2026-11-15): the menu's label is "On this device only." + the screen's.
+    // One benefit line (2026-11-15): the menu's header is "On this device only" over the screen's line.
     for (const line of [
       "SIGN_IN_BENEFIT = 'Sign in to sync your jobs across devices.'",
-      'SIGN_IN_LABEL = `On this device only. ${SIGN_IN_BENEFIT}`',
+      "SIGN_IN_STATE = 'On this device only'",
       "SIGN_IN_ITEM = 'Sign in'",
     ])
       expect(COPY).toContain(line);
     for (const doc of [RULES, CLAUDE])
-      expect(doc).toContain('"On this device only. Sign in to sync your jobs across devices."');
+      expect(doc).toContain(
+        '"On this device only" over the caption "Sign in to sync your jobs across devices."',
+      );
     expect(menu).toContain('<MenuToggleItem');
     expect(menu).not.toMatch(/>\s*Scan details\s*</);
     expect(fs.readFileSync('src/hds-gaps/MenuToggleItem.tsx', 'utf8')).toContain(
