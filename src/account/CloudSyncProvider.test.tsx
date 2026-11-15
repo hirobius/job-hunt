@@ -404,11 +404,11 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     act(() => {
       addCategory({ label: 'Design Systems' });
     });
-    expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
+    expect(await screen.findByText('Some changes didn’t reach the cloud')).toBeInTheDocument();
     expect(
       screen.getByText(/kept on this device.*Retry sync in the Account menu/),
     ).toBeInTheDocument();
-    const toast = screen.getByText('Track changes didn’t reach the cloud').closest('li')!;
+    const toast = screen.getByText('Some changes didn’t reach the cloud').closest('li')!;
     expect(within(toast).getByRole('button', { name: /^Reload/ })).toBeInTheDocument();
     const menu = await openAccount();
     expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();
@@ -445,7 +445,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     const id = await signedInWithSyncedTrack();
     fake().failNext('categories', 'upsert');
     act(() => updateCategory(id, { label: 'Design Engineering' }));
-    await screen.findByText('Track changes didn’t reach the cloud');
+    await screen.findByText('Some changes didn’t reach the cloud');
     await chooseAccountItem('Retry sync');
     await waitFor(() => expect(cloudLabels()).toEqual(['Design Engineering']));
     expect(label()).toEqual(['Design Engineering']);
@@ -455,7 +455,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     const id = await signedInWithSyncedTrack();
     fake().failNext('categories', 'delete');
     act(() => removeCategory(id));
-    await screen.findByText('Track changes didn’t reach the cloud');
+    await screen.findByText('Some changes didn’t reach the cloud');
     await chooseAccountItem('Retry sync');
     await waitFor(() => expect(cloudLabels()).toEqual([]));
     expect(label()).toEqual([]);
@@ -467,7 +467,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     act(() => {
       addCategory({ label: 'Only here' });
     });
-    await screen.findByText('Track changes didn’t reach the cloud');
+    await screen.findByText('Some changes didn’t reach the cloud');
     addJob('https://acme.example/jobs/9', 'Design Engineer');
     await waitFor(() => expect(JSON.stringify(fake().tables.tracker[0].data)).toContain('jobs/9'));
     const menu = await openAccount();
@@ -487,9 +487,9 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       addCategory({ label: 'B' });
       addCategory({ label: 'C' });
     });
-    await screen.findByText('Track changes didn’t reach the cloud');
+    await screen.findByText('Some changes didn’t reach the cloud');
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getAllByText('Track changes didn’t reach the cloud')).toHaveLength(1);
+    expect(screen.getAllByText('Some changes didn’t reach the cloud')).toHaveLength(1);
   });
 
   it('sign-out warns before wiping tracks that never reached the cloud; cancel keeps them', async () => {
@@ -498,7 +498,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     act(() => {
       addCategory({ label: 'Only here' });
     });
-    await screen.findByText('Track changes didn’t reach the cloud');
+    await screen.findByText('Some changes didn’t reach the cloud');
     await chooseAccountItem('Sign out');
     await answerSignOutAsk(false);
     expect(label()).toEqual(['Design Systems', 'Only here']);
@@ -511,7 +511,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     act(() => {
       addCategory({ label: 'Only here' });
     });
-    await screen.findByText('Track changes didn’t reach the cloud');
+    await screen.findByText('Some changes didn’t reach the cloud');
     await chooseAccountItem('Sign out');
     await answerSignOutAsk(true);
     await waitFor(() => expect(localStorage.getItem('rjb_curation')).toBeNull());
@@ -550,7 +550,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     act(() => {
       addCategory({ label: 'After expiry' });
     });
-    expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
+    expect(await screen.findByText('Some changes didn’t reach the cloud')).toBeInTheDocument();
   });
 
   it('an edit made after another tab signed out is kept and sent at the next sign-in (#169)', async () => {

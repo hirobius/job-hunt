@@ -42,7 +42,12 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   inclusion check uses (`termRegex`, `passesInclude`: whole words, "systems" ↔ "design system", never "ecosystem";
   **phrases break at separators**: a spaced hyphen, en/em dash, `, | / : ; & · •`; a hyphen inside a word joins).
   **A design system rule reads the title only** (`hasRelatedTitles`), so Design Engineers never come in through a
-  description; **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  description; **one exception (Adrian 2026-11-15): a product-design title (`track-config.ts` `PRODUCT_DESIGN_TITLE`:
+  Product / UX / UI / Visual / Interaction Designer) is listed when its description shows at least
+  `BODY_SIGNALS_TO_LIST` (2) of the scorer's body signals** (`feed/include.ts` `bodyConfirms`; one mention of "design
+  system" is not enough; same guard as the related titles). The scorer has the same titles as adjacent at the same
+  bar, and a phone's light read fetches their descriptions (`bodyCanConfirm`). The design systems plan searches the
+  term feeds for its first design-system title, "design systems", then the related titles that are on (`plan.ts` `designSystemsTerms`, first 3 kept); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
   2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
   `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
   process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
@@ -71,7 +76,27 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   (#448, Adrian 2026-11-06):** migration `20261106100000` (06:23 keeps the feeds); a 429/5xx/timeout is read once more
   after 2 s (`tracks/retry.ts`); Scan details says "Updated N min ago" for a signed-in user (#694; Find shows no scan line)
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
-  `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. The Feed's
+  `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. **A run that always finishes
+  (2026-11-15, migration `20261115100000`, applied after the function, `deploy-order.json`):** runs stopped in their
+  4th slice with "CPU Time exceeded" and no `sync_log` row (2026-11-14: 48 of 157 boards read, no feeds). Each slice
+  now saves where the next one starts (`save_sync_cursor`, also a heartbeat after each board batch); the resume tick
+  (`{"resume": true}`, every minute, `claim_sync_resume`) goes on with a run whose place stood still for
+  `RESUME_STALE_MS` (150 s), under the run's own start time, logs the stop as a `failed` row, and gives the run up
+  after `RESUME_MAX` (6) tries on one place. **A stopped slice is read again smaller** (first live run, 2026-11-15: 16
+  Greenhouse boards stopped a fresh invocation 3 times): each try halves it (`resumeSlice`: 8, 4, 2, 1), the size that
+  worked goes on with the run (`size` in the chain and the saved place), and one board that stops the function alone
+  is skipped for that run from try `RESUME_SKIP_AT` (5), logged, nothing on it closed. After a stop the size grows back with each slice
+  that works (`nextSliceSize`: doubles, up to half of `SLICE`). The last slice reads no board: the feeds and the closing have their own
+  invocation. Pinned in `tracks/syncResume.test.ts`. **Unchanged rejected rows
+  are reused (2026-11-15, migration `20261115110000`, before the function):** a rejected row keeps no description, so
+  the Greenhouse delta read counted every rejected job as changed and fell back to the full list on each run (the CPU
+  that stopped the sync). Each row now stores `score_key` (`tracks/scoreKey.ts`: FNV over `SCORE_RULES` and the whole
+  config; bump `SCORE_RULES` when score.ts, the fit rule or the design role guard change a verdict; `reuseRejects.test.ts`
+  pins a hash of those three files, so a change to one fails until the choice is made). A job is not
+  downloaded or scored again when, for every follower of its board, the stored row is an open reject with that
+  follower's current key and the same stamp, title, link and place (`sameReject`; `known_reject_rows`, paged). Its row
+  is kept as seen by `touch_reject_rows`; a touch that keeps fewer rows than asked counts those boards as not
+  answered, so nothing closes. Pinned in `tracks/sync.test.ts`, `tracks/reuseRejects.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
   `serverFirstReader`, in `useFeed`):** reads the server's rows through the `feed_rows` RPC (#499, migration `20261109100000`: each row's

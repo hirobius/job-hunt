@@ -19,14 +19,15 @@ export const TAB_FROZEN_MESSAGE = {
   newerVersion: TAB_NEWER_VERSION,
 } as const;
 
-/** A track change the cloud refused (curationStore's mirror): what happened, then the fix. */
+/** A change to the older saved lists (the curation tables, curationStore's mirror) the cloud refused:
+ * what happened, then the fix. Plain words: tracks are not in the UI since #389. */
 export const TRACK_WRITE_FAILED = {
-  title: 'Track changes didn’t reach the cloud',
+  title: 'Some changes didn’t reach the cloud',
   description: 'They’re kept on this device. Use Retry sync in the Account menu to send them.',
 };
 
 /** The HDS confirm before sign-out wipes this browser while some changes are not in the cloud
- *  (a failed push, or a track write refused or in flight). Plain words: what is lost, and where. */
+ *  (a failed push, or a list write refused or in flight). Plain words: what is lost, and where. */
 export const SIGN_OUT_UNSYNCED = {
   title: 'Sign out and lose recent changes?',
   description:

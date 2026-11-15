@@ -27,7 +27,7 @@ The saved list, named views, Add job, Export links and the tracker model.
   **Recently closed** (`isClosed`: gone from the board or past its day; #602, where closed jobs collect and each is
   removed or kept; the automatic check is #602's own work), **Passed** (Adrian 2026-11-13, `passed.ts` +
   `PassedList.tsx`: jobs marked Not a fit or set aside (`archived`), each row with Delete (`removeWithUndo`: to Recently
-  removed, Undo; Delete forever stays there), then "Skipped in Find": the `decided[]` Skips not `hidden`, newest
+  removed, Undo; Delete forever stays there), then "Skipped in Review": the `decided[]` Skips not `hidden`, newest
   first, with Save (`addJobDetailed`, verdict saved, Undo skips again), Undo skip (`decided.undo`, back in Find, Undo
   skips again) and Delete (`decided.hide`: `hidden: true`, stamped now so the later decision wins a merge; still
   decided, so it never comes back in Find; Undo lists it again). A Skip now keeps the posting's `title`, `company` and

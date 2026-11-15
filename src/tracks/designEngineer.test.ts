@@ -247,3 +247,73 @@ describe('design engineer roles', () => {
     expect(RELATED_TITLES.map((r) => r.id)).toContain('Design Engineer');
   });
 });
+
+// Adrian 2026-11-15: a product-design title is listed when its description confirms
+// design-systems work. One rule on both sides: the scorer's adjacent title at its queue bar, and
+// the Feed's inclusion check (feed/include.ts).
+describe('product-design titles with design-systems evidence', async () => {
+  const { bodyCanConfirm, bodyConfirms, passesInclude } = await import('../feed/include');
+  const { BODY_SIGNALS_TO_LIST, designSystemsTrack } = await import('./track-config');
+  const { scorePosting } = await import('./score');
+  const rule = { terms: ['design system'], atsOff: [] };
+  const two =
+    'You will own our design system with the platform team and grow the component library in Figma and code.';
+  const one = 'You will partner with engineers and use our design system every day.';
+  const post = (title: string, descriptionText: string) =>
+    scorePosting(
+      {
+        source: 'greenhouse',
+        sourceId: '1',
+        company: 'A',
+        url: 'https://a',
+        title,
+        descriptionText,
+      },
+      designSystemsTrack,
+    ).verdict;
+
+  it('the bar is two body signals, on both sides', () => {
+    expect(BODY_SIGNALS_TO_LIST).toBe(2);
+    expect(designSystemsTrack.adjacentSignalsToQueue).toBe(BODY_SIGNALS_TO_LIST);
+  });
+
+  it.each([
+    'Product Designer',
+    'Senior Product Designer, Growth',
+    'Staff UX Designer',
+    'UI Designer',
+    'Visual Designer, Brand',
+    'Interaction Designer',
+  ])('%s: listed with two signals, not with one or none', (title) => {
+    expect(passesInclude(rule, title, two)).toBe(true);
+    expect(passesInclude(rule, title, one)).toBe(false);
+    expect(passesInclude(rule, title, '')).toBe(false);
+    expect(post(title, two)).toBe('queue');
+    // One signal: the server holds it for review, the Feed does not list it.
+    expect(post(title, one)).toBe('review');
+    expect(post(title, '')).toBe('reject');
+  });
+
+  it('a title outside product design never comes in through its description', () => {
+    for (const title of ['Product Manager', 'Software Engineer', 'Recruiter', 'Design Recruiter']) {
+      expect(bodyCanConfirm(rule, title), title).toBe(false);
+      expect(passesInclude(rule, title, two), title).toBe(false);
+    }
+  });
+
+  it('keeps the guard: no internship, no hardware sense', () => {
+    for (const title of ['Product Designer Intern', 'Product Designer, Hardware'])
+      expect(bodyConfirms(rule, title, two), title).toBe(false);
+  });
+
+  it('only on a design system rule; a rule switched off lists everything as before', () => {
+    expect(passesInclude(['welding'], 'Product Designer', two)).toBe(false);
+    expect(passesInclude([], 'Product Designer', '')).toBe(true);
+  });
+
+  it('"Frontend Engineer, UI Platform" is an adjacent title now', () => {
+    expect(post('Frontend Engineer, UI Platform', two)).toBe('queue');
+    expect(post('Frontend Engineer, UI Platform', '')).toBe('reject');
+    expect(post('Backend Engineer, UI Platform', two)).toBe('reject');
+  });
+});

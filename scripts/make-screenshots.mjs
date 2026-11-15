@@ -1,6 +1,7 @@
 /* global document -- page callbacks run in the browser */
-// Install-sheet screenshots for the web app manifest (public/manifest.webmanifest): the Pipeline
-// with the sample data, wide (1280x800) and narrow (390x844), light theme. Builds, serves dist/
+// Install-sheet screenshots for the web app manifest (public/manifest.webmanifest): the Apply tab
+// with the sample data, wide (1280x800) and narrow (390x844), light theme, reduced motion (so the
+// logo is the still mark, flame.svg, and no animation varies a frame). Builds, serves dist/
 // with vite preview, shoots, and writes public/screenshot-{wide,narrow}.png. Re-run after a
 // visible redesign and commit the PNGs:
 //
@@ -49,12 +50,20 @@ try {
     await new Promise((r) => setTimeout(r, 500));
   }
   for (const { file, width, height } of SHOTS) {
-    const page = await browser.newPage({ viewport: { width, height }, colorScheme: 'light' });
+    const page = await browser.newPage({
+      viewport: { width, height },
+      colorScheme: 'light',
+      reducedMotion: 'reduce',
+    });
     // The sample data is fictional; the board's live sources are refused so nothing varies.
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-    await page.goto(`${url}/#/queue`);
+    await page.goto(`${url}/#/apply`);
     await page.getByRole('button', { name: 'Try with sample data' }).click();
-    await page.getByRole('region', { name: /^To apply/ }).waitFor();
+    // The Apply tab opens on the first job to apply to (#471): its keys show once it has.
+    await page
+      .getByRole('button', { name: /^Mark applied/ })
+      .first()
+      .waitFor();
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(500);
     await page.screenshot({ path: `public/${file}` });

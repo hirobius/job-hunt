@@ -210,6 +210,20 @@ const cleanTerms = (titles: string[]) => {
     .slice(0, MAX_TERMS_PER_USER);
 };
 
+/** What a design systems plan searches the term feeds for (HN, Remotive, Jobicy), 2026-11-15:
+ *  the profile's first design-system title (a feed that matches whole phrases finds it), then
+ *  "design systems" (every design-system title; the old list's cap of 3 cut it), then the related
+ *  titles that are on, which the old list never searched, then the profile's other design-system
+ *  titles. `cleanTerms` keeps the first `MAX_TERMS_PER_USER`, so with a title of its own a
+ *  profile searches that, "design systems" and "design engineer". */
+export function designSystemsTerms(titles: string[], config: TrackConfig): string[] {
+  const related = Object.entries(RELATED_PATTERNS)
+    .filter(([, pattern]) => config.titleStrong.includes(pattern))
+    .map(([id]) => id);
+  const [first, ...rest] = titles.filter(saysDesignSystem);
+  return [...(first ? [first] : []), 'design systems', ...related.sort(), ...rest];
+}
+
 const isV12 = (o: O) =>
   (typeof o.v === 'number' && o.v >= 12) || Array.isArray(o.sources) || Array.isArray(o.profiles);
 
@@ -249,9 +263,7 @@ function planV12(o: O): SyncPlan | null | undefined {
     for (const f of ['rss', ...SERVER_FEEDS] as const) feeds.delete(f);
   const titles = profileTitles(p);
   const terms =
-    config.slug === designSystemsTrack.slug
-      ? titles.filter(saysDesignSystem).concat('design systems')
-      : titles;
+    config.slug === designSystemsTrack.slug ? designSystemsTerms(titles, config) : titles;
   return {
     from: 'v12',
     config,

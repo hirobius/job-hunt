@@ -45,7 +45,9 @@ import {
   MousePointerClick,
   Plus,
   SearchX,
+  WifiOff,
   CircleCheck,
+  ArrowUp,
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
@@ -60,6 +62,7 @@ import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
 import { useAutoLoad } from './autoLoad';
+import { useHeldPostings } from './heldPostings';
 import { spacerRef, useWindowedList } from './useWindowedList';
 import { placeSaysRemote } from './feed/placeRemote';
 import { capsToSentence } from './feed/capsCase';
@@ -137,15 +140,26 @@ export default function ReviewView({
     [setShown],
   );
 
-  // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
-  const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
-  const listed = rows;
-  const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   // The selected posting is in the route (#/find/<fingerprint>), so a link to it is shareable and
   // survives a reload. At lg Browse opens on the first posting, as Apply opens on its first job
   // (Adrian 2026-11-12, #546); below lg nothing is selected (no posting page).
   const route = useRoute();
   const selectedFp = postingOf(route);
+  // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
+  const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
+  // Late postings wait behind "N new postings" (Adrian 2026-11-15): no jump under the cards read.
+  // A change the person makes to what the list is (the Search profile, a company followed) fills it
+  // as a first load again, so a new company's jobs still show at once (2026-10-28).
+  const {
+    shown: listed,
+    held,
+    showHeld,
+  } = useHeldPostings(rows, {
+    settled: !!view && !feed.loading && !feed.progress,
+    keep: [selectedFp],
+    reset: [feed.profile, feed.sources],
+  });
+  const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   const selected = selectedFp
     ? (view?.rows.find((r) => r.fingerprint === selectedFp) ?? null)
     : null;
@@ -275,8 +289,14 @@ export default function ReviewView({
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
   // Find's one empty state (#694), picked by cause.
-  const emptyCause: EmptyCause = view && decidedAny(view.hidden) ? 'caughtUp' : 'none';
-  const empty = <FindEmpty cause={emptyCause} />;
+  const emptyCause: EmptyCause = !view
+    ? 'none'
+    : decidedAny(view.hidden)
+      ? 'caughtUp'
+      : unreachable(view)
+        ? 'unreachable'
+        : 'none';
+  const empty = <FindEmpty cause={emptyCause} onRetry={feed.refresh} />;
   const panel = (
     <Panel label={label} title={label} titleHidden flat>
       <PanelBody>
@@ -287,6 +307,7 @@ export default function ReviewView({
               a screen reader still hears them here, politely. */}
           <VisuallyHidden as="p" role="status" aria-live="polite">
             {loadedMore ||
+              (held.length ? newPostingsLabel(held.length) : null) ||
               ((scanStatus ? null : line) ??
                 (feed.loading
                   ? 'Reading your sources…'
@@ -319,25 +340,44 @@ export default function ReviewView({
               centered
               icon={SearchX}
               title="Nothing to read yet"
-              description="Follow a company under New companies, or save a job, and its postings show here."
+              description="Follow a company in Account, Companies, or save a job, and its postings show here."
             />
           </PanelBody>
         )
       ) : listed.length ? (
-        <RowList
-          label="New postings"
-          rows={listed}
-          shown={shown}
-          onMore={(added) => {
-            setLoadedMore(`Loaded ${added} more`);
-            setShown((n) => n + REVIEW_PAGE);
-          }}
-          now={feed.at}
-          actions={actions}
-          onOpen={wide ? open : undefined}
-          linked={wide ? null : linked}
-          selected={selectedFp}
-        />
+        <>
+          {held.length > 0 && (
+            // Sticky at the top of the list, so it shows wherever the person is reading.
+            <Box className="rjb-find-new">
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Icon icon={ArrowUp} />}
+                onClick={() => {
+                  showHeld();
+                  window.scrollTo({ top: 0 });
+                  if (rows[0]) focusTitleOf(rows[0].fingerprint);
+                }}
+              >
+                {newPostingsLabel(held.length)}
+              </Button>
+            </Box>
+          )}
+          <RowList
+            label="New postings"
+            rows={listed}
+            shown={shown}
+            onMore={(added) => {
+              setLoadedMore(`Loaded ${added} more`);
+              setShown((n) => n + REVIEW_PAGE);
+            }}
+            now={feed.at}
+            actions={actions}
+            onOpen={wide ? open : undefined}
+            linked={wide ? null : linked}
+            selected={selectedFp}
+          />
+        </>
       ) : columns ? null : (
         // At lg the empty state is the right column's (the two columns stay, Adrian 2026-11-13).
         empty
@@ -421,6 +461,20 @@ export interface FindTools {
   selected: boolean;
 }
 
+/** "1 new posting" / "12 new postings": the key that shows the postings held back. */
+const newPostingsLabel = (n: number) => `${n} new posting${n === 1 ? '' : 's'}`;
+
+/** After "N new postings", focus goes to the top card's title (no ring), once it is mounted. */
+function focusTitleOf(fp: string) {
+  let frames = 30;
+  const tick = () => {
+    const h = cardEl(fp)?.querySelector<HTMLElement>('h3');
+    if (h) focusAsHeading(h);
+    else if (frames-- > 0) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 /** After a decision on a Browse card, focus goes to the title of the card that takes its place
  *  (the next one, else the one before), else the empty state's title, once the decided card has
  *  left the list. */
@@ -461,8 +515,14 @@ function EmptySection({ children, cause }: { children: ReactNode; cause: EmptyCa
 }
 
 /** Why Find has nothing to show (#694). One cause, one icon tile, one set of keys: `none` nothing
- *  read or nothing matches, `caughtUp` every posting is saved or skipped. */
-type EmptyCause = 'none' | 'caughtUp';
+ *  read or nothing matches, `caughtUp` every posting is saved or skipped, `unreachable` no source
+ *  answered (offline, or every host refused): that is not "no postings match", so it says so and
+ *  its one key reads again. */
+type EmptyCause = 'none' | 'caughtUp' | 'unreachable';
+
+/** Sources were asked and not one answered. */
+const unreachable = (v: { sourcesRead: number; failed: unknown[] }) =>
+  v.sourcesRead === 0 && v.failed.length > 0;
 
 const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; description: string }> = {
   none: {
@@ -476,9 +536,14 @@ const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; descript
     description:
       'Every posting from your sources is saved or skipped. The next scan brings new ones.',
   },
+  unreachable: {
+    icon: WifiOff,
+    title: 'Couldn’t reach your sources',
+    description: 'None of them answered. Check your connection, then try again.',
+  },
 };
 
-function FindEmpty({ cause }: { cause: EmptyCause }) {
+function FindEmpty({ cause, onRetry }: { cause: EmptyCause; onRetry: () => void }) {
   const copy = EMPTY_COPY[cause];
   return (
     <EmptySection cause={cause}>
@@ -488,7 +553,15 @@ function FindEmpty({ cause }: { cause: EmptyCause }) {
         titleId={EMPTY_TITLE_ID}
         title={copy.title}
         description={copy.description}
-        action={<NoResultsKeys caughtUp={cause === 'caughtUp'} />}
+        action={
+          cause === 'unreachable' ? (
+            <Button variant="primary" onClick={onRetry}>
+              Try again
+            </Button>
+          ) : (
+            <NoResultsKeys caughtUp={cause === 'caughtUp'} />
+          )
+        }
       />
     </EmptySection>
   );
@@ -509,7 +582,7 @@ const rowActions: RowActions = {
     saveRow(from, () => {
       // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
       if (alreadyInApply(r.url)) return;
-      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
+      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review'));
       if (!url) {
         showNotice({
           title: 'Couldn’t save that posting',
@@ -806,6 +879,8 @@ function PostingCard({
   compact?: boolean;
   actions: RowActions;
 }) {
+  // At lg the list card sits beside the detail (onOpen): title and company only.
+  const brief = compact && !!onOpen;
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
@@ -840,23 +915,27 @@ function PostingCard({
             Company not stated
           </Text>
         )}
-        <Card.Facts
-          className="p-0"
-          // Plain lines, not a list inside each card's list item (as FactLines was): a list of
-          // cards counts only its cards.
-          role="presentation"
-          items={[
-            { icon: MapPin, label: placeOf(r) },
-            ...(mode ? [{ icon: Briefcase, label: mode }] : []),
-            ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
-          ]}
-        />
-        {pay && (
+        {/* At lg a list card is the title and the company only (Adrian 2026-11-15): the place,
+            pay, posted day and text are the detail's beside it, never read twice. */}
+        {!brief && (
+          <Card.Facts
+            className="p-0"
+            // Plain lines, not a list inside each card's list item (as FactLines was): a list of
+            // cards counts only its cards.
+            role="presentation"
+            items={[
+              { icon: MapPin, label: placeOf(r) },
+              ...(mode ? [{ icon: Briefcase, label: mode }] : []),
+              ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
+            ]}
+          />
+        )}
+        {pay && !brief && (
           <Text variant="body" as="p" weight="bold">
             {pay}
           </Text>
         )}
-        {compact && <BrowseExcerpt r={r} />}
+        {compact && !brief && <BrowseExcerpt r={r} />}
         {keys && (
           <Box sx={{ pt: compact ? undefined : 'xs' }}>
             <PostingActions r={r} actions={actions} openKey={!compact} />

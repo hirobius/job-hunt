@@ -39,7 +39,9 @@ Card rules, list rows, the posting card, page width, outlines and the selected f
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
   Inputs, focus, overlays, row dividers and feedback tones keep theirs. **Selected is a fill, never an
   edge (#603, #546):** a selected / current item (the Apply rail's open job, Find's `.rjb-selected`
-  card) takes `--rjb-selected-fill` (base.css: HDS surface-selected in both themes, distinct from hover and raised; kept on hover;
+  card) takes `--rjb-selected-fill` (base.css: HDS **surface-accentSubtle** since Adrian 2026-11-15, the light graphite
+  accent tint, graphite-50 light / graphite-800 dark; it was surface-selected, which read dark and muddy; the open
+  row's title is bold, `JobRowList.css`; the selected item stays in its place, never moved to the top), distinct from hover and raised; kept on hover;
   content-secondary stays AA), no edge marker or ring. `e2e/no-outlines.spec.ts` fails on a Card or
   container box that draws an edge, and on a rail open job that is not fill only (`e2e/selectedFill.ts`,
   also in `e2e/review.spec.ts` for Find).

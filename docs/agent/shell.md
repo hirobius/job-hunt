@@ -8,7 +8,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   "Track your first job" (Add job | Try with sample data), the load error (Try again), Documents' "No documents
   yet" (Add starter messages | Start from scratch, grey), Find's "No postings match yet" (`AutoScanViews.tsx` `NoResultsKeys`: signed out Scan now | Edit
   search profile (Scan now is also in the Account menu, #694); signed in Edit search profile alone, filled, as
-  there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Find has one empty state, picked by cause, never by view (#694):** `ReviewView.tsx` `FindEmpty` (`data-empty-cause`): `none` (nothing read or nothing matches; search-x) "No postings match yet" with those keys; `caughtUp` (all saved or skipped; CircleCheck) "You’re all caught up", signed out Scan now alone, signed in Edit search profile filled (`NoResultsKeys caughtUp`); at lg it is the right column and the two columns stay (2026-11-13). Review has no filters since 2026-11-13, so there is no `filtered` cause. **Done:**
+  there is no Scan now signed in; it opens the Account menu's dialog through `jobDialogs.ts` `openSearchProfile`). **Find has one empty state, picked by cause, never by view (#694):** `ReviewView.tsx` `FindEmpty` (`data-empty-cause`): `none` (nothing read or nothing matches; search-x) "No postings match yet" with those keys; `caughtUp` (all saved or skipped; CircleCheck) "You’re all caught up", signed out Scan now alone, signed in Edit search profile filled (`NoResultsKeys caughtUp`); at lg it is the right column and the two columns stay (2026-11-13); `unreachable` (UX pass 2026-11-15: sources were asked and not one answered, `sourcesRead === 0` with failures; WifiOff) "Couldn’t reach your sources" with one filled key, Try again (`feed.refresh`), never "No postings match". Review has no filters since 2026-11-13, so there is no `filtered` cause. **Done:**
   with nothing left to apply to at all (To apply view, no search; Remote only aside) the Apply tab is
   `TrackerView` `DonePage`: the h1, then `ApplyDone.tsx` (the standard `hds-gaps/EmptyState` `centered` icon tile,
   `ListChecks`, no flame since 2026-11-13; "That is the list" (its title, not a heading); `applyDone.ts` `weekLine`: applied
@@ -65,7 +65,10 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   surface, never a Card per job: badges, the title (`rjb-clamp-2`, two lines), the company, place and one date;
   the title is the link, its hit area stretched over the row (`::after`, which carries the focus ring), so its name
   is its visible text (the rest describes it; `hds-gaps/NavListActionItem` is deleted); the open job is
-  `aria-current` with the selected fill; no row key (Follow up, Mark applied), no row menu, no posting glyph (the
+  `aria-current` with the selected fill; **beside the job at lg (`JobRail`, `JobRowList brief`, Adrian 2026-11-15) a row
+  is its badges, title and company only**, the place and date being the job page's beside it (Review's lg list
+  cards likewise: `PostingCard` `brief` = title + company, no facts, pay or excerpt; below lg rows and cards keep
+  their facts; pinned in `jobPage.test.tsx`, `review.test.tsx`); no row key (Follow up, Mark applied), no row menu, no posting glyph (the
   job page's header and More have them). Follow up and Next 7 days stay under the lg column only.
   `ApplyFilterBar`, `ApplyQueueSummary` and `JobListCard` are deleted. A pick pops the sheet's entry, then replaces the page's, so Back leaves
   the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
@@ -169,7 +172,16 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   (remote by default; an older remembered `review:filters` / `review:mode` / `review:card` is not read; Apply's Remote only
   follows the profile too since 2026-11-13). At lg the list starts under the tabs. **No pager below lg (Adrian 2026-11-14):** the "[‹][›] 1 of N" row of #714 is gone; in a list that
   scrolls, its arrows only jumped the page (`FindList.css` keeps only the window spacer). A step past the pages
-  shown by ↑ / ↓ at lg shows enough pages first (`showUpTo`), so its card is there to scroll to. **At lg** ↑ / ↓ move
+  shown by ↑ / ↓ at lg shows enough pages first (`showUpTo`), so its card is there to scroll to. **Late postings wait (Adrian
+  2026-11-15, the layout-jump fix):** `heldPostings.ts` `useHeldPostings`: once the list has settled (its read fully
+  answered) or the person has started reading it (a scroll, tap or key on the page), a posting that arrives later is
+  held, never put in above the cards on screen; a sticky "N new postings" key (HDS secondary, ArrowUp; `.rjb-find-new`
+  in `FindList.css`, zero height so it floats over the list and nothing moves when it comes or goes) puts them in,
+  scrolls to the top and focuses the top card's title; Review's polite status says "N new postings". Postings of the
+  first load show as they come; the selected posting is never held; a change to the Search profile or the Sources (a
+  company followed) fills the list as a first load again, so a new company's jobs still show at once (2026-10-28);
+  when none of the shown cards is left, everything shows. Pinned in `heldPostings.test.ts`, `review.test.tsx`,
+  `e2e/review.spec.ts`. **At lg** ↑ / ↓ move
   the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
   text field, select, menu, listbox or dialog, or a menu / dialog is open. Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the

@@ -13,7 +13,8 @@
 // "posting closed". The sync never writes the blob: the user removes a dead board from Sources.
 // One invocation reads SLICE boards (the worker's CPU budget is ~2 s, and the first full run ran
 // out), then calls itself for the next slice. The feeds and closing unfollowed boards run on the
-// last slice; each slice closes postings missed on the boards it read.
+// last slice (which reads no board, 2026-11-15); each slice closes postings missed on the boards
+// it read. A run that stops part way is picked up by the resume tick (`{ resume: true }`).
 // Scan rotation (#src-bulk, body `{ rotate: true }`, pg_cron every minute): see `rotate` below and
 // src/tracks/rotation.ts. It reads the bulk board set a slice at a time for design systems users.
 // Auth: x-sync-secret must equal SYNC_SECRET (compared as SHA-256 digests, without an early exit).
@@ -33,6 +34,7 @@ import {
   boardOf,
   forWatcher,
   readAll,
+  reusedRejects,
   scoreBatch,
   TERM_FEEDS,
   termsPerRun,
@@ -51,6 +53,7 @@ import {
   type DeadBoard,
 } from '../../../src/tracks/rotation.ts';
 import { designSystemsTrack } from '../../../src/tracks/track-config.ts';
+import { sameReject, scoreKey, type RejectRow } from '../../../src/tracks/scoreKey.ts';
 import { matchPatterns, trimForMatch } from '../../../src/tracks/matchText.ts';
 import { SOURCE_ENABLED } from '../../../src/feed/sourceEnabled.ts';
 import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
@@ -123,6 +126,28 @@ const SLICE = 16;
 /** How long a 15-minute run holds its lease before the next tick may start anyway (#448): under
  *  the 15-minute gap, so a chain that died never blocks more than one tick. */
 const RUN_LEASE_MS = 14 * 60_000;
+/** A run that stops part way goes on (2026-11-15, migration 20261115100000): each slice saves
+ *  where the next one starts, and the resume tick (`{ resume: true }`, every minute) picks up a
+ *  run whose place has not moved for RESUME_STALE_MS. A slice also saves its place after each
+ *  board batch (the heartbeat), and the stale time is longer than a whole slice can take (two
+ *  batches, each a read, a 2 s wait and one more read, under FETCH_TIMEOUT_MS each), so a slice
+ *  that is still running is never taken twice. */
+const RESUME_STALE_MS = 150_000;
+/** Tries on the same place before the run is given up (the next 15-minute tick starts a new one). */
+const RESUME_MAX = 6;
+/** A slice that stopped is read again smaller (first live run, 2026-11-15: the 16 Greenhouse boards
+ *  after 'greenhouse:clearstreet' stopped on the CPU limit in an invocation of their own, three
+ *  times, and the run was given up). Each try halves it: 8, 4, 2, 1 boards. */
+const resumeSlice = (base: number, resumes: number) => Math.max(1, base >> Math.max(0, resumes));
+/** The size of the slice after one that worked. A run that never stopped stays at SLICE. After a
+ *  stop the size grows back, doubling with each slice that works, up to half of SLICE (review of
+ *  #735: one heavy board left the rest of the run at 1 board an invocation). Not back to SLICE: that
+ *  size stopped in this run, and each stop costs RESUME_STALE_MS. */
+const nextSliceSize = (worked: number) =>
+  worked >= SLICE ? SLICE : Math.min(SLICE >> 1, Math.max(1, worked) * 2);
+/** From this try on, the one board left stopped the slice alone: it is skipped for this run
+ *  (logged; nothing on it closes, as it did not answer). */
+const RESUME_SKIP_AT = 5;
 /** Blobs per select (each holds a user's whole job list). */
 const BLOB_PAGE = 100;
 /** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
@@ -293,18 +318,85 @@ function matchTextOf(s: ScoredPosting, patterns: RegExp[] | undefined): string |
   return trimmed === text ? null : trimmed;
 }
 
-/** Score, dedupe and upsert one user's postings from this pass's answered reads. */
-const writeGroup = (
+/** Source ids per call of `touch_reject_rows` (they ride in the request body). */
+const TOUCH_CHUNK = 500;
+
+/** Score, dedupe and upsert one user's postings from this pass's answered reads. A reused reject
+ *  (the delta read's mark, sync.ts) is not scored: its stored row is kept as seen. `keyed` (the
+ *  reject-reuse migration is applied) stores each row's score key. False when a reused row could
+ *  not be kept as seen: the caller then counts none of these boards as answered, so nothing on
+ *  them closes as missed. */
+async function writeGroup(
   db: SupabaseClient,
   userId: string,
   plan: SyncPlan,
   answered: ReadOutcome[],
   logs: Log[],
   totals: Totals,
-) =>
-  writeScored(db, userId, plan.config.slug, scoreBatch(answered, plan.config), logs, totals, {
+  keyed = false,
+): Promise<boolean> {
+  let kept = true;
+  const reused = reusedRejects(answered);
+  const seen = new Date().toISOString();
+  for (let i = 0; i < reused.length && kept; i += TOUCH_CHUNK) {
+    const ids = reused.slice(i, i + TOUCH_CHUNK);
+    const { data, error } = await db.rpc('touch_reject_rows', {
+      p_user: userId,
+      p_source_ids: ids,
+      p_seen: seen,
+    });
+    if (error || data !== ids.length) {
+      kept = false;
+      logs.push({
+        user_id: userId,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message:
+          `keeping unchanged rejected rows as seen: ${error?.message ?? `${data} of ${ids.length} rows`} (nothing closed on these boards)`.slice(
+            0,
+            2000,
+          ),
+      });
+    }
+  }
+  if (kept) totals.reject += reused.length;
+  await writeScored(db, userId, plan.config.slug, scoreBatch(answered, plan.config), logs, totals, {
     match: matchOf(plan),
+    ...(keyed && { extra: { score_key: scoreKey(plan.config) } }),
   });
+  return kept;
+}
+
+/** The stored rejected Greenhouse rows on these boards, per source id and user (the
+ *  `known_reject_rows` RPC, paged). Null when the migration is not applied or the read failed:
+ *  nothing is reused then, and no score key is stored. */
+async function knownRejectRows(
+  db: SupabaseClient,
+  boards: string[],
+): Promise<Map<string, Map<string, RejectRow>> | null> {
+  const read = await readPaged<Record<string, string | null>>(
+    (from, to) => db.rpc('known_reject_rows', { p_boards: boards }).range(from, to),
+    1000,
+  );
+  if (read.error) return null;
+  const out = new Map<string, Map<string, RejectRow>>();
+  for (const r of read.rows) {
+    const id = String(r.source_id ?? '');
+    const user = String(r.user_id ?? '');
+    if (!id || !user) continue;
+    let m = out.get(id);
+    if (!m) out.set(id, (m = new Map()));
+    m.set(user, {
+      title: String(r.title ?? ''),
+      url: String(r.url ?? ''),
+      location: r.location ?? null,
+      sourceUpdatedAt: r.source_updated_at ?? null,
+      scoreKey: r.score_key ?? null,
+    });
+  }
+  return out;
+}
 
 /** Dedupe and upsert one user's scored postings. `extra` columns ride on every row (the scan's
  *  `via_scan`); `match` cuts each row's match text (matchText.ts). */
@@ -646,7 +738,7 @@ async function loadPlans(
 async function chainNext(
   supabaseUrl: string,
   secret: string,
-  payload: { rss?: boolean; keyed?: boolean; after: string; runStart: string },
+  payload: { rss?: boolean; keyed?: boolean; size?: number; after: string; runStart: string },
 ): Promise<string | null> {
   let why = '';
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -687,6 +779,14 @@ type DeadRow = {
   retry_at: string;
   disabled: boolean;
   last_checked: string;
+};
+
+type ResumeRow = {
+  run_start: string;
+  after: string;
+  payload: { rss?: boolean; keyed?: boolean; size?: number } | null;
+  resumes: number;
+  gave_up: boolean;
 };
 
 type Loaded = { plans: Map<string, SyncPlan>; planless: string[]; tilesError: string | null };
@@ -1017,9 +1117,11 @@ Deno.serve(async (req) => {
     keyed?: boolean;
     after?: string;
     runStart?: string;
+    /** The resume tick: go on with a run that stopped part way, or do nothing. */
+    resume?: boolean;
+    /** Boards a slice for the rest of this run: the size that worked after a stop. */
+    size?: number;
   };
-  // A cursor, not an offset: a user who drops a board shrinks the list the next slice reads.
-  const after = typeof body.after === 'string' ? body.after : '';
   // Fail loud: name what is missing instead of a vague client error deep in the run.
   const missing = missingEnv();
   if (missing.length) {
@@ -1031,8 +1133,45 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
   if (body.rotate === true) return rotate(db);
-  const runStart = body.runStart ?? new Date().toISOString();
   const logs: Log[] = [];
+  const sizeOf = (v: unknown) =>
+    typeof v === 'number' && v >= 1 && v <= SLICE ? Math.floor(v) : SLICE;
+  // What this slice started from (kept with the place, so each try halves the same number).
+  let baseSize = sizeOf(body.size);
+  let sliceSize = baseSize;
+  let skipFirst = false;
+  if (body.resume === true) {
+    const { data, error } = await db.rpc('claim_sync_resume', {
+      p_stale_ms: RESUME_STALE_MS,
+      p_max: RESUME_MAX,
+      p_lease_ms: RUN_LEASE_MS,
+    });
+    const row = ((data ?? []) as ResumeRow[])[0];
+    // The migration is not applied yet, or no run stood still: nothing to do.
+    if (error || !row) return json({ resume: 'idle' });
+    const where = `after '${row.after}' (run ${row.run_start})`;
+    await db.from('sync_log').insert({
+      user_id: null,
+      kind: 'failed',
+      board: null,
+      status: null,
+      message: (row.gave_up
+        ? `run given up ${where}: it stopped there ${row.resumes} times. The next run starts over.`
+        : `run stopped ${where} with no error logged (CPU or time limit); going on, try ${row.resumes} of ${RESUME_MAX}`
+      ).slice(0, 2000),
+    });
+    if (row.gave_up) return json({ resume: 'gave up', after: row.after });
+    body.after = row.after;
+    body.runStart = row.run_start;
+    body.rss = row.payload?.rss === true;
+    body.keyed = row.payload?.keyed === false ? false : undefined;
+    baseSize = sizeOf(row.payload?.size);
+    sliceSize = resumeSlice(baseSize, row.resumes);
+    skipFirst = row.resumes >= RESUME_SKIP_AT;
+  }
+  // A cursor, not an offset: a user who drops a board shrinks the list the next slice reads.
+  const after = typeof body.after === 'string' ? body.after : '';
+  const runStart = body.runStart ?? new Date().toISOString();
   // One run at a time (#448, every 15 minutes): the first slice (no runStart yet) claims the lease
   // on the database's clock; a tick that finds the previous run's chain still going skips. The
   // last slice releases it; a chain that dies lets it expire (RUN_LEASE_MS).
@@ -1054,6 +1193,19 @@ Deno.serve(async (req) => {
     }
   }
   const releaseRun = () => db.rpc('release_sync_run', { p_run: runStart });
+  // The run's place, kept so a slice that dies is picked up from here (the resume tick). False:
+  // the lease is another run's now, so this chain stops. An error (the migration is not applied
+  // yet) changes nothing: the run goes on as before.
+  const savePlace = async (place: string | null, size = baseSize) => {
+    const { data, error } = await db.rpc('save_sync_cursor', {
+      p_run: runStart,
+      p_after: place,
+      p_payload: { rss: body.rss === true, keyed: body.keyed !== false, size },
+      p_lease_ms: RUN_LEASE_MS,
+    });
+    return error ? true : data !== false;
+  };
+  if (!(await savePlace(after))) return json({ skipped: 'a newer run holds the lease', after });
 
   // Cached like the rotation's (#448): a run's chained slices land inside the TTL, so one run
   // plans once instead of re-reading every blob and tile on each of its ~10 slices.
@@ -1083,9 +1235,22 @@ Deno.serve(async (req) => {
   // Board passes: read BOARD_BATCH boards, log failures, write each follower's postings.
   const all = [...distinct.values()].sort((a, b) => boardOf(a).localeCompare(boardOf(b)));
   const rest = all.filter((w) => boardOf(w) > after);
-  const boards = rest.slice(0, SLICE);
-  const last = rest.length <= SLICE;
+  // One board that stops the slice alone is left out of this run, so the boards after it are read.
+  const skipped = skipFirst ? rest.shift() : undefined;
+  if (skipped)
+    logs.push({
+      user_id: null,
+      kind: 'failed',
+      board: boardOf(skipped),
+      status: null,
+      message: `${boardOf(skipped)}: skipped for this run. Its slice stopped the function at every size down to this one board (CPU or time limit).`,
+    });
+  const boards = rest.slice(0, sliceSize);
+  // The last slice reads no board (2026-11-15): the feeds, the closing and the liveness check get
+  // an invocation of their own, so they never share one with 16 boards' scoring.
+  const last = rest.length === 0;
   const next = last ? null : boardOf(boards[boards.length - 1]);
+  // (A skip with nothing after it leaves `rest` empty: this is then the last slice.)
   let feedsRead = 0;
   let closedLive = 0;
   let retriedReads = 0;
@@ -1093,6 +1258,21 @@ Deno.serve(async (req) => {
   // Stored Greenhouse rows for the delta reads (#448): loaded once per invocation, so a
   // chained run plans once and reads light wherever it can.
   const knownBoards = await knownBoardPostings(db);
+  // Stored rejected rows on this slice's Greenhouse boards (2026-11-15): a job that every
+  // follower's rules rejected, and that has not moved, is not downloaded or scored again.
+  const greenhouse = boards.filter((b) => b.ats === 'greenhouse').map(boardOf);
+  const rejects = greenhouse.length ? await knownRejectRows(db, greenhouse) : null;
+  const keys = new Map<string, string>();
+  const keyOf = (userId: string) => {
+    if (!keys.has(userId)) keys.set(userId, scoreKey(plans.get(userId)!.config));
+    return keys.get(userId)!;
+  };
+  const knownRejects = (board: string) => {
+    const who = followers.get(board) ?? [];
+    if (!rejects || !who.length || !board.startsWith('greenhouse:')) return undefined;
+    return (id: string, meta: Parameters<typeof sameReject>[1]) =>
+      who.every((f) => sameReject(rejects.get(id)?.get(f.user_id), meta, keyOf(f.user_id)));
+  };
   // Whatever breaks in this slice, the next one still starts (below): one bad board or write must
   // not stop every board after it until the next cron run.
   try {
@@ -1100,7 +1280,7 @@ Deno.serve(async (req) => {
       // A 429, a 5xx or a timeout is read once more after a short wait (#448: the sync now runs
       // every 15 minutes, so a busy host gets a second chance here and a fresh one next run).
       const { reads, retried } = await readWithRetry(boards.slice(i, i + BOARD_BATCH), (batch) =>
-        readAll(batch, { fetch: timedFetch, rss: false, knownBoards }),
+        readAll(batch, { fetch: timedFetch, rss: false, knownBoards, knownRejects }),
       );
       retriedReads += retried;
       const perUser = new Map<string, ReadOutcome[]>();
@@ -1133,8 +1313,28 @@ Deno.serve(async (req) => {
           }
         }
       }
-      for (const [userId, answered] of perUser)
-        await writeGroup(db, userId, plans.get(userId)!, answered, logs, totalsOf(userId));
+      for (const [userId, answered] of perUser) {
+        const kept = await writeGroup(
+          db,
+          userId,
+          plans.get(userId)!,
+          answered,
+          logs,
+          totalsOf(userId),
+          rejects !== null,
+        );
+        // A reused row that was not kept as seen would read as missing: these boards do not
+        // count as answered for this user, so nothing on them closes.
+        if (!kept) {
+          const lost = new Set(answered.map((r) => r.board));
+          answeredBy.set(
+            userId,
+            (answeredBy.get(userId) ?? []).filter((b) => !lost.has(b)),
+          );
+        }
+      }
+      // The heartbeat: this slice is alive, so the resume tick leaves it alone.
+      await savePlace(after);
     }
 
     // The feeds, twice a day (06:23 and 14:23, #576), on the last slice: each title once across users.
@@ -1332,11 +1532,18 @@ Deno.serve(async (req) => {
     });
   }
   if (logs.length) await db.from('sync_log').insert(logs);
+  // Where the next slice starts, saved before it is called: if that call or the slice dies, the
+  // resume tick goes on from here. Null: the run is done.
+  // The next slice's size (from the one that worked) goes with the new place, and to that slice.
+  const nextSize = nextSliceSize(sliceSize);
+  const mine = await savePlace(next, nextSize);
   if (!next) await releaseRun();
+  if (next && !mine) return json({ skipped: 'a newer run holds the lease', after });
   if (next) {
     const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
       rss: body.rss,
       ...(body.keyed === false && { keyed: false }),
+      ...(nextSize < SLICE && { size: nextSize }),
       after: next,
       runStart,
     });

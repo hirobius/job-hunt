@@ -15,7 +15,7 @@ import { SOURCE_LABEL, type Posting } from './types';
 import { SOURCE_ENABLED } from './sourceEnabled';
 import { lightBoards } from './lightBoards';
 import { fillTexts } from './lightText';
-import { passesInclude } from './include';
+import { bodyCanConfirm, passesInclude } from './include';
 import { includeFields, type IncludeRule } from './mustInclude';
 
 export { SOURCE_ENABLED };
@@ -506,9 +506,13 @@ export async function fetchFeed(
   const fillBoard = (b: Board) =>
     light && b.kind === 'greenhouse'
       ? (list: Posting[]) =>
-          fillTexts(list, fetchJson, (p) => passesInclude(light, p.title, ''), {
-            deadlineMs: sourceTimeoutMs,
-          })
+          fillTexts(
+            list,
+            fetchJson,
+            // Also a product-design title: its description decides (include.ts `bodyConfirms`).
+            (p) => passesInclude(light, p.title, '') || bodyCanConfirm(light, p.title),
+            { deadlineMs: sourceTimeoutMs },
+          )
       : undefined;
   const all: SourceTask[] = [
     ...terms.flatMap(termTasks),

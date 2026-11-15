@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NormalizedPosting } from './score';
 import { fetchDesignSystemsJobsFeed, stripHtml } from './sources';
-import { forWatcher, readAll, scoreBatch } from './sync';
+import { forWatcher, readAll, reusedRejects, scoreBatch } from './sync';
+import { sameReject, SCORE_RULES, scoreKey, type RejectRow } from './scoreKey';
 import { designSystemsTrack } from './track-config';
 
 const json = (body: unknown, status = 200) =>
@@ -578,5 +579,128 @@ describe('greenhouse delta reads (#448)', () => {
     const [r] = await readAll(acme, { fetch: f, rss: false, knownBoards: new Map() });
     expect(calls).toEqual([FULL]);
     expect(r.postings[0].descriptionText).toBe('Full text one.');
+  });
+});
+
+// 2026-11-15: a rejected row keeps no description, so the delta read counted every rejected job as
+// changed and fell back to the full list on each run (the CPU that stopped the sync).
+describe('greenhouse delta reads reuse unchanged rejected rows', () => {
+  const LIGHT = 'https://boards-api.greenhouse.io/v1/boards/acme/jobs';
+  const FULL = `${LIGHT}?content=true`;
+  const job = (id: number, stamp?: string, title = `Job ${id}`) => ({
+    id,
+    title,
+    absolute_url: `https://a/${id}`,
+    location: { name: 'Remote - US' },
+    ...(stamp ? { updated_at: stamp } : {}),
+  });
+  const acme = [{ company: 'Acme', ats: 'greenhouse' as const, slug: 'acme' }];
+  const KEY = scoreKey(designSystemsTrack);
+  const row = (id: number, o: Partial<RejectRow> = {}): [string, RejectRow] => [
+    `greenhouse:acme:${id}`,
+    {
+      title: `Job ${id}`,
+      url: `https://a/${id}`,
+      location: 'Remote - US',
+      sourceUpdatedAt: '2026-10-01T04:00:00.000Z',
+      scoreKey: KEY,
+      ...o,
+    },
+  ];
+  const STAMP = '2026-10-01T00:00:00-04:00';
+  const run = async (jobs: unknown[], rows: [string, RejectRow][], key = KEY) => {
+    const stored = new Map(rows);
+    const calls: string[] = [];
+    const f = vi.fn(async (url: string) => {
+      calls.push(url);
+      if (url === LIGHT) return json({ jobs });
+      const single = url.match(/\/jobs\/(\d+)$/);
+      if (single)
+        return json({
+          ...job(Number(single[1]), STAMP),
+          content: '<p>We own the design system.</p>',
+        });
+      if (url === FULL)
+        return json({
+          jobs: (jobs as { id: number }[]).map((j) => ({ ...j, content: '<p>Full.</p>' })),
+        });
+      return json({}, 404);
+    });
+    const [r] = await readAll(acme, {
+      fetch: f,
+      rss: false,
+      knownRejects: () => (id, meta) => sameReject(stored.get(id), meta, key),
+    });
+    return { r, calls };
+  };
+
+  it('40 unchanged rejected jobs: one light list, no full list, none scored again', async () => {
+    const ids = Array.from({ length: 40 }, (_, i) => i + 1);
+    const { r, calls } = await run(
+      ids.map((id) => job(id, STAMP)),
+      ids.map((id) => row(id)),
+    );
+    expect(calls).toEqual([LIGHT]);
+    expect(r.ok).toBe(true);
+    expect(r.postings).toHaveLength(40);
+    expect(r.postings.every((p) => p.reusedReject && p.descriptionText === '')).toBe(true);
+    expect(reusedRejects([r])).toHaveLength(40);
+    expect(scoreBatch([r], designSystemsTrack)).toEqual([]);
+  });
+
+  it('a new job and a job whose stamp moved are downloaded; the rest are reused', async () => {
+    const { r, calls } = await run(
+      [job(1, STAMP), job(2, '2026-10-09T00:00:00-04:00'), job(3, STAMP)],
+      [row(1), row(2)],
+    );
+    expect(calls.sort()).toEqual([LIGHT, `${LIGHT}/2`, `${LIGHT}/3`].sort());
+    expect(reusedRejects([r])).toEqual(['greenhouse:acme:1']);
+    expect(r.postings.filter((p) => !p.reusedReject).map((p) => p.sourceId)).toEqual([
+      'greenhouse:acme:2',
+      'greenhouse:acme:3',
+    ]);
+    expect(r.postings.find((p) => p.sourceId === 'greenhouse:acme:3')?.descriptionText).toContain(
+      'design system',
+    );
+  });
+
+  it.each([
+    ['a title that changed', { title: 'Design Systems Engineer' }],
+    ['a link that changed', { url: 'https://a/other' }],
+    ['a place that changed', { location: 'Berlin' }],
+    ['no stored stamp', { sourceUpdatedAt: null }],
+    ['a row scored with other rules', { scoreKey: '1:deadbeef' }],
+    ['a row scored before keys were stored', { scoreKey: null }],
+  ])('never reuses %s', async (_name, change) => {
+    const { r, calls } = await run([job(1, STAMP)], [row(1, change)]);
+    expect(calls).toContain(`${LIGHT}/1`);
+    expect(reusedRejects([r])).toEqual([]);
+  });
+
+  it('never reuses a job the board gives no stamp for', async () => {
+    const { r } = await run([job(1)], [row(1)]);
+    expect(reusedRejects([r])).toEqual([]);
+  });
+
+  it('a profile change (another key) reads every job again', async () => {
+    const other = scoreKey({ ...designSystemsTrack, titleNegative: ['manager'] });
+    expect(other).not.toBe(KEY);
+    const { r } = await run([job(1, STAMP)], [row(1)], other);
+    expect(reusedRejects([r])).toEqual([]);
+  });
+});
+
+describe('scoreKey', () => {
+  it('is stable for one config and moves with any part of it', () => {
+    expect(scoreKey(designSystemsTrack)).toBe(scoreKey({ ...designSystemsTrack }));
+    expect(scoreKey(designSystemsTrack)).toMatch(new RegExp(`^${SCORE_RULES}:[0-9a-f]+$`));
+    for (const change of [
+      { titleStrong: [...designSystemsTrack.titleStrong, 'x'] },
+      { titleAdjacent: designSystemsTrack.titleAdjacent.slice(1) },
+      { adjacentSignalsToQueue: 3 },
+      { descriptionSignals: designSystemsTrack.descriptionSignals.slice(1) },
+      { slug: 'profile' },
+    ])
+      expect(scoreKey({ ...designSystemsTrack, ...change })).not.toBe(scoreKey(designSystemsTrack));
   });
 });
