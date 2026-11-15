@@ -216,7 +216,7 @@ describe('Company page (#230)', () => {
   it('an unknown company says so, with a way back to the Pipeline', () => {
     render(<CompanyPage slug="nobody" />);
     expect(screen.getByText('No company here')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to the Pipeline' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Go to Apply' })).toHaveAttribute(
       'href',
       '#/apply',
     );
@@ -230,7 +230,7 @@ describe('Company page (#230)', () => {
     );
     const r = render(withSync(false));
     expect(screen.queryByText('No company here')).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Go to the Pipeline' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Go to Apply' })).toBeNull();
     expect(screen.getByRole('status')).toHaveTextContent(/Looking for this company/);
     // The company's jobs arrive with the pull: the page shows it, no empty state on the way.
     seedAcme();
