@@ -67,6 +67,14 @@ describe('designsystems.jobs job page', () => {
     expect(parseJobPage(ld, DESIGNER)).toMatchObject({ remote: true, url: DESIGNER });
   });
 
+  it('never stores a description as the place (Surfshark, 2026-11-15)', () => {
+    const page = PAGE.replace(
+      '"addressCountry":"France"',
+      '"addressCountry":"Lithuania This role sits in the Experience Design team and owns the system"',
+    );
+    expect(parseJobPage(page, DESIGNER)!.location).toBe('Hybrid, Lithuania');
+  });
+
   it('is null without a JobPosting', () => {
     expect(parseJobPage('<html></html>', DESIGNER)).toBeNull();
     expect(parseJobPage('<script type="application/ld+json">{oops</script>', DESIGNER)).toBeNull();
