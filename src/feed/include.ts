@@ -5,6 +5,11 @@
 // stays out of the entry chunk: only the Feed, the auto-scan and the scorer's forTrack call it.
 import { relatedTitleOk } from '../tracks/designRoleGuard';
 import {
+  BODY_SIGNALS_TO_LIST,
+  designSystemsTrack,
+  PRODUCT_DESIGN_TITLE,
+} from '../tracks/track-config';
+import {
   hasRelatedTitles,
   includeFields,
   normalizeForPhrase,
@@ -30,15 +35,38 @@ function relatedPass(rule: IncludeRule, title: string): RelatedTitle[] {
   );
 }
 
-/** True when the title or description (whichever the rule searches) says one of its phrases, or
- *  a related title that is on names the title. No terms: true. */
+const PRODUCT_DESIGN_RE = new RegExp(PRODUCT_DESIGN_TITLE, 'i');
+const SIGNAL_RES = designSystemsTrack.descriptionSignals.map((d) => new RegExp(d.pattern, 'i'));
+
+/** A product-design title on a design system rule (Adrian 2026-11-15): one the description can
+ *  let in. The same guard as the related titles (no internship, no hardware sense). The phone's
+ *  light read asks this to know which descriptions to fetch. */
+export function bodyCanConfirm(rule: IncludeRule, title: string): boolean {
+  return hasRelatedTitles(rule) && PRODUCT_DESIGN_RE.test(title) && relatedTitleOk(title);
+}
+
+/** The description confirms design-systems work for such a title: it shows at least
+ *  `BODY_SIGNALS_TO_LIST` of the scorer's body signals (design system, component library, design
+ *  tokens, Storybook…), the bar the server's scorer queues an adjacent title at. One mention of
+ *  "design system" alone is not enough: most product design postings have one. */
+export function bodyConfirms(rule: IncludeRule, title: string, text: string): boolean {
+  if (!text || !bodyCanConfirm(rule, title)) return false;
+  let hits = 0;
+  for (const re of SIGNAL_RES) if (re.test(text) && ++hits >= BODY_SIGNALS_TO_LIST) return true;
+  return false;
+}
+
+/** True when the title or description (whichever the rule searches) says one of its phrases, a
+ *  related title that is on names the title, or (a design system rule) the title is a
+ *  product-design one and the description confirms design-systems work. No terms: true. */
 export function passesInclude(rule: IncludeRule, title: string, text = ''): boolean {
   const res = regexesOf(ruleOf(rule).terms);
   if (!res.length) return true;
   const f = includeFields(rule);
   const fields = [f.title ? normalizeForPhrase(title) : '', f.text ? normalizeForPhrase(text) : ''];
   if (res.some((re) => fields.some((t) => t && re.test(t)))) return true;
-  return relatedPass(rule, title).length > 0;
+  if (relatedPass(rule, title).length > 0) return true;
+  return bodyConfirms(rule, title, text);
 }
 
 /** Per related title, how many postings it lets in (or would, when off): those that pass with

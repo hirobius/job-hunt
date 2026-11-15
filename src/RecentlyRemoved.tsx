@@ -152,7 +152,7 @@ export function RecentlyRemovedHost() {
         <Dialog.Header>
           <Dialog.Title>Recently removed</Dialog.Title>
           <Dialog.Description>
-            {`Removed jobs stay here for ${TRASH_DAYS} days, with their notes, to-dos and interviews.`}
+            {`Removed jobs stay here for ${TRASH_DAYS} days, with their notes and interviews.`}
           </Dialog.Description>
         </Dialog.Header>
         <Stack gap="normal">

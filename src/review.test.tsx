@@ -154,6 +154,48 @@ describe('Review new: Browse', () => {
     await waitFor(async () => expect(titles(await list())).toEqual(['Design Systems Lead']));
   });
 
+  it('a posting that answers late waits behind "1 new posting"; nothing moves (Adrian 2026-11-15)', async () => {
+    const first = renderReview();
+    await list();
+    await waitFor(() => expect(localStorage.getItem('rjb_feed_last')).not.toBeNull());
+    first.unmount();
+    resetViewMemory();
+    let answer: (r: FeedResult) => void = () => {};
+    feed.fetchFeed.mockReset().mockReturnValue(new Promise<FeedResult>((r) => (answer = r)));
+    const user = userEvent.setup();
+    renderReview();
+    expect(titles(await list())).toHaveLength(3);
+    // The person is reading the list: a scroll.
+    act(() => {
+      document.dispatchEvent(new Event('scroll'));
+    });
+    const late = post('hn:9', 'Principal Design Systems Engineer', 'Latecomer', {
+      postedAt: new Date(Date.now() + 1000).toISOString(),
+    });
+    await act(async () => answer(result([late, ...BASIC])));
+    const key = await screen.findByRole('button', { name: '1 new posting' });
+    // Held: the cards on screen stay where they were, the late one is not above them.
+    expect(titles(await list())).not.toContain('Principal Design Systems Engineer');
+    expect(titles(await list())).toHaveLength(3);
+    expect(screen.getAllByRole('status').some((e) => e.textContent === '1 new posting')).toBe(true);
+    const scrolled = vi.fn();
+    window.scrollTo = scrolled as typeof window.scrollTo;
+    await user.click(key);
+    expect(screen.queryByRole('button', { name: /new posting/ })).toBeNull();
+    expect(titles(await list())[0]).toBe('Principal Design Systems Engineer');
+    expect(scrolled).toHaveBeenCalledWith({ top: 0 });
+    // Focus goes to the top card's title, not <body>.
+    await waitFor(() =>
+      expect(document.activeElement?.textContent).toMatch(/^Principal Design Systems Engineer/),
+    );
+  });
+
+  it('postings of the first load show as they come, with no "new postings" key', async () => {
+    renderReview();
+    expect(titles(await list())).toHaveLength(3);
+    expect(screen.queryByRole('button', { name: /new posting/ })).toBeNull();
+  });
+
   it('lists every undecided posting and says how many are new from how many sources', async () => {
     const { container } = renderReview();
     const ul = await list();
@@ -329,7 +371,6 @@ describe('Review new: Browse', () => {
 });
 
 describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
-  const current = () => screen.getByRole('group', { name: 'Postings in the list' });
   it('has no view switch and no Deck', async () => {
     renderReview();
     await list();
@@ -338,52 +379,14 @@ describe('Review new: one list, no Deck (Adrian 2026-11-13)', () => {
     expect(document.querySelector('.rjb-deck, .rjb-deck-excerpt')).toBeNull();
   });
 
-  it('below lg, "‹ › 1 of N": the arrows step a current card; focus stays on the arrow', async () => {
-    const user = userEvent.setup();
-    const scrolled = vi.fn();
-    Element.prototype.scrollIntoView = scrolled;
+  it('below lg the list scrolls with no pager (Adrian 2026-11-14: its arrows only jumped the page)', async () => {
     renderReview();
     const ul = await list();
-    const pager = current();
-    const [prev, next] = within(pager).getAllByRole('button');
-    expect(prev).toHaveAccessibleName('Previous posting');
-    expect(next).toHaveAccessibleName('Next posting');
-    // Arrows first, then the count; nothing else on the row.
-    expect(pager.textContent).toBe('1 of 3');
-    expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(prev).toBeDisabled();
-    await user.click(next);
-    expect(pager).toHaveTextContent('2 of 3');
-    // Review of #714: focus stays on the arrow, so it can be pressed again; the step is said once,
-    // politely, and the visible count is not a live region (it follows the scroll).
-    expect(next).toHaveFocus();
-    const second = within(ul).getAllByRole('heading', { level: 3 })[1];
-    const said = screen.getAllByRole('status').find((e) => /^2 of 3: /.test(e.textContent ?? ''));
-    expect(said?.textContent).toContain(second.textContent!.split('\u2060')[0]);
-    expect(pager.querySelector('[aria-live]')).toBeNull();
-    await waitFor(() => expect(scrolled).toHaveBeenCalled());
-    await user.click(next);
-    expect(pager).toHaveTextContent('3 of 3');
-    expect(next).toBeDisabled();
-    // At the end, focus moves to the arrow that is still on.
-    await waitFor(() => expect(prev).toHaveFocus());
-    await user.click(prev);
-    expect(pager).toHaveTextContent('2 of 3');
-  });
-
-  it('below lg, the current card follows scrolling, so the count stays true', async () => {
-    renderReview();
-    const ul = await list();
-    const pager = current();
-    const items = Array.from(ul.querySelectorAll<HTMLElement>(':scope > li'));
-    // The first card has scrolled above a quarter of the screen; the second is the first past it.
-    items.forEach((li, i) => {
-      li.getBoundingClientRect = () => ({ bottom: i === 0 ? 10 : 400 + i * 300 }) as DOMRect;
-    });
-    act(() => {
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await waitFor(() => expect(pager).toHaveTextContent('2 of 3'));
+    expect(titles(ul).length).toBeGreaterThan(1);
+    expect(screen.queryByRole('group', { name: 'Postings in the list' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Previous|Next) posting$/ })).toBeNull();
+    expect(screen.queryByText(/^\d+ of \d+$/)).toBeNull();
+    expect(document.querySelector('.rjb-find-pager')).toBeNull();
   });
 
   it('↓ past the pages shown shows the next page, so its card is there (review of #714)', async () => {
@@ -896,6 +899,30 @@ describe('Review new: every design-system posting, no tiers', () => {
     expect(getAllDecided().decided).toHaveLength(1);
   });
 
+  it('at lg a list card is the title and company only; the facts are the detail’s (2026-11-15)', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('hn:7', 'Design Systems Lead', 'Delta', { location: 'Berlin', mode: 'remote' }),
+      ]),
+    );
+    renderFind();
+    const ul = await list();
+    const card = within(ul).getByRole('article');
+    expect(within(card).getByText('Delta')).toBeInTheDocument();
+    expect(within(card).queryByText(/^Posted /)).toBeNull();
+    expect(within(card).queryByText(/Berlin|Location not stated/)).toBeNull();
+    expect(within(card).queryByRole('button', { name: /^Show more/ })).toBeNull();
+    // The detail beside it holds them.
+    const detail = await detailOf('Design Systems Lead');
+    expect(within(detail).getByText(/^Posted /)).toBeInTheDocument();
+  });
+
+  it('below lg a list card keeps its facts (no detail beside it)', async () => {
+    renderReview();
+    const ul = await list();
+    expect(within(ul).getAllByText(/^Posted /).length).toBeGreaterThan(0);
+  });
+
   it('a double tap on Save in the list saves one posting', async () => {
     const user = userEvent.setup();
     renderReview();
@@ -990,5 +1017,40 @@ describe('Find: one empty state, picked by cause (#694)', () => {
     expect(s.text).toContain('You’re all caught up');
     expect(s.keys).toEqual(['Scan now']);
     expect(s.icon).toMatch(/circle-check|check-circle/);
+  });
+
+  it('no source answered: "Couldn’t reach your sources", and Try again reads again', async () => {
+    const user = userEvent.setup();
+    const down: FeedResult = {
+      postings: [],
+      sources: [
+        { key: 'hn', label: 'Hacker News', fetched: 0, error: 'Hacker News: couldn’t connect.' },
+        { key: 'remotive', label: 'Remotive', fetched: 0, error: 'Remotive: couldn’t connect.' },
+      ],
+    };
+    feed.fetchFeed.mockResolvedValueOnce(down).mockResolvedValue(result([BASIC[0]]));
+    renderReview();
+    const s = await both(user);
+    expect(s.cause).toBe('unreachable');
+    expect(s.title).toBe('Couldn’t reach your sources');
+    // Not "No postings match": nothing was read. One key, and it reads again.
+    expect(s.text).not.toContain('No postings match');
+    expect(s.keys).toEqual(['Try again']);
+    expect(s.icon).toContain('wifi-off');
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(titles(await list())).toHaveLength(1);
+  });
+
+  it('one source answered with nothing: still "No postings match yet"', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue({
+      postings: [],
+      sources: [
+        { key: 'hn', label: 'Hacker News', fetched: 0 },
+        { key: 'remotive', label: 'Remotive', fetched: 0, error: 'Remotive: couldn’t connect.' },
+      ],
+    } satisfies FeedResult);
+    renderReview();
+    expect((await both(user)).cause).toBe('none');
   });
 });

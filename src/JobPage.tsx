@@ -170,7 +170,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
               title={`Nothing under “${FILTER_LABEL[view.filter]}”`}
               description={
                 view.filter === 'passed'
-                  ? 'Postings you skipped in Find are in All jobs.'
+                  ? 'Postings you skipped in Review are in All jobs.'
                   : 'Try another view.'
               }
               action={

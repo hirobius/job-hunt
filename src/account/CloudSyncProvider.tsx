@@ -59,8 +59,6 @@ import {
   DELETE_ORDER,
   deleteFailedMsg,
   TRACK_WRITE_FAILED,
-  UNSYNCED_SIGN_OUT,
-  UNSYNCED_CHANGES_SIGN_OUT,
   RELOAD_ACTION,
   TAB_FROZEN_MESSAGE,
   TAB_FROZEN_TITLE,
@@ -85,7 +83,13 @@ import {
 import { deviceData, mergeQuestion } from './deviceData';
 import { dropSampleTrack } from '../demo/sampleTrack';
 import { dropAutoSetup } from '../autoSetup';
-import { LinkConfirmScreen, MergeConfirmDialog } from '../lazyDialogs';
+import { LinkConfirmScreen, MergeConfirmDialog, SignOutConfirmDialog } from '../lazyDialogs';
+import {
+  clearDeviceAccount,
+  KEPT_ON_SIGN_OUT,
+  readDeviceAccount,
+  writeDeviceAccount,
+} from './deviceAccount';
 
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
 
@@ -106,12 +110,13 @@ function rememberBase(uid: string, d: SyncData) {
   writeSyncBase(uid, keysOf(d), hashesOf(d));
 }
 
-// Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
+// Wipe this device's app data (keeps the color-mode preference and which account it last synced
+// with, deviceAccount.ts). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
 function clearLocalData() {
   try {
     Object.keys(localStorage)
-      .filter((k) => k.startsWith('rjb_') && k !== 'rjb_color_mode')
+      .filter((k) => k.startsWith('rjb_') && !KEPT_ON_SIGN_OUT.includes(k))
       .forEach((k) => localStorage.removeItem(k));
   } catch {
     /* ignore */
@@ -189,6 +194,14 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Until it is answered nothing is pulled or pushed (adopt waits on it).
   const [mergeAsk, setMergeAsk] = useState<{ user: User; question: string } | null>(null);
   const mergeHeld = useRef<string | null>(null);
+  // Sign-out with changes the cloud does not hold yet: the HDS confirm's answer (true = sign out).
+  const [signOutAsk, setSignOutAsk] = useState<((yes: boolean) => void) | null>(null);
+  const askSignOut = () =>
+    new Promise<boolean>((resolve) => setSignOutAsk(() => (yes: boolean) => resolve(yes)));
+  const answerSignOut = (yes: boolean) => {
+    signOutAsk?.(yes);
+    setSignOutAsk(null);
+  };
   // The user that passed the whole sign-in path (email check, then the merge guard). Nothing is
   // pulled or pushed for anyone else, and only their token refreshes skip that path: an expired
   // crafted link is refreshed by supabase-js (TOKEN_REFRESHED, not SIGNED_IN), security re-check.
@@ -461,9 +474,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         // A link's session for another account than the link named: never taken up here.
         if (u && linkEmail.current !== null && !sameEmail(u.email, linkEmail.current)) return;
         setUser(u);
-        // Only a refresh for the user already through the path below is not a new sign-in.
-        const refresh = event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED';
-        if (refresh && u && handled.current === u.id) return;
+        // An event for the user already through the path below is not a new sign-in. supabase-js
+        // also says SIGNED_IN again for the same session (tab focus, another tab's broadcast, the
+        // initial session after an OAuth return): re-running the path reset `pulledOk`, so a
+        // sign-out in that window found nothing "flushed" and warned of lost changes (2026-11-15).
+        if (u && handled.current === u.id) return;
         handled.current = null;
         setTabAccount(null); // until the path below has run for this user
         // Opened from the magic link: back to the page the link was asked for on (return paths).
@@ -484,8 +499,10 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         dropAutoSetup();
         // Never fold this device's data into an account it has not synced with without asking:
         // a crafted link could be someone else's account (login injection, security audit).
+        // The account this device last synced with is not asked again: sign-out wiped its base, and
+        // what is here now was made on this device since (deviceAccount.ts).
         const held =
-          readSyncBase(u.id) === null
+          readSyncBase(u.id) === null && readDeviceAccount() !== u.id
             ? deviceData(localBlob(), getCurationState().categories.length)
             : null;
         if (held?.any) {
@@ -497,6 +514,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         setMergeAsk(null);
         handled.current = u.id;
         setTabAccount(u.id); // only this tab's own sign-out clears it (#169)
+        writeDeviceAccount(u.id);
         adopt(true, u);
       });
       unsubscribe = () => data.subscription.unsubscribe();
@@ -611,6 +629,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     mergeHeld.current = null;
     handled.current = ask.user.id;
     setTabAccount(ask.user.id);
+    writeDeviceAccount(ask.user.id);
     void adopt(true, ask.user);
   };
   // The default: sign out of that account and keep this device's data here, untouched.
@@ -671,13 +690,17 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (tabFrozen() && tabFrozen() !== 'newerVersion') return location.reload();
     // Flush edits still inside the push debounce (or a failed push) before the wipe.
     clearTimeout(pushTimer.current);
+    let unsynced = false;
     if (user) {
       const hasData = localJson() !== JSON.stringify(writeBlob(emptyBlob()));
-      const flushed = pulledOk.current && (!dirty() || (await pushNow(user)));
-      if (!flushed && hasData && !window.confirm(UNSYNCED_CHANGES_SIGN_OUT)) return;
+      // Nothing changed since the last pull or push: the cloud holds this copy, even while a
+      // re-pull is out. Else it must go up now.
+      const flushed = !dirty() || (pulledOk.current && (await pushNow(user)));
+      unsynced = !flushed && hasData;
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
-    if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
+    if (getPending().length > 0) unsynced = true;
+    if (unsynced && !(await askSignOut())) return;
     liftNewerVersionFreeze(); // the wipe below must reach storage
     // Another tab may have signed in as someone else meanwhile (the flush or a confirm found it):
     // the shared session is that tab's now, and signing it out would sign that account out.
@@ -726,6 +749,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       return;
     }
     clearLocalData();
+    clearDeviceAccount(); // the account is gone: a new one with this id never exists, but be plain
     setTabAccount(null);
     handled.current = null;
     // delete_my_data removed the auth user and its sessions (2026-11-13): end the session on this
@@ -929,6 +953,15 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
             question={mergeAsk.question}
             onAdd={addDeviceData}
             onKeep={keepDeviceData}
+          />
+        </Suspense>
+      )}
+      {/* "Sign out and lose these changes?": the HDS confirm in place of window.confirm. */}
+      {signOutAsk && (
+        <Suspense fallback={null}>
+          <SignOutConfirmDialog
+            onSignOut={() => answerSignOut(true)}
+            onCancel={() => answerSignOut(false)}
           />
         </Suspense>
       )}

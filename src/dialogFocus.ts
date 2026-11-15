@@ -33,3 +33,17 @@ export function useDialogFocus(open: boolean): (e: Event) => void {
     if (h) focusAsHeading(h);
   };
 }
+
+/** For `Dialog.Content`'s `onOpenAutoFocus`: start on the dialog's Close key, not its first
+ *  control. For a dialog whose first control sits mid-text (Privacy and terms) or removes
+ *  something (the Search profile's first title): a screen reader starts at the top, a phone shows
+ *  no stray ring mid-dialog, and Enter or Space right after it opens changes nothing. */
+export function focusClose(e: Event) {
+  // HDS's close button is named by its sr-only text ("Close"), not an aria-label.
+  const close = [...((e.target as HTMLElement | null)?.querySelectorAll('button') ?? [])].find(
+    (b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim() === 'Close',
+  );
+  if (!close) return;
+  e.preventDefault();
+  close.focus({ preventScroll: true });
+}

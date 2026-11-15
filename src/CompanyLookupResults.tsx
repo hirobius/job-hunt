@@ -1,5 +1,5 @@
-// What a company lookup (companyLookup.ts) came back with: boards found (one Watch away), boards
-// the name matched that don't show they are this company's (Watch anyway), already watched, no
+// What a company lookup (companyLookup.ts) came back with: boards found (one Follow away), boards
+// the name matched that don't show they are this company's (Follow anyway), already followed, no
 // public board (keep it as a target) or couldn't check (never read as "no board"). The Find box's
 // (#384).
 import { useState } from 'react';
@@ -52,12 +52,12 @@ export function CompanyLookupResults({
                     size="sm"
                     variant="secondary"
                     disabled={done}
-                    aria-label={`${done ? 'Watching' : 'Watch'} ${f.company}`}
+                    aria-label={`${done ? 'Following' : 'Follow'} ${f.company}`}
                     onClick={() => {
                       if (watchOne(f.board)) setWatchedNow((w) => [...w, key(f.board)]);
                     }}
                   >
-                    {done ? 'Watching' : 'Watch'}
+                    {done ? 'Following' : 'Follow'}
                   </Button>
                 </Stack>
               </li>
@@ -68,7 +68,7 @@ export function CompanyLookupResults({
       {result.unconfirmed.length > 0 && (
         <Stack gap="px8">
           <Text variant="caption" as="p" tone="secondary">
-            {`Not confirmed as ${asked}'s. Watch one only if you know it is theirs.`}
+            {`Not confirmed as ${asked}'s. Follow one only if you know it is theirs.`}
           </Text>
           <ul aria-label="Boards not confirmed" style={listStyle}>
             {result.unconfirmed.map((f) => {
@@ -91,12 +91,12 @@ export function CompanyLookupResults({
                       size="sm"
                       variant="tertiary"
                       disabled={done}
-                      aria-label={`${done ? 'Watching' : 'Watch anyway'} ${SOURCE_LABEL[f.board.kind]} board for ${f.company}`}
+                      aria-label={`${done ? 'Following' : 'Follow anyway'} ${SOURCE_LABEL[f.board.kind]} board for ${f.company}`}
                       onClick={() => {
                         if (watchOne(f.board)) setWatchedNow((w) => [...w, key(f.board)]);
                       }}
                     >
-                      {done ? 'Watching' : 'Watch anyway'}
+                      {done ? 'Following' : 'Follow anyway'}
                     </Button>
                   </Stack>
                 </li>
@@ -106,7 +106,7 @@ export function CompanyLookupResults({
         </Stack>
       )}
       {result.alreadyWatched.length > 0 && (
-        <Text variant="ui" as="p">{`Already watching ${result.alreadyWatched.join(', ')}.`}</Text>
+        <Text variant="ui" as="p">{`Already following ${result.alreadyWatched.join(', ')}.`}</Text>
       )}
       {result.missed.length > 0 && (
         <Stack gap="px8">

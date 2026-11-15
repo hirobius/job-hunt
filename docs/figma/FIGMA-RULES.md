@@ -1,7 +1,7 @@
 # Figma agent rules for roleflame
 
 Paste this page into the Figma agent's prompt for any roleflame design task. Source of truth for the
-code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` keeps it true.
+code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figmaRules.test.ts` keeps it true.
 
 ## Build with
 
@@ -42,9 +42,12 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **Review is one list (2026-11-13).** No Deck and no List | Deck switch. Cards carry no source or New
   badge (#557). From 1024 px: the list on the left (about 26 rem) and the selected posting's detail on the
   right; the first posting is selected, so the detail is never empty; ↑ / ↓ move the selection. Below
-  1024 px: the list alone, with one pager row above it, "[‹][›] 1 of N" at the left (each arrow a
-  44 px key of its own, the count after them). The arrows step a current card to the top (focus stays on
-  the arrow); scrolling moves the current card too, so the count stays true. No pager from 1024 px.
+  1024 px: the list alone, scrolled, with **no pager** (Adrian 2026-11-14: in a scrolled list its arrows only
+  jumped the page). No pager at any width.
+- **"N new postings" (2026-11-15).** Postings that arrive after the list has loaded, or once the person is reading,
+  wait behind a small secondary key with an up arrow, "3 new postings", centred at the top of the list and stuck there
+  as it scrolls; it floats over the cards (no height of its own), so nothing moves. A tap puts them in at the top and
+  goes there. Every width.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 
@@ -57,14 +60,17 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day. The work-mode
   line is left out when the place already says remote ("Remote (US)", "New York or Remote"). Never inline after
   each other: the same in a title block (place, pay, date) and Daily picks (pay, posted day). The 16 px
-  icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top.
+  icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top. A 1440 list
+  card beside the detail shows none of them (2026-11-15): the detail has them.
 - **Disclosure rows are flat and steady.** A Disclosure row in a panel (Daily picks' Draft note) is a hairline row in the panel's flow, never a card inside it; it opens without a jump.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.
 - **Selected is a fill, never an edge (#603).** A selected or current item (the Apply list's open job,
-  Review's selected posting) takes the HDS surface-selected fill (distinct from hover and the card fill in
-  both themes); no left edge, ring or outline.
+  Review's selected posting) takes a light graphite accent tint, HDS surface-accentSubtle (2026-11-15; it
+  was surface-selected, which read dark and muddy), distinct from hover and the card fill in both themes,
+  and its title is bold; no left edge, ring or outline. **The selected item stays in its place** in the
+  list: it never moves to the top.
 - Every action answers within 300 ms: a toast, a state change, or the item flashing in place.
   Remove is soft: it collapses, then offers Undo. Undo never navigates: it puts the item back and
   leaves the person on the page they are on.
@@ -79,11 +85,11 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   control, then the job. The job page holds no filter bar, Add job, Remote only or status line.
 - **Review's short header (#544).** (Review controls, 2026-11-13.) No visible "Review" title (the page bar's Review / Apply says where
   you are), nothing at the bar's right. No date line, no Scan now key. **No visible "Review" heading (2026-11-12)** and no
-  filter row (2026-11-13): from 1024 px the list starts under the tabs; below it only the pager row.
+  filter row (2026-11-13): the list starts under the tabs at every width (no pager row, 2026-11-14).
   No Sort on Review (2026-11-13): newest first, always. **No More menu on Review (#694):** Scan now (signed out) is in the Account menu beside
   Search profile, and "Scanned 2 h ago" lives only in Scan details (the Search profile dialog). **One empty state, by
   cause (#694):** "No postings match yet" (Scan now | Edit search profile), "You’re all caught up" (check-circle; Scan
-  now); each its own icon tile on the page background. From 1024 px it sits in the right column and the two columns
+  now), "Couldn’t reach your sources" (wifi-off; Try again, when no source answered); each its own icon tile on the page background. From 1024 px it sits in the right column and the two columns
   stay. The list loads its next
   page on its own as you near the end; "Load more (N)" stays as the fallback, one card gap below the
   last card. A Browse card: the company's logo (letter first; a 24 px inline mark, as on Apply rows and the job page's title block) before its name, on one line, or "Company not
@@ -113,7 +119,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   line or sample line: Remote only follows the Search profile's work mode (every count and the pager
   follow it), the list is newest first, a closed job shows by its Closed badge, and Clear sample
   data is in the Account menu. Focus rings and the selected fill are never clipped at the column's edges.
-- **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: signed out the label "On this device only. Sign in to sync across devices.", then
+- **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: signed out the label "On this device only. Sign in to sync your jobs across devices.", then
   "Sign in" as a grey key (signed in: the email, the sync
   line, Sign out). Then Documents, Search profile, Scan now (signed out only; Stop scan while one runs), Companies, Data. Then Pause animations as a
   toggle with a switch on the right that shows the state (the theme is the app bar's sun/moon
@@ -133,6 +139,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
   then the jobs (no search, filters or Sort since 2026-11-13). **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
   each row is the badge row, the title (two lines at most), the company, the place and one date.
+  **Beside a detail at 1440, a list row is short (2026-11-15):** the badge row (status or due date), the
+  title and the company only; the place, pay and posted date are the detail's, never read twice. The
+  same on Review: a 1440 list card is the title and the company. Below 1024 px the rows and cards keep
+  their facts (no detail beside them).
   The open job takes the selected fill, never an outline ring. No key on a row and no posting icon:
   the job's own page has its next step and Open posting (the one exception: Passed's Delete).
 - **One detail template at 1440 (#546).** Review is two columns too: postings left, the selected
@@ -165,7 +175,7 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The app bar logo (#639):** the flame's mass sits on the name's x-height centre (not its box
   centre): the flame sits about 3 px lower than a box-centred one at 19 px.
 - **Sign-in (#555, #556):** the stacked flame and name, centred by the flame's mass (not its box),
-  then the benefit: "Sign in to see your jobs on any device." (body, primary). Continue with Google
+  then the benefit: "Sign in to sync your jobs across devices." (body, primary). Continue with Google
   and LinkedIn are secondary with no raised edge (shadow none), so Send link leads. Then the email
   field with its helper under it, "We email you a sign-in link. No password needed." (caption,
   secondary), Send link (filled) and Continue without an account (underlined exit). At the foot, one

@@ -5,36 +5,26 @@
   block-size: var(--rjb-spacer-h, 0px);
 }
 
-/* "‹ › 1 of N" below lg: each arrow is its own 44px box (the phone's touch size), side by side
- * with a gap, so the hit areas never overlap; the count follows them. */
-[data-hds] .rjb-find-pager {
+/* "N new postings" (Adrian 2026-11-15): late postings wait behind it, stuck at the top of the list
+ * so it shows wherever the person is reading. It takes no height (it floats over the cards), so
+ * the list does not move when it comes or goes. */
+[data-hds] .rjb-find-new {
   position: sticky;
   top: 0;
-  z-index: 1;
-  background: var(--semantic-color-surface-page);
-  padding-block: var(--primitive-space-1);
+  z-index: 2;
+  block-size: 0;
+  overflow: visible;
+  display: flex;
+  justify-content: center;
 }
-[data-hds] .rjb-find-pager > button {
-  inline-size: var(--rjb-touch);
-  block-size: var(--rjb-touch);
-  min-inline-size: var(--rjb-touch);
-  min-height: var(--rjb-touch);
-}
-.rjb-find-pager-count {
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-/* An arrow scrolls its card to the top, clear of the sticky pager row (44px + its padding). */
-.rjb-find-list > li {
-  scroll-margin-top: calc(var(--rjb-touch) + var(--primitive-space-4));
+[data-hds] .rjb-find-new > button {
+  margin-block-start: var(--primitive-space-2);
 }
 
 /* HDS sets `overflow-x: hidden` on html and body. With both set, body is a scroll container that
- * never scrolls (the viewport does), so `position: sticky` never sticks. While Find's pager shows,
- * `clip` stops sideways scroll the same way without a scroll container. Scoped to that page only:
- * elsewhere the change moved right-aligned keys a few px in the baselines. */
-html:has(.rjb-find-pager),
-body[data-hds]:has(.rjb-find-pager) {
+ * never scrolls (the viewport does), so `position: sticky` never sticks. While the key shows,
+ * `clip` stops sideways scroll the same way without a scroll container. */
+html:has(.rjb-find-new),
+body[data-hds]:has(.rjb-find-new) {
   overflow-x: clip;
 }

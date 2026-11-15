@@ -13,6 +13,11 @@ import { arr, num, obj, stampSeen, str, type FetchJson } from './http.ts';
 /** Jobicy's `tag` must be 3 to 50 characters. */
 const TAG_MIN = 3;
 const TAG_MAX = 50;
+/** Words in a `tag` Jobicy answers. Live, 2026-11-06 to 2026-11-15: "Design Systems Engineer" got
+ *  HTTP 400 on every read, while "design systems" and "design engineer" answered. A longer title
+ *  is not asked: it reads as no results, like a tag that is too short, so the feed still counts
+ *  as answered and the shorter terms find the same jobs. */
+const TAG_WORDS_MAX = 2;
 
 export const jobicyUrl = (term: string) =>
   `https://jobicy.com/api/v2/remote-jobs?count=50&tag=${encodeURIComponent(term.trim())}`;
@@ -55,6 +60,7 @@ export function parseJobicyJob(j: unknown): Posting | null {
 export async function fetchJobicy(term: string, fetchJson: FetchJson): Promise<Posting[]> {
   const t = term.trim();
   if (t.length < TAG_MIN || t.length > TAG_MAX) return [];
+  if (t.split(/\s+/).length > TAG_WORDS_MAX) return [];
   const body = await fetchJson(jobicyUrl(t));
   return stampSeen(
     arr(obj(body).jobs)

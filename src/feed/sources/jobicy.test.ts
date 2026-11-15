@@ -78,6 +78,19 @@ describe('fetchJobicy', () => {
     expect(calls).toBe(0);
   });
 
+  it('does not ask a tag of more than 2 words (Jobicy answers HTTP 400 to one)', async () => {
+    // Live 2026-11-06 to 2026-11-15: "Design Systems Engineer" was refused on every read.
+    let calls = 0;
+    const fj = async () => (calls++, { jobs: [job] });
+    expect(await fetchJobicy('Design Systems Engineer', fj)).toEqual([]);
+    expect(await fetchJobicy('  Staff   Design Systems  Engineer ', fj)).toEqual([]);
+    expect(calls).toBe(0);
+    // One and two words are asked, however they are spaced.
+    expect((await fetchJobicy(' design   engineer ', fj)).map((p) => p.id)).toEqual(['jobicy:101']);
+    expect((await fetchJobicy('designer', fj)).map((p) => p.id)).toEqual(['jobicy:101']);
+    expect(calls).toBe(2);
+  });
+
   it('a body without a jobs array is an empty list', async () => {
     expect(await fetchJobicy('design systems', async () => 'oops')).toEqual([]);
   });
