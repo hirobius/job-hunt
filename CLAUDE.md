@@ -766,7 +766,7 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   `BODY_SIGNALS_TO_LIST` (2) of the scorer's body signals** (`feed/include.ts` `bodyConfirms`; one mention of "design
   system" is not enough; same guard as the related titles). The scorer has the same titles as adjacent at the same
   bar, and a phone's light read fetches their descriptions (`bodyCanConfirm`). The design systems plan searches the
-  term feeds for "design systems", then the related titles that are on (`plan.ts` `designSystemsTerms`); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  term feeds for its first design-system title, "design systems", then the related titles that are on (`plan.ts` `designSystemsTerms`, first 3 kept); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
   2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
   `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
   process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
