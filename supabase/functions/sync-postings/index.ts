@@ -34,6 +34,7 @@ import {
   boardOf,
   forWatcher,
   readAll,
+  reusedRejects,
   scoreBatch,
   TERM_FEEDS,
   termsPerRun,
@@ -52,6 +53,7 @@ import {
   type DeadBoard,
 } from '../../../src/tracks/rotation.ts';
 import { designSystemsTrack } from '../../../src/tracks/track-config.ts';
+import { sameReject, scoreKey, type RejectRow } from '../../../src/tracks/scoreKey.ts';
 import { matchPatterns, trimForMatch } from '../../../src/tracks/matchText.ts';
 import { SOURCE_ENABLED } from '../../../src/feed/sourceEnabled.ts';
 import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
@@ -316,18 +318,85 @@ function matchTextOf(s: ScoredPosting, patterns: RegExp[] | undefined): string |
   return trimmed === text ? null : trimmed;
 }
 
-/** Score, dedupe and upsert one user's postings from this pass's answered reads. */
-const writeGroup = (
+/** Source ids per call of `touch_reject_rows` (they ride in the request body). */
+const TOUCH_CHUNK = 500;
+
+/** Score, dedupe and upsert one user's postings from this pass's answered reads. A reused reject
+ *  (the delta read's mark, sync.ts) is not scored: its stored row is kept as seen. `keyed` (the
+ *  reject-reuse migration is applied) stores each row's score key. False when a reused row could
+ *  not be kept as seen: the caller then counts none of these boards as answered, so nothing on
+ *  them closes as missed. */
+async function writeGroup(
   db: SupabaseClient,
   userId: string,
   plan: SyncPlan,
   answered: ReadOutcome[],
   logs: Log[],
   totals: Totals,
-) =>
-  writeScored(db, userId, plan.config.slug, scoreBatch(answered, plan.config), logs, totals, {
+  keyed = false,
+): Promise<boolean> {
+  let kept = true;
+  const reused = reusedRejects(answered);
+  const seen = new Date().toISOString();
+  for (let i = 0; i < reused.length && kept; i += TOUCH_CHUNK) {
+    const ids = reused.slice(i, i + TOUCH_CHUNK);
+    const { data, error } = await db.rpc('touch_reject_rows', {
+      p_user: userId,
+      p_source_ids: ids,
+      p_seen: seen,
+    });
+    if (error || data !== ids.length) {
+      kept = false;
+      logs.push({
+        user_id: userId,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message:
+          `keeping unchanged rejected rows as seen: ${error?.message ?? `${data} of ${ids.length} rows`} (nothing closed on these boards)`.slice(
+            0,
+            2000,
+          ),
+      });
+    }
+  }
+  if (kept) totals.reject += reused.length;
+  await writeScored(db, userId, plan.config.slug, scoreBatch(answered, plan.config), logs, totals, {
     match: matchOf(plan),
+    ...(keyed && { extra: { score_key: scoreKey(plan.config) } }),
   });
+  return kept;
+}
+
+/** The stored rejected Greenhouse rows on these boards, per source id and user (the
+ *  `known_reject_rows` RPC, paged). Null when the migration is not applied or the read failed:
+ *  nothing is reused then, and no score key is stored. */
+async function knownRejectRows(
+  db: SupabaseClient,
+  boards: string[],
+): Promise<Map<string, Map<string, RejectRow>> | null> {
+  const read = await readPaged<Record<string, string | null>>(
+    (from, to) => db.rpc('known_reject_rows', { p_boards: boards }).range(from, to),
+    1000,
+  );
+  if (read.error) return null;
+  const out = new Map<string, Map<string, RejectRow>>();
+  for (const r of read.rows) {
+    const id = String(r.source_id ?? '');
+    const user = String(r.user_id ?? '');
+    if (!id || !user) continue;
+    let m = out.get(id);
+    if (!m) out.set(id, (m = new Map()));
+    m.set(user, {
+      title: String(r.title ?? ''),
+      url: String(r.url ?? ''),
+      location: r.location ?? null,
+      sourceUpdatedAt: r.source_updated_at ?? null,
+      scoreKey: r.score_key ?? null,
+    });
+  }
+  return out;
+}
 
 /** Dedupe and upsert one user's scored postings. `extra` columns ride on every row (the scan's
  *  `via_scan`); `match` cuts each row's match text (matchText.ts). */
@@ -1174,7 +1243,7 @@ Deno.serve(async (req) => {
       kind: 'failed',
       board: boardOf(skipped),
       status: null,
-      message: `${boardOf(skipped)}: skipped for this run after ${RESUME_SKIP_AT} tries (the function stopped each time: CPU or time limit)`,
+      message: `${boardOf(skipped)}: skipped for this run. Its slice stopped the function at every size down to this one board (CPU or time limit).`,
     });
   const boards = rest.slice(0, sliceSize);
   // The last slice reads no board (2026-11-15): the feeds, the closing and the liveness check get
@@ -1189,6 +1258,21 @@ Deno.serve(async (req) => {
   // Stored Greenhouse rows for the delta reads (#448): loaded once per invocation, so a
   // chained run plans once and reads light wherever it can.
   const knownBoards = await knownBoardPostings(db);
+  // Stored rejected rows on this slice's Greenhouse boards (2026-11-15): a job that every
+  // follower's rules rejected, and that has not moved, is not downloaded or scored again.
+  const greenhouse = boards.filter((b) => b.ats === 'greenhouse').map(boardOf);
+  const rejects = greenhouse.length ? await knownRejectRows(db, greenhouse) : null;
+  const keys = new Map<string, string>();
+  const keyOf = (userId: string) => {
+    if (!keys.has(userId)) keys.set(userId, scoreKey(plans.get(userId)!.config));
+    return keys.get(userId)!;
+  };
+  const knownRejects = (board: string) => {
+    const who = followers.get(board) ?? [];
+    if (!rejects || !who.length || !board.startsWith('greenhouse:')) return undefined;
+    return (id: string, meta: Parameters<typeof sameReject>[1]) =>
+      who.every((f) => sameReject(rejects.get(id)?.get(f.user_id), meta, keyOf(f.user_id)));
+  };
   // Whatever breaks in this slice, the next one still starts (below): one bad board or write must
   // not stop every board after it until the next cron run.
   try {
@@ -1196,7 +1280,7 @@ Deno.serve(async (req) => {
       // A 429, a 5xx or a timeout is read once more after a short wait (#448: the sync now runs
       // every 15 minutes, so a busy host gets a second chance here and a fresh one next run).
       const { reads, retried } = await readWithRetry(boards.slice(i, i + BOARD_BATCH), (batch) =>
-        readAll(batch, { fetch: timedFetch, rss: false, knownBoards }),
+        readAll(batch, { fetch: timedFetch, rss: false, knownBoards, knownRejects }),
       );
       retriedReads += retried;
       const perUser = new Map<string, ReadOutcome[]>();
@@ -1229,8 +1313,26 @@ Deno.serve(async (req) => {
           }
         }
       }
-      for (const [userId, answered] of perUser)
-        await writeGroup(db, userId, plans.get(userId)!, answered, logs, totalsOf(userId));
+      for (const [userId, answered] of perUser) {
+        const kept = await writeGroup(
+          db,
+          userId,
+          plans.get(userId)!,
+          answered,
+          logs,
+          totalsOf(userId),
+          rejects !== null,
+        );
+        // A reused row that was not kept as seen would read as missing: these boards do not
+        // count as answered for this user, so nothing on them closes.
+        if (!kept) {
+          const lost = new Set(answered.map((r) => r.board));
+          answeredBy.set(
+            userId,
+            (answeredBy.get(userId) ?? []).filter((b) => !lost.has(b)),
+          );
+        }
+      }
       // The heartbeat: this slice is alive, so the resume tick leaves it alone.
       await savePlace(after);
     }

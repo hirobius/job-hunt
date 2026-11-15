@@ -110,7 +110,9 @@ describe('sync run resume', () => {
     expect(fn).toContain('...(nextSize < SLICE && { size: nextSize }),');
     expect(fn).toContain('const skipped = skipFirst ? rest.shift() : undefined;');
     expect(fn).toContain('const boards = rest.slice(0, sliceSize);');
-    expect(fn).toContain('skipped for this run after ${RESUME_SKIP_AT} tries');
+    expect(fn).toContain(
+      'skipped for this run. Its slice stopped the function at every size down to this one board',
+    );
   });
 
   it('after a stop the size grows back with each slice that works, up to half a slice', () => {

@@ -49,6 +49,9 @@ export interface NormalizedPosting {
    *  Stored with the row so the next sync can tell an unchanged job from a changed one and
    *  reuse this description instead of downloading it again (#448 delta reads). */
   sourceUpdatedAt?: string;
+  /** Set by the Greenhouse delta read (sync.ts) on a job whose stored row is an unchanged reject
+   *  under the same rules (scoreKey.ts): it carries no description and is not scored again. */
+  reusedReject?: true;
 }
 
 export type Verdict = 'queue' | 'review' | 'reject';
