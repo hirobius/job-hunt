@@ -2,8 +2,8 @@
 // from every source, as one list, newest first (it follows the Search profile's work mode);
 // a title selects the posting (#471 slice 3: `#/find/<fingerprint>`), and the posting shows in the
 // right column at lg (details, Save / Skip / Not this company, Open posting; ↑ / ↓ move the
-// selection). Below lg the list is the tab, with a "‹ › 1 of N" pager that steps a current card
-// (Adrian 2026-11-13: list only, no view switch and no filter row). No fit tiers
+// selection). Below lg the list is the tab: a list to scroll, with no pager (Adrian 2026-11-14:
+// its arrows only jumped the page) (2026-11-13: list only, no view switch and no filter row). No fit tiers
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
@@ -45,9 +45,9 @@ import {
   MousePointerClick,
   Plus,
   SearchX,
+  WifiOff,
   CircleCheck,
-  ChevronLeft,
-  ChevronRight,
+  ArrowUp,
   type LucideIcon,
 } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
@@ -62,6 +62,7 @@ import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
 import { useAutoLoad } from './autoLoad';
+import { useHeldPostings } from './heldPostings';
 import { spacerRef, useWindowedList } from './useWindowedList';
 import { placeSaysRemote } from './feed/placeRemote';
 import { capsToSentence } from './feed/capsCase';
@@ -123,7 +124,7 @@ export default function ReviewView({
   // No filters on Review (Adrian 2026-11-13): it follows the Search profile's work mode only
   // (remote by default); an older remembered New or Remote filter is not read.
   const [shown, setShown] = useRemembered(kept('shown'), REVIEW_PAGE);
-  // A step past the pages shown (↑ / ↓ at lg, the phone pager) shows enough pages first, so its
+  // A step past the pages shown (↑ / ↓ at lg) shows enough pages first, so its
   // card is in the list to scroll to (review of #714).
   const shownRef = useRef(shown);
   useEffect(() => {
@@ -139,15 +140,26 @@ export default function ReviewView({
     [setShown],
   );
 
-  // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
-  const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
-  const listed = rows;
-  const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   // The selected posting is in the route (#/find/<fingerprint>), so a link to it is shareable and
   // survives a reload. At lg Browse opens on the first posting, as Apply opens on its first job
   // (Adrian 2026-11-12, #546); below lg nothing is selected (no posting page).
   const route = useRoute();
   const selectedFp = postingOf(route);
+  // Newest first, always (Adrian 2026-11-13: no Sort on Find; an older remembered sort is not read).
+  const rows = useMemo(() => (view ? sortRows(view.rows, 'newest') : []), [view]);
+  // Late postings wait behind "N new postings" (Adrian 2026-11-15): no jump under the cards read.
+  // A change the person makes to what the list is (the Search profile, a company followed) fills it
+  // as a first load again, so a new company's jobs still show at once (2026-10-28).
+  const {
+    shown: listed,
+    held,
+    showHeld,
+  } = useHeldPostings(rows, {
+    settled: !!view && !feed.loading && !feed.progress,
+    keep: [selectedFp],
+    reset: [feed.profile, feed.sources],
+  });
+  const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
   const selected = selectedFp
     ? (view?.rows.find((r) => r.fingerprint === selectedFp) ?? null)
     : null;
@@ -223,64 +235,6 @@ export default function ReviewView({
     return () => document.removeEventListener('keydown', onKey);
   }, [columns, showUpTo]);
 
-  // Below lg (Adrian 2026-11-13): "‹ › 1 of N" steps a current card through the list. An arrow
-  // scrolls its card to the top and focuses its title; scrolling moves the current card with it
-  // (the first card whose bottom is past a quarter of the screen), so the count stays true.
-  const [cur, setCur] = useState<{ fp: string | null; at: number }>({ fp: null, at: 0 });
-  const curFound = cur.fp ? listed.findIndex((x) => x.fingerprint === cur.fp) : -1;
-  const curAt = listed.length
-    ? curFound >= 0
-      ? curFound
-      : Math.min(cur.at, listed.length - 1)
-    : 0;
-  const stepping = useRef(0);
-  // What an arrow press says (polite): the count alone would speak on every scroll (review of #714).
-  const [stepSaid, setStepSaid] = useState('');
-  const prevKey = useRef<HTMLButtonElement>(null);
-  const nextKey = useRef<HTMLButtonElement>(null);
-  const step = (d: -1 | 1) => {
-    const at = curAt + d;
-    const to = listed[at];
-    if (!to) return;
-    stepping.current = Date.now();
-    showUpTo(at);
-    setCur({ fp: to.fingerprint, at });
-    setStepSaid(`${at + 1} of ${listed.length}: ${rowName(to)}`);
-    // Focus stays on the arrow, so it can be pressed again (review of #714); at an end, where that
-    // arrow turns off, it moves to the other one.
-    if (at <= 0) requestAnimationFrame(() => nextKey.current?.focus());
-    else if (at >= listed.length - 1) requestAnimationFrame(() => prevKey.current?.focus());
-    scrollWhenMounted(to.fingerprint, 'start', () => (stepping.current = Date.now()));
-  };
-  const pager = !wide && !!view && listed.length > 0 && !feed.error;
-  useEffect(() => {
-    if (!pager) return;
-    let raf = 0;
-    const follow = () => {
-      raf = 0;
-      // An arrow's own scroll (and the smooth tail of it) does not move the current card.
-      if (Date.now() - stepping.current < 600) return;
-      const line = window.innerHeight / 4;
-      const items = document.querySelectorAll<HTMLElement>('.rjb-find-list > li[data-window-key]');
-      for (const el of items) {
-        if (el.getBoundingClientRect().bottom > line) {
-          const fp = el.dataset.windowKey ?? null;
-          const at = listedRef.current.findIndex((x) => x.fingerprint === fp);
-          if (at >= 0) setCur((c) => (c.fp === fp ? c : { fp, at }));
-          return;
-        }
-      }
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(follow);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [pager]);
-
   // A decision that takes the selected posting away (its own, from the detail or its list card, or
   // Not this company on another card of its company) moves on to the next one in the list as it
   // shows (in place, before the row leaves), else back to no selection.
@@ -335,8 +289,14 @@ export default function ReviewView({
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
   // Find's one empty state (#694), picked by cause.
-  const emptyCause: EmptyCause = view && decidedAny(view.hidden) ? 'caughtUp' : 'none';
-  const empty = <FindEmpty cause={emptyCause} />;
+  const emptyCause: EmptyCause = !view
+    ? 'none'
+    : decidedAny(view.hidden)
+      ? 'caughtUp'
+      : unreachable(view)
+        ? 'unreachable'
+        : 'none';
+  const empty = <FindEmpty cause={emptyCause} onRetry={feed.refresh} />;
   const panel = (
     <Panel label={label} title={label} titleHidden flat>
       <PanelBody>
@@ -347,6 +307,7 @@ export default function ReviewView({
               a screen reader still hears them here, politely. */}
           <VisuallyHidden as="p" role="status" aria-live="polite">
             {loadedMore ||
+              (held.length ? newPostingsLabel(held.length) : null) ||
               ((scanStatus ? null : line) ??
                 (feed.loading
                   ? 'Reading your sources…'
@@ -356,47 +317,6 @@ export default function ReviewView({
           </VisuallyHidden>
         </Stack>
       </PanelBody>
-      {/* Below lg only, the pager row (Adrian 2026-11-13): "‹ › 1 of N" at its start. At lg
-          there is no row: the list starts under the tabs. A direct child of the panel, so it stays
-      stuck at the top while the list scrolls under it. */}
-      {pager && (
-        <Stack
-          direction="row"
-          gap="px8"
-          align="center"
-          role="group"
-          aria-label="Postings in the list"
-          className="rjb-find-pager"
-        >
-          <Button
-            ref={prevKey}
-            variant="tertiary"
-            iconOnly
-            label="Previous posting"
-            iconLeft={<Icon icon={ChevronLeft} />}
-            disabled={curAt <= 0}
-            onClick={() => step(-1)}
-          />
-          <Button
-            ref={nextKey}
-            variant="tertiary"
-            iconOnly
-            label="Next posting"
-            iconLeft={<Icon icon={ChevronRight} />}
-            disabled={curAt >= listed.length - 1}
-            onClick={() => step(1)}
-          />
-          {/* Not live: it follows the scroll. An arrow press is said once, below. */}
-          <Text variant="ui" as="span" className="rjb-find-pager-count">
-            {`${curAt + 1} of ${listed.length}`}
-          </Text>
-        </Stack>
-      )}
-      {pager && (
-        <VisuallyHidden as="p" role="status" aria-live="polite">
-          {stepSaid}
-        </VisuallyHidden>
-      )}
       {feed.error ? (
         <PanelBody>
           <EmptyState
@@ -420,26 +340,44 @@ export default function ReviewView({
               centered
               icon={SearchX}
               title="Nothing to read yet"
-              description="Follow a company under New companies, or save a job, and its postings show here."
+              description="Follow a company in Account, Companies, or save a job, and its postings show here."
             />
           </PanelBody>
         )
       ) : listed.length ? (
-        <RowList
-          label="New postings"
-          rows={listed}
-          shown={shown}
-          onMore={(added) => {
-            setLoadedMore(`Loaded ${added} more`);
-            setShown((n) => n + REVIEW_PAGE);
-          }}
-          now={feed.at}
-          actions={actions}
-          onOpen={wide ? open : undefined}
-          linked={wide ? null : linked}
-          selected={selectedFp}
-          current={pager ? (listed[curAt]?.fingerprint ?? null) : null}
-        />
+        <>
+          {held.length > 0 && (
+            // Sticky at the top of the list, so it shows wherever the person is reading.
+            <Box className="rjb-find-new">
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Icon icon={ArrowUp} />}
+                onClick={() => {
+                  showHeld();
+                  window.scrollTo({ top: 0 });
+                  if (rows[0]) focusTitleOf(rows[0].fingerprint);
+                }}
+              >
+                {newPostingsLabel(held.length)}
+              </Button>
+            </Box>
+          )}
+          <RowList
+            label="New postings"
+            rows={listed}
+            shown={shown}
+            onMore={(added) => {
+              setLoadedMore(`Loaded ${added} more`);
+              setShown((n) => n + REVIEW_PAGE);
+            }}
+            now={feed.at}
+            actions={actions}
+            onOpen={wide ? open : undefined}
+            linked={wide ? null : linked}
+            selected={selectedFp}
+          />
+        </>
       ) : columns ? null : (
         // At lg the empty state is the right column's (the two columns stay, Adrian 2026-11-13).
         empty
@@ -523,6 +461,20 @@ export interface FindTools {
   selected: boolean;
 }
 
+/** "1 new posting" / "12 new postings": the key that shows the postings held back. */
+const newPostingsLabel = (n: number) => `${n} new posting${n === 1 ? '' : 's'}`;
+
+/** After "N new postings", focus goes to the top card's title (no ring), once it is mounted. */
+function focusTitleOf(fp: string) {
+  let frames = 30;
+  const tick = () => {
+    const h = cardEl(fp)?.querySelector<HTMLElement>('h3');
+    if (h) focusAsHeading(h);
+    else if (frames-- > 0) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 /** After a decision on a Browse card, focus goes to the title of the card that takes its place
  *  (the next one, else the one before), else the empty state's title, once the decided card has
  *  left the list. */
@@ -563,8 +515,14 @@ function EmptySection({ children, cause }: { children: ReactNode; cause: EmptyCa
 }
 
 /** Why Find has nothing to show (#694). One cause, one icon tile, one set of keys: `none` nothing
- *  read or nothing matches, `caughtUp` every posting is saved or skipped. */
-type EmptyCause = 'none' | 'caughtUp';
+ *  read or nothing matches, `caughtUp` every posting is saved or skipped, `unreachable` no source
+ *  answered (offline, or every host refused): that is not "no postings match", so it says so and
+ *  its one key reads again. */
+type EmptyCause = 'none' | 'caughtUp' | 'unreachable';
+
+/** Sources were asked and not one answered. */
+const unreachable = (v: { sourcesRead: number; failed: unknown[] }) =>
+  v.sourcesRead === 0 && v.failed.length > 0;
 
 const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; description: string }> = {
   none: {
@@ -578,9 +536,14 @@ const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; descript
     description:
       'Every posting from your sources is saved or skipped. The next scan brings new ones.',
   },
+  unreachable: {
+    icon: WifiOff,
+    title: 'Couldn’t reach your sources',
+    description: 'None of them answered. Check your connection, then try again.',
+  },
 };
 
-function FindEmpty({ cause }: { cause: EmptyCause }) {
+function FindEmpty({ cause, onRetry }: { cause: EmptyCause; onRetry: () => void }) {
   const copy = EMPTY_COPY[cause];
   return (
     <EmptySection cause={cause}>
@@ -590,7 +553,15 @@ function FindEmpty({ cause }: { cause: EmptyCause }) {
         titleId={EMPTY_TITLE_ID}
         title={copy.title}
         description={copy.description}
-        action={<NoResultsKeys caughtUp={cause === 'caughtUp'} />}
+        action={
+          cause === 'unreachable' ? (
+            <Button variant="primary" onClick={onRetry}>
+              Try again
+            </Button>
+          ) : (
+            <NoResultsKeys caughtUp={cause === 'caughtUp'} />
+          )
+        }
       />
     </EmptySection>
   );
@@ -611,7 +582,7 @@ const rowActions: RowActions = {
     saveRow(from, () => {
       // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
       if (alreadyInApply(r.url)) return;
-      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
+      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review'));
       if (!url) {
         showNotice({
           title: 'Couldn’t save that posting',
@@ -648,7 +619,6 @@ function RowList({
   onOpen,
   selected,
   linked = null,
-  current = null,
 }: {
   label: string;
   rows: FeedRow[];
@@ -663,8 +633,6 @@ function RowList({
   selected: string | null;
   /** Below lg, an old #/find/<fingerprint> link's posting: scrolled into view. */
   linked?: string | null;
-  /** Below lg, the pager's current card: kept mounted. */
-  current?: string | null;
 }) {
   const left = rows.length - shown;
   // Auto-load (2026-11-12): the sentinel pages the list; Review's polite status says "Loaded N more".
@@ -674,7 +642,7 @@ function RowList({
   const visible = rows.slice(0, shown);
   const { listRef, itemRef, segments } = useWindowedList(
     visible.map((r) => r.fingerprint),
-    [selected, linked, current],
+    [selected, linked],
   );
   // The linked card is found by its key on the mounted list (it is always kept mounted), so no
   // element reference outlives its card.
@@ -911,6 +879,8 @@ function PostingCard({
   compact?: boolean;
   actions: RowActions;
 }) {
+  // At lg the list card sits beside the detail (onOpen): title and company only.
+  const brief = compact && !!onOpen;
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
@@ -921,8 +891,9 @@ function PostingCard({
         {/* No source or New badge on any card (#557 cuts): the detail's title block keeps the
             source as a neutral badge; "N new" is Find's caption. */}
         {compact ? (
-          // Takes focus after a decision on the card before it (no ring: focusAsHeading).
-          <Text variant="body" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>
+          // Takes focus after a decision on the card before it (no ring: focusAsHeading). titleSm,
+          // one HDS step above body (Adrian 2026-11-15); still the underlined link out.
+          <Text variant="titleSm" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>
             <CardTitleLink r={r} onOpen={onOpen} />
           </Text>
         ) : (
@@ -945,23 +916,27 @@ function PostingCard({
             Company not stated
           </Text>
         )}
-        <Card.Facts
-          className="p-0"
-          // Plain lines, not a list inside each card's list item (as FactLines was): a list of
-          // cards counts only its cards.
-          role="presentation"
-          items={[
-            { icon: MapPin, label: placeOf(r) },
-            ...(mode ? [{ icon: Briefcase, label: mode }] : []),
-            ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
-          ]}
-        />
-        {pay && (
+        {/* At lg a list card is the title and the company only (Adrian 2026-11-15): the place,
+            pay, posted day and text are the detail's beside it, never read twice. */}
+        {!brief && (
+          <Card.Facts
+            className="p-0"
+            // Plain lines, not a list inside each card's list item (as FactLines was): a list of
+            // cards counts only its cards.
+            role="presentation"
+            items={[
+              { icon: MapPin, label: placeOf(r) },
+              ...(mode ? [{ icon: Briefcase, label: mode }] : []),
+              ...(postedLabel ? [{ icon: Calendar, label: postedLabel }] : []),
+            ]}
+          />
+        )}
+        {pay && !brief && (
           <Text variant="body" as="p" weight="bold">
             {pay}
           </Text>
         )}
-        {compact && <BrowseExcerpt r={r} />}
+        {compact && !brief && <BrowseExcerpt r={r} />}
         {keys && (
           <Box sx={{ pt: compact ? undefined : 'xs' }}>
             <PostingActions r={r} actions={actions} openKey={!compact} />

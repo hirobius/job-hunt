@@ -123,7 +123,7 @@ describe('Find box from the Pipeline', () => {
     await user.type(within(dialog).getByRole('textbox', { name: 'Find' }), 'Figma');
     expect(dialog).toHaveTextContent('Looks up Figma’s job board');
     await user.click(within(dialog).getByRole('button', { name: 'Find' }));
-    await user.click(await within(dialog).findByRole('button', { name: 'Watch Figma' }));
+    await user.click(await within(dialog).findByRole('button', { name: 'Follow Figma' }));
     await waitFor(() => expect(followed()).toContain('greenhouse:figma'));
   });
 

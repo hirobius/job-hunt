@@ -29,10 +29,15 @@ import { SERVER_FEED_READERS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { fetchDesignSystemsJobsFeed, webOnly, type WatchedCompany } from './sources.ts';
 import { guardedFetch, isGuarded } from './boardFetch.ts';
 import type { TrackConfig } from './track-config.ts';
+import type { LightMeta } from './scoreKey.ts';
 
 export type { WatchedCompany };
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
+
+/** Is this job's stored row an unchanged reject for everyone who follows its board? The caller
+ *  answers (it knows the followers and their rules, scoreKey.ts `sameReject`). */
+export type RejectCheck = (sourceId: string, meta: LightMeta) => boolean;
 
 /** The feeds searched by the profile's titles. */
 export type TermFeed = 'hn' | 'remotive' | 'jobicy';
@@ -122,6 +127,7 @@ async function readGreenhouseDelta(
   slug: string,
   f: Fetch,
   known: ReadonlyMap<string, NormalizedPosting>,
+  rejected?: RejectCheck,
 ): Promise<NormalizedPosting[]> {
   const fj = fetchJsonWith(f);
   const jobs = boardJobs({ kind: 'greenhouse', slug }, await fj(greenhouseListUrl(slug)));
@@ -143,6 +149,18 @@ async function readGreenhouseDelta(
       prev.location === (meta.location || undefined)
     )
       out[i] = prev;
+    // A job every follower's rules rejected, and which has not moved since: it is passed on with
+    // no description and a mark, and is not scored again (2026-11-15). Without this each rejected
+    // job counted as changed, and the board fell back to its full list on every run.
+    else if (
+      rejected?.(meta.id, {
+        title: meta.title,
+        url: meta.url,
+        location: meta.location || undefined,
+        updatedAt: meta.updatedAt,
+      })
+    )
+      out[i] = { ...normalize({ ...meta, text: '' }), reusedReject: true };
     else toFetch.push({ i, id: String(obj(j).id ?? '') });
   });
   // A re-posting wave (or a first read against stale rows) can mark most of a board changed:
@@ -167,13 +185,14 @@ async function readOne<C extends WatchedCompany>(
   c: C,
   f: Fetch,
   known?: ReadonlyMap<string, NormalizedPosting>,
+  rejected?: RejectCheck,
 ): Promise<ReadOutcome<C>> {
   const board = boardOf(c);
   try {
     let postings: NormalizedPosting[] | null = null;
-    if (c.ats === 'greenhouse' && known?.size) {
+    if (c.ats === 'greenhouse' && (known?.size || rejected)) {
       try {
-        postings = await readGreenhouseDelta(c.slug, f, known);
+        postings = await readGreenhouseDelta(c.slug, f, known ?? new Map(), rejected);
       } catch {
         postings = null; // fall back to the full read below
       }
@@ -296,6 +315,9 @@ export async function readAll<C extends WatchedCompany>(
     /** Greenhouse rows already stored, by source id (`greenhouse:<slug>:<job id>`): a board
      *  with stored rows is read the delta way (light list, downloads only for changed jobs). */
     knownBoards?: ReadonlyMap<string, NormalizedPosting>;
+    /** Per board (`greenhouse:<slug>`), the check for stored rejected rows that need no new
+     *  read (scoreKey.ts). Undefined for a board with none. */
+    knownRejects?: (board: string) => RejectCheck | undefined;
     /** Read designsystems.jobs' whole catalog, not only its RSS (default: SOURCE_ENABLED). */
     catalog?: boolean;
     /** The sync's own searches to run, and what they get (keys, clock). */
@@ -321,7 +343,11 @@ export async function readAll<C extends WatchedCompany>(
     for (let i = 0; i < list.length; i += size)
       part.push(
         ...(await Promise.all(
-          list.slice(i, i + size).map((c) => readOne(c, o.fetch, knownByBoard.get(boardOf(c)))),
+          list
+            .slice(i, i + size)
+            .map((c) =>
+              readOne(c, o.fetch, knownByBoard.get(boardOf(c)), o.knownRejects?.(boardOf(c))),
+            ),
         )),
       );
     return part;
@@ -354,6 +380,11 @@ export async function readAll<C extends WatchedCompany>(
   return out;
 }
 
+/** The source ids of the reads' reused rejects (the delta read's mark): the caller keeps their
+ *  stored rows as seen, with no new score. */
+export const reusedRejects = (reads: ReadOutcome[]): string[] =>
+  reads.flatMap((r) => r.postings.filter((p) => p.reusedReject).map((p) => p.sourceId));
+
 export interface ScoredPosting {
   posting: NormalizedPosting;
   board: string;
@@ -368,7 +399,10 @@ export interface ScoredPosting {
  *  (the fit rule after the scorer: no internships in the queue). */
 export function scoreBatch(reads: ReadOutcome[], track: TrackConfig): ScoredPosting[] {
   const boardOfPosting = new Map<NormalizedPosting, string>();
-  for (const r of reads) for (const p of r.postings) boardOfPosting.set(p, r.board);
+  // A reused reject has no description: it keeps its stored verdict (`reusedRejects`), never a
+  // new one scored on an empty text.
+  for (const r of reads)
+    for (const p of r.postings) if (!p.reusedReject) boardOfPosting.set(p, r.board);
   return dedupe([...boardOfPosting.keys()]).map((posting) => {
     const s = scoreForTrack(posting, track);
     return {
@@ -378,4 +412,27 @@ export function scoreBatch(reads: ReadOutcome[], track: TrackConfig): ScoredPost
       fingerprint: fingerprint(posting),
     };
   });
+}
+
+/** One batch's scored postings, kept per scoring rule set and per list of reads (scale audit
+ *  2026-11-15). Every follower of a board got its postings scored again, so a slice cost boards ×
+ *  followers of CPU; users with the same rules (`scoreKey`), the same boards and the same company
+ *  names now share one scoring. A user with other rules, another board list or another name for a
+ *  company is scored alone, exactly as before. Make a new cache for each batch of reads. */
+export type ScoreCache = Map<string, ScoredPosting[]>;
+
+export function scoreBatchOnce(
+  cache: ScoreCache,
+  rulesKey: string,
+  reads: ReadOutcome[],
+  track: TrackConfig,
+): ScoredPosting[] {
+  // The company name is the watcher's own (forWatcher) and is part of the fingerprint.
+  const key = JSON.stringify([
+    rulesKey,
+    reads.map((r) => [r.board, r.term ?? '', r.company?.company ?? '', r.postings.length]),
+  ]);
+  let hit = cache.get(key);
+  if (!hit) cache.set(key, (hit = scoreBatch(reads, track)));
+  return hit;
 }

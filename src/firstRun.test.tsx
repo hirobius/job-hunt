@@ -3,7 +3,7 @@
 // opens on Today's Review new. Account → Search profile edits it. Sample data is offered from the
 // Jobs page's empty state. Tested at the route seam through App.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -137,6 +137,21 @@ describe('sample data, from the Jobs empty state', () => {
 });
 
 describe('Account menu → Search profile', () => {
+  it('opens on Close, not on the first title’s Remove key', async () => {
+    saveProfile({ titles: ['Design Systems Lead'], mode: 'remote' });
+    window.location.hash = '#/apply';
+    renderApp();
+    await click('Account');
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Search profile' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Search profile' });
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Close' })).toHaveFocus(),
+    );
+    // Enter right after it opens removes no title.
+    await userEvent.keyboard('{Enter}');
+    expect(getProfile()).toMatchObject({ titles: ['Design Systems Lead'] });
+  });
+
   it('edits the profile in use: titles, remote only and leave out', async () => {
     saveProfile({ titles: ['Design Systems Lead'], mode: 'remote', leaveOut: ['Intern'] });
     addJob('https://acme.example/jobs/1', 'Design Engineer');

@@ -3,10 +3,19 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * docs/figma/FIGMA-RULES.md is pasted into the Figma agent's prompt. It drifts when the rules it
- * summarizes change, so each rule below must still be true in CLAUDE.md and in the code it names.
+ * summarizes change, so each rule below must still be true in the agent rules and in the code it names.
+ * The agent rules are CLAUDE.md (the short list) plus its topic files in docs/agent/.
  */
 const RULES = fs.readFileSync('docs/figma/FIGMA-RULES.md', 'utf8');
-const CLAUDE = fs.readFileSync('CLAUDE.md', 'utf8');
+const CLAUDE = [
+  'CLAUDE.md',
+  ...fs
+    .readdirSync('docs/agent')
+    .sort()
+    .map((f) => `docs/agent/${f}`),
+]
+  .map((f) => fs.readFileSync(f, 'utf8'))
+  .join('\n');
 const PKG = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
   dependencies: Record<string, string>;
 };
@@ -31,7 +40,7 @@ describe('FIGMA-RULES.md', () => {
   it('keeps the sign-in words as the code says them (#555)', () => {
     const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');
     for (const line of [
-      'Sign in to see your jobs on any device.',
+      'Sign in to sync your jobs across devices.',
       'We email you a sign-in link. No password needed.',
     ]) {
       expect(RULES).toContain(line);
@@ -117,13 +126,15 @@ describe('FIGMA-RULES.md', () => {
       expect(menu).toContain(name);
     // The signed-out group: a short label with the benefit, then the key "Sign in".
     const COPY = fs.readFileSync('src/account/signInCopy.ts', 'utf8');
+    // One benefit line (2026-11-15): the menu's label is "On this device only." + the screen's.
     for (const line of [
-      'On this device only. Sign in to sync across devices.',
+      "SIGN_IN_BENEFIT = 'Sign in to sync your jobs across devices.'",
+      'SIGN_IN_LABEL = `On this device only. ${SIGN_IN_BENEFIT}`',
       "SIGN_IN_ITEM = 'Sign in'",
     ])
       expect(COPY).toContain(line);
     for (const doc of [RULES, CLAUDE])
-      expect(doc).toContain('"On this device only. Sign in to sync across devices."');
+      expect(doc).toContain('"On this device only. Sign in to sync your jobs across devices."');
     expect(menu).toContain('<MenuToggleItem');
     expect(menu).not.toMatch(/>\s*Scan details\s*</);
     expect(fs.readFileSync('src/hds-gaps/MenuToggleItem.tsx', 'utf8')).toContain(
@@ -187,7 +198,29 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
-  it('pins Find as one list (2026-11-13): no Deck, no switch, the phone pager, no filter row', () => {
+  it('pins "N new postings" (2026-11-15): late postings wait; nothing moves', () => {
+    expect(RULES).toMatch(/\*\*"N new postings" \(2026-11-15\)\.\*\*/);
+    expect(CLAUDE).toMatch(/\*\*Late postings wait \(Adrian\s+2026-11-15/);
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('useHeldPostings(');
+    expect(fs.readFileSync('src/FindList.css', 'utf8')).toMatch(
+      /\.rjb-find-new \{[^}]*block-size: 0;/,
+    );
+  });
+
+  it('pins the calm list beside a detail (2026-11-15): accent tint, stays in place, short rows', () => {
+    expect(RULES).toMatch(/surface-accentSubtle/);
+    expect(RULES).toMatch(/The selected item stays in its place/);
+    expect(RULES).toMatch(/Beside a detail at 1440, a list row is short \(2026-11-15\)/);
+    expect(fs.readFileSync('src/theme/base.css', 'utf8')).toContain(
+      '--rjb-selected-fill: var(--semantic-color-surface-accentSubtle);',
+    );
+    expect(fs.readFileSync('src/JobRail.tsx', 'utf8')).toContain('<JobRowList brief');
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain(
+      'const brief = compact && !!onOpen;',
+    );
+  });
+
+  it('pins Find as one list (2026-11-13): no Deck, no switch, no pager, no filter row', () => {
     expect(RULES).toMatch(/Review is one list \(2026-11-13\)/);
     expect(RULES).toMatch(
       /with no source or New\s+badge \(#557\)|carry no source or New\s+badge \(#557\)/,
@@ -197,7 +230,9 @@ describe('FIGMA-RULES.md', () => {
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
     expect(review).not.toMatch(/\bDeck\b|ActionDock|SwipeArea|Checkbox|remoteOnly/);
     expect(review).not.toContain('<Badge tone="info">');
-    expect(review).toContain('aria-label="Postings in the list"');
+    // No phone pager (Adrian 2026-11-14): the list scrolls.
+    expect(review).not.toContain('Postings in the list');
+    expect(RULES).toMatch(/\*\*no pager\*\* \(Adrian 2026-11-14/);
     expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Pagination');
     // The Apply job still swipes.
     expect(fs.readFileSync('src/JobPage.tsx', 'utf8')).toContain('<SwipeArea');

@@ -239,7 +239,7 @@ function ResetLocalData({
             <Text variant="body" as="span" tone="secondary">
               {signedIn
                 ? 'This clears jobs, documents and settings from this browser only. Your synced jobs come back after you sign in.'
-                : `This deletes everything in this browser: ${plural(jobs, 'job')}, ${plural(docs, 'document')}, your tracks and your kit. You are not signed in, so nothing comes back.`}
+                : `This deletes everything in this browser: ${plural(jobs, 'job')}, ${plural(docs, 'document')} and your settings. You are not signed in, so nothing comes back.`}
             </Text>
           </AlertDialog.Description>
           {/* rev-3 #s-reset-signed-out: Back up first sits under the text, on its left edge. */}

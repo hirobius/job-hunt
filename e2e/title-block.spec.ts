@@ -30,5 +30,45 @@ for (const width of [390, 1440]) {
       await expect(block.getByText('Saved', { exact: true })).toHaveCount(0);
       await expect(block.locator('[data-tone="info"]')).toHaveCount(0);
     });
+
+    // The amber badge (hds-gaps/IconBadge): HDS Badge trims its child to the cap height and
+    // clips, so the icon must not move the text off the badge's centre line (it sat 2px high,
+    // its top cut).
+    test('the Follow-up due badge keeps its text and icon inside its box, centred', async ({
+      page,
+    }) => {
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+      await seed(page);
+      await page.goto('/#/apply');
+      if (width < 1024) {
+        await page.getByRole('button', { name: /^View: / }).click();
+        await page.getByRole('menuitemradio', { name: /^Follow up/ }).click();
+      } else {
+        await page
+          .locator('.job-rail')
+          .getByRole('group', { name: 'Views' })
+          .getByRole('button', { name: /^Follow up/ })
+          .click();
+      }
+      const badge = page.locator('[data-rjb-title-block] [data-tone="warning"]').first();
+      await expect(badge).toContainText('Follow-up due');
+      const m = await badge.evaluate((b) => {
+        const box = b.getBoundingClientRect();
+        const icon = b.querySelector('svg')!.getBoundingClientRect();
+        const range = document.createRange();
+        const text = [...b.querySelectorAll('span')].pop()!;
+        range.selectNodeContents(text);
+        const ink = range.getBoundingClientRect();
+        const mid = (r: DOMRect) => r.top + r.height / 2;
+        return {
+          iconInside: icon.top >= box.top && icon.bottom <= box.bottom,
+          iconOff: Math.abs(mid(icon) - mid(box)),
+          textOff: Math.abs(mid(ink) - mid(box)),
+        };
+      });
+      expect(m.iconInside).toBe(true);
+      expect(m.iconOff).toBeLessThanOrEqual(1);
+      expect(m.textOff).toBeLessThanOrEqual(1.5);
+    });
   });
 }

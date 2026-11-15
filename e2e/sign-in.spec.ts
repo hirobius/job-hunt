@@ -305,7 +305,7 @@ for (const width of [390, 1440])
     await expect(item).toBeVisible();
     await item.click();
     const dialog = page.getByRole('dialog', { name: 'Sign in' });
-    const first = dialog.getByText('Sign in to see your jobs on any device.', { exact: true });
+    const first = dialog.getByText('Sign in to sync your jobs across devices.', { exact: true });
     const second = dialog.getByText('We email you a sign-in link. No password needed.', {
       exact: true,
     });
@@ -313,7 +313,7 @@ for (const width of [390, 1440])
     await expect(second).toBeVisible();
     // The benefit describes the dialog, centred under the brand; how it works is the Email
     // field's helper, under the field (Adrian 2026-11-12), the smaller line.
-    await expect(dialog).toHaveAccessibleDescription(/^Sign in to see your jobs on any device\./);
+    await expect(dialog).toHaveAccessibleDescription(/^Sign in to sync your jobs across devices\./);
     const field = dialog.getByRole('textbox', { name: 'Email' });
     await expect(field).toHaveAccessibleDescription(
       'We email you a sign-in link. No password needed.',
@@ -337,8 +337,8 @@ for (const width of [390, 1440])
 test('the sign-in copy gives way on a short screen, and still describes it', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 400 });
   const dialog = await openSignIn(page);
-  await expect(dialog.getByText('Sign in to see your jobs on any device.')).toBeHidden();
-  await expect(dialog).toHaveAccessibleDescription(/^Sign in to see your jobs on any device\./);
+  await expect(dialog.getByText('Sign in to sync your jobs across devices.')).toBeHidden();
+  await expect(dialog).toHaveAccessibleDescription(/^Sign in to sync your jobs across devices\./);
 });
 
 // Adrian 2026-11-13 (after Tailscale's login page): one legal line at the foot of the sign-in

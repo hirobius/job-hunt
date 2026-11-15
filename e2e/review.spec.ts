@@ -4,8 +4,8 @@ import { FILL_ONLY, selectionStyle } from './selectedFill';
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
-// other posting stays), Save lands in the Pipeline's To apply; at 390 the pager steps a current
-// card, at 1440 ↑ / ↓ move the selection (list only, no Deck since 2026-11-13). The feed is synthetic Hacker News posts (no real people); every other host answers empty.
+// other posting stays), Save lands in the Pipeline's To apply; at 390 the list scrolls with no
+// pager (2026-11-14), at 1440 ↑ / ↓ move the selection (list only, no Deck since 2026-11-13). The feed is synthetic Hacker News posts (no real people); every other host answers empty.
 // Kite's UX Engineer is in the list: Design Engineer (with UX Engineer) is a related title on by
 // default (#581). Ferro's Mechanical Design Engineer is read (it says a searched title) but the
 // design engineer guard (tracks/designRoleGuard.ts) keeps it out, so it is the one counted.
@@ -228,28 +228,16 @@ for (const width of [390, 1440]) {
     await page.waitForTimeout(800);
     await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
     await expect(page.getByRole('checkbox')).toHaveCount(0);
-    const pager = page.getByRole('group', { name: 'Postings in the list' });
+    // No pager at any width (Adrian 2026-11-14: in a scrolled list its arrows only jumped the page).
+    await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
     if (wide) {
-      // No pager at lg; ↑ / ↓ move the selection (never from a text field).
-      await expect(pager).toHaveCount(0);
+      // ↑ / ↓ move the selection (never from a text field).
       const names = await list.getByRole('heading', { level: 3 }).allInnerTexts();
       await list.getByRole('link', { name: names[0], exact: true }).click();
       await page.keyboard.press('ArrowDown');
       await expect(page.getByRole('heading', { level: 1, name: names[1] })).toBeVisible();
       await page.keyboard.press('ArrowUp');
       await expect(page.getByRole('heading', { level: 1, name: names[0] })).toBeVisible();
-    } else {
-      // "‹ › 1 of 2": the arrows step a current card. Focus stays on the pager (review of #714), so
-      // an arrow can be pressed again; at the end the arrow that turns off hands focus to the other.
-      await expect(pager.getByText('1 of 2', { exact: true })).toBeVisible();
-      await pager.getByRole('button', { name: 'Next posting' }).focus();
-      await page.keyboard.press('Enter');
-      await expect(pager.getByText('2 of 2', { exact: true })).toBeVisible();
-      await expect(pager.getByRole('button', { name: 'Next posting' })).toBeDisabled();
-      await expect(pager.getByRole('button', { name: 'Previous posting' })).toBeFocused();
-      await page.keyboard.press('Enter');
-      await expect(pager.getByText('1 of 2', { exact: true })).toBeVisible();
-      await expect(pager.getByRole('button', { name: 'Next posting' })).toBeFocused();
     }
     for (let left = 2; left > 0; left--) {
       await page.waitForTimeout(800);
@@ -284,12 +272,10 @@ for (const width of [390, 1440]) {
   });
 }
 
-// The phone pager (Adrian 2026-11-13): "[‹][›] 1 of N" alone on the row, each arrow a 44px hit area
-// of its own; the arrows step a current card into view, and scrolling moves the current card too.
+// No phone pager (Adrian 2026-11-14): with postings to review, the list starts right under the tabs and
+// scrolls; no "[‹][›] 1 of N" row, which in a scrolled list only jumped the page.
 for (const width of [375, 390]) {
-  test(`the pager row: arrows then the count, 44px each, stepping and following the scroll (${width})`, async ({
-    page,
-  }) => {
+  test(`no pager above the scrolled list (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => {
       const url = r.request().url();
@@ -328,65 +314,102 @@ for (const width of [375, 390]) {
     await accountMenuItem(page, 'Scan now');
     await scanFinished(page, since);
     await expect(list.getByRole('listitem')).toHaveCount(12);
-    const pager = page.getByRole('group', { name: 'Postings in the list' });
-    const prev = pager.getByRole('button', { name: 'Previous posting' });
-    const next = pager.getByRole('button', { name: 'Next posting' });
-    const count = pager.getByText(/^\d+ of 12$/);
-    await expect(count).toHaveText('1 of 12');
-    // The arrows step the current card into view; focus stays on the arrow (review of #714), so a
-    // second press needs no hunting for it.
-    await next.click();
-    await expect(next).toBeFocused();
-    await next.click();
-    await expect(count).toHaveText('3 of 12');
-    const third = list.getByRole('listitem').nth(2);
-    await expect(next).toBeFocused();
-    // The card sits just under the pager row, which stays stuck at the top (2026-11-13).
-    const [cardTop, bar] = [(await third.boundingBox())!.y, (await pager.boundingBox())!];
-    expect(Math.abs(bar.y)).toBeLessThan(1);
-    expect(cardTop).toBeGreaterThanOrEqual(bar.y + bar.height - 1);
-    expect(cardTop).toBeLessThan(bar.y + bar.height + 24);
-    // With both arrows enabled (one step in): arrows first, then the count; the row starts at the gutter. Each arrow is a 44px box, the
-    // boxes do not overlap, and a tap anywhere in one is its own (viewport coordinates throughout).
-    const geo = await pager.evaluate((g) => {
-      const [p, n] = Array.from(g.querySelectorAll('button')).map((b) => b.getBoundingClientRect());
-      const c = (g.querySelector('span') as HTMLElement).getBoundingClientRect();
-      const misses: string[] = [];
-      for (const [i, r] of [p, n].entries())
-        // Each edge's middle 2px in, the centre, and the corners 8px in (the key's rounded corners
-        // are not hit-tested as part of it).
-        for (const [x, y] of [
-          [r.left + 2, r.top + r.height / 2],
-          [r.right - 2, r.top + r.height / 2],
-          [r.left + r.width / 2, r.top + 2],
-          [r.left + r.width / 2, r.bottom - 2],
-          [r.left + r.width / 2, r.top + r.height / 2],
-          [r.left + 8, r.top + 8],
-          [r.right - 8, r.top + 8],
-          [r.left + 8, r.bottom - 8],
-          [r.right - 8, r.bottom - 8],
-        ])
-          if (
-            document.elementFromPoint(x, y)?.closest('button') !== g.querySelectorAll('button')[i]
-          )
-            misses.push(`${i}: ${Math.round(x)},${Math.round(y)}`);
-      return { p: p.toJSON(), n: n.toJSON(), c: c.toJSON(), misses };
+    await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^(Previous|Next) posting$/ })).toHaveCount(0);
+    await expect(page.getByText(/^\d+ of 12$/)).toHaveCount(0);
+    // The first card sits right under the page bar: no row above it.
+    const nav = (await page.getByRole('navigation', { name: 'Sections' }).boundingBox())!;
+    const first = (await list.getByRole('listitem').first().boundingBox())!;
+    expect(first.y).toBeGreaterThan(nav.y + nav.height - 1);
+    expect(first.y).toBeLessThan(nav.y + nav.height + 48);
+    await page.screenshot({ path: `test-results/review-no-pager-${width}.png` });
+  });
+}
+
+// Late postings wait (Adrian 2026-11-15): a posting that arrives after the person has started
+// reading is not put in above the cards on screen; "1 new posting" shows it and goes to the top.
+// A second Scan now reads one more HN post (synthetic: no real people).
+for (const width of [390, 1440]) {
+  test(`a late posting waits behind "N new postings" (${width})`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width, height: 900 });
+    let extra = false;
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+      const url = r.request().url();
+      const json = (body: unknown) =>
+        r.fulfill({
+          status: 200,
+          headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      if (!url.startsWith('https://hn.algolia.com/'))
+        return url.startsWith('https://api.lever.co/') ? json([]) : json({ jobs: [] });
+      if (url.includes('search_by_date'))
+        return json({
+          hits: [
+            {
+              objectID: '9',
+              title: 'Ask HN: Who is hiring? (October 2026)',
+              created_at: '2026-10-01',
+            },
+          ],
+        });
+      // Enough cards for the page to scroll at 1440 too (lg list cards are short, 2026-11-15).
+      const hits = Array.from({ length: 14 }, (_, i) => ({
+        objectID: `m-${i}`,
+        story_id: 9,
+        parent_id: 9,
+        created_at: new Date(Date.now() - (i + 1) * 864e5).toISOString(),
+        comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+      }));
+      if (extra)
+        hits.unshift({
+          objectID: 'm-new',
+          story_id: 9,
+          parent_id: 9,
+          created_at: new Date().toISOString(),
+          comment_text: 'Latecomer | Principal Design Systems Engineer | Remote<p>Lead it.</p>',
+        });
+      return json({ hits });
     });
-    expect(geo.misses).toEqual([]);
-    expect(geo.p.right).toBeLessThanOrEqual(geo.n.left);
-    expect(geo.n.right).toBeLessThanOrEqual(geo.c.left);
-    expect(Math.abs(geo.p.left - 20)).toBeLessThan(2);
-    for (const b of [geo.p, geo.n]) {
-      expect(Math.round(b.width)).toBeGreaterThanOrEqual(44);
-      expect(Math.round(b.height)).toBeGreaterThanOrEqual(44);
-    }
-    // Scrolling moves the current card with it, so the count stays true.
-    await page.waitForTimeout(700);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(count).toHaveText('1 of 12');
-    const sixth = list.getByRole('listitem').nth(5);
-    await sixth.evaluate((el) => el.scrollIntoView({ block: 'start' }));
-    await expect(count).toHaveText('6 of 12');
-    await expect(prev).toBeEnabled();
+    await page.goto('/#/review');
+    const list = page.getByRole('list', { name: 'New postings' });
+    await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
+    let since = await page.evaluate(() => Date.now());
+    await accountMenuItem(page, 'Scan now');
+    await scanFinished(page, since);
+    await expect(list.getByRole('listitem')).toHaveCount(14);
+    // The person reads on; then a later read finds one more posting.
+    await page.mouse.move(width / 2, 500);
+    await page.mouse.wheel(0, 100);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    const first = list.getByRole('article').first();
+    const name = await first.getAttribute('aria-label');
+    // Where the first card sits in the page (the Account menu may move the scroll).
+    const top = () => first.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    const before = await top();
+    extra = true;
+    since = await page.evaluate(() => Date.now());
+    await accountMenuItem(page, 'Scan now');
+    await scanFinished(page, since);
+    const key = page.getByRole('button', { name: '1 new posting' });
+    await expect(key).toBeVisible({ timeout: 30_000 });
+    // Nothing moved under the reader, and the late posting is not in the list yet.
+    await expect(list.getByRole('listitem')).toHaveCount(14);
+    await expect(list.getByRole('article').first()).toHaveAttribute('aria-label', name!);
+    expect(Math.abs((await top()) - before)).toBeLessThan(1);
+    // The key floats over the list: it takes no height.
+    expect(await key.evaluate((b) => b.parentElement!.getBoundingClientRect().height)).toBe(0);
+    const selected = width >= 1024 ? page.url() : null;
+    await key.click();
+    await expect(key).toHaveCount(0);
+    await expect(list.getByRole('listitem')).toHaveCount(15);
+    await expect(list.getByRole('article').first()).toHaveAttribute(
+      'aria-label',
+      'Principal Design Systems Engineer at Latecomer',
+    );
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    // At lg the selected posting stays selected.
+    if (selected) expect(page.url()).toBe(selected);
   });
 }

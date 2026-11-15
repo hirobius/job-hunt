@@ -21,6 +21,13 @@ const MAX_TERMS = 50;
 /** Tuned scorer configs a profile can use (src/tracks/track-config.ts). */
 export const SCORERS = ['design-systems'] as const;
 export type ScorerId = (typeof SCORERS)[number];
+/** The scorer a profile that names none is read with. The app's content is design systems only
+ *  (Adrian 2026-10-29), and the Feed applies the design-system check to every profile
+ *  (feed/profile.ts `designSystemRule`), so the server sync must too: a profile the v11 move made
+ *  with no `scorer` was scored on its bare titles, which switched off the rotation and every
+ *  design-systems feed for it (2026-11-06 to 2026-11-14). A later track adds its id to `SCORERS`
+ *  and names it on the profile; nothing else here changes. */
+export const DEFAULT_SCORER: ScorerId = 'design-systems';
 
 export interface ProfileInclude {
   /** A posting is listed only when it says one of these (exact phrases, mustInclude.ts rules). */

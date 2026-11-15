@@ -69,11 +69,8 @@ for (const width of [390, 1440]) {
       await expect(page.getByRole('button', { name: /^View: / })).toHaveCount(0);
       await expect(page.getByRole('checkbox')).toHaveCount(0);
       await expect(page.getByRole('group', { name: 'Filter postings' })).toHaveCount(0);
-      // Phones keep only the pager row, beside postings; at lg there is none.
-      const listed = await list.isVisible();
-      await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(
-        width < 1024 && listed ? 1 : 0,
-      );
+      // No pager row at any width (Adrian 2026-11-14): the list scrolls.
+      await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
     });
 
     test('the Apply list: views only, and each chip count matches its rows (2026-11-13)', async ({

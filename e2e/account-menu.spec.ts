@@ -112,7 +112,7 @@ for (const [width, height, row] of [
     await seed(page);
     const menu = await openAccount(page);
     await expect(
-      menu.getByText('On this device only. Sign in to sync across devices.', { exact: true }),
+      menu.getByText('On this device only. Sign in to sync your jobs across devices.', { exact: true }),
     ).toBeVisible();
     const rows = menu.locator('[role="menuitem"]:not(.rjb-menu-key), [role="menuitemcheckbox"]');
     // Plus Clear sample data while the sample is in (2026-11-13).
