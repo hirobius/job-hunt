@@ -257,9 +257,15 @@ const pairs: Pair[] = [
     },
   ]),
   {
-    name: 'secondary text on the selected list item fill (--rjb-selected-fill, #603)',
+    name: 'secondary text on the selected list item fill (--rjb-selected-fill, #603; accentSubtle 2026-11-15)',
     fg: 'semantic-color-content-secondary',
-    bg: 'semantic-color-surface-selected',
+    bg: 'semantic-color-surface-accentSubtle',
+    min: 4.5,
+  },
+  {
+    name: 'primary text on the selected list item fill (accentSubtle, 2026-11-15)',
+    fg: 'semantic-color-content-primary',
+    bg: 'semantic-color-surface-accentSubtle',
     min: 4.5,
   },
   {

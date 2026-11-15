@@ -1,7 +1,7 @@
 # Figma agent rules for roleflame
 
 Paste this page into the Figma agent's prompt for any roleflame design task. Source of truth for the
-code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` keeps it true.
+code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figmaRules.test.ts` keeps it true.
 
 ## Build with
 
@@ -60,14 +60,17 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   place, work mode (Remote / Hybrid / On-site, or "Remote not stated"), posted day. The work-mode
   line is left out when the place already says remote ("Remote (US)", "New York or Remote"). Never inline after
   each other: the same in a title block (place, pay, date) and Daily picks (pay, posted day). The 16 px
-  icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top.
+  icon sits on the first text line (top-aligned), so a wrapped fact keeps its icon at the top. A 1440 list
+  card beside the detail shows none of them (2026-11-15): the detail has them.
 - **Disclosure rows are flat and steady.** A Disclosure row in a panel (Daily picks' Draft note) is a hairline row in the panel's flow, never a card inside it; it opens without a jump.
 - **One card level, ever.** No card inside a card. A list inside a panel is hairline rows, not cards.
 - **No outlines on surfaces.** Cards and panels are borderless (raised fill + spacing). Inputs, focus
   rings, overlays and row dividers keep theirs.
 - **Selected is a fill, never an edge (#603).** A selected or current item (the Apply list's open job,
-  Review's selected posting) takes the HDS surface-selected fill (distinct from hover and the card fill in
-  both themes); no left edge, ring or outline.
+  Review's selected posting) takes a light graphite accent tint, HDS surface-accentSubtle (2026-11-15; it
+  was surface-selected, which read dark and muddy), distinct from hover and the card fill in both themes,
+  and its title is bold; no left edge, ring or outline. **The selected item stays in its place** in the
+  list: it never moves to the top.
 - Every action answers within 300 ms: a toast, a state change, or the item flashing in place.
   Remove is soft: it collapses, then offers Undo. Undo never navigates: it puts the item back and
   leaves the person on the page they are on.
@@ -136,6 +139,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
 - **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
   then the jobs (no search, filters or Sort since 2026-11-13). **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
   each row is the badge row, the title (two lines at most), the company, the place and one date.
+  **Beside a detail at 1440, a list row is short (2026-11-15):** the badge row (status or due date), the
+  title and the company only; the place, pay and posted date are the detail's, never read twice. The
+  same on Review: a 1440 list card is the title and the company. Below 1024 px the rows and cards keep
+  their facts (no detail beside them).
   The open job takes the selected fill, never an outline ring. No key on a row and no posting icon:
   the job's own page has its next step and Open posting (the one exception: Passed's Delete).
 - **One detail template at 1440 (#546).** Review is two columns too: postings left, the selected

@@ -570,6 +570,16 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(open.closest('a') ?? open).toHaveAttribute('href', URL_A);
   });
 
+  it('at lg a rail row is its badges, title and company only; place and date are the job’s (2026-11-15)', () => {
+    updateJob(URL_B, { company: 'Acme', location: 'Portland, OR' });
+    viewport(1280);
+    openJobPage(URL_A);
+    const item = railRow('Welder').closest('li') as HTMLElement;
+    expect(within(item).getByText('Acme')).toBeInTheDocument();
+    expect(within(item).queryByText(/Portland/)).toBeNull();
+    expect(within(item).queryByText(/^(Posted|Found) /)).toBeNull();
+  });
+
   it('below lg there is only the job, under the pager; no filter bar (Proposal A, #543)', () => {
     viewport(390);
     openJobPage(URL_A);

@@ -30,9 +30,12 @@ describe('README makes no retired claims', () => {
     expect(README, reason).not.toMatch(pattern);
   });
 
-  it('links every ADR in docs/adr', () => {
-    for (const f of fs.readdirSync('docs/adr').filter((n) => n.endsWith('.md')))
-      expect(README, `README should link docs/adr/${f}`).toContain(`](docs/adr/${f})`);
+  it('links docs/adr, whose index links every ADR', () => {
+    // The README stays short (scripts/check-repo-docs.mjs), so the list is docs/adr/README.md.
+    expect(README).toContain('](docs/adr/)');
+    const INDEX = fs.readFileSync('docs/adr/README.md', 'utf8');
+    for (const f of fs.readdirSync('docs/adr').filter((n) => /^\d{4}-.*\.md$/.test(n)))
+      expect(INDEX, `docs/adr/README.md should link ${f}`).toContain(`](${f})`);
   });
 
   it('only documents npm scripts that exist', () => {
@@ -61,11 +64,11 @@ describe('README and FEATURES numbers have a source', () => {
     'ten',
   ];
 
-  it('"N sorts" matches the Sort menu', () => {
+  it('"N sorts", when the README states it, matches the Sort menu', () => {
     const m = README.match(/\b(\w+) sorts\b/i);
-    expect(m, 'README names how many sorts there are').not.toBeNull();
-    const n = WORDS.indexOf(m![1].toLowerCase());
-    expect(n, `"${m![1]}" is a number word`).toBeGreaterThan(-1);
+    if (!m) return; // the short README states no count
+    const n = WORDS.indexOf(m[1].toLowerCase());
+    expect(n, `"${m[1]}" is a number word`).toBeGreaterThan(-1);
     expect(n, 'README sort count vs SORTS in jobSort.ts').toBe(SORTS.length);
   });
 
