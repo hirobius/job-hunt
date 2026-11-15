@@ -17,6 +17,8 @@ export const MAX_PROFILES = 4;
 /** Titles per profile: the union of every track's titles fits with room to spare. */
 export const MAX_PROFILE_TITLES = 200;
 const MAX_TERMS = 50;
+/** Career categories per profile (the preferences preview). */
+export const MAX_CATEGORIES = 3;
 
 /** Tuned scorer configs a profile can use (src/tracks/track-config.ts). */
 export const SCORERS = ['design-systems'] as const;
@@ -68,6 +70,11 @@ export interface Profile {
   location: string;
   mode: WorkMode;
   scorer?: ScorerId;
+  /** Career categories picked in the preferences preview (careers/careers.ts ids; ADR 0011,
+   *  proposed). Nothing reads them for the Feed yet. */
+  categories?: string[];
+  /** Skills picked in the preferences preview. Nothing reads them for the Feed yet. */
+  skills?: string[];
   /** Made on its own for a new user (searchDefaults.ts `ensureProfile`), not by the person: not
    *  "this device's data" to the merge guard, and dropped on a sign-in so the account's own profile
    *  (or its v11 move) wins. Any save or change by the person drops the mark. */
@@ -141,6 +148,10 @@ export function sanitizeProfile(raw: unknown): Profile | null {
     out.scorer = o.scorer as ScorerId;
   if (typeof o.fromTrack === 'string' && o.fromTrack) out.fromTrack = o.fromTrack;
   if (o.auto === true) out.auto = true;
+  const categories = cleanList(o.categories, MAX_CATEGORIES);
+  if (categories.length) out.categories = categories;
+  const skills = cleanList(o.skills);
+  if (skills.length) out.skills = skills;
   return out;
 }
 

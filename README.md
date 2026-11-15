@@ -57,6 +57,7 @@ Architecture decision records (`docs/adr/`):
 - [`0008`](docs/adr/0008-sync-user-edited-stores-in-blob-v5.md): user-edited stores sync in the blob.
 - [`0009`](docs/adr/0009-one-search-profile-and-sources-replace-tracks.md): one Search profile and Sources list.
 - [`0010`](docs/adr/0010-two-screens-find-and-apply.md): two screens, Find and Apply.
+- [`0011`](docs/adr/0011-roleflame-for-every-career.md): roleflame for every career (Proposed, not in force; would replace the design-systems-only rule).
 
 ## Contributing
 
