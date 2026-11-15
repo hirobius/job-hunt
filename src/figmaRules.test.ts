@@ -3,10 +3,19 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * docs/figma/FIGMA-RULES.md is pasted into the Figma agent's prompt. It drifts when the rules it
- * summarizes change, so each rule below must still be true in CLAUDE.md and in the code it names.
+ * summarizes change, so each rule below must still be true in the agent rules and in the code it names.
+ * The agent rules are CLAUDE.md (the short list) plus its topic files in docs/agent/.
  */
 const RULES = fs.readFileSync('docs/figma/FIGMA-RULES.md', 'utf8');
-const CLAUDE = fs.readFileSync('CLAUDE.md', 'utf8');
+const CLAUDE = [
+  'CLAUDE.md',
+  ...fs
+    .readdirSync('docs/agent')
+    .sort()
+    .map((f) => `docs/agent/${f}`),
+]
+  .map((f) => fs.readFileSync(f, 'utf8'))
+  .join('\n');
 const PKG = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
   dependencies: Record<string, string>;
 };
