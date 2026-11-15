@@ -64,8 +64,7 @@ track carried its own screens and stores. This decision must not bring those bac
 9. **Cost safety is a rule, not a hope.** No fetch is started by a user. Per-user caps
    (categories, titles, followed companies, rows a page, queries an hour) are enforced in the RPC.
    Free and keyless sources come first; a paid API runs only under a global monthly budget with a
-   kill switch, off by default. Accounts per wave are capped (invite-only free beta, then a small
-   paid wave), and a cap moves up only on one month of measured cost.
+   kill switch, off by default. Accounts per wave are capped at 25, then 100, then 1,000 (Adrian 2026-11-15, relayed), and a cap moves up only on one month of measured cost.
 
 ## Consequences
 
@@ -90,10 +89,10 @@ track carried its own screens and stores. This decision must not bring those bac
 2. Generic scorer in the browser Feed for non-design-systems profiles; onboarding screen.
 3. Server: the shared job database, category tags, the capped query RPC, discovery on the server;
    compare for one week, then remove the browser scans and the job hosts from the CSP.
-4. Invite-only free beta (cap 100); measure cost for one month.
-5. Entitlements and payment; legal revision; the paid wave (cap 1,000).
+4. Wave 1: 25 users, invite-only, free; measure cost for one month.
+5. Entitlements and payment; legal revision; wave 2 (100), then wave 3 (1,000).
 
 ## Not decided here (Adrian)
 
-Price and model, the payment provider, the free tier's limit, the wave caps, whether Review needs
-a sign-in, the first-wave list, and whether a person may hold more than one profile.
+Price and model, the payment provider, the free tier's limit, which wave is the first paid
+one, whether Review needs a sign-in (both options are in the plan), the first-wave list, and whether a person may hold more than one profile.
