@@ -275,9 +275,7 @@ for (const width of [390, 1440]) {
 // No phone pager (Adrian 2026-11-14): with postings to review, the list starts right under the tabs and
 // scrolls; no "[‹][›] 1 of N" row, which in a scrolled list only jumped the page.
 for (const width of [375, 390]) {
-  test(`no pager above the scrolled list (${width})`, async ({
-    page,
-  }) => {
+  test(`no pager above the scrolled list (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.route(/^https?:\/\/(?!localhost)/, (r) => {
       const url = r.request().url();
@@ -325,5 +323,92 @@ for (const width of [375, 390]) {
     expect(first.y).toBeGreaterThan(nav.y + nav.height - 1);
     expect(first.y).toBeLessThan(nav.y + nav.height + 48);
     await page.screenshot({ path: `test-results/review-no-pager-${width}.png` });
+  });
+}
+
+// Late postings wait (Adrian 2026-11-15): a posting that arrives after the person has started
+// reading is not put in above the cards on screen; "1 new posting" shows it and goes to the top.
+// A second Scan now reads one more HN post (synthetic: no real people).
+for (const width of [390, 1440]) {
+  test(`a late posting waits behind "N new postings" (${width})`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width, height: 900 });
+    let extra = false;
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+      const url = r.request().url();
+      const json = (body: unknown) =>
+        r.fulfill({
+          status: 200,
+          headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      if (!url.startsWith('https://hn.algolia.com/'))
+        return url.startsWith('https://api.lever.co/') ? json([]) : json({ jobs: [] });
+      if (url.includes('search_by_date'))
+        return json({
+          hits: [
+            {
+              objectID: '9',
+              title: 'Ask HN: Who is hiring? (October 2026)',
+              created_at: '2026-10-01',
+            },
+          ],
+        });
+      const hits = Array.from({ length: 6 }, (_, i) => ({
+        objectID: `m-${i}`,
+        story_id: 9,
+        parent_id: 9,
+        created_at: new Date(Date.now() - (i + 1) * 864e5).toISOString(),
+        comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+      }));
+      if (extra)
+        hits.unshift({
+          objectID: 'm-new',
+          story_id: 9,
+          parent_id: 9,
+          created_at: new Date().toISOString(),
+          comment_text: 'Latecomer | Principal Design Systems Engineer | Remote<p>Lead it.</p>',
+        });
+      return json({ hits });
+    });
+    await page.goto('/#/review');
+    const list = page.getByRole('list', { name: 'New postings' });
+    await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
+    let since = await page.evaluate(() => Date.now());
+    await accountMenuItem(page, 'Scan now');
+    await scanFinished(page, since);
+    await expect(list.getByRole('listitem')).toHaveCount(6);
+    // The person reads on; then a later read finds one more posting.
+    await page.mouse.move(width / 2, 500);
+    await page.mouse.wheel(0, 100);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    const first = list.getByRole('article').first();
+    const name = await first.getAttribute('aria-label');
+    // Where the first card sits in the page (the Account menu may move the scroll).
+    const top = () => first.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    const before = await top();
+    extra = true;
+    since = await page.evaluate(() => Date.now());
+    await accountMenuItem(page, 'Scan now');
+    await scanFinished(page, since);
+    const key = page.getByRole('button', { name: '1 new posting' });
+    await expect(key).toBeVisible({ timeout: 30_000 });
+    // Nothing moved under the reader, and the late posting is not in the list yet.
+    await expect(list.getByRole('listitem')).toHaveCount(6);
+    await expect(list.getByRole('article').first()).toHaveAttribute('aria-label', name!);
+    expect(Math.abs((await top()) - before)).toBeLessThan(1);
+    // The key floats over the list: it takes no height.
+    expect(await key.evaluate((b) => b.parentElement!.getBoundingClientRect().height)).toBe(0);
+    const selected = width >= 1024 ? page.url() : null;
+    await key.click();
+    await expect(key).toHaveCount(0);
+    await expect(list.getByRole('listitem')).toHaveCount(7);
+    await expect(list.getByRole('article').first()).toHaveAttribute(
+      'aria-label',
+      'Principal Design Systems Engineer at Latecomer',
+    );
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    // At lg the selected posting stays selected.
+    if (selected) expect(page.url()).toBe(selected);
   });
 }

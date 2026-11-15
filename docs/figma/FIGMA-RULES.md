@@ -44,6 +44,10 @@ code is `CLAUDE.md`; this page is the visual subset. `src/figmaRules.test.ts` ke
   right; the first posting is selected, so the detail is never empty; ↑ / ↓ move the selection. Below
   1024 px: the list alone, scrolled, with **no pager** (Adrian 2026-11-14: in a scrolled list its arrows only
   jumped the page). No pager at any width.
+- **"N new postings" (2026-11-15).** Postings that arrive after the list has loaded, or once the person is reading,
+  wait behind a small secondary key with an up arrow, "3 new postings", centred at the top of the list and stuck there
+  as it scrolls; it floats over the cards (no height of its own), so nothing moves. A tap puts them in at the top and
+  goes there. Every width.
 - **Spacing** is HDS steps (compact density: 4, 8, 12, 16, 24, 32). Space comes from parent gaps,
   not child margins.
 
