@@ -914,7 +914,8 @@ function PostingCard({
           </Text>
         )}
         <Card.Facts
-          className="p-0"
+          // The place is one line on a card, cut with an ellipsis (FindList.css, 2026-11-15).
+          className="p-0 rjb-facts-place-line"
           // Plain lines, not a list inside each card's list item (as FactLines was): a list of
           // cards counts only its cards.
           role="presentation"
