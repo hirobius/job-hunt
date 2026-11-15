@@ -47,7 +47,7 @@ export default function JobRail({ openId }: { openId: string }) {
             No jobs match.
           </Text>
         ) : (
-          <JobRowList jobs={shown} openId={openId} onPick={(j) => hop(jobIdOf(j.url))} />
+          <JobRowList brief jobs={shown} openId={openId} onPick={(j) => hop(jobIdOf(j.url))} />
         )}
         {/* Under the list, so the jobs are the first thing in the column (#471). */}
         <FollowUpSection jobs={remoteFiltered(jobs, view.remoteOnly)} now={now} />
