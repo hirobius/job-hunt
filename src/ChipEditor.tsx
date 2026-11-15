@@ -63,7 +63,7 @@ export function ChipEditor({
               iconOnly
               iconLeft={<Icon icon={X} size="small" />}
               label={`Remove ${v}`}
-              className="rjb-term-x"
+              className="rjb-term-x hds-focus-inset"
               onClick={() => onChange(values.filter((x) => x !== v))}
             />
           </Box>
