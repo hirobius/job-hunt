@@ -119,9 +119,9 @@ code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figm
   line or sample line: Remote only follows the Search profile's work mode (every count and the pager
   follow it), the list is newest first, a closed job shows by its Closed badge, and Clear sample
   data is in the Account menu. Focus rings and the selected fill are never clipped at the column's edges.
-- **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: signed out the label "On this device only. Sign in to sync your jobs across devices.", then
-  "Sign in" as a grey key (signed in: the email, the sync
-  line, Sign out). Then Documents, Search profile, Scan now (signed out only; Stop scan while one runs), Companies, Data. Then Pause animations as a
+- **The Account menu (#549): 8 items in 4 groups (9 signed out).** Who you are: one tight header, a primary line (ui, semibold, truncated) over a caption, 4px apart:
+  signed out "On this device only" over the caption "Sign in to sync your jobs across devices.", then
+  "Sign in" as a grey key (signed in: the email over "Synced" with a 12px check, a divider, then Sign out). Then Documents, Search profile, Scan now (signed out only; Stop scan while one runs), Companies, Data. Then Pause animations as a
   toggle with a switch on the right that shows the state (the theme is the app bar's sun/moon
   ThemeToggle, left of the Account button). Then Send feedback, Privacy and
   terms. Every row has a 16 px icon; rows are 44 px on a phone (a bottom sheet), 38 px at 1440. Scan

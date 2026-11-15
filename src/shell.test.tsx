@@ -211,7 +211,8 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
-      'label:On this device only. Sign in to sync your jobs across devices.',
+      'label:On this device only',
+      'label:Sign in to sync your jobs across devices.',
       'item:Sign in',
       '---',
       'item:Documents',
@@ -456,6 +457,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     expect(menuOutline(menu)).toEqual([
       'label:Signed in as u1@example.test',
       'label:Synced',
+      '---',
       'item:Sign out',
       '---',
       'item:Documents',
@@ -470,7 +472,11 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     ]);
     // The email is plain text: not a link, not a menu item, not focusable.
     expect(within(menu).queryAllByRole('link')).toEqual([]);
-    const email = within(menu).getByText('Signed in as u1@example.test');
+    // One tight header (2026-11-15): the email as the primary line, "Signed in as" for screen
+    // readers only; the sync status is its caption.
+    const email = within(menu).getByText('u1@example.test'); // pii-allow: a fake test address
+    expect(email.closest('[data-account-line]')).toHaveTextContent('Signed in as u1@example.test'); // pii-allow
+    expect(within(menu).getByText('Signed in as').className).toContain('sr-only');
     expect(email.closest('a, [role="menuitem"]')).toBeNull();
     expect(email).not.toHaveAttribute('tabindex');
   });

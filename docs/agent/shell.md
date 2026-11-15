@@ -94,9 +94,9 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
-  (**8 items in 4 groups, redesign §5.9, #549**; 9 signed out, with Scan now, #694; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Signed out: "On this device only. Sign in to sync your jobs across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
+  (**8 items in 4 groups, redesign §5.9, #549**; 9 signed out, with Scan now, #694; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Who: **one tight identity header** (Adrian 2026-11-15, `IdentityHeader` in `AccountMenuRows.tsx`, `.rjb-account-id` in late.css): a primary line (ui, semibold, truncated) over a caption-size secondary line, 4px apart; signed out "On this device only" over the caption "Sign in to sync your jobs across devices." (`SIGN_IN_STATE`, `SIGN_IN_BENEFIT`) and **"Sign
   in" as a grey key** (`signInCopy.ts` `SIGN_IN_ITEM`; HDS secondary `Button` as the
-  `Menu.Item`, `.rjb-menu-key`); signed in: "Signed in as <email>" + sync line as labels, Retry sync when it failed, and
+  `Menu.Item`, `.rjb-menu-key`); signed in the email (screen readers hear "Signed in as <email>": the words are `.sr-only`) over the sync line ("Synced" with a 12px check), a divider, then Retry sync when it failed, and
   Sign out. Things = Documents, Search profile, Scan now / Stop scan (signed out only, #694), Companies, Data. Display = **Pause animations**,
   a toggle that shows its state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role
   `menuitemcheckbox` + `aria-checked` and a drawn switch, `.rjb-menu-switch` in late.css; G9 hds#1440). About = Send
