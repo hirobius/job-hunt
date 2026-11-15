@@ -23,7 +23,7 @@ Card rules, list rows, the posting card, page width, outlines and the selected f
   Remote": `feed/placeRemote.ts` `placeSaysRemote`, `classifyRemote` on the place text, so "Remote (US)" is never
   followed by "Remote")), Calendar posted day; the pay line, then **one left-aligned action row (Adrian 2026-11-08,
   `PostingActions`): Save primary, Skip secondary, Open posting as an icon link, More (…) holding Not this company**,
-  all `md`; no match-reason line). **A Browse card is compact (#544, redesign §5.1):** the title (bold body, HDS
+  all `md`; no match-reason line). **A Browse card is compact (#544, redesign §5.1):** the title (bold `titleSm`, one HDS step above body since Adrian 2026-11-15; Apply's `JobRowList` titles went ui → body with it; HDS
   `lineClamp={3}`; it opens the posting: at lg it selects it, below lg it is the HDS `InlineLink` out, with the
   external icon), the company, the facts, the pay, then Save (filled, plus), Skip (grey) and More (Not this company;
   below lg only: at lg a list card carries no keys, the detail column has them, #546);
