@@ -207,6 +207,18 @@ const cleanTerms = (titles: string[]) => {
     .slice(0, MAX_TERMS_PER_USER);
 };
 
+/** What a design systems plan searches the term feeds for (HN, Remotive, Jobicy), widest first
+ *  (2026-11-15): "design systems" finds every design-system title, so it leads; then the related
+ *  titles that are on, which the old list (the profile's design-system titles, capped at 3) never
+ *  searched; then the profile's own design-system titles, for a feed that matches whole phrases.
+ *  `cleanTerms` keeps the first `MAX_TERMS_PER_USER`. */
+export function designSystemsTerms(titles: string[], config: TrackConfig): string[] {
+  const related = Object.entries(RELATED_PATTERNS)
+    .filter(([, pattern]) => config.titleStrong.includes(pattern))
+    .map(([id]) => id);
+  return ['design systems', ...related.sort(), ...titles.filter(saysDesignSystem)];
+}
+
 const isV12 = (o: O) =>
   (typeof o.v === 'number' && o.v >= 12) || Array.isArray(o.sources) || Array.isArray(o.profiles);
 
@@ -246,9 +258,7 @@ function planV12(o: O): SyncPlan | null | undefined {
     for (const f of ['rss', ...SERVER_FEEDS] as const) feeds.delete(f);
   const titles = profileTitles(p);
   const terms =
-    config.slug === designSystemsTrack.slug
-      ? titles.filter(saysDesignSystem).concat('design systems')
-      : titles;
+    config.slug === designSystemsTrack.slug ? designSystemsTerms(titles, config) : titles;
   return {
     from: 'v12',
     config,

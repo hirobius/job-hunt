@@ -135,7 +135,12 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     const plan = planFromBlob(v12({ profiles: [dsProfile({ leaveOut: ['manager'] })] }));
     expect(plan?.config.slug).toBe('design-systems');
     expect(plan?.config.descriptionSignals).toBe(designSystemsTrack.descriptionSignals);
-    expect(plan?.terms).toEqual(['Design Systems Engineer', 'design systems']);
+    // Widest first: the phrase, the related titles that are on, then the profile's own titles.
+    expect(plan?.terms).toEqual(['design systems', 'design engineer', 'design technologist']);
+    const off = planFromBlob(
+      v12({ profiles: [dsProfile({ include: { terms: ['design systems'], related: false } })] }),
+    );
+    expect(off?.terms).toEqual(['design systems', 'Design Systems Engineer']);
     const p = { source: 'greenhouse' as const, sourceId: '1', company: 'A', url: 'https://a' };
     expect(
       scorePosting({ ...p, title: 'Design Manager', descriptionText: '' }, plan!.config).verdict,
@@ -398,14 +403,14 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
 
   it('only my titles on my feeds; RSS is everyone’s', () => {
     const reads = [
-      read('hn', 'Design Systems Engineer'),
+      read('hn', 'Design Systems'),
       read('hn', 'Welder'),
-      read('jobicy', 'Design Systems Engineer'),
+      read('jobicy', 'Design Systems'),
       read('rss', undefined),
       read('theirstack', undefined),
     ];
     expect(feedReadsFor(plan, reads).map((r) => `${r.board}:${r.term ?? ''}`)).toEqual([
-      'hn:Design Systems Engineer',
+      'hn:Design Systems',
       'rss:',
       'theirstack:',
     ]);
@@ -413,14 +418,14 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
 
   it('a feed whose run left out one of my titles, or failed on one, is not answered', () => {
     const both = [
-      read('hn', 'design systems engineer'),
-      read('hn', 'Design System Lead'),
       read('hn', 'design systems'),
+      read('hn', 'Design Engineer'),
+      read('hn', 'design technologist'),
     ];
     expect(answeredFeeds(plan, both)).toEqual(['hn']);
-    // The per-run cap kept only one of the two titles.
+    // The per-run cap kept only one of the titles.
     expect(answeredFeeds(plan, both.slice(0, 1))).toEqual([]);
-    expect(answeredFeeds(plan, [...both, read('hn', 'Design System Lead', false)])).toEqual([]);
+    expect(answeredFeeds(plan, [...both, read('hn', 'Design Engineer', false)])).toEqual([]);
     expect(answeredFeeds(plan, [read('rss', undefined)])).toEqual(['rss']);
     expect(answeredFeeds(plan, [read('rss', undefined, false)])).toEqual([]);
     // Part of the catalog, or the RSS alone, never closes what it didn't list.
