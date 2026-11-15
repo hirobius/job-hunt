@@ -429,7 +429,16 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   (remote by default; an older remembered `review:filters` / `review:mode` / `review:card` is not read; Apply's Remote only
   follows the profile too since 2026-11-13). At lg the list starts under the tabs. **No pager below lg (Adrian 2026-11-14):** the "[‹][›] 1 of N" row of #714 is gone; in a list that
   scrolls, its arrows only jumped the page (`FindList.css` keeps only the window spacer). A step past the pages
-  shown by ↑ / ↓ at lg shows enough pages first (`showUpTo`), so its card is there to scroll to. **At lg** ↑ / ↓ move
+  shown by ↑ / ↓ at lg shows enough pages first (`showUpTo`), so its card is there to scroll to. **Late postings wait (Adrian
+  2026-11-15, the layout-jump fix):** `heldPostings.ts` `useHeldPostings`: once the list has settled (its read fully
+  answered) or the person has started reading it (a scroll, tap or key on the page), a posting that arrives later is
+  held, never put in above the cards on screen; a sticky "N new postings" key (HDS secondary, ArrowUp; `.rjb-find-new`
+  in `FindList.css`, zero height so it floats over the list and nothing moves when it comes or goes) puts them in,
+  scrolls to the top and focuses the top card's title; Review's polite status says "N new postings". Postings of the
+  first load show as they come; the selected posting is never held; a change to the Search profile or the Sources (a
+  company followed) fills the list as a first load again, so a new company's jobs still show at once (2026-10-28);
+  when none of the shown cards is left, everything shows. Pinned in `heldPostings.test.ts`, `review.test.tsx`,
+  `e2e/review.spec.ts`. **At lg** ↑ / ↓ move
   the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
   text field, select, menu, listbox or dialog, or a menu / dialog is open. Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the

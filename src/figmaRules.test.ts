@@ -189,6 +189,15 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
+  it('pins "N new postings" (2026-11-15): late postings wait; nothing moves', () => {
+    expect(RULES).toMatch(/\*\*"N new postings" \(2026-11-15\)\.\*\*/);
+    expect(CLAUDE).toMatch(/\*\*Late postings wait \(Adrian\s+2026-11-15/);
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('useHeldPostings(');
+    expect(fs.readFileSync('src/FindList.css', 'utf8')).toMatch(
+      /\.rjb-find-new \{[^}]*block-size: 0;/,
+    );
+  });
+
   it('pins Find as one list (2026-11-13): no Deck, no switch, no pager, no filter row', () => {
     expect(RULES).toMatch(/Review is one list \(2026-11-13\)/);
     expect(RULES).toMatch(
