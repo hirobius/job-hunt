@@ -286,7 +286,10 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   surface, never a Card per job: badges, the title (`rjb-clamp-2`, two lines), the company, place and one date;
   the title is the link, its hit area stretched over the row (`::after`, which carries the focus ring), so its name
   is its visible text (the rest describes it; `hds-gaps/NavListActionItem` is deleted); the open job is
-  `aria-current` with the selected fill; no row key (Follow up, Mark applied), no row menu, no posting glyph (the
+  `aria-current` with the selected fill; **beside the job at lg (`JobRail`, `JobRowList brief`, Adrian 2026-11-15) a row
+  is its badges, title and company only**, the place and date being the job page's beside it (Review's lg list
+  cards likewise: `PostingCard` `brief` = title + company, no facts, pay or excerpt; below lg rows and cards keep
+  their facts; pinned in `jobPage.test.tsx`, `review.test.tsx`); no row key (Follow up, Mark applied), no row menu, no posting glyph (the
   job page's header and More have them). Follow up and Next 7 days stay under the lg column only.
   `ApplyFilterBar`, `ApplyQueueSummary` and `JobListCard` are deleted. A pick pops the sheet's entry, then replaces the page's, so Back leaves
   the tab in one step; notices raised while it is open show in its footer (`saveNotice.noticeHost`). A job opened from
@@ -694,7 +697,9 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
   Inputs, focus, overlays, row dividers and feedback tones keep theirs. **Selected is a fill, never an
   edge (#603, #546):** a selected / current item (the Apply rail's open job, Find's `.rjb-selected`
-  card) takes `--rjb-selected-fill` (base.css: HDS surface-selected in both themes, distinct from hover and raised; kept on hover;
+  card) takes `--rjb-selected-fill` (base.css: HDS **surface-accentSubtle** since Adrian 2026-11-15, the light graphite
+  accent tint, graphite-50 light / graphite-800 dark; it was surface-selected, which read dark and muddy; the open
+  row's title is bold, `JobRowList.css`; the selected item stays in its place, never moved to the top), distinct from hover and raised; kept on hover;
   content-secondary stays AA), no edge marker or ring. `e2e/no-outlines.spec.ts` fails on a Card or
   container box that draws an edge, and on a rail open job that is not fill only (`e2e/selectedFill.ts`,
   also in `e2e/review.spec.ts` for Find).

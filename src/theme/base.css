@@ -796,12 +796,13 @@ p {
   overflow-y: auto;
 }
 
-/* Selected / current list items (#603, #546): HDS surface-selected only, never an edge or a ring.
+/* Selected / current list items (#603, #546): a fill only, never an edge or a ring. Since Adrian
+ * 2026-11-15 the light graphite accent tint, HDS surface-accentSubtle (graphite-50 light,
+ * graphite-800 dark; was surface-selected, which read dark and muddy), with the title in bold.
  * Find's selected posting card and the Apply rail's open job share it. It differs from hover and
- * from the raised card in both themes (dark: neutral-725 between raised 825 and hover 700; sunken
- * equalled hover there), and keeps content-secondary at AA (theme.contrast.test.ts). */
+ * from the raised card in both themes, and keeps content-secondary at AA (theme.contrast.test.ts). */
 :root {
-  --rjb-selected-fill: var(--semantic-color-surface-selected);
+  --rjb-selected-fill: var(--semantic-color-surface-accentSubtle);
 }
 .rjb-selected,
 .rjb-selected:hover {

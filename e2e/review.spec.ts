@@ -354,7 +354,8 @@ for (const width of [390, 1440]) {
             },
           ],
         });
-      const hits = Array.from({ length: 6 }, (_, i) => ({
+      // Enough cards for the page to scroll at 1440 too (lg list cards are short, 2026-11-15).
+      const hits = Array.from({ length: 14 }, (_, i) => ({
         objectID: `m-${i}`,
         story_id: 9,
         parent_id: 9,
@@ -377,7 +378,7 @@ for (const width of [390, 1440]) {
     let since = await page.evaluate(() => Date.now());
     await accountMenuItem(page, 'Scan now');
     await scanFinished(page, since);
-    await expect(list.getByRole('listitem')).toHaveCount(6);
+    await expect(list.getByRole('listitem')).toHaveCount(14);
     // The person reads on; then a later read finds one more posting.
     await page.mouse.move(width / 2, 500);
     await page.mouse.wheel(0, 100);
@@ -394,7 +395,7 @@ for (const width of [390, 1440]) {
     const key = page.getByRole('button', { name: '1 new posting' });
     await expect(key).toBeVisible({ timeout: 30_000 });
     // Nothing moved under the reader, and the late posting is not in the list yet.
-    await expect(list.getByRole('listitem')).toHaveCount(6);
+    await expect(list.getByRole('listitem')).toHaveCount(14);
     await expect(list.getByRole('article').first()).toHaveAttribute('aria-label', name!);
     expect(Math.abs((await top()) - before)).toBeLessThan(1);
     // The key floats over the list: it takes no height.
@@ -402,7 +403,7 @@ for (const width of [390, 1440]) {
     const selected = width >= 1024 ? page.url() : null;
     await key.click();
     await expect(key).toHaveCount(0);
-    await expect(list.getByRole('listitem')).toHaveCount(7);
+    await expect(list.getByRole('listitem')).toHaveCount(15);
     await expect(list.getByRole('article').first()).toHaveAttribute(
       'aria-label',
       'Principal Design Systems Engineer at Latecomer',

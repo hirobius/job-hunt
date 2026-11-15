@@ -198,6 +198,19 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
+  it('pins the calm list beside a detail (2026-11-15): accent tint, stays in place, short rows', () => {
+    expect(RULES).toMatch(/surface-accentSubtle/);
+    expect(RULES).toMatch(/The selected item stays in its place/);
+    expect(RULES).toMatch(/Beside a detail at 1440, a list row is short \(2026-11-15\)/);
+    expect(fs.readFileSync('src/theme/base.css', 'utf8')).toContain(
+      '--rjb-selected-fill: var(--semantic-color-surface-accentSubtle);',
+    );
+    expect(fs.readFileSync('src/JobRail.tsx', 'utf8')).toContain('<JobRowList brief');
+    expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain(
+      'const brief = compact && !!onOpen;',
+    );
+  });
+
   it('pins Find as one list (2026-11-13): no Deck, no switch, no pager, no filter row', () => {
     expect(RULES).toMatch(/Review is one list \(2026-11-13\)/);
     expect(RULES).toMatch(
