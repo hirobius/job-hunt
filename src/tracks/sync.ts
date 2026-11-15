@@ -413,3 +413,26 @@ export function scoreBatch(reads: ReadOutcome[], track: TrackConfig): ScoredPost
     };
   });
 }
+
+/** One batch's scored postings, kept per scoring rule set and per list of reads (scale audit
+ *  2026-11-15). Every follower of a board got its postings scored again, so a slice cost boards ×
+ *  followers of CPU; users with the same rules (`scoreKey`), the same boards and the same company
+ *  names now share one scoring. A user with other rules, another board list or another name for a
+ *  company is scored alone, exactly as before. Make a new cache for each batch of reads. */
+export type ScoreCache = Map<string, ScoredPosting[]>;
+
+export function scoreBatchOnce(
+  cache: ScoreCache,
+  rulesKey: string,
+  reads: ReadOutcome[],
+  track: TrackConfig,
+): ScoredPosting[] {
+  // The company name is the watcher's own (forWatcher) and is part of the fingerprint.
+  const key = JSON.stringify([
+    rulesKey,
+    reads.map((r) => [r.board, r.term ?? '', r.company?.company ?? '', r.postings.length]),
+  ]);
+  let hit = cache.get(key);
+  if (!hit) cache.set(key, (hit = scoreBatch(reads, track)));
+  return hit;
+}
