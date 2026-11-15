@@ -9,7 +9,7 @@
 // wrote. Pure, no React or storage: the edge function, the dry-run script and the tests load it.
 import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.ts';
 import { BOARD_KINDS, BOARD_SLUG } from '../feed/boardSet.ts';
-import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
+import { DEFAULT_SCORER, profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
 import { nameKey, sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
 import { SERVER_FEEDS, WHOLE_LIST_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
@@ -146,13 +146,16 @@ export function compileProfile(p: {
 }
 
 /** A v12 profile as a scorer config. Related titles count only on a design systems scorer (the
- *  app's rule: mustInclude.ts lets them in on a "design system(s)" rule only). */
+ *  app's rule: mustInclude.ts lets them in on a "design system(s)" rule only). A profile that names
+ *  no scorer is read with `DEFAULT_SCORER` (profileModel.ts), as the Feed reads it; one with no
+ *  title on searches nothing, so it stays no plan. */
 export function configForProfile(p: Profile): TrackConfig | null {
   const relatedOff =
     p.include.related === false ? Object.keys(RELATED_PATTERNS) : (p.include.relatedOff ?? []);
+  const titles = profileTitles(p);
   return compileProfile({
-    titles: profileTitles(p),
-    scorer: p.scorer,
+    titles,
+    scorer: p.scorer ?? (titles.length ? DEFAULT_SCORER : undefined),
     relatedOff,
     mustInclude: p.include.terms,
     leaveOut: p.leaveOut,
