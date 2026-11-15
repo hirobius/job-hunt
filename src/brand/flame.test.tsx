@@ -221,11 +221,12 @@ describe('the boot splash burns (the live fire, no fixed loop)', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     document.body.innerHTML = '';
-    const reduced = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g)]
-      .map((m) => m[1])
-      .join('\n');
-    // reduced motion drops the fade, never the beat that keeps a fast boot from flashing
-    expect(reduced).toMatch(/\.rjb-boot\s*\{\s*animation-timing-function: step-end/);
+    // The splash is on the first paint, no beat or fade (Adrian 2026-11-15: the beat read as a
+    // blank black frame on a phone), with or without reduced motion.
+    const boot = /\n\.rjb-boot \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(boot).toMatch(/background: var\(--semantic-color-surface-page\)/);
+    expect(boot).not.toMatch(/animation/);
+    expect(css).not.toMatch(/rjb-boot-in/);
   });
 
   it('the boot script is its own chunk ahead of the entry (vite.config.ts boot-flame)', () => {

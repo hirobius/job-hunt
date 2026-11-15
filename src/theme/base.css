@@ -753,7 +753,8 @@ p {
 
 /* The boot splash (index.html's #root, replaced the moment React mounts, so a ready app is never
    held): the flame's still mark, set burning by brand/bootFlame.ts (the live fire, no fixed loop).
-   The splash itself fades in after a short beat, so a fast boot shows nothing. */
+   It is on the first paint (Adrian 2026-11-15, a phone recording: the old 150 ms beat before it
+   faded in read as a blank black frame between the home screen and the app). */
 .rjb-boot {
   position: fixed;
   inset: 0;
@@ -761,16 +762,6 @@ p {
   place-items: center;
   background: var(--semantic-color-surface-page);
   --rjb-logo-size: var(--primitive-space-10);
-  animation: rjb-boot-in var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)
-    var(--primitive-duration-short) both;
-}
-@keyframes rjb-boot-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 /* Waiting on the cloud copy on a device with nothing yet (App's BootHold): the same flame, live. */
 .rjb-boot-hold {
@@ -778,12 +769,6 @@ p {
   place-items: center;
   min-height: 40vh;
   --rjb-logo-size: var(--primitive-space-10);
-}
-@media (prefers-reduced-motion: reduce) {
-  /* No fade, but the same beat: a fast boot still shows nothing. */
-  .rjb-boot {
-    animation-timing-function: step-end;
-  }
 }
 
 /* Find at lg: the selected posting stays in view beside a long list (its own scroll when taller

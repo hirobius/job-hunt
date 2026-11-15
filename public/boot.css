@@ -1,0 +1,27 @@
+/* The first paint (Adrian 2026-11-15, an incognito recording: a white page for ~1 s on a cold
+   load). This small file is the only stylesheet that blocks rendering: the page's colour in each
+   theme (theme-init.js has set data-theme) and the boot splash's flame, centred. The app's own
+   stylesheets load beside it (the late-css plugin in vite.config.ts) and the app mounts once they
+   are in (src/boot/lateStyles.ts). The colours are HDS surface-page, as the theme-color metas. */
+html {
+  background: #ffffff;
+}
+html[data-theme='dark'] {
+  background: #060a13;
+}
+.rjb-boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.rjb-boot .rjb-flame {
+  display: inline-flex;
+  line-height: 0;
+}
+.rjb-boot .rjb-flame svg {
+  display: block;
+  width: auto;
+  height: 60px;
+  overflow: visible;
+}
