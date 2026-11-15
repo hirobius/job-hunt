@@ -215,12 +215,15 @@ p {
   overflow-wrap: anywhere;
 }
 
-.rjb-card-title a {
+/* A Review card's title is the same quiet link (Adrian 2026-11-15): no underline at rest. */
+.rjb-card-title a,
+.rjb-find-list h3 a {
   color: var(--semantic-color-content-primary);
   text-decoration: none;
 }
 
-.rjb-card-title a:hover {
+.rjb-card-title a:hover,
+.rjb-find-list h3 a:hover {
   text-decoration: underline;
 }
 
