@@ -13,6 +13,7 @@ import { TitlesField, WhereFields } from './ProfileFields';
 import { NEW_PROFILE, draftOf, fieldsOf, finishSetup, type ProfileDraft } from './searchDefaults';
 import { showNotice } from './saveNotice';
 import { ExitButton } from './hds-gaps/ExitButton';
+import { focusClose } from './dialogFocus';
 
 export default function SearchProfileDialog({
   onDone,
@@ -47,7 +48,13 @@ export default function SearchProfileDialog({
     onDone();
   };
   return (
-    <Dialog.Content className="rjb-dialog" onCloseAutoFocus={onCloseAutoFocus}>
+    <Dialog.Content
+      className="rjb-dialog"
+      // Open on Close, not on the first title's Remove key: Enter or Space right after the
+      // dialog opens must not remove a title.
+      onOpenAutoFocus={focusClose}
+      onCloseAutoFocus={onCloseAutoFocus}
+    >
       <Dialog.Header>
         <Dialog.Title>Search profile</Dialog.Title>
         <Dialog.Description>What Review and the scan look for.</Dialog.Description>

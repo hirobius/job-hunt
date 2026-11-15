@@ -18,19 +18,9 @@ import {
 import { CONTACT_EMAIL, LEGAL_DRAFT, LEGAL_UPDATED, legalDocFor, PRIVACY, TERMS } from './legal';
 import { closeDialog, openLegal, useRoute } from './route';
 import { usePageTitle } from './pageTitle';
-import { useDialogFocus } from './dialogFocus';
+import { focusClose, useDialogFocus } from './dialogFocus';
 
 type LegalDoc = typeof PRIVACY;
-
-function focusClose(e: Event) {
-  // HDS's close button is named by its sr-only text ("Close"), not an aria-label.
-  const close = [...((e.target as HTMLElement | null)?.querySelectorAll('button') ?? [])].find(
-    (b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim() === 'Close',
-  );
-  if (!close) return;
-  e.preventDefault();
-  close.focus({ preventScroll: true });
-}
 
 export default function LegalPage() {
   const route = useRoute();

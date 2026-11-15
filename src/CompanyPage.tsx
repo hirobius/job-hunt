@@ -15,6 +15,7 @@ import {
   Text,
   Textarea,
   useAtLeast,
+  VisuallyHidden,
 } from '@hirobius/design-system';
 import JobRail from './JobRail';
 import { EmptyState } from './hds-gaps/EmptyState';
@@ -235,20 +236,28 @@ export default function CompanyPage({ slug }: { slug: string }) {
   if (!company && !settled) return <CompanyPageSkeleton />;
   if (!company)
     return (
-      <EmptyState
-        framed
-        icon={Building2}
-        title="No company here"
-        description="Companies come from the company name on a job. This one may have been renamed."
-        action={
-          // Usually renamed from the job page it was opened from: back there, by name.
-          <Button asChild variant="secondary">
-            <a href={back.href} onClick={backClick(back)}>
-              {back.recorded ? `Back to ${back.label}` : 'Go to Apply'}
-            </a>
-          </Button>
-        }
-      />
+      <Stack gap="normal">
+        {/* The page keeps its one h1 while no company shows (as an empty Apply view does). */}
+        <VisuallyHidden>
+          <Text as="h1" variant="title">
+            Company
+          </Text>
+        </VisuallyHidden>
+        <EmptyState
+          framed
+          icon={Building2}
+          title="No company here"
+          description="Companies come from the company name on a job. This one may have been renamed."
+          action={
+            // Usually renamed from the job page it was opened from: back there, by name.
+            <Button asChild variant="secondary">
+              <a href={back.href} onClick={backClick(back)}>
+                {back.recorded ? `Back to ${back.label}` : 'Go to Apply'}
+              </a>
+            </Button>
+          }
+        />
+      </Stack>
     );
 
   const docs = company.documents.length;
