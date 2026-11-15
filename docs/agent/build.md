@@ -50,10 +50,11 @@ Build budget, CI, the deploy gate, CSP, guardrails, screenshots and repo notes.
 
 ## Notes
 
-- Supabase redirect URLs must include any new origin for magic-link sign-in. During the move
-  `https://roleflame.vercel.app/` (Site URL) and the old `https://roleforge-app.vercel.app/` and `https://job-hunt-jade.vercel.app/`
-  must be in Supabase Auth → URL Configuration → Redirect URLs; the client side is
-  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGINS`).
+- Supabase redirect URLs must include any new origin for magic-link sign-in:
+  `https://roleflame.vercel.app/` is the Site URL and the one production Redirect URL (Supabase Auth → URL
+  Configuration); the client side is `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`). Never list an address this
+  Vercel project does not hold (the old `roleforge-app` and `job-hunt-jade` names are free for anyone to claim, and
+  a listed address receives the session a sign-in link carries), and no wildcard entries.
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
 - **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/

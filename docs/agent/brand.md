@@ -6,7 +6,7 @@ The product name, the flame logo, its motion, the boot splash and the sign-in sc
 
 **roleflame**, all lowercase since 2026-11-08 (renamed Roleflame 2026-11-02, Adrian, hirobius/ops#1092 / #55; before that **hiraga**, lowercase, 2026-10-30, Adrian: hire + Firaga, and _hi_ 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
 **https://roleflame.vercel.app** (since 2026-11-05; repo `hirobius/job-hunt`; the old
-`roleforge-app.vercel.app` and `job-hunt-jade.vercel.app` still serve and are accepted sign-in origins until they redirect). Rebuilt from a
+`roleforge-app.vercel.app` and `job-hunt-jade.vercel.app` no longer belong to this project and are not sign-in origins). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
 
