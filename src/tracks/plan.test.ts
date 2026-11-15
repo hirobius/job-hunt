@@ -136,7 +136,16 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     const plan = planFromBlob(v12({ profiles: [dsProfile({ leaveOut: ['manager'] })] }));
     expect(plan?.config.slug).toBe('design-systems');
     expect(plan?.config.descriptionSignals).toBe(designSystemsTrack.descriptionSignals);
-    expect(plan?.terms).toEqual(['Design Systems Engineer', 'design systems']);
+    // The profile's first design-system title, the phrase, then the related titles that are on.
+    expect(plan?.terms).toEqual(['Design Systems Engineer', 'design systems', 'design engineer']);
+    const off = planFromBlob(
+      v12({ profiles: [dsProfile({ include: { terms: ['design systems'], related: false } })] }),
+    );
+    expect(off?.terms).toEqual(['Design Systems Engineer', 'design systems']);
+    // No design-system title of its own: the phrase and both related titles.
+    expect(
+      planFromBlob(v12({ profiles: [dsProfile({ titles: ['Product Designer'] })] }))?.terms,
+    ).toEqual(['design systems', 'design engineer', 'design technologist']);
     const p = { source: 'greenhouse' as const, sourceId: '1', company: 'A', url: 'https://a' };
     expect(
       scorePosting({ ...p, title: 'Design Manager', descriptionText: '' }, plan!.config).verdict,
@@ -164,7 +173,7 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     // The design-systems feeds and searches are on again, and the rotation takes the plan.
     for (const f of ['rss', 'arbeitnow', 'remoteok', 'wwr', 'jooble', 'theirstack', 'adzuna'])
       expect(plan.feeds.has(f as never), f).toBe(true);
-    expect(plan.terms).toEqual(['Design Systems Engineer', 'design systems']);
+    expect(plan.terms).toEqual(['Design Systems Engineer', 'design systems', 'design engineer']);
     const p = { source: 'ashby' as const, sourceId: '1', company: 'A', url: 'https://a' };
     const verdict = (title: string) =>
       scorePosting({ ...p, title, descriptionText: '' }, plan.config).verdict;
@@ -435,14 +444,14 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
 
   it('only my titles on my feeds; RSS is everyone’s', () => {
     const reads = [
-      read('hn', 'Design Systems Engineer'),
+      read('hn', 'Design Systems'),
       read('hn', 'Welder'),
-      read('jobicy', 'Design Systems Engineer'),
+      read('jobicy', 'Design Systems'),
       read('rss', undefined),
       read('theirstack', undefined),
     ];
     expect(feedReadsFor(plan, reads).map((r) => `${r.board}:${r.term ?? ''}`)).toEqual([
-      'hn:Design Systems Engineer',
+      'hn:Design Systems',
       'rss:',
       'theirstack:',
     ]);
@@ -451,13 +460,13 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
   it('a feed whose run left out one of my titles, or failed on one, is not answered', () => {
     const both = [
       read('hn', 'design systems engineer'),
-      read('hn', 'Design System Lead'),
       read('hn', 'design systems'),
+      read('hn', 'Design Engineer'),
     ];
     expect(answeredFeeds(plan, both)).toEqual(['hn']);
-    // The per-run cap kept only one of the two titles.
+    // The per-run cap kept only one of the titles.
     expect(answeredFeeds(plan, both.slice(0, 1))).toEqual([]);
-    expect(answeredFeeds(plan, [...both, read('hn', 'Design System Lead', false)])).toEqual([]);
+    expect(answeredFeeds(plan, [...both, read('hn', 'Design Engineer', false)])).toEqual([]);
     expect(answeredFeeds(plan, [read('rss', undefined)])).toEqual(['rss']);
     expect(answeredFeeds(plan, [read('rss', undefined, false)])).toEqual([]);
     // Part of the catalog, or the RSS alone, never closes what it didn't list.

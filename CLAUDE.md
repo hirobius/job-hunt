@@ -770,7 +770,12 @@ flame.svg / flameEngine. Pinned in `shell.test.tsx`, `SignInDialog.test.tsx`, `e
   inclusion check uses (`termRegex`, `passesInclude`: whole words, "systems" ↔ "design system", never "ecosystem";
   **phrases break at separators**: a spaced hyphen, en/em dash, `, | / : ; & · •`; a hyphen inside a word joins).
   **A design system rule reads the title only** (`hasRelatedTitles`), so Design Engineers never come in through a
-  description; **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  description; **one exception (Adrian 2026-11-15): a product-design title (`track-config.ts` `PRODUCT_DESIGN_TITLE`:
+  Product / UX / UI / Visual / Interaction Designer) is listed when its description shows at least
+  `BODY_SIGNALS_TO_LIST` (2) of the scorer's body signals** (`feed/include.ts` `bodyConfirms`; one mention of "design
+  system" is not enough; same guard as the related titles). The scorer has the same titles as adjacent at the same
+  bar, and a phone's light read fetches their descriptions (`bodyCanConfirm`). The design systems plan searches the
+  term feeds for its first design-system title, "design systems", then the related titles that are on (`plan.ts` `designSystemsTerms`, first 3 kept); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
   2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
   `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
   process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
