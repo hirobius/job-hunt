@@ -47,7 +47,7 @@ describe('career categories', () => {
   it('offer the picked categories’ titles, then the person’s own', () => {
     const list = titleChoices(['data'], ['Quant Researcher', 'data analyst']);
     expect(list[0]).toBe('Data Analyst');
-    expect(list.at(-1)).toBe('Quant Researcher');
+    expect(list[list.length - 1]).toBe('Quant Researcher');
     expect(list.filter((t) => t.toLowerCase() === 'data analyst')).toHaveLength(1);
     expect(toggleValue(['SQL'], 'sql')).toEqual([]);
   });
