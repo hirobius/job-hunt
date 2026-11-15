@@ -8,6 +8,15 @@ describe('decodeEntities', () => {
     ['R&amp;D &lt;3', 'R&D <3'],
     ['&#8212; and &mdash;', '— and —'],
     ['&bogus; stays', '&bogus; stays'],
+    // Names Object.prototype has are not entities (an own-key table, never an inherited read).
+    [
+      '&toString; &valueOf; &constructor; &hasOwnProperty; &__proto__;',
+      '&toString; &valueOf; &constructor; &hasOwnProperty; &__proto__;',
+    ],
+    [
+      '&isPrototypeOf; &toLocaleString; &CONSTRUCTOR;',
+      '&isPrototypeOf; &toLocaleString; &CONSTRUCTOR;',
+    ],
   ])('%s → %s', (raw, out) => expect(decodeEntities(raw)).toBe(out));
 });
 
@@ -41,5 +50,108 @@ describe('a hostile body (security review 2026-10-28)', () => {
     const t = Date.now();
     htmlToText('<script>'.repeat(50_000));
     expect(Date.now() - t).toBeLessThan(200);
+  });
+});
+
+// The fast paths (#perf: decode by `&`, whitespace runs only) must give exactly what the plain
+// global replaces gave: these are those replaces, checked over awkward inputs.
+describe('fast paths match the plain replaces', () => {
+  const NAMED: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: ' ',
+    ndash: '–',
+    mdash: '—',
+    hellip: '…',
+    rsquo: '’',
+    lsquo: '‘',
+    rdquo: '”',
+    ldquo: '“',
+    bull: '•',
+  };
+  const refDecode = (s: string) =>
+    s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+      if (e[0] === '#') {
+        const n =
+          e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : m;
+      }
+      const name = e.toLowerCase();
+      return Object.prototype.hasOwnProperty.call(NAMED, name) ? NAMED[name] : m;
+    });
+  // `/<[^>]+>/g` → '' as a plain walk (no pattern replace: this is a reference, not a sanitizer).
+  const refDropTags = (s: string) => {
+    let out = '';
+    let i = 0;
+    while (i < s.length) {
+      const open = s.indexOf('<', i);
+      if (open < 0) break;
+      const close = s[open + 1] === '>' ? -1 : s.indexOf('>', open + 1);
+      if (close < 0) {
+        out += s.slice(i, open + 1);
+        i = open + 1;
+      } else {
+        out += s.slice(i, open);
+        i = close + 1;
+      }
+    }
+    return out + s.slice(i);
+  };
+  const refTidy = (s: string) =>
+    s
+      .replace(/[ \t\f\v\u00a0]+/g, ' ')
+      .replace(/ *\n */g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .trim();
+  const cases = [
+    '',
+    'plain',
+    '&',
+    '&&amp;',
+    '&amp;lt;p&amp;gt;',
+    '&AMP; &Amp; &LT;',
+    '&#0; &#x110000; &#65;&#X41;&#x41;',
+    '&nope; &amp &amp;amp;',
+    'a&b&c;&d&gt;',
+    '&#xZZ; &#; &x41;',
+    '&lt;p&gt;Hi&nbsp;there&lt;/p&gt;',
+    '&toString; &valueOf; &constructor; &hasOwnProperty; &__proto__;',
+    '&Constructor;&TOSTRING;&amp;',
+    'a<b>c',
+    '<>x<>',
+    'a < b > c',
+    '<<i>>',
+    'x<y',
+    '<a href="x>y">t</a>',
+    'a  b\t\tc \u00a0 d\v\fe',
+    ' \n  \n\t x \n',
+    'x\n\n\n y',
+    '\u00a0',
+    ' a ',
+    '\t',
+    'a \nb\n c',
+  ];
+  it('decodeEntities', () => {
+    for (const c of cases) expect(decodeEntities(c)).toBe(refDecode(c));
+  });
+  it('htmlToText', () => {
+    const ref = (h: string) =>
+      refTidy(
+        refDecode(
+          refDropTags(
+            h
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/<\/?(p|div|li|ul|ol|h[1-6]|tr|section|article)\b[^>]*>/gi, '\n'),
+          ),
+        ),
+      );
+    for (const c of cases) expect(htmlToText(c)).toBe(ref(c));
+    for (const c of cases)
+      expect(htmlToText(`<p>${c}</p><br/> <li> ${c}\t</li>`)).toBe(
+        ref(`<p>${c}</p><br/> <li> ${c}\t</li>`),
+      );
   });
 });
