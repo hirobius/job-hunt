@@ -37,7 +37,11 @@ describe('sync run resume', () => {
       expect(sql).toContain(`revoke all on function public.${f}`);
       expect(sql).toContain(`grant execute on function public.${f} to service_role`);
     }
-    expect(sql.match(/set search_path = public/g)).toHaveLength(3);
+    // #487 hardening kept: an empty search path, every name schema-qualified.
+    expect(sql.match(/set search_path = ''/g)).toHaveLength(3);
+    expect(sql).not.toMatch(/set search_path = public/);
+    expect(sql).not.toMatch(/(?<![\w.])(now|make_interval)\(/);
+    expect(sql).not.toMatch(/(from|update|into)\s+sync_run_lease/);
   });
 
   it('a new run resets the place in its claim, so a resume never takes it under the new run', () => {
@@ -49,6 +53,8 @@ describe('sync run resume', () => {
     const claim = sql.slice(sql.indexOf('function public.claim_sync_resume'));
     expect(claim).toContain('for update');
     expect(claim).toContain('r.resumes >= p_max');
+    // A give-up leaves the row with no run, so a stale slice cannot extend the lease.
+    expect(claim).toMatch(/lease_until = null,[\s\S]*run_start = null/);
     expect(claim).toMatch(/resumes\s+= l\.resumes \+ 1/);
   });
 

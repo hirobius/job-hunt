@@ -18,24 +18,26 @@ alter table public.sync_run_lease
   add column if not exists payload    jsonb,
   add column if not exists resumes    int not null default 0;
 
+-- Every function here keeps the #487 hardening (20261106100100): an empty search_path and
+-- schema-qualified names.
 -- A new run's claim also resets the place in the same statement, so the resume tick (which fires
 -- in the same second as a 15-minute tick) never takes the old run's place under the new run.
 create or replace function public.claim_sync_run(p_run text, p_lease_ms int)
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   with took as (
     update public.sync_run_lease
        set run_start   = p_run,
-           lease_until = now() + make_interval(secs => p_lease_ms / 1000.0),
+           lease_until = pg_catalog.now() + pg_catalog.make_interval(secs => p_lease_ms / 1000.0),
            cursor      = '',
-           cursor_at   = now(),
+           cursor_at   = pg_catalog.now(),
            payload     = null,
            resumes     = 0
      where id = 1
-       and (lease_until is null or lease_until < now() or run_start = p_run)
+       and (lease_until is null or lease_until < pg_catalog.now() or run_start = p_run)
     returning 1
   )
   select exists (select 1 from took);
@@ -52,16 +54,16 @@ create or replace function public.save_sync_cursor(
 ) returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   with upd as (
     update public.sync_run_lease
        set resumes     = case when cursor is not distinct from p_after then resumes else 0 end,
            cursor      = p_after,
-           cursor_at   = now(),
+           cursor_at   = pg_catalog.now(),
            payload     = p_payload,
            lease_until = case when p_after is null then lease_until
-                              else now() + make_interval(secs => p_lease_ms / 1000.0) end
+                              else pg_catalog.now() + pg_catalog.make_interval(secs => p_lease_ms / 1000.0) end
      where id = 1 and run_start = p_run
     returning 1
   )
@@ -76,7 +78,7 @@ create or replace function public.claim_sync_resume(p_stale_ms int, p_max int, p
 returns table (run_start text, after text, payload jsonb, resumes int, gave_up boolean)
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   r public.sync_run_lease%rowtype;
@@ -84,22 +86,25 @@ begin
   select * into r from public.sync_run_lease l
    where l.id = 1
      and l.cursor is not null
-     and l.cursor_at < now() - make_interval(secs => p_stale_ms / 1000.0)
+     and l.cursor_at < pg_catalog.now() - pg_catalog.make_interval(secs => p_stale_ms / 1000.0)
    for update;
   if not found then
     return;
   end if;
   if r.resumes >= p_max then
     update public.sync_run_lease l
-       set cursor = null, cursor_at = now(), resumes = 0, lease_until = null
+       set cursor = null, cursor_at = pg_catalog.now(), resumes = 0, lease_until = null,
+           -- No run holds the row now: a slice of the given-up run that is still alive finds no
+           -- match in save_sync_cursor, so it stops and cannot extend the lease.
+           run_start = null
      where l.id = 1;
     return query select r.run_start, r.cursor, r.payload, r.resumes, true;
     return;
   end if;
   update public.sync_run_lease l
-     set cursor_at   = now(),
+     set cursor_at   = pg_catalog.now(),
          resumes     = l.resumes + 1,
-         lease_until = now() + make_interval(secs => p_lease_ms / 1000.0)
+         lease_until = pg_catalog.now() + pg_catalog.make_interval(secs => p_lease_ms / 1000.0)
    where l.id = 1;
   return query select r.run_start, r.cursor, r.payload, r.resumes + 1, false;
 end
