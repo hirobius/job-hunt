@@ -45,6 +45,7 @@ import {
   MousePointerClick,
   Plus,
   SearchX,
+  WifiOff,
   CircleCheck,
   type LucideIcon,
 } from 'lucide-react';
@@ -275,8 +276,14 @@ export default function ReviewView({
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
   // Find's one empty state (#694), picked by cause.
-  const emptyCause: EmptyCause = view && decidedAny(view.hidden) ? 'caughtUp' : 'none';
-  const empty = <FindEmpty cause={emptyCause} />;
+  const emptyCause: EmptyCause = !view
+    ? 'none'
+    : decidedAny(view.hidden)
+      ? 'caughtUp'
+      : unreachable(view)
+        ? 'unreachable'
+        : 'none';
+  const empty = <FindEmpty cause={emptyCause} onRetry={feed.refresh} />;
   const panel = (
     <Panel label={label} title={label} titleHidden flat>
       <PanelBody>
@@ -319,7 +326,7 @@ export default function ReviewView({
               centered
               icon={SearchX}
               title="Nothing to read yet"
-              description="Follow a company under New companies, or save a job, and its postings show here."
+              description="Follow a company in Account, Companies, or save a job, and its postings show here."
             />
           </PanelBody>
         )
@@ -461,8 +468,14 @@ function EmptySection({ children, cause }: { children: ReactNode; cause: EmptyCa
 }
 
 /** Why Find has nothing to show (#694). One cause, one icon tile, one set of keys: `none` nothing
- *  read or nothing matches, `caughtUp` every posting is saved or skipped. */
-type EmptyCause = 'none' | 'caughtUp';
+ *  read or nothing matches, `caughtUp` every posting is saved or skipped, `unreachable` no source
+ *  answered (offline, or every host refused): that is not "no postings match", so it says so and
+ *  its one key reads again. */
+type EmptyCause = 'none' | 'caughtUp' | 'unreachable';
+
+/** Sources were asked and not one answered. */
+const unreachable = (v: { sourcesRead: number; failed: unknown[] }) =>
+  v.sourcesRead === 0 && v.failed.length > 0;
 
 const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; description: string }> = {
   none: {
@@ -476,9 +489,14 @@ const EMPTY_COPY: Record<EmptyCause, { icon: LucideIcon; title: string; descript
     description:
       'Every posting from your sources is saved or skipped. The next scan brings new ones.',
   },
+  unreachable: {
+    icon: WifiOff,
+    title: 'Couldn’t reach your sources',
+    description: 'None of them answered. Check your connection, then try again.',
+  },
 };
 
-function FindEmpty({ cause }: { cause: EmptyCause }) {
+function FindEmpty({ cause, onRetry }: { cause: EmptyCause; onRetry: () => void }) {
   const copy = EMPTY_COPY[cause];
   return (
     <EmptySection cause={cause}>
@@ -488,7 +506,15 @@ function FindEmpty({ cause }: { cause: EmptyCause }) {
         titleId={EMPTY_TITLE_ID}
         title={copy.title}
         description={copy.description}
-        action={<NoResultsKeys caughtUp={cause === 'caughtUp'} />}
+        action={
+          cause === 'unreachable' ? (
+            <Button variant="primary" onClick={onRetry}>
+              Try again
+            </Button>
+          ) : (
+            <NoResultsKeys caughtUp={cause === 'caughtUp'} />
+          )
+        }
       />
     </EmptySection>
   );
