@@ -425,8 +425,8 @@ function OutreachText({
         key={key}
         label={n}
         value={ownValue(values, key) ?? ''}
-        placeholder={kit || (key === 'your name' ? 'From your kit' : 'Not set')}
-        helperText={kit ? 'Empty uses your Application kit name' : undefined}
+        placeholder={kit || 'Not set'}
+        helperText={kit ? 'Empty uses the name you saved before' : undefined}
         onChange={(e) => setValue(key, e.target.value)}
       />
     );

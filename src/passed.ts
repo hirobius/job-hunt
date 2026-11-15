@@ -32,7 +32,7 @@ export function saveSkipped(d: Decided): string | null {
 /** Undo skip: the posting is back in Find's Review. Undo skips it again. */
 export function undoSkip(d: Decided): void {
   decided.undo(d.fingerprint);
-  notifyRemoved(`Back in Find: ${skippedTitle(d)}`, () => decided.undo(d.fingerprint, d));
+  notifyRemoved(`Back in Review: ${skippedTitle(d)}`, () => decided.undo(d.fingerprint, d));
 }
 
 /** Delete a skipped posting from Passed for good: its decision stays (hidden), so it never comes

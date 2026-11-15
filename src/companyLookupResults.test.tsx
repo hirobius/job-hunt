@@ -1,5 +1,5 @@
 // A board the name matched that doesn't show it is the company's is listed, with why, and is only
-// watched when the user says so ("Watch anyway").
+// watched when the user says so ("Follow anyway").
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -26,7 +26,7 @@ const result: DiscoverResult = {
 };
 
 describe('CompanyLookupResults: unconfirmed boards', () => {
-  it('lists the board with its reason and watches it only on Watch anyway', async () => {
+  it('lists the board with its reason and watches it only on Follow anyway', async () => {
     const watchOne = vi.fn(() => true);
     render(
       <CompanyLookupResults asked="Forward" result={result} watchOne={watchOne} onStar={vi.fn()} />,
@@ -36,11 +36,11 @@ describe('CompanyLookupResults: unconfirmed boards', () => {
     expect(screen.queryByRole('list', { name: 'Boards found' })).toBeNull();
     expect(watchOne).not.toHaveBeenCalled();
     await userEvent.click(
-      within(list).getByRole('button', { name: 'Watch anyway Greenhouse board for Forward' }),
+      within(list).getByRole('button', { name: 'Follow anyway Greenhouse board for Forward' }),
     );
     expect(watchOne).toHaveBeenCalledWith({ kind: 'greenhouse', slug: 'forward' });
     expect(
-      within(list).getByRole('button', { name: 'Watching Greenhouse board for Forward' }),
+      within(list).getByRole('button', { name: 'Following Greenhouse board for Forward' }),
     ).toHaveProperty('disabled', true);
   });
 });

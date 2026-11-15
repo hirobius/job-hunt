@@ -145,7 +145,7 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
       if (!ok)
         fail(
           'Cloud copy not updated',
-          'Restored on this device, but the cloud copy of your tracks could not be updated. Try again when you are back online.',
+          'Restored on this device, but the cloud copy could not be updated. Try again when you are back online.',
         );
     });
   };

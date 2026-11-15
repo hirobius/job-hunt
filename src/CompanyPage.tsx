@@ -244,7 +244,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
           // Usually renamed from the job page it was opened from: back there, by name.
           <Button asChild variant="secondary">
             <a href={back.href} onClick={backClick(back)}>
-              {back.recorded ? `Back to ${back.label}` : 'Go to the Pipeline'}
+              {back.recorded ? `Back to ${back.label}` : 'Go to Apply'}
             </a>
           </Button>
         }

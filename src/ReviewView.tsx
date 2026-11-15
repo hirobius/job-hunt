@@ -556,7 +556,7 @@ const rowActions: RowActions = {
     saveRow(from, () => {
       // A double Save (or a Save on a second surface) is a no-op, with no second toast (#534).
       if (alreadyInApply(r.url)) return;
-      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
+      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review'));
       if (!url) {
         showNotice({
           title: 'Couldn’t save that posting',

@@ -70,7 +70,7 @@ export function ChipEditor({
         ))}
         {values.length === 0 && (
           <Text variant="caption" as="span" tone="secondary">
-            none yet
+            None yet
           </Text>
         )}
       </Box>
