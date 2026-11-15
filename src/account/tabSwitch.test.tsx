@@ -23,6 +23,7 @@ import {
   renderAccount,
   addDeviceDataIfAsked,
   chooseAccountItem,
+  answerSignOutAsk,
   chooseDataAction,
 } from '../test/renderAccount';
 import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
@@ -265,8 +266,8 @@ describe('an account switch in another tab (#288)', () => {
       addJob('https://x.example/jobs/2', 'Not sent yet');
     });
     tabB('y', { relay: false, storage: false });
-    vi.spyOn(window, 'confirm').mockReturnValue(true); // sign out with unsynced changes: yes
     await chooseAccountItem('Sign out');
+    await answerSignOutAsk(true); // sign out with unsynced changes: yes
     await settle();
     expect(signOut).not.toHaveBeenCalled();
     expect(trackerUrls('y')).toEqual([]);
