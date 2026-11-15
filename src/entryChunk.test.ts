@@ -17,6 +17,8 @@ const ON_DEMAND = [
   'legal.ts',
   'backup.ts',
   'account/SignInDialog.tsx',
+  // The sign-in CAPTCHA's loader (#278): in the sign-in screen's chunk, never at boot.
+  'account/hcaptcha.ts',
   'ExportLinksDialog.tsx',
   // The Account menu's Data dialog (#550): back up, restore, export, Recently removed, reset.
   'account/DataDialog.tsx',

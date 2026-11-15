@@ -14,7 +14,24 @@ export const SIGN_IN_ERRORS = {
   rateLimit: 'Too many sign-in emails were sent. Try again later; this can take up to an hour.',
   offline: "Couldn't connect. Check your connection and try again.",
   other: "Couldn't send the link. Try again in a minute.",
+  // The CAPTCHA (#278; only when a site key is set, captchaKey.ts). The same button tries again.
+  captchaBlocked:
+    "The check that you are a person didn't load. Turn off any content blocker for this site, then try again.",
+  captchaClosed: 'The check was closed before it finished. Try again.',
+  captchaExpired: 'The check took too long. Try again.',
+  captchaFailed: "The check that you are a person didn't pass. Try again.",
 } as const;
+
+/** Why the CAPTCHA gave no token (hcaptcha.ts `CaptchaFailure`), in plain words. */
+export function captchaErrorMessage(
+  failure: 'blocked' | 'closed' | 'expired' | 'network' | 'failed',
+): string {
+  if (failure === 'blocked') return SIGN_IN_ERRORS.captchaBlocked;
+  if (failure === 'closed') return SIGN_IN_ERRORS.captchaClosed;
+  if (failure === 'expired') return SIGN_IN_ERRORS.captchaExpired;
+  if (failure === 'network') return SIGN_IN_ERRORS.offline;
+  return SIGN_IN_ERRORS.captchaFailed;
+}
 
 /** A light shape check only (something@something.tld); the server has the final say. */
 export function emailProblem(raw: string): string | null {
@@ -27,6 +44,8 @@ export function emailProblem(raw: string): string | null {
 export function signInErrorMessage(err: AuthErrorLike): string {
   const msg = (err.message ?? '').toLowerCase();
   const code = (err.code ?? '').toLowerCase();
+  // Supabase refused the token, or wanted one and got none (`captcha_failed`).
+  if (code === 'captcha_failed' || /captcha/.test(msg)) return SIGN_IN_ERRORS.captchaFailed;
   if (
     err.status === 429 ||
     code.includes('rate_limit') ||

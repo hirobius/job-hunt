@@ -12,6 +12,7 @@ import { resetTabAccount } from '../tabAccount';
 import { resetAnswerGuard } from '../answerGuard';
 import { resetGoogleSignIn } from '../account/googleSignInFlag';
 import { resetLinkedInSignIn } from '../account/linkedInSignInFlag';
+import { setCaptchaSiteKey } from '../account/captchaKey';
 import '@testing-library/jest-dom/vitest';
 
 // findBy*/waitFor give up after 1 s by default; a busy Vercel builder (verify runs in the deploy)
@@ -59,6 +60,8 @@ beforeEach(resetAnswerGuard);
 beforeEach(resetGoogleSignIn);
 // LinkedIn's button too (linkedInSignInFlag.ts, on).
 beforeEach(resetLinkedInSignIn);
+// The sign-in CAPTCHA is off (no site key, captchaKey.ts) unless a test sets one.
+beforeEach(() => setCaptchaSiteKey(''));
 
 // HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
 // has no pointer capture.

@@ -36,7 +36,9 @@ Build budget, CI, the deploy gate, CSP, guardrails, screenshots and repo notes.
   link; set `PW_CHROMIUM_PATH` only to use another build).
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
   `src/csp.test.ts`. **Any new fetch host must go in `connect-src`, the test and `legal.ts` `THIRD_PARTIES`, or it's blocked.**
-  Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).
+  Fonts are HDS's self-hosted `fonts.css`, so `font-src` is `'self'` only — no font CDN (#115). The one outside
+  script and frame source is hCaptcha (#278: `https://hcaptcha.com https://*.hcaptcha.com` in `script-src`,
+  `frame-src`, `style-src` and `connect-src`, as hCaptcha documents), used only when the CAPTCHA's site key is set.
 - **HDS ESLint (`hds/recommended`)** runs on `src/**/*.tsx` via `eslint.config.js`: raw controls, hex, px spacing
   and px-in-`sx` are errors (use `var(--primitive-space-N)` / t-shirt steps; `thin solid` for hairlines).
 - Branch pushes get Vercel **preview deploys** (use a branch for risky work; the

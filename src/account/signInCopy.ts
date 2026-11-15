@@ -18,3 +18,15 @@ export const SIGN_IN_AGREE = {
   privacy: 'Privacy policy',
   after: '.',
 };
+/** The line hCaptcha asks for when its checkbox is not shown (the invisible size, #278): its
+ *  wording, in this app's sentence case, and its own two pages. Shown only when a site key is set
+ *  (captchaKey.ts). */
+export const CAPTCHA_NOTICE = {
+  before: 'This site is protected by hCaptcha and its ',
+  privacy: 'Privacy policy',
+  privacyUrl: 'https://www.hcaptcha.com/privacy',
+  and: ' and ',
+  terms: 'Terms of service',
+  termsUrl: 'https://www.hcaptcha.com/terms',
+  after: ' apply.',
+};

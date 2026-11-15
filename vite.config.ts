@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import { applyBrand } from './src/brandHtml.ts';
 import { fontPreloadTag } from './src/fontPreload.ts';
 import { checkBudget } from './src/sizeBudget.ts';
+import { siteKeyProblem } from './src/account/captchaKey.ts';
 
 const emptyBoards = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
   if (!req.url?.startsWith('/api/boards')) return next();
@@ -16,6 +17,16 @@ export default defineConfig({
   // brand-html: index.html's %BRAND_*% placeholders come from src/brand.ts (#55).
   plugins: [
     react(),
+    // captcha-key: VITE_HCAPTCHA_SITEKEY is public (it ships in the bundle). A value that is not a
+    // site key (the secret, pasted by mistake) stops the build, so it never ships (#278).
+    {
+      name: 'captcha-key',
+      apply: 'build',
+      configResolved(config) {
+        const problem = siteKeyProblem(config.env.VITE_HCAPTCHA_SITEKEY as string | undefined);
+        if (problem) throw new Error(problem);
+      },
+    },
     { name: 'brand-html', transformIndexHtml: (html: string) => applyBrand(html) },
     // boot-flame: the boot splash's flame burns before the app's entry loads. brand/bootFlame.ts
     // is its own small chunk (it shares the flame engine's chunk with the app's lazy logo), put

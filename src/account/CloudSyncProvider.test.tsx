@@ -104,6 +104,36 @@ describe('CloudSyncProvider sendLink (#44)', () => {
       history.pushState(null, '', '/');
     }
   });
+
+  // #278: the CAPTCHA token rides on the one auth call that sends email; with none, the call is
+  // exactly the one above (no `captchaToken` key at all).
+  it('passes the CAPTCHA token to Supabase when the sign-in screen got one, and only then', async () => {
+    const otp = vi.spyOn(fake().client.auth, 'signInWithOtp');
+    function Send({ token }: { token?: string }) {
+      const { sendLink } = useCloudSync();
+      const send = () =>
+        void (token ? sendLink('me@example.com', token) : sendLink('me@example.com'));
+      return <Button onClick={send}>{token ? 'With token' : 'Without'}</Button>;
+    }
+    render(
+      <ToastProvider>
+        <CloudSyncProvider>
+          <Send token="tok-1" />
+          <Send />
+        </CloudSyncProvider>
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'With token' }));
+    await waitFor(() => expect(otp).toHaveBeenCalledTimes(1));
+    expect(otp).toHaveBeenLastCalledWith({
+      email: 'me@example.com',
+      options: { emailRedirectTo: `${location.origin}/`, captchaToken: 'tok-1' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Without' }));
+    await waitFor(() => expect(otp).toHaveBeenCalledTimes(2));
+    const last = otp.mock.calls[1][0] as { options: Record<string, unknown> };
+    expect(Object.keys(last.options)).toEqual(['emailRedirectTo']);
+  });
 });
 
 describe('CloudSyncProvider (via the account menu)', () => {

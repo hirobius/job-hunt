@@ -195,7 +195,7 @@ export function createFakeSupabase(
         listeners.forEach((l) => l('SIGNED_OUT', null));
         return { error: null };
       },
-      async signInWithOtp() {
+      async signInWithOtp(_o?: { email: string; options?: Record<string, unknown> }) {
         return { error: null };
       },
       /** "Continue with Google" (#482): the real client navigates away; the fake records the ask. */
