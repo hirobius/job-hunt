@@ -48,7 +48,7 @@ the still mark (`brandHtml.ts`); `src/brand/bootFlame.ts`, its own small chunk p
 `boot-flame` plugin in vite.config.ts (it shares the engine's chunk with the lazy logo, and is not part of the entry's
 budget), runs the simulation on those paths until React replaces the splash; reduced motion / no script shows the still
 mark. No flame anywhere repeats: `loopFrames`, the baked frames and the `rjb-boot-frame` CSS are gone
-(`flameEngine.test.ts` fails if a loop comes back). The splash is on the first paint, with no beat or fade (Adrian 2026-11-15: the old 150 ms beat read as a blank black frame on a phone).
+(`flameEngine.test.ts` fails if a loop comes back). The splash is on the first paint, with no beat or fade (Adrian 2026-11-15: the old 150 ms beat read as a blank black frame on a phone). **First paint (Adrian 2026-11-15, a white page for ~1 s on a cold load):** `public/boot.css` is the only render-blocking stylesheet (the page colour per theme, the HDS surface-page of the theme-color metas, and the splash's flame); the `late-css` plugin (vite.config.ts) makes the entry's stylesheets preloads and `src/boot/lateStyles.ts` turns them on, the app mounting once they are in (first paint 1.07 → 0.49 s on a throttled phone, app shell unchanged; `boot/lateStyles.test.ts`).
 **Wordmark: the flame, then the name, "Roleflame" (Adrian 2026-10-30, name 2026-11-02; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363, inside the home link to Review, #620;
 sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
 `.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in

@@ -237,7 +237,10 @@ export function useFeed(given?: PostingReader): FeedState {
   // sign-in). A read's first progress repaints hold only the boards answered so far, often none:
   // until the read settles, the rows of the last read that had more stay on screen, rebuilt with
   // today's decisions and saves, so a posting just decided never comes back.
-  const inFlight = hasQuery && (!current || updating || current.attempt !== attempt);
+  // Signed in, the account's own profile and Sources arrive with the first cloud pull: a read for
+  // this device's ones before it (after a Google sign-in, Adrian 2026-11-15) is not the answer yet.
+  const pulling = signedIn && !!sync && !sync.settled;
+  const inFlight = hasQuery && (pulling || !current || updating || current.attempt !== attempt);
   const [good, setGood] = useState<{ read: Read; rows: number } | null>(null);
   const rowsNow = built?.rows.length ?? 0;
   if (

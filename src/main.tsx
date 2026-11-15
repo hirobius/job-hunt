@@ -19,6 +19,7 @@ import { moveLegacyDecided } from './decided';
 import App from './App';
 import { getRoute } from './route';
 import { preloadLanding } from './routeViews';
+import { lateStyles } from './boot/lateStyles';
 import { installFocusRescue } from './focusRescue';
 import { installScrollMemory } from './scrollMemory';
 import { installStaleBuildGuard } from './staleBuild';
@@ -42,7 +43,8 @@ installStaleBuildGuard();
 installToastAnnouncer();
 
 // The landing page's view first, so it renders with the shell instead of behind a skeleton (#372).
-void preloadLanding(getRoute()).then(() =>
+// The app's stylesheets load beside the splash; the app mounts once they are in (lateStyles.ts).
+void Promise.all([preloadLanding(getRoute()), lateStyles()]).then(() =>
   createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ErrorBoundary>
