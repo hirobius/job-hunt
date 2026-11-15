@@ -66,6 +66,15 @@ track carried its own screens and stores. This decision must not bring those bac
    Free and keyless sources come first; a paid API runs only under a global monthly budget with a
    kill switch, off by default. Accounts per wave are capped at 25, then 100, then 1,000 (Adrian 2026-11-15, relayed), and a cap moves up only on one month of measured cost.
 
+10. **Source terms set what a paid user sees** (Adrian 2026-11-15, relayed; source terms check
+    of the same day, not legal advice). The paid product shows a posting's facts, a short excerpt
+    and the link to the original, never the full description; the server stores only the excerpt
+    for those users. Remotive is off for paid and sign-in-gated users (its terms forbid a list
+    shown after sign-up); it stays on for Adrian's own account for now through a per-plan source
+    list on the server, and its code is not deleted. A source with terms that are unread or
+    unclear is not shown to paid users until it is cleared. Recommended, not decided: one hour
+    with a lawyer before the first paid wave.
+
 ## Consequences
 
 - Adrian's profile, Sources and results are unchanged at every stage; each stage has a test that
@@ -79,6 +88,7 @@ track carried its own screens and stores. This decision must not bring those bac
   the picked categories, or none.
 - Commercial use changes the terms position of several sources (see the plan: Remotive, Remote OK,
   Adzuna, designsystems.jobs, HN). Each must be read again before the paid launch.
+- The full-description view in Review's detail (2026-11-13) does not apply to paid users.
 - Support, refunds, tax and a privacy policy revision become real work at the paid launch.
 
 ## Stages
