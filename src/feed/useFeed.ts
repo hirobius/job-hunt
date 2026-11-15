@@ -83,6 +83,9 @@ export interface FeedState {
   error?: string;
   /** When the rows on screen were read. */
   at: number;
+  /** No read is in flight: the rows on screen are the answer, so an empty list may say why.
+   *  Until then Review never shows its empty state (Adrian 2026-11-15). */
+  settled: boolean;
   refresh: () => void;
 }
 
@@ -229,7 +232,36 @@ export function useFeed(given?: PostingReader): FeedState {
     [held, current, profile, sources, decided, saved],
   );
   if (!held && built !== shown) setShown(built);
-  const view = built;
+  // The last good list stays up while a read is in flight (Adrian 2026-11-15, a phone recording:
+  // the cached list, then "No postings match yet" for 1-2 s, then the new list; again after
+  // sign-in). A read's first progress repaints hold only the boards answered so far, often none:
+  // until the read settles, the rows of the last read that had more stay on screen, rebuilt with
+  // today's decisions and saves, so a posting just decided never comes back.
+  const inFlight = hasQuery && (!current || updating || current.attempt !== attempt);
+  const [good, setGood] = useState<{ read: Read; rows: number } | null>(null);
+  const rowsNow = built?.rows.length ?? 0;
+  if (
+    !held &&
+    current?.result &&
+    rowsNow &&
+    good?.read !== current &&
+    (!inFlight || rowsNow >= (good?.rows ?? 0))
+  )
+    setGood({ read: current, rows: rowsNow });
+  const fallback = inFlight && good && good.read !== current ? good.read : null;
+  const kept = useMemo(
+    () =>
+      fallback?.result
+        ? buildFeed(fallback.result, profile, sources, {
+            now: fallback.at,
+            decided,
+            seen: fallback.seen ?? {},
+            saved,
+          })
+        : null,
+    [fallback, profile, sources, decided, saved],
+  );
+  const view = !held && kept && kept.rows.length > rowsNow ? kept : built;
   // A fresh, fully answered read is kept for the next page load.
   useEffect(() => {
     if (view && current?.result && !current.stored && !current.progress && !current.error)
@@ -246,6 +278,7 @@ export function useFeed(given?: PostingReader): FeedState {
       current?.progress ?? (updating ? { done: 0, total: req.boardUrls.length } : undefined),
     error: current?.error,
     at: current?.at ?? 0,
+    settled: !inFlight,
     refresh: () => setAttempt((n) => n + 1),
   };
 }

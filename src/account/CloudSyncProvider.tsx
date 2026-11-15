@@ -151,7 +151,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const scanOwner = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     const id = user?.id ?? null;
-    if (scanOwner.current !== undefined && scanOwner.current !== id) setScanDetails(null);
+    // Signing in from signed out keeps this device's count until the new read lands (Adrian
+    // 2026-11-15: the count blanked during sign-in); a sign-out or a switch still clears it.
+    if (scanOwner.current && scanOwner.current !== id) setScanDetails(null);
     scanOwner.current = id;
   }, [user?.id]);
   const [msg, setMsg] = useState('Sign in to sync across your devices');

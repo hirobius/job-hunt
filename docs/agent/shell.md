@@ -181,7 +181,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   first load show as they come; the selected posting is never held; a change to the Search profile or the Sources (a
   company followed) fills the list as a first load again, so a new company's jobs still show at once (2026-10-28);
   when none of the shown cards is left, everything shows. Pinned in `heldPostings.test.ts`, `review.test.tsx`,
-  `e2e/review.spec.ts`. **At lg** ↑ / ↓ move
+  `e2e/review.spec.ts`. **No empty flash while a read runs (Adrian 2026-11-15, a phone recording):** `useFeed` keeps the last read that listed more on screen until the new read settles (rebuilt with today's decisions and saves), and says `settled`; until then Review shows its skeleton, never its empty state; signing in from signed out keeps the Review count (`CloudSyncProvider` clears it only on a sign-out or a switch). Pinned in `e2e/review-no-flash.spec.ts` (a DOM recorder, 390, signed out and in). **At lg** ↑ / ↓ move
   the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
   text field, select, menu, listbox or dialog, or a menu / dialog is open. Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the
