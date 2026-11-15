@@ -127,7 +127,8 @@ describe('planFromBlob: v12 (sources + profile)', () => {
   });
 
   it("the sync's own searches are for design-systems plans only", () => {
-    const plain = planFromBlob(v12({ profiles: [profile({ titles: ['Welder'] })] }));
+    // The generic config (a v11 blob's sweep titles) reads the term feeds only.
+    const plain = planFromBlob({ v: 11, sweeps: { t: { titles: ['Welder'], off: [] } } });
     expect([...(plain?.feeds ?? [])].sort()).toEqual(['hn', 'jobicy', 'remotive']);
   });
 
@@ -147,10 +148,43 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     ).toBe('reject');
     // Leave-out never turns off the config's own patterns.
     expect(designSystemsTrack.titleNegative).not.toContain(expect.stringContaining('manager'));
-    // Without the scorer, "design systems" in titles or must include is phrase-scored.
-    const plain = planFromBlob(v12({ profiles: [dsProfile({ scorer: undefined })] }));
-    expect(plain?.config.slug).toBe('profile');
-    expect(plain?.feeds.has('rss')).toBe(false);
+  });
+
+  it('a profile that names no scorer is read as design systems, as the Feed reads it', () => {
+    // Adrian's own profile on 2026-11-06: made by the v11 move, no scorer, no include terms.
+    const moved = profile({
+      label: 'Design Systems',
+      titles: [
+        'Design Systems Engineer',
+        'Design Technologist',
+        'Frontend Engineer',
+        'Product Designer',
+      ],
+      include: { terms: [] },
+      fromTrack: 'eea2a12e',
+    });
+    expect(moved.scorer).toBeUndefined();
+    const plan = planFromBlob(v12({ profiles: [moved] }))!;
+    expect(plan.config.slug).toBe('design-systems');
+    // The design-systems feeds and searches are on again, and the rotation takes the plan.
+    for (const f of ['rss', 'arbeitnow', 'remoteok', 'wwr', 'jooble', 'theirstack', 'adzuna'])
+      expect(plan.feeds.has(f as never), f).toBe(true);
+    expect(plan.terms).toEqual(['Design Systems Engineer', 'design systems']);
+    const p = { source: 'ashby' as const, sourceId: '1', company: 'A', url: 'https://a' };
+    const verdict = (title: string) =>
+      scorePosting({ ...p, title, descriptionText: '' }, plan.config).verdict;
+    // Stored titles the bare-title scoring rejected.
+    for (const title of [
+      'Senior Staff Engineer, Design Systems',
+      'Software Engineer, Design Systems',
+      'Senior Frontend Platform Engineer, Design Systems',
+      'Staff Design Engineer',
+      'Sr. UX Engineer',
+    ])
+      expect(verdict(title), title).toBe('queue');
+    // A plain title with no design-system evidence is not kept, and hardware stays out.
+    expect(verdict('Product Designer, Growth')).toBe('reject');
+    expect(verdict('Mechanical Design Engineer, Motor Design & Prototyping')).toBe('reject');
   });
 
   it('related titles switched off leave the design systems config without them', () => {
@@ -168,33 +202,26 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     }
   });
 
-  it('any other profile is scored on its titles that are on, and must include in the body', () => {
-    const plan = planFromBlob(
-      v12({
-        profiles: [
-          profile({
-            titles: ['Welder', 'Sheet metal fabricator', 'Accountant'],
-            titlesOff: ['Accountant'],
-            include: { terms: ['TIG'] },
-          }),
-        ],
-      }),
-    );
-    expect(plan?.config.slug).toBe('profile');
-    expect(plan?.terms).toEqual(['Welder', 'Sheet metal fabricator']);
-    expect(plan?.feeds.has('rss')).toBe(false);
-    expect(plan?.config.descriptionSignals.map((d) => d.label)).toEqual([
+  it('the generic compiler (a v11 blob, a later track) scores on the titles and must include', () => {
+    // No v12 profile reaches it today (`DEFAULT_SCORER`); it stays for a v11 blob's sweep titles
+    // and for a track with no tuned config yet.
+    const config = compileProfile({
+      titles: ['Welder', 'Sheet metal fabricator'],
+      mustInclude: ['TIG'],
+    })!;
+    expect(config.slug).toBe('profile');
+    expect(config.descriptionSignals.map((d) => d.label)).toEqual([
       'welder',
       'sheet metal fabricator',
       'tig',
     ]);
     const p = { source: 'lever' as const, sourceId: '1', company: 'A', url: 'https://a' };
     expect(
-      scorePosting({ ...p, title: 'Senior Welder', descriptionText: '' }, plan!.config).verdict,
+      scorePosting({ ...p, title: 'Senior Welder', descriptionText: '' }, config).verdict,
     ).toBe('queue');
-    expect(
-      scorePosting({ ...p, title: 'Accountant', descriptionText: '' }, plan!.config).verdict,
-    ).toBe('reject');
+    expect(scorePosting({ ...p, title: 'Accountant', descriptionText: '' }, config).verdict).toBe(
+      'reject',
+    );
   });
 
   it('a profile with no titles on and no scorer is no plan', () => {
@@ -220,7 +247,17 @@ describe('planFromBlob: v12 (sources + profile)', () => {
   it(`caps a user at ${MAX_BOARDS_PER_USER} boards and ${MAX_TERMS_PER_USER} feed terms`, () => {
     const plan = planFromBlob(
       v12({
-        profiles: [profile({ titles: ['Design Systems', 'A b', 'C d', 'E f', 'G h'] })],
+        profiles: [
+          profile({
+            titles: [
+              'Design Systems Engineer',
+              'Design Systems Lead',
+              'Design System Designer',
+              'Design Systems Architect',
+              'Product Designer',
+            ],
+          }),
+        ],
         sources: Array.from({ length: 2000 }, (_, i) => ({
           kind: 'greenhouse',
           ref: `co${i}`,
