@@ -44,3 +44,18 @@ body[data-hds]:has(.rjb-find-new) {
   margin-block-start: calc((1lh - var(--primitive-size-16)) / 2);
   margin-inline-end: var(--primitive-space-2);
 }
+
+/* A card's title link (Adrian 2026-11-15): no underline at rest. It stands alone as the card's
+   heading, with the external icon below lg, so it is not told apart from body text by colour only
+   (WCAG 1.4.1). The underline comes back on hover (a pointer that can hover) and on keyboard focus. */
+.rjb-posting-title .hds-link {
+  text-decoration-line: none;
+}
+@media (hover: hover) {
+  .rjb-posting-title .hds-link:hover {
+    text-decoration-line: underline;
+  }
+}
+.rjb-posting-title .hds-link:focus-visible {
+  text-decoration-line: underline;
+}

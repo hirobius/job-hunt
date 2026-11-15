@@ -92,7 +92,8 @@ code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figm
   now), "Couldn’t reach your sources" (wifi-off; Try again, when no source answered); each its own icon tile on the page background. From 1024 px it sits in the right column and the two columns
   stay. The list loads its next
   page on its own as you near the end; "Load more (N)" stays as the fallback, one card gap below the
-  last card. A Browse card: the company's logo (letter first; a 24 px inline mark, as on Apply rows and the job page's title block) before its name, on one line, or "Company not
+  last card. A Browse card's title is bold titleSm with **no underline at rest**: the underline shows only on
+  hover and keyboard focus (desktop); the external-link icon stays after it (Adrian 2026-11-15). A Browse card: the company's logo (letter first; a 24 px inline mark, as on Apply rows and the job page's title block) before its name, on one line, or "Company not
   stated"; two lines of the posting's text, "Show more" right under them (the excerpt's own line rhythm, no extra gap) opens it in place (then "Read the full
   posting").
 - **The page bar (2026-11-12).** The first row of every Review and Apply page: Review / Apply as a
