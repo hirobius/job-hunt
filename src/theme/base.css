@@ -703,8 +703,13 @@ p {
   align-items: center;
   /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it
    * loads; and the home link's 44px target (#620), which this box is: the link around it is inline.
-   * Its colour is the page's, not a link's. */
-  min-height: max(calc(var(--rjb-logo-size) * 1.95), var(--rjb-touch));
+   * Its colour is the page's, not a link's.
+   * A fixed height, not a minimum, and layout containment (Adrian 2026-11-16, an iPhone recording:
+   * the page under the bar moved 3-5px from frame to frame while the flame burned): nothing the
+   * live flame or its letters do inside this box can change the bar's height. Ink still draws past
+   * it (no paint containment, no clip). e2e/flame-box.spec.ts checks the bar over many frames. */
+  block-size: max(calc(var(--rjb-logo-size) * 1.95), var(--rjb-touch));
+  contain: layout;
   color: var(--semantic-color-content-primary);
   gap: calc(var(--rjb-logo-size) * 0.3);
 }

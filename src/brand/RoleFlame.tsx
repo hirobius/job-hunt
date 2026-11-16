@@ -58,8 +58,10 @@ export const WORD_INK_CENTRE_EM = 0.031;
  *  moves the flame down by the mass's lift plus the word's ink centre: (73 - 66.1) x 1.95 / 146 +
  *  0.031 em, 2.3px at 19px, so the mass sits on the word's optical centre (within 0.5px:
  *  flameEngine.test.ts). It was 0.152em (the x-height centre), which read a little low beside the
- *  word. A transform: the bar's height and the name never move. */
-export const INLINE_FLAME_NUDGE_EM = 0.123;
+ *  word. Then 2px higher for optical balance (Adrian 2026-11-16: INLINE_FLAME_LIFT_EM, 2px at 19px),
+ *  so 0.123em less 0.105em. A transform: the bar's height and the name never move. */
+export const INLINE_FLAME_LIFT_EM = 0.105;
+export const INLINE_FLAME_NUDGE_EM = 0.018;
 
 /* eslint-enable react-refresh/only-export-components */
 

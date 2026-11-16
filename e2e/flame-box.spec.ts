@@ -48,10 +48,20 @@ test.beforeEach(async ({ context }) => {
 test('app bar: the logo and the page keep their boxes on every frame', async ({ page }) => {
   await page.goto('/#/review');
   await page.locator('.rjb-rf svg').waitFor();
+  // The recording: Review, scrolled a little, the page under the bar moving with the flame. The
+  // segmented control (Review / Apply) is the first thing under the bar.
+  await page.mouse.wheel(0, 24);
+  await page.waitForTimeout(300);
   expectStill(
     await sample(
       page,
-      { flame: '.rjb-rf svg', logo: '.rjb-rf', bar: '.rjb-logo', header: 'header' },
+      {
+        flame: '.rjb-rf svg',
+        logo: '.rjb-rf',
+        bar: '.rjb-logo',
+        header: 'header',
+        tabs: '.rjb-page-bar',
+      },
       '.rjb-rf svg',
     ),
   );

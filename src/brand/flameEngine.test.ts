@@ -9,6 +9,7 @@ import { FLAME, createFire, endlessFrames, flameViewBox, stillFrame } from './fl
 import {
   FLAME_MASS,
   INLINE_FLAME_EM,
+  INLINE_FLAME_LIFT_EM,
   INLINE_FLAME_NUDGE_EM,
   NAME_INK_OFFSET_EM,
   STACKED_FLAME_EM,
@@ -269,10 +270,12 @@ describe('the flame’s mass centre (#556)', () => {
     ).toBeLessThan(0.25);
   });
 
-  it('the row nudge (app bar, #639) puts the mass within 0.5px of the word’s optical centre at 19px', () => {
+  it('the row nudge (app bar, #639) puts the mass 2px over the word’s optical centre at 19px, within 0.5px', () => {
     // Below the line box centre is positive. The flame's box is centred on that line box.
     const massEm = ((mean.y - 73) * INLINE_FLAME_EM) / 146 + INLINE_FLAME_NUDGE_EM;
-    expect(Math.abs(massEm - WORD_INK_CENTRE_EM) * 19).toBeLessThan(0.5);
+    // The lift (Adrian 2026-11-16): 2px higher than the word's optical centre, for balance.
+    expect(Math.abs(INLINE_FLAME_LIFT_EM * 19 - 2)).toBeLessThan(0.05);
+    expect(Math.abs(massEm - (WORD_INK_CENTRE_EM - INLINE_FLAME_LIFT_EM)) * 19).toBeLessThan(0.5);
     // Higher than the x-height centre (the old 0.152em aim, which read low), lower than no nudge.
     expect(massEm).toBeLessThan(X_HEIGHT_CENTRE_EM);
     expect(Math.abs(massEm - INLINE_FLAME_NUDGE_EM - WORD_INK_CENTRE_EM) * 19).toBeGreaterThan(1.5);
