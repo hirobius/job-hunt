@@ -193,12 +193,9 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
   expect(await enterName()).toBe('rjb-view-enter');
 });
 
-test('Find: Scan now and the Account menu’s Companies and Data answer within 300 ms', async ({
-  page,
-}) => {
+test('Find: the Account menu’s Companies and Data answer within 300 ms', async ({ page }) => {
   await go(page, '#/review');
-  // Scan now is the Account menu's (#694, signed out).
-  await menu(page, 'Account', 'Scan now');
+  // No Scan now (#755): signed out nothing scans, signed in the server syncs.
   await menu(page, 'Account', 'Companies');
   await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
   await closeOverlay(page);

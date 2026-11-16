@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 // Sign-in on a phone (2026-10-17): with the iOS keyboard up only ~400px of a 390px-wide phone is
 // visible. The sign-in screen (full screen since 2026-10-29) covers the layout viewport, its
