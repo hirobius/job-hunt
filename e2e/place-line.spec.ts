@@ -58,7 +58,7 @@ for (const scheme of ['light', 'dark'] as const) {
     const long = page.getByRole('article', { name: /Design Systems Engineer at Norrow/ });
     await expect(leak).toBeVisible({ timeout: 60_000 });
     await expect(long).toBeVisible();
-    await expect(leak.getByText('Remote, Lithuania', { exact: true })).toBeVisible();
+    await expect(leak.getByText('Remote, Lithuania…', { exact: true })).toBeVisible();
     await expect(leak).not.toContainText('This role sits');
     // One line: the place is no taller than the posted day's line, and cut with an ellipsis.
     const place = long.locator('[data-slot="card-facts"] > li').first();
