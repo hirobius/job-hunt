@@ -5,12 +5,14 @@
 // away; Back closes the sign-in screen.
 import { test, expect, type Page, type Request } from '@playwright/test';
 
-/** Every request that is not the app's own (the dev server) or the HDS icon host. */
+/** Every request that is not the app's own (the dev server) or a company logo (not a read of
+ *  postings: the Apply list draws a logo for each sample job). */
 function outside(page: Page): Request[] {
   const seen: Request[] = [];
   page.on('request', (r) => {
     const u = new URL(r.url());
     if (u.hostname === 'localhost' || u.protocol === 'data:' || u.protocol === 'blob:') return;
+    if (u.hostname === 'icons.duckduckgo.com') return;
     seen.push(r);
   });
   return seen;
