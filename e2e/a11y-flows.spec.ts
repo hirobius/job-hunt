@@ -2,7 +2,7 @@
 // not reach: the Menu open, Calibrate's title filter (#223), the Documents editor (#227), Add a
 // company (#237) and the Company page (#230). axe at 1440 and 390, light and dark, then keyboard-only
 // walkthroughs of the new flows. Local only (no Actions): `npm run test:e2e`.
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { createRequire } from 'node:module';
 import { topTab, currentTab, pressAllJobs, listScope, allWorkModes } from './routes';
 

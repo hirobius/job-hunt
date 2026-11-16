@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { openData } from './routes';
 
 // Export links (2026-10-22) end to end: the dialog opens from the Account menu only (#416, on All

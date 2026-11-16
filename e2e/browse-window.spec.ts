@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { accountMenuItem, PROD_URL, topTab } from './routes';
 
 // Browse renders a window of ~100 cards (memory audit 2026-11-13, useWindowedList): with 320

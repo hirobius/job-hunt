@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { seed } from './routes';
 
 // The title block (#538): the title at typography.title (24px, wraps in full), the company, one

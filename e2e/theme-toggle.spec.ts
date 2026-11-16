@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 // #688: the app bar's HDS ThemeToggle (left of the Account avatar, 44px) is the one theme switch.
 // With motion the new theme burns in from the press (a View Transition held open for the burn);

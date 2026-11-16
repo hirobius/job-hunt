@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { accountMenuItem } from './routes';
 
 // Find's detail shows a posting's FULL description with its structure (2026-11-13, Adrian on

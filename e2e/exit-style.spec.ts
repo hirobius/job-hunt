@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from './fixtures';
 import { listScope, seed } from './routes';
 
 // The exit (#537, redesign §3): every way out is HDS Button variant="link": underlined, the

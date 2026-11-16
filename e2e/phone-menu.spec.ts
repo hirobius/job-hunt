@@ -1,4 +1,4 @@
-import { test, expect, type Locator } from '@playwright/test';
+import { test, expect, type Locator } from './fixtures';
 import { openData } from './routes';
 
 // A long row menu on a phone (44px items) must fit a 390px screen with the page scroll-locked, so

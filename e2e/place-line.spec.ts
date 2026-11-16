@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { accountMenuItem } from './routes';
 
 // A card's place is a place, on one line (Adrian 2026-11-15): a source that runs the posting's

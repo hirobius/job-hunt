@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { topTab, pressAllJobs } from './routes';
 
 // The rapid-apply loop end to end: save from Review new on Today, see where the saves went,

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { seed, pressAllJobs, allWorkModes } from './routes';
 
 // The filled key follows the state (#540): one filled key, then a grey key and an exit.

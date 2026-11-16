@@ -1,6 +1,6 @@
 // Every route of the app with the sample pipeline and a starter track loaded, for the guardrail
 // specs (layout-rules, visual). Mirrors a11y.spec.ts's list, plus a job's Apply view.
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page } from './fixtures';
 
 export const ROUTES = [
   '#/review',

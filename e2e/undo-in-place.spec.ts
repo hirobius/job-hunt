@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { JOB_LINK, listScope, openJob, seed, topTab } from './routes';
 
 // #593 item 8 (Adrian 2026-11-11): every Undo puts the item back and leaves the person on the page

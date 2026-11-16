@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { seed, topTab, openAllJobs } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's

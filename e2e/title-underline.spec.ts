@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { accountMenuItem } from './routes';
 
 // A Review card's title link (Adrian 2026-11-15): no underline at rest; the underline shows on

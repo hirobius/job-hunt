@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { seed } from './routes';
 
 // The saved-list loop (#534): Apply is the one saved list. No star; More has Remove from Apply,

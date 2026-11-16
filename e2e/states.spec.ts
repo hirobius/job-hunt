@@ -1,7 +1,7 @@
 // Redesign §5.11 (#553, #554): empty, error and done states sit on the page background (no card
 // around them), with one filled key and one grey key; when To apply is finished, the Apply tab shows
 // the empty-state icon tile, "That is the list", the week, the next step and All jobs. 390 and 1440.
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from './fixtures';
 
 const CARD = '[data-padding][data-variant]';
 

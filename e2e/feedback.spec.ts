@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from './fixtures';
 import { go, openAllJobs, openJob, PROD_URL, seed, topTab } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents

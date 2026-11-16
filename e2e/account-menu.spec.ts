@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { openData, seed } from './routes';
 
 // The Account menu (account menu PR, 2026-11-08): below sm a bottom sheet (full width, on the

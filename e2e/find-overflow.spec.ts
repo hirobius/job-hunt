@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { accountMenuItem, PROD_URL } from './routes';
 
 // Find at 390 never scrolls sideways (Adrian 2026-11-12): with a posting whose title is one long

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { accountMenuItem, openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
 

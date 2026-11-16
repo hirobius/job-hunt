@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { topTab, currentTab } from './routes';
 
 // Core happy path: paste a job URL → it lands in the queue. The Pipeline is `#/apply`; the empty

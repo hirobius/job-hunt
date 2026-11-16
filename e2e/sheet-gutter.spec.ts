@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { openAllJobs } from './routes';
 
 // Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter

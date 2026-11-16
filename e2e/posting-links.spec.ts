@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from './fixtures';
 import { allWorkModes, openAllJobs, openData } from './routes';
 
 // Adrian 2026-10-22: "Anywhere a job is listed, we should be able to click on the URL to visit the

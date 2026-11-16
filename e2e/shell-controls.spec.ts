@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS

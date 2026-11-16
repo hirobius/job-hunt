@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { accountMenuItem, openScanDetails } from './routes';
 
 // Auto-scan (simplify 8/11, #415). Signed out, nothing scans on open (2026-11-07: on a phone the

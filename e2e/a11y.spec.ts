@@ -1,7 +1,7 @@
 // Design polish probe (#133): axe on every route, light and dark, 1440 and 390; at 390 a touch-target
 // probe; and a computed-style sweep (no uppercase, no running transition under reduced motion).
 // Local only (no Actions): `npm run test:e2e`. axe-core comes with vitest-axe, so no new dependency.
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { createRequire } from 'node:module';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
