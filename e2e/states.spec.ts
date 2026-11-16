@@ -2,6 +2,7 @@
 // around them), with one filled key and one grey key; when To apply is finished, the Apply tab shows
 // the empty-state icon tile, "That is the list", the week, the next step and All jobs. 390 and 1440.
 import { test, expect, type Locator, type Page } from './fixtures';
+import { signInAtBoot } from './fixtures';
 
 const CARD = '[data-padding][data-variant]';
 
@@ -71,10 +72,12 @@ for (const width of [390, 1440]) {
   });
 }
 
-test('Find with no results: Scan now filled, Edit search profile grey, on the page', async ({
+test('Find with no results: Edit search profile filled, no Scan now, on the page', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  // Review reads only signed in (#755); signed in the server syncs, so there is no Scan now.
+  await signInAtBoot(page);
   // Every source answers, with nothing in it.
   await page.route(/^https?:\/\/(?!localhost)/, (r) => {
     const url = r.request().url();
@@ -93,12 +96,9 @@ test('Find with no results: Scan now filled, Edit search profile grey, on the pa
   const title = page.getByText('No postings match yet');
   await expect(title).toBeVisible({ timeout: 30_000 });
   await onPage(title);
-  // One Scan now: the heading's steps aside while the empty state shows its own.
-  const scan = page.getByRole('button', { name: 'Scan now' });
-  await expect(scan).toHaveCount(1);
-  expect(await variantOf(scan)).toBe('primary');
+  await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(0);
   const edit = page.getByRole('button', { name: 'Edit search profile' });
-  expect(await variantOf(edit)).toBe('secondary');
+  expect(await variantOf(edit)).toBe('primary');
   await edit.click();
   await expect(page.getByRole('dialog', { name: /Search profile/ })).toBeVisible();
   await page.keyboard.press('Escape');

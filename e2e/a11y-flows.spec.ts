@@ -3,6 +3,7 @@
 // company (#237) and the Company page (#230). axe at 1440 and 390, light and dark, then keyboard-only
 // walkthroughs of the new flows. Local only (no Actions): `npm run test:e2e`.
 import { test, expect, type Page } from './fixtures';
+import { signInAtBoot } from './fixtures';
 import { createRequire } from 'node:module';
 import { topTab, currentTab, pressAllJobs, listScope, allWorkModes } from './routes';
 
@@ -222,6 +223,8 @@ test('a click or tap leaves no focus ring', async ({ page }) => {
       ),
     }),
   );
+  // Review lists postings only signed in (#755): sign in for the reload.
+  await signInAtBoot(page);
   await page.reload();
   await expect(
     page.getByRole('list', { name: 'New postings' }).getByRole('listitem').first(),

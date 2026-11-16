@@ -115,10 +115,10 @@ for (const [width, height, row] of [
       menu.getByText('Sign in to sync your jobs across devices.', { exact: true }),
     ).toBeVisible();
     const rows = menu.locator('[role="menuitem"]:not(.rjb-menu-key), [role="menuitemcheckbox"]');
-    // Plus Clear sample data while the sample is in (2026-11-13).
-    await expect(rows).toHaveCount(9);
+    // Plus Clear sample data while the sample is in (2026-11-13); no Scan now (#755).
+    await expect(rows).toHaveCount(8);
     await expect(menu.getByRole('menuitem', { name: 'Clear sample data' })).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Scan now' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Scan now' })).toHaveCount(0);
     await expect(menu.getByRole('menuitemcheckbox', { name: 'Dark theme' })).toHaveCount(0);
     for (const r of await rows.all()) {
       const b = (await r.boundingBox())!;
