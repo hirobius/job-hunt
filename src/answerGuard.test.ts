@@ -39,4 +39,16 @@ describe('the double-tap guard', () => {
     document.getElementById('tab')!.click();
     expect(hits).toEqual(['tab']);
   });
+
+  it('leaves a control marked data-answer-guard="off" alone: it did not move (#591)', () => {
+    document.body.innerHTML =
+      '<main><div data-answer-guard="off"><button id="stay">Next</button></div><button id="moved">Menu</button></main>';
+    const hits: string[] = [];
+    for (const id of ['stay', 'moved'])
+      document.getElementById(id)!.addEventListener('click', () => hits.push(id));
+    expect(tooSoon()).toBe(false); // an answer
+    document.getElementById('stay')!.click();
+    document.getElementById('moved')!.click();
+    expect(hits).toEqual(['stay']);
+  });
 });
