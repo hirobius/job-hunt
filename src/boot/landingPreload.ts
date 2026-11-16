@@ -41,6 +41,9 @@ export function preloadLanding(doc: Document = document, hash = location.hash): 
     if (href.endsWith('.css')) {
       link.rel = 'preload';
       link.setAttribute('as', 'style');
+      // Vite's preload helper loads view CSS with crossorigin; a preload without it is a different
+      // request mode, so the browser fetched the file twice.
+      link.crossOrigin = '';
     } else link.rel = 'modulepreload';
     link.href = href;
     doc.head.appendChild(link);

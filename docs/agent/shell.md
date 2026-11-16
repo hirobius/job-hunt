@@ -94,9 +94,9 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
   itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
-  (**8 items in 4 groups, redesign §5.9, #549**; 9 signed out, with Scan now, #694; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Signed out: "On this device only. Sign in to sync your jobs across devices." as a label (`SIGN_IN_LABEL`) and **"Sign
+  (**8 items in 4 groups, redesign §5.9, #549**; 9 signed out, with Scan now, #694; the Dark theme row left for the app bar's ThemeToggle, #688: who | things | display | about. Who: **one tight identity header** (Adrian 2026-11-15, `IdentityHeader` in `AccountMenuRows.tsx`, `.rjb-account-id` in late.css): a primary line (ui, semibold, truncated) over a caption-size secondary line, 4px apart; signed out "On this device only" over the caption "Sign in to sync your jobs across devices." (`SIGN_IN_STATE`, `SIGN_IN_BENEFIT`) and **"Sign
   in" as a grey key** (`signInCopy.ts` `SIGN_IN_ITEM`; HDS secondary `Button` as the
-  `Menu.Item`, `.rjb-menu-key`); signed in: "Signed in as <email>" + sync line as labels, Retry sync when it failed, and
+  `Menu.Item`, `.rjb-menu-key`); signed in the email (screen readers hear "Signed in as <email>": the words are `.sr-only`) over the sync line ("Synced" with a 12px check), a divider, then Retry sync when it failed, and
   Sign out. Things = Documents, Search profile, Scan now / Stop scan (signed out only, #694), Companies, Data. Display = **Pause animations**,
   a toggle that shows its state and keep the menu open (`src/hds-gaps/MenuToggleItem.tsx`: an HDS Menu.Item with role
   `menuitemcheckbox` + `aria-checked` and a drawn switch, `.rjb-menu-switch` in late.css; G9 hds#1440). About = Send
@@ -181,7 +181,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   first load show as they come; the selected posting is never held; a change to the Search profile or the Sources (a
   company followed) fills the list as a first load again, so a new company's jobs still show at once (2026-10-28);
   when none of the shown cards is left, everything shows. Pinned in `heldPostings.test.ts`, `review.test.tsx`,
-  `e2e/review.spec.ts`. **At lg** ↑ / ↓ move
+  `e2e/review.spec.ts`. **No empty flash while a read runs (Adrian 2026-11-15, a phone recording):** `useFeed` keeps the last read that listed more on screen until the new read settles (rebuilt with today's decisions and saves), and says `settled`; until then Review shows its skeleton, never its empty state; signing in from signed out keeps the Review count (`CloudSyncProvider` clears it only on a sign-out or a switch). Pinned in `e2e/review-no-flash.spec.ts` (a DOM recorder, 390, signed out and in). **At lg** ↑ / ↓ move
   the selection through the list (in place; its card scrolls into view, `block: 'nearest'`), never while focus is in a
   text field, select, menu, listbox or dialog, or a menu / dialog is open. Browse
   **auto-loads** its next page (`autoLoad.ts` `useAutoLoad`: an IntersectionObserver sentinel one viewport before the

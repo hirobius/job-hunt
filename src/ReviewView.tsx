@@ -177,7 +177,9 @@ export default function ReviewView({
   // detail column is never empty.
   // A decided posting stays in the list while its card collapses: it is never picked again.
   const columns = wide && !!header;
-  const alone = !selectedFp && !!view && !listed.length;
+  // Never the empty state while a read is in flight (Adrian 2026-11-15): the skeleton holds.
+  const reading = !feed.settled || feed.loading || !!feed.progress;
+  const alone = !selectedFp && !!view && !listed.length && !reading;
   // When the last posting goes (or the list turns out empty) the right column's content changes
   // under the focus a decision or a closing dialog gave: focus left on <body> goes to Find's h1.
   const wasAlone = useRef(alone);
@@ -378,6 +380,8 @@ export default function ReviewView({
             selected={selectedFp}
           />
         </>
+      ) : reading ? (
+        <LoadingRows />
       ) : columns ? null : (
         // At lg the empty state is the right column's (the two columns stay, Adrian 2026-11-13).
         empty
@@ -405,7 +409,7 @@ export default function ReviewView({
     <PostingDetail
       key={selected?.fingerprint ?? selectedFp ?? 'none'}
       r={selected}
-      waiting={(!!selectedFp && !selected && (feed.loading || !view)) || (!selectedFp && !view)}
+      waiting={(!!selectedFp && !selected && (feed.loading || !view)) || (!selectedFp && (!view || reading))}
       wide={wide}
       now={feed.at}
       actions={detailActions}
@@ -892,8 +896,16 @@ function PostingCard({
             source as a neutral badge; "N new" is Find's caption. */}
         {compact ? (
           // Takes focus after a decision on the card before it (no ring: focusAsHeading). titleSm,
-          // one HDS step above body (Adrian 2026-11-15); still the underlined link out.
-          <Text variant="titleSm" as="h3" weight="bold" lineClamp={3} tabIndex={-1}>
+          // one HDS step above body (Adrian 2026-11-15). The link has no underline at rest, only on
+          // hover and keyboard focus (FindList.css, Adrian 2026-11-15); the external icon stays.
+          <Text
+            variant="titleSm"
+            as="h3"
+            weight="bold"
+            lineClamp={3}
+            tabIndex={-1}
+            className="rjb-posting-title"
+          >
             <CardTitleLink r={r} onOpen={onOpen} />
           </Text>
         ) : (
@@ -920,7 +932,8 @@ function PostingCard({
             pay, posted day and text are the detail's beside it, never read twice. */}
         {!brief && (
           <Card.Facts
-            className="p-0"
+            // The place is one line on a card, cut with an ellipsis (FindList.css, 2026-11-15).
+            className="p-0 rjb-facts-place-line"
             // Plain lines, not a list inside each card's list item (as FactLines was): a list of
             // cards counts only its cards.
             role="presentation"

@@ -5,6 +5,7 @@ import { applyBrand } from './src/brandHtml.ts';
 import { fontPreloadTag } from './src/fontPreload.ts';
 import { checkBudget } from './src/sizeBudget.ts';
 import { LANDING_META, landingChunks, type BundleChunk } from './src/boot/landingChunks.ts';
+import { lateCssHtml } from './src/boot/lateStyles.ts';
 
 const emptyBoards = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
   if (!req.url?.startsWith('/api/boards')) return next();
@@ -86,6 +87,14 @@ export default defineConfig({
           ];
         },
       },
+    },
+    // late-css: the entry's stylesheets no longer block the first paint (Adrian 2026-11-15: a
+    // white page for ~1 s on a cold load). They are preloads the app turns into stylesheets and
+    // waits for before it mounts (src/boot/lateStyles.ts); public/boot.css paints the splash.
+    {
+      name: 'late-css',
+      apply: 'build',
+      transformIndexHtml: { order: 'post', handler: (html: string) => lateCssHtml(html) },
     },
     // preload-font: the body font is fetched with the HTML, not after the CSS is parsed.
     {

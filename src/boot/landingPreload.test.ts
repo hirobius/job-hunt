@@ -48,6 +48,8 @@ describe('preloadLanding', () => {
       ['modulepreload', '/assets/Today-a.js', null],
       ['preload', '/assets/Today-b.css', 'style'],
     ]);
+    // The CSS preload matches the crossorigin request Vite's preload helper makes (one fetch).
+    expect(links.map((l) => l.getAttribute('crossorigin'))).toEqual([null, '']);
   });
 
   it('does nothing without the meta, with a bad one, or for a view it does not preload', () => {

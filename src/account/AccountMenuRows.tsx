@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Building2,
+  Check,
   Database,
   FileText,
   LogOut,
@@ -25,7 +26,7 @@ import { motionPaused, setMotionPaused } from '../motionPref';
 import { useCloudSync } from './accountContext';
 import { cancelScan, scanNow, useScan } from '../feed/autoScan';
 import { useScanInput } from '../feed/useAutoScan';
-import { SIGN_IN_ITEM, SIGN_IN_LABEL } from './signInCopy';
+import { SIGN_IN_BENEFIT, SIGN_IN_ITEM, SIGN_IN_STATE } from './signInCopy';
 import { useJobs } from '../store';
 import { isSample } from '../demo/isSample';
 import { clearSample } from '../demo/sampleSession';
@@ -56,12 +57,14 @@ export default function AccountMenuRows({
       {/* 1. Who you are. */}
       {sync.user ? (
         <>
-          <Menu.Label data-account-line>Signed in as {sync.user.email}</Menu.Label>
-          <Menu.Label data-account-line>
-            <Text variant="caption" as="span" tone="secondary">
-              {syncLine(sync.status)}
-            </Text>
-          </Menu.Label>
+          <IdentityHeader
+            primary={sync.user.email ?? ''}
+            spoken="Signed in as "
+            caption={syncLine(sync.status)}
+            synced={sync.status.startsWith('Synced')}
+          />
+          {/* The header, then a divider, then the account's actions (2026-11-15). */}
+          <Menu.Separator />
           {sync.offline && (
             <Row icon={RefreshCw} onSelect={sync.retry}>
               Retry sync
@@ -73,7 +76,7 @@ export default function AccountMenuRows({
         </>
       ) : (
         <>
-          <Menu.Label data-account-line>{SIGN_IN_LABEL}</Menu.Label>
+          <IdentityHeader primary={SIGN_IN_STATE} caption={SIGN_IN_BENEFIT} />
           {/* The grey key (redesign §3): an HDS secondary Button as the menu item, "Sign in"; the
               label above says why (signInCopy.ts). */}
           <Menu.Item asChild onSelect={opensDialog(() => sync.setSignInOpen(true))}>
@@ -179,6 +182,48 @@ function MotionToggle() {
     >
       Pause animations
     </MenuToggleItem>
+  );
+}
+
+/** The menu's identity block (Adrian 2026-11-15): one tight header, a primary line (the email, or
+ *  "On this device only" signed out; ui, semibold, truncated) over a caption (the sync status with a
+ *  check once synced, or the benefit line), 4px apart (`.rjb-account-id`, late.css). A Menu.Label:
+ *  not focusable, not clickable. `spoken` is read before the primary line ("Signed in as …"). */
+function IdentityHeader({
+  primary,
+  spoken,
+  caption,
+  synced = false,
+}: {
+  primary: string;
+  spoken?: string;
+  caption: string;
+  synced?: boolean;
+}) {
+  return (
+    <Menu.Label className="rjb-account-id">
+      <Text
+        variant="ui"
+        as="span"
+        tone="primary"
+        className="rjb-semibold"
+        truncate
+        data-account-line
+      >
+        {spoken && <span className="sr-only">{spoken}</span>}
+        {primary}
+      </Text>
+      <Text
+        variant="caption"
+        as="span"
+        tone="secondary"
+        className="rjb-account-id-caption"
+        data-account-line
+      >
+        {synced && <Icon icon={Check} size={12} aria-hidden />}
+        {caption}
+      </Text>
+    </Menu.Label>
   );
 }
 

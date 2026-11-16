@@ -105,6 +105,10 @@ function placeOf(where: string[]): string {
 const NOISE_RE = /^(full[- ]?time|part[- ]?time|contract|visa|\$|€|£|https?:|www\.|\S+@\S+)/i;
 const KV_RE = /^\s*(company|role|roles|position|positions|title|location|locations)\s*:\s*(\S.*)$/i;
 const PROSE_RE = /^([A-Z0-9][\w.&' -]{1,58}?)\s+(?:is|are)\s+hiring\b/;
+/** "We're hiring software engineers and designers at the IRS!" (Adrian 2026-11-15, a real post he
+ *  applied to): the roles and the organisation, read only when the line says both plainly. */
+const WE_HIRE_RE =
+  /^(?:[Ww]e(?:'|’)re|[Ww]e are)\s+[Hh]iring\s+(?:for\s+)?(.{3,100}?)\s+at\s+(?:the\s+)?([A-Z][\w&'’-]*(?:\s+[A-Z][\w&'’-]*){0,4})\s*(?:[!.,:;(—–-]|$)/;
 
 /** Parse one top-level comment into a Posting; null for replies and empty/deleted comments. */
 export function parseHnComment(hit: unknown): Posting | null {
@@ -166,7 +170,17 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
   }
 
   // 3. Prose opener ("Acme is hiring engineers to …") — only a named subject counts as a company.
-  if (!company && segs.length < 2) company = PROSE_RE.exec(firstLine)?.[1]?.trim() ?? '';
+  if (!company && segs.length < 2) {
+    const subject = PROSE_RE.exec(firstLine)?.[1]?.trim() ?? '';
+    // "We are hiring" names no one.
+    if (!/^we$/i.test(subject)) company = subject;
+  }
+  // 4. "We're hiring <roles> at <Org>!": the organisation as the company, the roles as the title.
+  const we = !company && segs.length < 2 ? WE_HIRE_RE.exec(firstLine) : null;
+  if (we) {
+    company = we[2].replace(/['’]+$/, '');
+    if (!title) title = we[1][0].toUpperCase() + we[1].slice(1);
+  }
   if (!title) title = segs.length >= 2 ? HN_NO_ROLE : firstLine;
   const location = placeOf(where);
   // HN pay is free text (#576 item 2): a yearly figure or range that names a currency, never a

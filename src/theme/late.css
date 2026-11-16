@@ -28,6 +28,20 @@
   color: var(--semantic-color-content-secondary);
 }
 
+/* The identity header (Adrian 2026-11-15): one tight block, the primary line over its caption, 4px
+ * apart; the caption's 12px check sits on its first line. */
+[data-hds] .rjb-account-menu .rjb-account-id {
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitive-space-1);
+  min-width: 0;
+}
+.rjb-account-id-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--primitive-space-1);
+}
+
 /* The signed-out identity row's Sign in: an HDS secondary Button as the menu item (the grey key).
  * Its own padding and fill, not the menu row's; set in from the row's edge like the labels. */
 [data-hds] .rjb-account-menu .rjb-menu-key {

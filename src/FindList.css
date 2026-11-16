@@ -28,3 +28,34 @@ html:has(.rjb-find-new),
 body[data-hds]:has(.rjb-find-new) {
   overflow-x: clip;
 }
+
+/* A card's place is one line (Adrian 2026-11-15): a long place ends in an ellipsis. HDS's fact
+   label is a bare text node, so the li itself becomes the block that cuts; its icon floats. */
+.rjb-facts-place-line > li:first-child {
+  display: block;
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rjb-facts-place-line > li:first-child > svg {
+  /* The icon sets display: block inline; a float keeps it on the text's line. */
+  float: inline-start;
+  margin-block-start: calc((1lh - var(--primitive-size-16)) / 2);
+  margin-inline-end: var(--primitive-space-2);
+}
+
+/* A card's title link (Adrian 2026-11-15): no underline at rest. It stands alone as the card's
+   heading, with the external icon below lg, so it is not told apart from body text by colour only
+   (WCAG 1.4.1). The underline comes back on hover (a pointer that can hover) and on keyboard focus. */
+.rjb-posting-title .hds-link {
+  text-decoration-line: none;
+}
+@media (hover: hover) {
+  .rjb-posting-title .hds-link:hover {
+    text-decoration-line: underline;
+  }
+}
+.rjb-posting-title .hds-link:focus-visible {
+  text-decoration-line: underline;
+}

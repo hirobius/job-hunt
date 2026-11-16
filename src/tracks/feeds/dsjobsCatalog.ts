@@ -16,6 +16,7 @@
 // Source id = the page URL, the same as the RSS guid, so the catalog and the feed name a posting
 // the same way and old `rss` rows carry over.
 import { htmlToText } from '../../feed/html.ts';
+import { placeText } from '../../feed/placeText.ts';
 import { inferMode } from '../../feed/mode.ts';
 import { BRAND } from '../../brand.ts';
 import { httpUrl } from '../../httpUrl.ts';
@@ -76,7 +77,7 @@ function jobPostingOf(html: string): O {
 /** The page's "Location" fact (Remote / Hybrid / On-site), as text. */
 function locationFact(html: string): string {
   const m = /<dt[^>]*>\s*Location\s*<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/i.exec(html);
-  return m ? htmlToText(m[1]) : '';
+  return m ? placeText(htmlToText(m[1])) : '';
 }
 
 /** One job page as a posting; null when it holds no readable JobPosting. */
@@ -93,6 +94,8 @@ export function parseJobPage(html: string, pageUrl: string): NormalizedPosting |
         .filter(Boolean)
         .join(', '),
     )
+    // A place is never a sentence: Surfshark's page ran its summary into it (2026-11-15).
+    .map(placeText)
     .filter(Boolean);
   const fact = locationFact(html);
   const mode = inferMode(fact);
