@@ -20,12 +20,16 @@ export function tooSoon(): boolean {
 /** The second tap of a double tap can also land on another control the next job (or posting) put
  *  under the finger: its menu, a disclosure, a link. For the same window, presses inside the page
  *  (`main`) are swallowed before any control sees them (capture phase); the Account menu, notices
- *  outside `main` and the tabs (the page bar's, inside `main` since #679) are left alone. */
+ *  outside `main` and the tabs (the page bar's, inside `main` since #679) are left alone. A control
+ *  that stays where it was after an answer opts out with `data-answer-guard="off"` on itself or an
+ *  ancestor (#591): a press on it is deliberate, and swallowing it would lose it with no answer. */
+export const ANSWER_GUARD_OFF = { 'data-answer-guard': 'off' } as const;
 function swallow(e: Event) {
   if (!lastAnswer || Date.now() - lastAnswer >= DOUBLE_TAP_MS) return;
   const t = e.target as Element | null;
   // The action dock (#535) sits on body, outside main: it is part of the page too.
-  if (!t?.closest?.('main, .rjb-dock') || t.closest('.rjb-page-bar nav')) return;
+  if (!t?.closest?.('main, .rjb-dock') || t.closest('.rjb-page-bar nav, [data-answer-guard="off"]'))
+    return;
   e.preventDefault();
   e.stopPropagation();
 }

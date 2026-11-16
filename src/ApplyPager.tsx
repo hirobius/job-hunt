@@ -2,7 +2,8 @@
 // its order. Below lg only: at lg the list sits beside the job. A page change moves in place
 // (replace), so one Back leaves the job for the list.
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button, Icon, Pagination, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Icon, Pagination, Stack, Text } from '@hirobius/design-system';
+import { ANSWER_GUARD_OFF } from './answerGuard';
 import { jobIdOf } from './store';
 import { openJob } from './route';
 import { nearestShown } from './pipelineView';
@@ -10,7 +11,17 @@ import type { Job } from './types';
 
 const LABEL = 'Jobs in the list';
 
-export default function ApplyPager({
+/** The walk stays where it was when an answer opens the next job, so its arrows are never the
+ *  double tap's second tap: the answer guard leaves them alone (#591). */
+export default function ApplyPager(props: Parameters<typeof Walk>[0]) {
+  return (
+    <Box {...ANSWER_GUARD_OFF}>
+      <Walk {...props} />
+    </Box>
+  );
+}
+
+function Walk({
   job,
   list,
   order,
