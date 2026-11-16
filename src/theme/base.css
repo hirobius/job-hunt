@@ -713,19 +713,15 @@ p {
   color: var(--semantic-color-content-primary);
   gap: calc(var(--rjb-logo-size) * 0.3);
 }
-/* Never a scroll anchor (Adrian 2026-11-16, an iPhone recording: Review, scrolled a little, the
-   whole page moved 3-5px from frame to frame). WebKit's scroll anchoring chose the live flame, whose
-   ink box changes on every frame, and moved the scroll position to follow it. With this the flame
-   and everything in it are left out of anchor selection (CSS Scroll Anchoring), on every flame:
-   the app bar's, the sign-in brand, the boot splash, BootHold and the still wordmark. */
-.rjb-flame,
-.rjb-rf {
-  overflow-anchor: none;
-}
 .rjb-flame {
   --rjb-flame-1: var(--primitive-color-blue-500);
   --rjb-flame-2: var(--primitive-color-cobalt-400);
   --rjb-flame-3: var(--primitive-color-cobalt-200);
+  /* Never a scroll anchor (Adrian 2026-11-16, an iPhone recording: Review, scrolled a little, the
+     whole page moved 3-5px from frame to frame). WebKit's scroll anchoring chose the live flame, whose
+     ink box changes on every frame, and moved the scroll position to follow it. This leaves the
+     flame and everything in it out of anchor selection (CSS Scroll Anchoring). */
+  overflow-anchor: none;
   display: inline-flex;
   flex: none;
   line-height: 0;
@@ -815,6 +811,8 @@ p {
   --rjb-rf-1: var(--primitive-color-blue-500);
   --rjb-rf-2: var(--primitive-color-cobalt-400);
   --rjb-rf-3: var(--primitive-color-cobalt-200);
+  /* Never a scroll anchor: see .rjb-flame above. */
+  overflow-anchor: none;
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
