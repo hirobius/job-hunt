@@ -44,8 +44,9 @@ export async function seed(page: Page) {
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await addStarters(page);
   // The sample adds a Sample track from the first starter pack: no setup needed.
+  // Signed out, Review is its sign-in line (#755): no postings are read.
   await go(page, '#/review');
-  await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
+  await expect(page.getByText('Sign in to see new postings.')).toBeVisible();
 }
 
 /** Add the starter messages from Documents' empty state (a first run adds none). */

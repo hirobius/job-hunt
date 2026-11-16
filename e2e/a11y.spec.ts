@@ -31,7 +31,7 @@ async function seed(page: Page) {
   await expect(page.getByRole('region', { name: 'Messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/review');
-  await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
+  await expect(page.getByText('Sign in to see new postings.')).toBeVisible(); // signed out (#755)
 }
 
 async function go(page: Page, hash: string) {

@@ -12,6 +12,7 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import { firstSignInAsk } from './signInAsked';
 import { TrySampleButton } from './demo/SampleData';
 import { useJobs } from './store';
+import { useRoute } from './route';
 import { hasPersistedSession } from './supabase';
 import { Panel, PanelBody } from './PipelinePanel';
 import { FindHeader } from './FindHeader';
@@ -27,10 +28,15 @@ import { useCloudSync } from './account/accountContext';
 export function SignedOutReview() {
   const { authResolved, setSignInOpen } = useCloudSync();
   const noJobs = useJobs().length === 0;
+  // A dialog the link opened (Documents, Privacy and terms) is what the visitor came for: no
+  // screen over it.
+  const route = useRoute();
+  const overDialog = (route.documents !== null && route.documents !== undefined) || !!route.legal;
   useEffect(() => {
     // A stored session is on its way in (its user lands a moment after `authResolved`): no screen.
-    if (authResolved && !hasPersistedSession() && firstSignInAsk()) setSignInOpen(true);
-  }, [authResolved, setSignInOpen]);
+    if (!authResolved || overDialog || hasPersistedSession()) return;
+    if (firstSignInAsk()) setSignInOpen(true);
+  }, [authResolved, overDialog, setSignInOpen]);
   return (
     <Stack gap="px24">
       <FindHeader />

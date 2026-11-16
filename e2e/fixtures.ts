@@ -44,8 +44,12 @@ export async function signInAtBoot(page: Page): Promise<void> {
 
 export const test = base.extend<{ signedIn: boolean }>({
   signedIn: [false, { option: true }],
-  page: async ({ page, signedIn }, use) => {
+  page: async ({ page, signedIn }, provide) => {
     if (signedIn) await signInAtBoot(page);
-    await use(page);
+    // The sign-in screen opens on its own once a tab session over a signed-out Review (#755);
+    // a spec about something else starts as if it was already asked (review-sign-in.spec.ts
+    // tests that screen, from '@playwright/test').
+    else await page.addInitScript(() => sessionStorage.setItem('rjb_sign_in_asked', '1'));
+    await provide(page);
   },
 });

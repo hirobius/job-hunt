@@ -1,16 +1,29 @@
-// The sign-in screen opens on its own once a page load, over a signed-out Review (#755):
+// The sign-in screen opens on its own once a tab session, over a signed-out Review (#755):
 // "Continue without an account" closes it and leaves the visitor on Review's sign-in line, and a
-// later visit to the tab in the same page load does not open it again.
+// later visit to the tab, or a reload in the same tab, does not open it again. Kept in
+// sessionStorage; with storage blocked, once a page load.
+const KEY = 'rjb_sign_in_asked';
 let asked = false;
 
-/** True the first time only, in a page load. */
+/** True the first time only, in a tab session. */
 export function firstSignInAsk(): boolean {
-  if (asked) return false;
-  asked = true;
-  return true;
+  try {
+    if (sessionStorage.getItem(KEY)) return false;
+    sessionStorage.setItem(KEY, '1');
+    return true;
+  } catch {
+    if (asked) return false;
+    asked = true;
+    return true;
+  }
 }
 
-/** Tests: a new page load. */
+/** Tests: a new tab session. */
 export function resetSignInAsk(): void {
   asked = false;
+  try {
+    sessionStorage.removeItem(KEY);
+  } catch {
+    /* storage blocked */
+  }
 }
