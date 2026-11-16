@@ -72,7 +72,7 @@ import { filterCounts, newTodayLine, payLabel, sortRows, type FeedRow } from './
 import { companyKey, decide, muteCompany, undecide } from './feed/decided';
 import { followPosting } from './feed/follow';
 import { jobFieldsFor } from './feed/toJob';
-import { postedAgo } from './feed/format';
+import { cardPostedLabel, postedAgo } from './feed/format';
 import { SOURCE_LABEL } from './feed/types';
 import { addJobDetailed } from './store';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
@@ -886,8 +886,8 @@ function PostingCard({
   // At lg the list card sits beside the detail (onOpen): title and company only.
   const brief = compact && !!onOpen;
   const pay = payLabel(r);
-  const posted = postedAgo(r.postedAt, now);
-  const postedLabel = posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`);
+  // Past 30 days the card says "Posted 30d+" (cardPostedLabel); the detail keeps the age.
+  const postedLabel = cardPostedLabel(r.postedAt, now);
   const mode = modeOf(r);
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
