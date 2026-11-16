@@ -1,0 +1,51 @@
+// Review reads postings only for a signed-in visitor (#755). Every spec that imports `test` from
+// here starts signed in: a stored Supabase session, an account with an empty cloud copy, and this
+// device already that account's (no "add this device's data?" question). A spec's own routes win
+// over these (Playwright tries the last-registered route first). A spec about the signed-out app
+// imports from '@playwright/test' instead, or sets `test.use({ signedIn: false })`.
+import { test as base, type Page } from '@playwright/test';
+
+export * from '@playwright/test';
+
+const PROJECT = 'nelrcmbkimjjmfmgnixj';
+export const E2E_USER = { id: '00000000-0000-4000-8000-0000000000e2', email: 'e2e@example.test' }; // pii-allow: fake test address
+
+/** Sign this page in before it loads: the stored session and the fake account. */
+export async function signInAtBoot(page: Page): Promise<void> {
+  await page.route(`https://${PROJECT}.supabase.co/**`, (route) => {
+    const url = route.request().url();
+    if (url.includes('/auth/v1/user')) return route.fulfill({ json: E2E_USER });
+    // Every other read is empty: no cloud copy, no server rows, no picks, no sync runs.
+    return route.fulfill({ json: [] });
+  });
+  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + 3600;
+  const token = `${b64({ alg: 'HS256' })}.${b64({ sub: E2E_USER.id, email: E2E_USER.email, exp })}.sig`;
+  await page.addInitScript(
+    ([key, session, uid]) => {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, session);
+      if (!localStorage.getItem('rjb_device_account'))
+        localStorage.setItem('rjb_device_account', uid);
+    },
+    [
+      `sb-${PROJECT}-auth-token`,
+      JSON.stringify({
+        access_token: token,
+        refresh_token: 'r',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: exp,
+        user: { ...E2E_USER, aud: 'authenticated', role: 'authenticated' },
+      }),
+      E2E_USER.id,
+    ] as const,
+  );
+}
+
+export const test = base.extend<{ signedIn: boolean }>({
+  signedIn: [true, { option: true }],
+  page: async ({ page, signedIn }, use) => {
+    if (signedIn) await signInAtBoot(page);
+    await use(page);
+  },
+});
