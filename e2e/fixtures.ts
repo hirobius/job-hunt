@@ -1,8 +1,8 @@
-// Review reads postings only for a signed-in visitor (#755). Every spec that imports `test` from
-// here starts signed in: a stored Supabase session, an account with an empty cloud copy, and this
-// device already that account's (no "add this device's data?" question). A spec's own routes win
-// over these (Playwright tries the last-registered route first). A spec about the signed-out app
-// imports from '@playwright/test' instead, or sets `test.use({ signedIn: false })`.
+// Review reads postings only for a signed-in visitor (#755). A spec that reads Review sets
+// `test.use({ signedIn: true })`: a stored Supabase session, an account with an empty cloud copy,
+// and this device already that account's (no "add this device's data?" question). A spec's own
+// routes win over these (Playwright tries the last-registered route first). Signed out (the
+// default) the app is as before, and the sample data is offered on Apply.
 import { test as base, type Page } from '@playwright/test';
 
 export * from '@playwright/test';
@@ -43,7 +43,7 @@ export async function signInAtBoot(page: Page): Promise<void> {
 }
 
 export const test = base.extend<{ signedIn: boolean }>({
-  signedIn: [true, { option: true }],
+  signedIn: [false, { option: true }],
   page: async ({ page, signedIn }, use) => {
     if (signedIn) await signInAtBoot(page);
     await use(page);
