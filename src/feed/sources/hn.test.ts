@@ -131,10 +131,10 @@ describe('parseHnComment', () => {
 
   it('leaves the company blank when a prose opener names none', () => {
     const p = parseHnComment(
-      comment({ comment_text: "We're hiring design engineers at the IRS!<p>More." }),
+      comment({ comment_text: "We're hiring design engineers to work with us!<p>More." }),
     )!;
     expect(p.company).toBe('');
-    expect(p.title).toBe("We're hiring design engineers at the IRS!");
+    expect(p.title).toBe("We're hiring design engineers to work with us!");
   });
 
   it('says "Roles listed in post" when a pipe line names no role', () => {
@@ -365,5 +365,38 @@ describe('Freelancer? Seeking freelancer? thread', () => {
         throw new Error('down');
       }),
     ).rejects.toThrow('down');
+  });
+});
+
+describe('a "We\'re hiring … at <Org>" post (Adrian 2026-11-15, a real IRS post)', () => {
+  const post = (first: string) =>
+    parseHnComment({
+      objectID: '77',
+      story_id: 9,
+      parent_id: 9,
+      created_at: '2026-11-02T00:00:00Z',
+      comment_text: `${first}<p>We build tools for taxpayers.`,
+    });
+
+  it('takes the organisation as the company and the roles as the title', () => {
+    expect(
+      post(
+        'We&#x27;re hiring software engineers, product designers, and design engineers at the IRS!',
+      ),
+    ).toMatchObject({
+      company: 'IRS',
+      title: 'Software engineers, product designers, and design engineers',
+    });
+    expect(post('We are hiring a design systems lead at Acme Health. Remote, US.')).toMatchObject({
+      company: 'Acme Health',
+      title: 'A design systems lead',
+    });
+  });
+
+  it('leaves a post that names no organisation as it was', () => {
+    expect(post('We&#x27;re hiring designers to help us at scale!')).toMatchObject({
+      company: '',
+      title: 'We’re hiring designers to help us at scale!'.replace('’', "'"),
+    });
   });
 });
