@@ -1,6 +1,9 @@
 import { test, expect, type Page } from './fixtures';
 import { accountMenuItem } from './routes';
 
+// Review reads postings only for a signed-in visitor (#755).
+test.use({ signedIn: true });
+
 // A Review card's title link (Adrian 2026-11-15): no underline at rest; the underline shows on
 // hover (a pointer that can hover) and on keyboard focus. The external icon stays below lg.
 // Synthetic Greenhouse boards (no real people); every other host answers empty.
@@ -54,7 +57,6 @@ async function open(page: Page, scheme: 'light' | 'dark') {
   await feed(page);
   await page.goto('/#/review');
   await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
-  await accountMenuItem(page, 'Scan now');
   await expect(
     page.getByRole('article', { name: /Design Systems Engineer at Norrow/ }),
   ).toBeVisible({

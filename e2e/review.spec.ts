@@ -1,6 +1,9 @@
 import { test, expect, type Page } from './fixtures';
-import { accountMenuItem, openScanDetails } from './routes';
+import { openScanDetails } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
+
+// Review reads postings only for a signed-in visitor (#755).
+test.use({ signedIn: true });
 
 // Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
@@ -83,16 +86,14 @@ async function templateOf(page: Page) {
 
 async function setUp(page: Page) {
   await feed(page);
+  // Signed in, the scan runs on open (#755: signed out, nothing reads).
+  const since = Date.now();
   await page.goto('/#/review');
   // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/review$/);
   await expect(page.getByRole('heading', { name: 'New postings' })).toBeVisible();
-  // The profile has landed (the list shows), so the page no longer swaps under the click. Signed
-  // out, nothing scans on open (2026-11-07): Scan now does.
+  // The profile has landed (the list shows), so the page no longer swaps under the click.
   await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
-  const since = await page.evaluate(() => Date.now());
-  // Scan now is the Account menu's (#694).
-  await accountMenuItem(page, 'Scan now');
   await scanFinished(page, since);
 }
 
@@ -307,11 +308,10 @@ for (const width of [375, 390]) {
         })),
       });
     });
+    const since = Date.now();
     await page.goto('/#/review');
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
-    const since = await page.evaluate(() => Date.now());
-    await accountMenuItem(page, 'Scan now');
     await scanFinished(page, since);
     await expect(list.getByRole('listitem')).toHaveCount(12);
     await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
@@ -328,22 +328,54 @@ for (const width of [375, 390]) {
 
 // Late postings wait (Adrian 2026-11-15): a posting that arrives after the person has started
 // reading is not put in above the cards on screen; "1 new posting" shows it and goes to the top.
-// A second Scan now reads one more HN post (synthetic: no real people).
+// Signed in (#755), the scan on open finds one more company late: the person reads the HN cards
+// first, then its posting arrives (synthetic: no real people or companies).
 for (const width of [390, 1440]) {
   test(`a late posting waits behind "N new postings" (${width})`, async ({ page }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 900 });
-    let extra = false;
-    await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+    let release = () => {};
+    const late = new Promise<void>((r) => (release = r));
+    await page.route(/^https?:\/\/(?!localhost)/, async (r) => {
       const url = r.request().url();
-      const json = (body: unknown) =>
+      const json = (body: unknown, status = 200) =>
         r.fulfill({
-          status: 200,
+          status,
           headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
           body: JSON.stringify(body),
         });
-      if (!url.startsWith('https://hn.algolia.com/'))
-        return url.startsWith('https://api.lever.co/') ? json([]) : json({ jobs: [] });
+      // The scan's YC lead answers late: it finds Latecomer, whose board holds one more posting.
+      if (url === 'https://yc-oss.github.io/api/companies/hiring.json') {
+        await late;
+        return json([
+          {
+            name: 'Latecomer',
+            slug: 'latecomer',
+            website: 'https://latecomer.example',
+            one_liner: 'The design system platform for banks',
+            status: 'Active',
+            isHiring: true,
+          },
+        ]);
+      }
+      if (url.startsWith('https://boards-api.greenhouse.io/v1/boards/latecomer/'))
+        return json({
+          jobs: [
+            {
+              id: 4242,
+              title: 'Principal Design Systems Engineer',
+              absolute_url: 'https://boards.greenhouse.io/latecomer/jobs/4242',
+              location: { name: 'Remote' },
+              first_published: new Date().toISOString(),
+              content: '&lt;p&gt;Lead our design system.&lt;/p&gt;',
+            },
+          ],
+        });
+      if (url.startsWith('https://api.github.com/')) return json({ items: [] });
+      if (url.startsWith('https://remotive.com/') || url.startsWith('https://jobicy.com/'))
+        return json({ jobs: [] });
+      // Every other board: no such board.
+      if (!url.startsWith('https://hn.algolia.com/')) return json({}, 404);
       if (url.includes('search_by_date'))
         return json({
           hits: [
@@ -355,43 +387,28 @@ for (const width of [390, 1440]) {
           ],
         });
       // Enough cards for the page to scroll at 1440 too (lg list cards are short, 2026-11-15).
-      const hits = Array.from({ length: 14 }, (_, i) => ({
-        objectID: `m-${i}`,
-        story_id: 9,
-        parent_id: 9,
-        created_at: new Date(Date.now() - (i + 1) * 864e5).toISOString(),
-        comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
-      }));
-      if (extra)
-        hits.unshift({
-          objectID: 'm-new',
+      return json({
+        hits: Array.from({ length: 14 }, (_, i) => ({
+          objectID: `m-${i}`,
           story_id: 9,
           parent_id: 9,
-          created_at: new Date().toISOString(),
-          comment_text: 'Latecomer | Principal Design Systems Engineer | Remote<p>Lead it.</p>',
-        });
-      return json({ hits });
+          created_at: new Date(Date.now() - (i + 1) * 864e5).toISOString(),
+          comment_text: `Co${i} | Design Systems Engineer | Remote<p>Own our design system.</p>`,
+        })),
+      });
     });
     await page.goto('/#/review');
     const list = page.getByRole('list', { name: 'New postings' });
-    await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
-    let since = await page.evaluate(() => Date.now());
-    await accountMenuItem(page, 'Scan now');
-    await scanFinished(page, since);
-    await expect(list.getByRole('listitem')).toHaveCount(14);
-    // The person reads on; then a later read finds one more posting.
+    await expect(list.getByRole('listitem')).toHaveCount(14, { timeout: 30_000 });
+    // The person reads on; then the scan's late lead brings one more posting.
     await page.mouse.move(width / 2, 500);
     await page.mouse.wheel(0, 100);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
     const first = list.getByRole('article').first();
     const name = await first.getAttribute('aria-label');
-    // Where the first card sits in the page (the Account menu may move the scroll).
     const top = () => first.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
     const before = await top();
-    extra = true;
-    since = await page.evaluate(() => Date.now());
-    await accountMenuItem(page, 'Scan now');
-    await scanFinished(page, since);
+    release();
     const key = page.getByRole('button', { name: '1 new posting' });
     await expect(key).toBeVisible({ timeout: 30_000 });
     // Nothing moved under the reader, and the late posting is not in the list yet.

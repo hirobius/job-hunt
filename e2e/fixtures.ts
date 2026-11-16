@@ -3,7 +3,7 @@
 // and this device already that account's (no "add this device's data?" question). A spec's own
 // routes win over these (Playwright tries the last-registered route first). Signed out (the
 // default) the app is as before, and the sample data is offered on Apply.
-import { test as base, type Page } from '@playwright/test';
+import { test as base, type Page, type Route } from '@playwright/test';
 
 export * from '@playwright/test';
 
@@ -12,12 +12,22 @@ export const E2E_USER = { id: '00000000-0000-4000-8000-0000000000e2', email: 'e2
 
 /** Sign this page in before it loads: the stored session and the fake account. */
 export async function signInAtBoot(page: Page): Promise<void> {
-  await page.route(`https://${PROJECT}.supabase.co/**`, (route) => {
+  const supabase = `https://${PROJECT}.supabase.co/**`;
+  const answer = (route: Route) => {
     const url = route.request().url();
     if (url.includes('/auth/v1/user')) return route.fulfill({ json: E2E_USER });
     // Every other read is empty: no cloud copy, no server rows, no picks, no sync runs.
     return route.fulfill({ json: [] });
-  });
+  };
+  await page.route(supabase, answer);
+  // A spec's own catch-all route (every outside host) is added later, so it would answer the
+  // account's reads first: put this one back on top after each.
+  const route = page.route.bind(page);
+  page.route = (async (...args: Parameters<Page['route']>) => {
+    await route(...args);
+    await page.unroute(supabase, answer);
+    await route(supabase, answer);
+  }) as Page['route'];
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
   const exp = Math.floor(Date.now() / 1000) + 3600;
   const token = `${b64({ alg: 'HS256' })}.${b64({ sub: E2E_USER.id, email: E2E_USER.email, exp })}.sig`;

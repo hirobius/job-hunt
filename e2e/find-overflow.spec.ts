@@ -1,6 +1,9 @@
 import { test, expect, type Page } from './fixtures';
 import { accountMenuItem, PROD_URL } from './routes';
 
+// Review reads postings only for a signed-in visitor (#755).
+test.use({ signedIn: true });
+
 // Find at 390 never scrolls sideways (Adrian 2026-11-12): with a posting whose title is one long
 // unbroken run and whose place is a long list, the page is no wider than the screen and no card is
 // wider than the viewport. Production build (PROD_URL), synthetic Hacker News posts only.
@@ -60,7 +63,6 @@ test('Find at 390: no sideways scroll and no card wider than the screen, long ti
   await feed(page);
   await page.goto(`${PROD_URL}/#/review`);
   await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
-  await accountMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
   await expect(list.getByRole('link', { name: /Prime Design Systems/ })).toBeVisible({
     timeout: 60_000,

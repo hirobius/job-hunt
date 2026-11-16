@@ -1,6 +1,9 @@
 import { test, expect, type Page } from './fixtures';
 import { accountMenuItem } from './routes';
 
+// Review reads postings only for a signed-in visitor (#755).
+test.use({ signedIn: true });
+
 // A card's place is a place, on one line (Adrian 2026-11-15): a source that runs the posting's
 // first lines into its location (Surfshark on designsystems.jobs: "Lithuania This role sits in…")
 // shows only the place, and a long place ends in an ellipsis. Synthetic Greenhouse boards (no real
@@ -53,7 +56,6 @@ for (const scheme of ['light', 'dark'] as const) {
     await feed(page);
     await page.goto('/#/review');
     await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible();
-    await accountMenuItem(page, 'Scan now');
     const leak = page.getByRole('article', { name: /Senior Design Systems Designer at Talva/ });
     const long = page.getByRole('article', { name: /Design Systems Engineer at Norrow/ });
     await expect(leak).toBeVisible({ timeout: 60_000 });
