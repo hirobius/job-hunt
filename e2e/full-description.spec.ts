@@ -1,5 +1,4 @@
 import { test, expect, type Page } from './fixtures';
-import { accountMenuItem } from './routes';
 
 // Review reads postings only for a signed-in visitor (#755).
 test.use({ signedIn: true });
