@@ -358,7 +358,9 @@ p {
   justify-content: center;
   gap: var(--primitive-space-px6);
   white-space: nowrap;
-  min-height: 30px;
+  /* The HDS md control height (Button md, 44px; Adrian 2026-11-16: the bar was a short 30px, a
+   * fixed number beside no token). Phones keep the touch target, below. */
+  min-height: var(--component-button-size-md-height);
   /* Centred the way HDS SegmentedControl (sm) is, hds#1461: flex centring, line-height 1 and
    * symmetric padding. The ui ramp's taller line box put the ink about 2px low (seg-centering.spec). */
   padding: 0 var(--semantic-space-layout-gap);
