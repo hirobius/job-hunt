@@ -103,3 +103,33 @@ test('boot splash: the flame keeps its box on every frame', async ({ page }) => 
     ),
   );
 });
+
+// The cause of the recording (2026-11-16): WebKit's scroll anchoring chose the live flame, whose
+// ink box changes on every frame, and moved the page's scroll position to follow it (3-5px, both
+// ways). Measured in Playwright WebKit (iPhone 13): scrollY 40 drifted 33..43 while the flame
+// burned; with `overflow-anchor: none` on the flame it held at 40. Chromium does not pick the
+// flame, so here the rule itself is checked, and the scroll position over the frames.
+test('scrolled: the flame is never the scroll anchor, so the page holds still', async ({
+  page,
+}) => {
+  await page.goto('/#/review');
+  await page.locator('.rjb-rf svg').waitFor();
+  // The app bar's live logo (the still wordmark and the splash's .rjb-flame take the same rule).
+  expect(
+    await page.locator('header .rjb-rf').evaluate((el) => getComputedStyle(el).overflowAnchor),
+  ).toBe('none');
+  // Room to scroll, as a full list has.
+  await page.evaluate(() => {
+    document.body.style.minHeight = '3000px';
+    window.scrollTo(0, 40);
+  });
+  const ys = await page.evaluate(async () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => requestAnimationFrame(r));
+      seen.add(window.scrollY);
+    }
+    return [...seen];
+  });
+  expect(ys).toEqual([40]);
+});
