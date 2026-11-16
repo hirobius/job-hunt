@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 // #619: with a long Followed list the Companies dialog's body scrolls between a fixed header
 // (title, list switch) and a fixed footer (Done); the last row can be reached and is never under Done.

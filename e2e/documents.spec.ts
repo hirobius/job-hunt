@@ -1,5 +1,5 @@
 import { JOB_LINK, openApply, currentTab, accountMenuItem } from './routes';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 // The Documents library end to end (#227, #230): it opens from the Menu, an edited Outreach message
 // (saved as a new Version) is what the Apply sheet fills for a job, and a job's company opens its

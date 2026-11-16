@@ -5,7 +5,15 @@
 // (`#/find/<fingerprint>`; the first posting when the tab opens, #546). Below lg the list is the tab and a
 // picked posting is its own view with Back and a pager. Follow up and Apply moved to the Apply tab,
 // so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
-import { Skeleton, Stack, Text } from '@hirobius/design-system';
+import { useEffect } from 'react';
+import { Button, Skeleton, Stack, Text } from '@hirobius/design-system';
+import { LogIn } from 'lucide-react';
+import { EmptyState } from './hds-gaps/EmptyState';
+import { firstSignInAsk } from './signInAsked';
+import { TrySampleButton } from './demo/SampleData';
+import { useJobs } from './store';
+import { useRoute } from './route';
+import { hasPersistedSession } from './supabase';
 import { Panel, PanelBody } from './PipelinePanel';
 import { FindHeader } from './FindHeader';
 import ReviewView from './ReviewView';
@@ -13,9 +21,54 @@ import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
 import { useCloudSync } from './account/accountContext';
 
+/** Signed out, Review reads nothing (#755, Adrian 2026-11-15): no feed, board, description or
+ *  postings read and no scan. One line and one filled key, Sign in, under the sign-in screen;
+ *  with no jobs on this device, the grey Try a demo (Adrian 2026-11-16) loads the sample jobs here,
+ *  with no account and no scan, and opens Apply. */
+export function SignedOutReview() {
+  const { authResolved, setSignInOpen } = useCloudSync();
+  const noJobs = useJobs().length === 0;
+  // A dialog the link opened (Documents, Privacy and terms) is what the visitor came for: no
+  // screen over it.
+  const route = useRoute();
+  const overDialog = (route.documents !== null && route.documents !== undefined) || !!route.legal;
+  useEffect(() => {
+    // A stored session is on its way in (its user lands a moment after `authResolved`): no screen.
+    if (!authResolved || overDialog || hasPersistedSession()) return;
+    if (firstSignInAsk()) setSignInOpen(true);
+  }, [authResolved, overDialog, setSignInOpen]);
+  return (
+    <Stack gap="px24">
+      <FindHeader />
+      {authResolved ? (
+        <EmptyState
+          onPage
+          icon={LogIn}
+          title="Sign in to see new postings."
+          action={
+            <Stack direction="row" gap="px8" justify="center" wrap="wrap">
+              <Button variant="primary" onClick={() => setSignInOpen(true)}>
+                Sign in
+              </Button>
+              {noJobs && <TrySampleButton label="Try a demo" />}
+            </Stack>
+          }
+        />
+      ) : (
+        <Stack gap="tight">
+          <Skeleton variant="text" width="70%" />
+          <Skeleton variant="text" width="40%" />
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
 export default function Today() {
   const profile = useProfile();
   const { offline, user } = useCloudSync();
+  // Signed out (or not known yet), nothing on Review reads postings (#755).
+  if (!user) return <SignedOutReview />;
   // The scheduled run's hand-picked roles (picks.ts), signed in only: fit line, draft note (Copy),
   // Save → Apply. Hidden when there are none.
   const picks = user ? <DailyPicks key={user.id} /> : null;

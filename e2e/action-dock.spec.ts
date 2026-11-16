@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { seed, topTab } from './routes';
 
 // The job's action dock (#535) and Not a fit as an exit with Undo (#536).

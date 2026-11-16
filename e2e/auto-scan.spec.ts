@@ -1,10 +1,8 @@
-import { test, expect, type Page } from '@playwright/test';
-import { accountMenuItem, openScanDetails } from './routes';
+import { test, expect, type Page } from './fixtures';
+import { signInAtBoot } from './fixtures';
 
-// Auto-scan (simplify 8/11, #415). Signed out, nothing scans on open (2026-11-07: on a phone the
-// browser scan drowned the sign-in screen; a signed-in account's boards are read by the server's
-// sync every 15 minutes, and its scan on open is pinned in autoScanOnOpen.test.tsx). Scan now runs
-// it: it finds a YC company hiring now (Acme, acme.com), probes for its board, confirms it against
+// Auto-scan (simplify 8/11, #415). Signed out, nothing scans and Review reads nothing (#755).
+// Signed in, the scan runs on open: it finds a YC company hiring now (Acme, acme.com), probes for its board, confirms it against
 // the website (#417), reads it with every feed and keeps its remote design-system role. Review new
 // shows that posting; Acme is in the Account menu's Companies dialog, under Found (#618). Every host is synthetic: YC's mirror lists
 // Acme, Acme's Greenhouse board has two roles, everything else answers empty or "no such board".
@@ -88,32 +86,30 @@ async function scanFinished(page: Page, since: number, timeout = 60_000) {
 }
 
 for (const width of [390, 1440]) {
-  test(`signed out nothing scans on open; Scan now finds the postings (${width})`, async ({
-    page,
-  }) => {
-    test.setTimeout(90_000);
+  test(`signed out nothing scans or reads (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const asked: string[] = [];
     await network(page, asked);
     await page.goto('/#/review');
-    // A design-systems track that follows nothing yet.
     await page.evaluate(seedTrack);
-    // No status text on Find (Adrian 2026-11-08); Scan now is the Account menu's (#694). Nothing
-    // read yet: the empty state, and no pager beside it (2026-11-13).
-    await expect(page.getByRole('region', { name: 'No postings' })).toBeVisible();
-    await expect(page.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
+    // Signed out, Review is its sign-in line (#755): no posting read, no scan, no Scan now.
+    await expect(page.getByText('Sign in to see new postings.')).toBeVisible();
     await page.waitForTimeout(3000);
-    expect(asked.filter((u) => u.includes('yc-oss.github.io'))).toEqual([]);
-    const since = await page.evaluate(() => Date.now());
-    await accountMenuItem(page, 'Scan now');
+    // The analytics script is not a read of postings.
+    expect(asked.filter((u) => new URL(u).hostname !== 'va.vercel-scripts.com')).toEqual([]);
+    await page.getByRole('button', { name: /^Account/ }).click();
+    await expect(page.getByRole('menuitem', { name: 'Search profile' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
+  });
+
+  test(`signed in the scan on open finds the postings (${width})`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width, height: 900 });
+    await signInAtBoot(page);
+    await network(page);
+    const since = Date.now();
+    await page.goto('/#/review');
     await scanFinished(page, since);
-    // The scan's line is Scan details, in the Account menu's Search profile (#549).
-    const details = await openScanDetails(page);
-    await expect(
-      details.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d, \d+ new$/),
-    ).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(details).toBeHidden();
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(list.getByText('Senior Design Systems Engineer')).toBeVisible();
     // Remote only (Adrian 2026-10-28): Acme's on-site role is left out.
@@ -149,16 +145,13 @@ for (const width of [390, 1440]) {
   });
 }
 
-test('Scan now runs again and Follow moves Acme into the followed boards (390)', async ({
-  page,
-}) => {
+test('signed in, Follow moves a found company into the followed boards (390)', async ({ page }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 900 });
+  await signInAtBoot(page);
   await network(page);
+  const since = Date.now();
   await page.goto('/#/review');
-  await page.evaluate(seedTrack);
-  const since = await page.evaluate(() => Date.now());
-  await accountMenuItem(page, 'Scan now');
   await scanFinished(page, since);
 
   // Found companies are the Companies dialog's Found list (#618).
@@ -180,16 +173,5 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
     page.getByRole('list', { name: 'New postings' }).getByText('Senior Design Systems Engineer'),
   ).toBeVisible();
 
-  const again = await page.evaluate(() => Date.now());
-  await accountMenuItem(page, 'Scan now');
-  // While it runs the Account menu offers Stop scan in its place.
-  await page.getByRole('button', { name: /^Account/ }).click();
-  await expect(page.getByRole('menuitem', { name: 'Stop scan' })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: 'Scan now' })).toHaveCount(0);
-  await page.keyboard.press('Escape');
-  await scanFinished(page, again);
-  // When it last scanned is Scan details' line only (#694).
-  const details = await openScanDetails(page);
-  await expect(details.getByText(/· Last scanned \d\d:\d\d, \d+ new$/)).toBeVisible();
   await page.keyboard.press('Escape');
 });

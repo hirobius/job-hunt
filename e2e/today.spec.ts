@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { seed, topTab, openAllJobs } from './routes';
 
 // The final shell (simplify #383 + Q6; #471): two tabs, Find and Apply. Find, in order: the scan's
@@ -26,8 +26,9 @@ for (const width of [390, 1440]) {
     ]);
     // No More menu on Find (#694): Scan now and Search profile are the Account menu's.
     await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
-    const panels = page.getByRole('main').getByRole('region');
-    await expect(panels.nth(0)).toHaveAccessibleName(/^New postings$/);
+    // Signed out, Review is its sign-in line (#755): no posting list.
+    await expect(page.getByText('Sign in to see new postings.')).toBeVisible();
+    await expect(page.getByRole('list', { name: 'New postings' })).toHaveCount(0);
     await expect(page.getByRole('region', { name: /^Follow up/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Start applying/ })).toHaveCount(0);
     // No posting here (every host is aborted): the list alone says so at every width, and at lg

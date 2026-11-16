@@ -703,8 +703,13 @@ p {
   align-items: center;
   /* Room for the animated logo (its flame is taller than the still one), so the bar never jumps when it
    * loads; and the home link's 44px target (#620), which this box is: the link around it is inline.
-   * Its colour is the page's, not a link's. */
-  min-height: max(calc(var(--rjb-logo-size) * 1.95), var(--rjb-touch));
+   * Its colour is the page's, not a link's.
+   * A fixed height, not a minimum, and layout containment (Adrian 2026-11-16, an iPhone recording:
+   * the page under the bar moved 3-5px from frame to frame while the flame burned): nothing the
+   * live flame or its letters do inside this box can change the bar's height. Ink still draws past
+   * it (no paint containment, no clip). e2e/flame-box.spec.ts checks the bar over many frames. */
+  block-size: max(calc(var(--rjb-logo-size) * 1.95), var(--rjb-touch));
+  contain: layout;
   color: var(--semantic-color-content-primary);
   gap: calc(var(--rjb-logo-size) * 0.3);
 }
@@ -712,6 +717,11 @@ p {
   --rjb-flame-1: var(--primitive-color-blue-500);
   --rjb-flame-2: var(--primitive-color-cobalt-400);
   --rjb-flame-3: var(--primitive-color-cobalt-200);
+  /* Never a scroll anchor (Adrian 2026-11-16, an iPhone recording: Review, scrolled a little, the
+     whole page moved 3-5px from frame to frame). WebKit's scroll anchoring chose the live flame, whose
+     ink box changes on every frame, and moved the scroll position to follow it. This leaves the
+     flame and everything in it out of anchor selection (CSS Scroll Anchoring). */
+  overflow-anchor: none;
   display: inline-flex;
   flex: none;
   line-height: 0;
@@ -801,6 +811,8 @@ p {
   --rjb-rf-1: var(--primitive-color-blue-500);
   --rjb-rf-2: var(--primitive-color-cobalt-400);
   --rjb-rf-3: var(--primitive-color-cobalt-200);
+  /* Never a scroll anchor: see .rjb-flame above. */
+  overflow-anchor: none;
   display: inline-flex;
   align-items: center;
   gap: 0.3em;

@@ -1,5 +1,7 @@
-import { test, expect, type Page } from '@playwright/test';
-import { accountMenuItem } from './routes';
+import { test, expect, type Page } from './fixtures';
+
+// Review reads postings only for a signed-in visitor (#755).
+test.use({ signedIn: true });
 
 // Find's detail shows a posting's FULL description with its structure (2026-11-13, Adrian on
 // Ramp's Ashby postings: cut with "…", headings and lists flattened). A mocked Ashby board answers
@@ -55,7 +57,6 @@ test('the detail shows the whole description, structured, no ellipsis (1440)', a
   await feed(page);
   await page.goto('/#/review');
   await expect(page.getByRole('region', { name: 'New postings' })).toBeVisible({ timeout: 30_000 });
-  await accountMenuItem(page, 'Scan now');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Design Systems Engineer' }),
   ).toBeVisible({

@@ -1,23 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
-// CloudSync instantiates a Supabase client at module load; stub it so App can render in jsdom
-// without any network or real config. We only need the auth listener + a no-op query surface.
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
-    auth: {
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      getSession: async () => ({ data: { session: null } }),
-      signOut: async () => {},
-      signInWithOtp: async () => ({}),
-    },
-    from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
-      upsert: async () => ({}),
-      delete: () => ({ eq: async () => ({}) }),
-    }),
-  }),
-}));
+// One fake Supabase for the file, made before any test, so a test can sign it in before boot.
+const h = await vi.hoisted(async () => {
+  const { createFakeSupabase } = await import('./test/fakeSupabase');
+  return { fake: createFakeSupabase() };
+});
+vi.mock('@supabase/supabase-js', () => ({ createClient: () => h.fake.client }));
 
 import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
@@ -26,9 +15,12 @@ import { currentTab, queryCurrentTab, topTab, topTabs } from './test/topTabs';
 import { BRAND } from './brand';
 import { setScanDetails } from './feed/scanDetails';
 import { addJob, getAllJobs, removeJob } from './store';
+import { signInAtBoot } from './test/signedIn';
 
 beforeEach(() => {
   window.location.hash = '';
+  localStorage.clear();
+  h.fake.reset();
 });
 afterEach(() => {
   cleanup();
@@ -178,7 +170,17 @@ describe('the one-row app bar (#548)', () => {
     expect(screen.getAllByRole('navigation', { name: 'Sections' })).toHaveLength(1);
   });
 
-  it('Review shows its count, Apply none (2026-11-13)', async () => {
+  it('signed out, Review shows no count (#755)', async () => {
+    setScanDetails({ failed: [], hidden: [], newToday: 7, sourcesRead: 3 });
+    window.location.hash = '#/apply';
+    renderApp();
+    await screen.findByRole('navigation', { name: 'Sections' });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(topTab('Review').textContent).toBe('Review');
+  });
+
+  it('signed in, Review shows its count, Apply none (2026-11-13)', async () => {
+    signInAtBoot(h.fake);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     setScanDetails({ failed: [], hidden: [], newToday: 7, sourcesRead: 3 });
     window.location.hash = '#/apply';

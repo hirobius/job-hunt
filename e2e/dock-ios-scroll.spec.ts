@@ -1,4 +1,4 @@
-import { test, expect, devices, type Page } from '@playwright/test';
+import { test, expect, devices, type Page } from './fixtures';
 import { seed } from './routes';
 
 // The dock stays on the viewport's bottom through scroll and overscroll (fix/dock-ios-scroll).

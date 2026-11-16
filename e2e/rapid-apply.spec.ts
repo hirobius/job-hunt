@@ -1,5 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { topTab, pressAllJobs } from './routes';
+
+// Review reads postings only for a signed-in visitor (#755).
+test.use({ signedIn: true });
 
 // The rapid-apply loop end to end: save from Review new on Today, see where the saves went,
 // then walk the Apply list until nothing is left to apply to and everything waits on a follow-up.

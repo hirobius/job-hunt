@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 // Find / Apply ink sits at the segment's centre (port of HDS tests/visual/
 // segmented-control-centering.spec.ts, hds#1461): the label's ink box, from a Range's content box

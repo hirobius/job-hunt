@@ -1,5 +1,8 @@
-import { test, expect, type Page } from '@playwright/test';
-import { accountMenuItem, PROD_URL, topTab } from './routes';
+import { test, expect, type Page } from './fixtures';
+import { PROD_URL, topTab } from './routes';
+
+// Review reads postings only for a signed-in visitor (#755).
+test.use({ signedIn: true });
 
 // Browse renders a window of ~100 cards (memory audit 2026-11-13, useWindowedList): with 320
 // postings loaded the DOM holds at most ~120 cards, the page's height holds (spacers), scroll comes
@@ -66,7 +69,6 @@ test('Browse at 390 keeps a window of cards and the page height, scroll and focu
   test.setTimeout(180_000);
   await feed(page);
   await page.goto(`${PROD_URL}/#/review`);
-  await accountMenuItem(page, 'Scan now');
   const list = page.getByRole('list', { name: 'New postings' });
   await expect(list.getByRole('link', { name: /Design Systems Engineer 0\b/ })).toBeVisible({
     timeout: 60_000,

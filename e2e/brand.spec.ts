@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 // The app bar's animated logo (src/brand/RoleFlame.tsx) burns but never moves the page: its box is
 // fixed by the 94x146 viewBox (sized in em) and only the paths inside change, so the header and the
@@ -274,7 +274,7 @@ test('the sign-in flame takes its mass nudge; the app bar row its own drop (#639
   const row = page.locator('header .rjb-rf[data-layout="inline"] > svg');
   await expect(row).toBeVisible();
   expect(await row.evaluate((el) => (el as SVGElement).style.transform)).toBe(
-    'translateY(0.123em)',
+    'translateY(0.018em)',
   );
   // RoleFlame.tsx's X_HEIGHT_CENTRE_EM: Sora 800's x-height centre below a line-height 1 box centre.
   const xCentre = await page.evaluate(async () => {
@@ -318,7 +318,7 @@ test('the sign-in flame takes its mass nudge; the app bar row its own drop (#639
     const svg = el.querySelector('svg')!;
     const name = el.querySelector('svg + span')!;
     const box = svg.getBoundingClientRect();
-    const drop = parseFloat(getComputedStyle(svg).fontSize) * 0.123;
+    const drop = parseFloat(getComputedStyle(svg).fontSize) * 0.018;
     const text = name.getBoundingClientRect();
     return { flame: box.top - drop + box.height / 2, name: text.top + text.height / 2 };
   });

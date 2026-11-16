@@ -8,6 +8,7 @@ import { configure } from '@testing-library/react';
 import { resetTabMemory } from '../tabMemory';
 import { resetViewMemory } from '../viewMemory';
 import { resetHistoryRecord } from '../route';
+import { firstSignInAsk, resetSignInAsk } from '../signInAsked';
 import { resetTabAccount } from '../tabAccount';
 import { resetAnswerGuard } from '../answerGuard';
 import { resetGoogleSignIn } from '../account/googleSignInFlag';
@@ -74,3 +75,10 @@ globalThis.ResizeObserver ??= class {
   unobserve() {}
   disconnect() {}
 };
+// A signed-out Review opens the sign-in screen once a page load (#755). Tests start as if it was
+// already asked, so a test about something else is not covered by it; a test of that screen calls
+// resetSignInAsk() first (todayHome.test.tsx).
+beforeEach(() => {
+  resetSignInAsk();
+  firstSignInAsk();
+});

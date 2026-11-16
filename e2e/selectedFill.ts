@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import type { Locator } from './fixtures';
 
 /** How a selected / current item is drawn (#603): a fill only, no edge, ring or outline; a fill
  *  that differs from the unselected item beside it, from that item while hovered (a hovered row

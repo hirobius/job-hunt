@@ -147,9 +147,10 @@ test.use({ viewport: { width: 390, height: 844 } });
 // A full read of every starter board, each list answering late, takes a while.
 test.setTimeout(300_000);
 
-for (const who of ['signed out', 'signed in'] as const) {
+// Signed out, Review reads nothing (#755, review-sign-in.spec.ts), so only a signed-in Review loads.
+for (const who of ['signed in'] as const) {
   test(`Review never flashes its empty state while it loads (${who})`, async ({ page }) => {
-    if (who === 'signed in') await fakeSupabase(page);
+    await fakeSupabase(page);
     // The boards answer only once the test opens the gate (after DELAY more).
     const gate = { open: Promise.resolve() };
     await feed(page, DELAY, gate);
