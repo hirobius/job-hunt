@@ -10,6 +10,7 @@
 import { cleanPlace } from './cleanPlace';
 import {
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -18,6 +19,8 @@ import {
   type ReactNode,
 } from 'react';
 import { setScanDetails } from './feed/scanDetails';
+import { lastServerIds } from './feed/serverFeed';
+import { CloudSyncContext } from './account/accountContext';
 import { hiddenParts } from './feed/scanDetailsText';
 import {
   Badge,
@@ -111,15 +114,20 @@ export default function ReviewView({
   const feed = useFeed();
   const { view } = feed;
   // The Account menu's Scan details read what this view last read (Adrian 2026-11-08).
+  const signedIn = !!useContext(CloudSyncContext)?.user;
   useEffect(() => {
     if (!view) return;
+    // The parity count (#756): signed in, rows from the server against rows only this browser found.
+    const ids = lastServerIds();
+    const server = signedIn ? view.rows.filter((r) => ids.has(r.id)).length : 0;
     setScanDetails({
       failed: view.failed,
       hidden: hiddenParts(view.hidden),
       newToday: view.newToday,
       sourcesRead: view.sourcesRead,
+      ...(signedIn && { parity: { server, browserOnly: view.rows.length - server } }),
     });
-  }, [view]);
+  }, [view, signedIn]);
   const kept = (k: string) => `review:${k}`;
   // No filters on Review (Adrian 2026-11-13): it follows the Search profile's work mode only
   // (remote by default); an older remembered New or Remote filter is not read.
@@ -409,7 +417,10 @@ export default function ReviewView({
     <PostingDetail
       key={selected?.fingerprint ?? selectedFp ?? 'none'}
       r={selected}
-      waiting={(!!selectedFp && !selected && (feed.loading || !view)) || (!selectedFp && (!view || reading))}
+      waiting={
+        (!!selectedFp && !selected && (feed.loading || !view)) ||
+        (!selectedFp && (!view || reading))
+      }
       wide={wide}
       now={feed.at}
       actions={detailActions}

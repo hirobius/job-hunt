@@ -48,6 +48,16 @@ const boardKeys = (urls: string[]) =>
     }),
   );
 
+/** The ids of the postings the last server read gave (the parity count in Scan details, #756): a
+ *  row in Review whose id is not here is one only this browser found. */
+let serverIds = new Set<string>();
+export const lastServerIds = (): ReadonlySet<string> => serverIds;
+
+/** A reader that reads nothing: the server-only path's fallback (#756, browser scans off). */
+export const noReader: PostingReader = {
+  read: async () => ({ postings: [], sources: [] }),
+};
+
 /** Server rows first, the ones the request asks for (its boards; its feeds when it searches a
  *  title); the browser read when the server has none or can't be read. Says its progress once, as
  *  a read that answered whole. */
@@ -58,8 +68,12 @@ export function serverFirstReader(
   return {
     async read(req, onProgress) {
       const rows = await load().catch(() => null);
-      if (!rows || !rows.length) return fallback.read(req, onProgress);
+      if (!rows || !rows.length) {
+        serverIds = new Set();
+        return fallback.read(req, onProgress);
+      }
       const result = resultFromRows(rows.filter((r) => rowInRequest(r, req)));
+      serverIds = new Set(result.postings.map((p) => p.id));
       const boards = req.boardUrls.length;
       onProgress?.({ ...result, boardsDone: boards, boardsTotal: boards });
       return result;
