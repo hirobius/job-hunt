@@ -80,7 +80,8 @@ describe('a first visit', () => {
     expect(getSources()).toHaveLength(seedSources().length);
     expect(seedSources().length).toBeGreaterThan(20);
     expect(window.location.hash).toBe('#/review');
-    expect(await screen.findByRole('region', { name: /^New postings$/ })).toBeInTheDocument();
+    // Signed out, Review is its sign-in line (#755).
+    expect(await screen.findByText('Sign in to see new postings.')).toBeInTheDocument();
     // No setup screen and no step counter anywhere.
     expect(screen.queryByText('Set up your search')).toBeNull();
     expect(screen.queryByRole('progressbar', { name: /^Step / })).toBeNull();
@@ -100,13 +101,13 @@ describe('a first visit', () => {
     renderApp();
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(screen.queryByText('Set up your search')).toBeNull();
-    expect(await screen.findByRole('region', { name: /^New postings$/ })).toBeInTheDocument();
+    expect(await screen.findByText('Sign in to see new postings.')).toBeInTheDocument();
   });
 
   it('keeps a profile that is already there', async () => {
     saveProfile({ titles: ['Design Systems Lead'], mode: 'hybrid' });
     renderApp();
-    await screen.findByRole('region', { name: /^New postings$/ });
+    await screen.findByText('Sign in to see new postings.');
     expect(getProfile()).toMatchObject({ titles: ['Design Systems Lead'], mode: 'hybrid' });
     // No starter companies followed over it (the keyless feeds are the move's own).
     expect(getSources().filter((x) => x.kind !== 'feed')).toEqual([]);
@@ -197,7 +198,7 @@ describe('Account menu → Search profile, opened before the profile arrives', (
 describe('a11y', () => {
   it('the first visit has no WCAG A/AA violations', async () => {
     const { container } = renderApp();
-    await screen.findByRole('region', { name: /^New postings$/ });
+    await screen.findByText('Sign in to see new postings.');
     const r = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });

@@ -78,35 +78,21 @@ for (const width of [390, 1440]) {
   });
 }
 
-// #694: no More menu on Find. Scan now (signed out) sits in the Account menu beside Search profile;
-// Find has no filter row or view switch (2026-11-13). No Scan now key on the page.
-test('signed out: Scan now is in the Account menu, beside Search profile (390)', async ({
-  page,
-}) => {
+// #694: no More menu on Find. Signed out (#755), Review reads nothing and nothing scans: no Scan
+// now on the page or in the Account menu.
+test('signed out: no Scan now on the page or in the Account menu (390)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/review');
-  const review = page.getByRole('region', { name: /^New postings$/ });
-  await expect(review.getByRole('region', { name: 'No postings' })).toBeVisible({
-    timeout: 15_000,
-  });
-  // No postings shown: no pager (2026-11-13).
-  await expect(review.getByRole('group', { name: 'Postings in the list' })).toHaveCount(0);
-  // No Scan now key on the page outside the empty state's own key (#694).
-  const empty = review.getByRole('region', { name: 'No postings' });
-  await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(
-    await empty.getByRole('button', { name: 'Scan now' }).count(),
-  );
+  await page.getByRole('button', { name: 'Continue without an account' }).click();
+  await expect(page.getByText('Sign in to see new postings.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Scan now' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^More: scan/ })).toHaveCount(0);
   // The h1 stays for screen readers (sr-only).
   await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toHaveClass(/sr-only/);
   await page.getByRole('button', { name: /^Account/ }).click();
   // The rows are their own chunk: wait for them.
-  await expect(page.getByRole('menuitem', { name: 'Scan now' })).toBeVisible();
-  const items = page.getByRole('menu').getByRole('menuitem');
-  const names = await items.allInnerTexts();
-  const at = names.findIndex((n) => n.trim() === 'Search profile');
-  expect(names[at + 1]?.trim()).toBe('Scan now');
-  // The scan line is Scan details' alone: none in the menu.
+  await expect(page.getByRole('menuitem', { name: 'Search profile' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
   await expect(page.getByRole('menu').getByText(/^Scanned |^Last scanned/)).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.getByText(/^Updated |^Not scanned|^Sign in for automatic/)).toHaveCount(0);

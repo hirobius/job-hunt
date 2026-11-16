@@ -5,9 +5,13 @@
 import { CountBadge } from './CountBadge';
 import './TopTabCount.css';
 import { useScanDetails } from './feed/scanDetails';
+import { useCloudSync } from './account/accountContext';
 
 export default function TopTabCount() {
+  // Signed out, Review reads nothing, so it has no count (#755).
+  const signedIn = !!useCloudSync().user;
   const n = useScanDetails()?.newToday ?? 0;
+  if (!signedIn) return null;
   return n > 0 ? (
     <>
       {' '}

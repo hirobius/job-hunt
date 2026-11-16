@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 // The app bar's animated logo (src/brand/RoleFlame.tsx) burns but never moves the page: its box is
 // fixed by the 94x146 viewBox (sized in em) and only the paths inside change, so the header and the

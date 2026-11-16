@@ -7,7 +7,7 @@
 // states, overlays (HDS 0.31 gives them a hairline), table and list row dividers (one side only)
 // and feedback tones (alerts, status).
 // Local only: `npm run test:e2e`.
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { seed, visitAll } from './routes';
 import { FILL_ONLY, selectionStyle } from './selectedFill';
 

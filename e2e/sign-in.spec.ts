@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 // Sign-in on a phone (2026-10-17): with the iOS keyboard up only ~400px of a 390px-wide phone is
 // visible. The sign-in screen (full screen since 2026-10-29) covers the layout viewport, its
@@ -356,6 +356,9 @@ test('the legal line opens Privacy and terms on its tab, over the sign-in screen
     'aria-selected',
     'true',
   );
+  // Escape goes to the dialog that holds focus: wait until Privacy and terms has taken it (its
+  // chunk loads on the click), or the press reaches the sign-in screen first.
+  await expect.poll(() => legal.evaluate((d) => d.contains(document.activeElement))).toBe(true);
   await page.keyboard.press('Escape');
   await expect(legal).toHaveCount(0);
   await expect(dialog).toBeVisible();

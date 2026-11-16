@@ -1,7 +1,7 @@
 // Design polish probe (#133): axe on every route, light and dark, 1440 and 390; at 390 a touch-target
 // probe; and a computed-style sweep (no uppercase, no running transition under reduced motion).
 // Local only (no Actions): `npm run test:e2e`. axe-core comes with vitest-axe, so no new dependency.
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { createRequire } from 'node:module';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
@@ -31,7 +31,7 @@ async function seed(page: Page) {
   await expect(page.getByRole('region', { name: 'Messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/review');
-  await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
+  await expect(page.getByText('Sign in to see new postings.')).toBeVisible(); // signed out (#755)
 }
 
 async function go(page: Page, hash: string) {

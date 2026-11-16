@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 // One Find box (#384), reached from the Pipeline's Add job dialog until Today hosts it: a pasted
 // job link saves the job; a board is followed at once; a title joins the Search profile (a first

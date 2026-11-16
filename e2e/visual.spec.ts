@@ -8,7 +8,7 @@
 // They capture the reduced-motion render only (reducedMotion: 'reduce' below): the animated logo
 // held on frame 0. Its motion is covered by e2e/brand.spec.ts and src/brand/roleFlameMotion.test.tsx.
 import { existsSync, readFileSync } from 'node:fs';
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { ROUTES, go, openJob, seed } from './routes';
 import visualEnv from './visual-env.json' with { type: 'json' };
 

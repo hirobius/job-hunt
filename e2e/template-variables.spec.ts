@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 
 // #221 on the Documents library (#227): an Outreach message's variables are atomic chips, driven
 // by keyboard only, at a phone and a desk width. The text is a draft until Save; the preview shows

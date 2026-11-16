@@ -15,9 +15,12 @@ let seeding = false;
 export function TrySampleButton({
   size = 'md',
   link = false,
+  label = 'Try with sample data',
   onLoaded,
 }: {
   size?: 'sm' | 'md';
+  /** The key's words: "Try a demo" on the signed-out Review (#755). */
+  label?: string;
   /** Called once the sample is in: the button leaves with the empty state, so the mount moves
    *  focus (#345). */
   onLoaded?: () => void;
@@ -49,7 +52,7 @@ export function TrySampleButton({
           });
       }}
     >
-      Try with sample data
+      {label}
     </Button>
   );
 }

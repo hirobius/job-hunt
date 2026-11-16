@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
+import { signInAtBoot } from './fixtures';
 import { seed, listScope, topTab } from './routes';
 
 // Three controls Adrian approved (2026-11-09), at 390 and 1440: Find / Apply drawn as an HDS
@@ -50,7 +51,7 @@ for (const width of [390, 1440]) {
 
     test('Review shows its count, Apply none (2026-11-13)', async ({ page }) => {
       await manyPostings(page, 12);
-      await seed(page);
+      await signInAtBoot(page); // Review reads postings only signed in (#755)
       await page.goto('/#/review');
       const nav = page.getByRole('navigation', { name: 'Sections' });
       await expect(nav.getByRole('link', { name: /^Review/ })).toHaveAccessibleName('Review 12');
@@ -59,7 +60,7 @@ for (const width of [390, 1440]) {
     });
 
     test('Find: one list, no view switch and no filter row (2026-11-13)', async ({ page }) => {
-      await seed(page);
+      await signInAtBoot(page); // Review reads postings only signed in (#755)
       await page.goto('/#/review');
       // Postings or the empty state (at lg the right column's), whichever the reads give.
       const list = page.getByRole('list', { name: 'New postings' });
@@ -119,7 +120,7 @@ for (const width of [320, 375, 390, 414]) {
   test(`Review | Apply: equal segments, a 99+ count, fit at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await manyPostings(page, 120);
-    await seed(page);
+    await signInAtBoot(page); // Review reads postings only signed in (#755)
     await page.goto('/#/review');
     const nav = page.getByRole('navigation', { name: 'Sections' });
     const review = nav.getByRole('link', { name: /^Review/ });

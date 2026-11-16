@@ -11,7 +11,7 @@
 //   - no italic text (HDS 0.30's EmptyState title is italic; hds-gaps/EmptyState resets it)
 //   - a back link's arrow sits on the page heading's left edge (no tertiary inset)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures';
 import { seed, visitAll, listScope, topTab } from './routes';
 
 const THEMES = ['light', 'dark'] as const;

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { JOB_LINK, listScope, openJob, seed, topTab } from './routes';
 
 // #593 item 8 (Adrian 2026-11-11): every Undo puts the item back and leaves the person on the page
@@ -31,7 +31,7 @@ for (const width of [390, 1440] as const) {
       // Undo never navigates: still on Find, focus not dropped to <body>.
       await page.waitForTimeout(600);
       await expect(page).toHaveURL(/#\/review$/);
-      await expect(page.getByRole('region', { name: /^New postings$/ })).toBeVisible();
+      await expect(page.getByText('Sign in to see new postings.')).toBeVisible(); // signed out (#755)
       await expect
         .poll(() => page.evaluate(() => document.activeElement !== document.body))
         .toBe(true);
