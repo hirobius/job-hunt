@@ -281,6 +281,20 @@ describe('job page Notes (#130 slice 2; one page since #416)', () => {
     expect(getAllJobs()[0].notes).toBe('Ask about the shop floor');
   });
 
+  it('Copy puts the field’s text on the clipboard, saved or not; off while empty (2026-11-16)', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const copy = screen.getByRole('button', { name: 'Copy' });
+    expect(copy).toBeDisabled();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Notes' }), 'Ask about the team');
+    expect(copy).toBeEnabled();
+    await userEvent.click(copy);
+    expect(writeText).toHaveBeenCalledWith('Ask about the team');
+    expect(await screen.findByText('Notes copied')).toBeInTheDocument();
+  });
+
   it('Notes is never lost: saved on leaving the page, even without a blur or Save', async () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');

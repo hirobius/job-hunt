@@ -36,7 +36,9 @@ The job page: keys by state, the action dock, title block, notes, links, dates, 
   on its Save key (HDS secondary, on only while there are unsaved changes) and still on blur, tab hide, pagehide and
   unmount; beside the key a caption `role="status"` (polite) says "Saved to this job" after a save, empty again on the
   next edit (`notesSave.ts` `NOTES_STATUS`). "From when you saved it: …" shows the older `note` only when Notes does
-  not already hold its text (`olderNoteLine`). Pinned in `notesSave.test.ts`, `jobPage.test.tsx`.
+  not already hold its text (`olderNoteLine`). **Copy** (Adrian 2026-11-16) is a second grey key beside Save: it copies
+  what the field shows, saved or not (`templateCopy.ts`; a failed copy's toast holds the text), off while the field is
+  empty, "Notes copied" on success. Pinned in `notesSave.test.ts`, `jobPage.test.tsx`.
 - **Title block (redesign §5.5, #538):** `JobTitleBlock` in `JobHeader.tsx`: title (h1, `typography.title`,
   `rjb-break`), company or "Company not stated", HDS `Card.Facts` (place, pay or "Pay not stated", date), then
   `dueBadgeOf` (`jobDates.ts`) as an amber `src/hds-gaps/IconBadge.tsx` (G6, hds#1437) for Closing soon or
