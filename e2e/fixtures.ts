@@ -3,7 +3,7 @@
 // and this device already that account's (no "add this device's data?" question). A spec's own
 // routes win over these (Playwright tries the last-registered route first). Signed out (the
 // default) the app is as before, and the sample data is offered on Apply.
-import { test as base, type Page, type Route } from '@playwright/test';
+import { test as base, type BrowserContext, type Page, type Route } from '@playwright/test';
 
 export * from '@playwright/test';
 
@@ -52,14 +52,19 @@ export async function signInAtBoot(page: Page): Promise<void> {
   );
 }
 
+/** The sign-in screen opens on its own once a tab session over a signed-out Review (#755). A spec
+ *  about something else starts as if it was already asked; a spec that makes its own context
+ *  (`browser.newContext()`) calls this on it. */
+export async function skipSignInAsk(target: Page | BrowserContext): Promise<void> {
+  await target.addInitScript(() => sessionStorage.setItem('rjb_sign_in_asked', '1'));
+}
+
 export const test = base.extend<{ signedIn: boolean }>({
   signedIn: [false, { option: true }],
   page: async ({ page, signedIn }, provide) => {
     if (signedIn) await signInAtBoot(page);
-    // The sign-in screen opens on its own once a tab session over a signed-out Review (#755);
-    // a spec about something else starts as if it was already asked (review-sign-in.spec.ts
-    // tests that screen, from '@playwright/test').
-    else await page.addInitScript(() => sessionStorage.setItem('rjb_sign_in_asked', '1'));
+    // review-sign-in.spec.ts tests that screen, from '@playwright/test'.
+    else await skipSignInAsk(page);
     await provide(page);
   },
 });

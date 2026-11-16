@@ -356,6 +356,9 @@ test('the legal line opens Privacy and terms on its tab, over the sign-in screen
     'aria-selected',
     'true',
   );
+  // Escape goes to the dialog that holds focus: wait until Privacy and terms has taken it (its
+  // chunk loads on the click), or the press reaches the sign-in screen first.
+  await expect.poll(() => legal.evaluate((d) => d.contains(document.activeElement))).toBe(true);
   await page.keyboard.press('Escape');
   await expect(legal).toHaveCount(0);
   await expect(dialog).toBeVisible();

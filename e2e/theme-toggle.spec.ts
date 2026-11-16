@@ -1,4 +1,5 @@
 import { test, expect, type Page } from './fixtures';
+import { skipSignInAsk } from './fixtures';
 
 // #688: the app bar's HDS ThemeToggle (left of the Account avatar, 44px) is the one theme switch.
 // With motion the new theme burns in from the press (a View Transition held open for the burn);
@@ -218,6 +219,8 @@ for (const dpr of [2, 3])
       deviceScaleFactor: dpr,
       reducedMotion: 'no-preference',
     });
+    // Its own context: the sign-in screen would open over Review (#755) and hold the toggle.
+    await skipSignInAsk(ctx);
     const page = await ctx.newPage();
     const toggle = await open(page);
     await page.evaluate(() => window.scrollTo(0, 400));

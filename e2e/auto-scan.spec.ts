@@ -95,7 +95,8 @@ for (const width of [390, 1440]) {
     // Signed out, Review is its sign-in line (#755): no posting read, no scan, no Scan now.
     await expect(page.getByText('Sign in to see new postings.')).toBeVisible();
     await page.waitForTimeout(3000);
-    expect(asked.filter((u) => !u.includes('vercel-scripts.com'))).toEqual([]);
+    // The analytics script is not a read of postings.
+    expect(asked.filter((u) => new URL(u).hostname !== 'va.vercel-scripts.com')).toEqual([]);
     await page.getByRole('button', { name: /^Account/ }).click();
     await expect(page.getByRole('menuitem', { name: 'Search profile' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toHaveCount(0);
