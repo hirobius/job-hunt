@@ -23,6 +23,8 @@ export function createFakeSupabase(
     oauthError?: string;
     linkUser?: (email: string) => string;
     tables?: Record<string, Row[]>;
+    /** Signed in from the start: the session a stored `sb-…-auth-token` holds (#755). */
+    session?: { id: string; email: string };
   } = {},
 ) {
   const tables: Record<string, Row[]> = structuredClone(opts.tables ?? {});
@@ -55,7 +57,9 @@ export function createFakeSupabase(
     return { data: null, error: { message: `${op} ${table} failed`, ...(code ? { code } : {}) } };
   };
 
-  let session: { user: { id: string; email: string } } | null = null;
+  let session: { user: { id: string; email: string } } | null = opts.session
+    ? { user: { ...opts.session } }
+    : null;
   // Database functions the "server" has (`installRpc`); any other answers PGRST202, as an
   // unapplied migration does. `delete_my_data` erases every row of the caller (#393).
   const rpcs = new Set<string>();
@@ -178,6 +182,12 @@ export function createFakeSupabase(
       },
       onAuthStateChange(cb: (event: string, s: typeof session) => void) {
         listeners.add(cb);
+        // supabase-js says INITIAL_SESSION to each new listener; the fake says it only while it
+        // holds a session (`opts.session`, `startSignedIn`), so signed-out tests see no extra event.
+        if (session) {
+          const s = session;
+          void Promise.resolve().then(() => listeners.has(cb) && cb('INITIAL_SESSION', s));
+        }
         return { data: { subscription: { unsubscribe: () => listeners.delete(cb) } } };
       },
       /** A magic link's tokens: the "server" knows a token by the email in its payload. */
@@ -230,6 +240,11 @@ export function createFakeSupabase(
     /** Whether a `holdNext` for this table and op is still waiting for its call to arrive. */
     holding(table: string, op: Op): boolean {
       return holds.some((h) => h.table === table && h.op === op);
+    },
+    /** A stored session, as a returning visitor has: no event now; a new listener hears
+     *  INITIAL_SESSION (#755). */
+    startSignedIn(user: { id: string; email: string }) {
+      session = { user: { ...user } };
     },
     signIn(id: string, email = `${id}@example.test`, event = 'SIGNED_IN') {
       session = { user: { id, email } };

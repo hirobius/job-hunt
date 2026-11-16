@@ -12,10 +12,12 @@ import { ToastProvider } from '@hirobius/design-system';
 import type { FeedResult } from './feed/fetchFeed';
 import type { Posting } from './feed/types';
 
-vi.mock('@supabase/supabase-js', async () => {
+// One fake for the file, made before any test, so a test can sign it in before the app boots.
+const h = await vi.hoisted(async () => {
   const { createFakeSupabase } = await import('./test/fakeSupabase');
-  return { createClient: () => createFakeSupabase().client };
+  return { fake: createFakeSupabase() };
 });
+vi.mock('@supabase/supabase-js', () => ({ createClient: () => h.fake.client }));
 const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed/fetchFeed', async (orig) => ({
   ...(await orig<typeof import('./feed/fetchFeed')>()),
@@ -31,6 +33,8 @@ import { getProfile, replaceProfiles, saveProfile } from './profile';
 import { resetScan } from './feed/autoScan';
 import { getAllDecided } from './feed/decided';
 import { topTab, topTabs, currentTab } from './test/topTabs';
+import { signInAtBoot } from './test/signedIn';
+import { resetSignInAsk } from './signInAsked';
 
 const renderApp = () =>
   render(
@@ -41,7 +45,6 @@ const renderApp = () =>
     </ColorModeProvider>,
   );
 
-const section = (name: RegExp) => screen.getByRole('region', { name });
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -68,6 +71,9 @@ const result = (postings: Posting[]): FeedResult => ({
 
 beforeEach(() => {
   localStorage.clear();
+  h.fake.reset();
+  // A new page load: a signed-out Review opens the sign-in screen (#755).
+  resetSignInAsk();
   resetScan();
   saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
   feed.fetchFeed
@@ -94,7 +100,11 @@ describe('the shell: Today and Jobs', () => {
   it('an empty hash lands on Today; the only tabs are Today and Jobs', async () => {
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/review'));
-    expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
+    // Signed out, the sign-in screen opens over Review (#755); Continue without an account.
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Continue without an account' }),
+    );
+    expect(await screen.findByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
     expect(topTabs().map((t) => t.textContent)).toEqual(['Review', 'Apply']);
     expect(currentTab('Review')).toBeInTheDocument();
     expect(document.title).toMatch(/^Review/);
@@ -107,16 +117,20 @@ describe('the shell: Today and Jobs', () => {
       const before = window.history.length;
       renderApp();
       await waitFor(() => expect(window.location.hash).toBe('#/review'));
-      expect(currentTab('Review')).toBeInTheDocument();
-      expect(window.history.length).toBe(before);
+      // The sign-in screen over a signed-out Review hides the page from assistive tech (#755).
+      await screen.findByRole('button', { name: 'Continue without an account' });
+      expect(currentTab('Review', { hidden: true })).toBeInTheDocument();
+      // The one step is the sign-in screen's own (Back closes it), not the redirect's.
+      expect(window.history.length).toBe(before + 1);
     },
   );
 
   it('Find shows Review new only (found companies are in the Companies dialog, #618); Follow up and Apply are on Apply', async () => {
+    signInAtBoot(h.fake);
     seedFound();
     window.location.hash = '#/review';
     renderApp();
-    await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
+    await screen.findByRole('list', { name: 'New postings' });
     const names = within(screen.getByRole('main'))
       .getAllByRole('region')
       .map((r) => r.getAttribute('aria-label')?.replace(/ \(.*$/, ''));
@@ -126,6 +140,7 @@ describe('the shell: Today and Jobs', () => {
   });
 
   it('a first run opens on Today with the design-systems profile, no setup screen', async () => {
+    signInAtBoot(h.fake);
     replaceProfiles([]);
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/review'));
@@ -137,6 +152,10 @@ describe('the shell: Today and Jobs', () => {
   it('the Jobs tab opens the Pipeline, unchanged inside', async () => {
     window.location.hash = '#/review';
     renderApp();
+    // Signed out, the sign-in screen opens over Review (#755); Continue without an account.
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Continue without an account' }),
+    );
     await userEvent.click(topTab('Apply'));
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
     expect(screen.getByRole('heading', { level: 1, name: 'Apply' })).toBeInTheDocument();
@@ -144,36 +163,34 @@ describe('the shell: Today and Jobs', () => {
 });
 
 describe('the auto-scan', () => {
-  // #544: Find's short header is "Find" and one caption ("Scanned 2 h ago"; the new count is the New chip's alone); Sort, Scan now
-  // and Search profile are its one More menu.
-  it('signed out: Scan now is in the header’s More menu, and one caption, no status text', async () => {
+  // Signed out, Review reads nothing (#755): the sign-in screen opens over one line and one
+  // Sign in key; no feed read, no scan, no Scan now in the Account menu, no count on the tab.
+  it('signed out: the sign-in screen, no feed read, no Scan now and no count', async () => {
     const user = userEvent.setup();
     seedScan({ finishedAt: Date.now() - 2 * 3600_000, newCount: 4, sourceCount: 9, found: [] });
     window.location.hash = '#/review';
     renderApp();
-    const review = await screen.findByRole('region', { name: /^New postings$/ });
-    await within(review).findByRole('list', { name: 'New postings' });
-    expect(screen.queryByRole('button', { name: 'Scan now' })).toBeNull();
-    // No date line, no caption and no More (#694): when the sources were scanned is Scan details',
-    // and no count (the chip has it). Scan now and Search profile are the Account menu's.
-    expect(screen.queryByText('Scanned 2 h ago')).toBeNull();
-    expect(screen.queryByText(/^(\d+ new|Nothing new)$/)).toBeNull();
-    expect(screen.queryByRole('button', { name: /^More: scan/ })).toBeNull();
+    await user.click(await screen.findByRole('button', { name: 'Continue without an account' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
+    expect(screen.getByText('Sign in to see new postings.')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'New postings' })).toBeNull();
+    expect(currentTab('Review').textContent).toBe('Review');
     await user.click(screen.getByRole('button', { name: /^Account/ }));
-    expect(await screen.findByRole('menuitem', { name: 'Scan now' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
-    expect(screen.queryByText('Scanned 2 h ago')).toBeNull();
+    expect(await screen.findByRole('menuitem', { name: 'Search profile' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^(Scan now|Stop scan)$/ })).toBeNull();
     await user.keyboard('{Escape}');
-    // Adrian 2026-11-08: the scan's line, the sources unavailable and the "not shown" counts are the
-    // Account menu's Scan details.
+    // The Sign in key opens the sign-in screen again.
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(
-      screen.queryByText(/^Scanning |^Last scanned|^Not scanned|unavailable · details|^Not shown/),
-    ).toBeNull();
+      await screen.findByRole('button', { name: 'Continue without an account' }),
+    ).toBeInTheDocument();
+    expect(feed.fetchFeed).not.toHaveBeenCalled();
   });
 });
 
 describe('Review new on Today', () => {
   it('is the Browse list of every design-system posting, newest first', async () => {
+    signInAtBoot(h.fake);
     feed.fetchFeed.mockResolvedValue(
       result([
         post('hn:1', 'Design Systems Designer', 'Acme', { postedAt: daysAgo(3).toISOString() }),
@@ -183,7 +200,7 @@ describe('Review new on Today', () => {
     );
     window.location.hash = '#/review';
     renderApp();
-    const ul = await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
+    const ul = await screen.findByRole('list', { name: 'New postings' });
     const titles = within(ul)
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent?.replace(/\u2060/g, '').replace(/\s*\(opens in new tab\)$/, ''));
@@ -191,9 +208,10 @@ describe('Review new on Today', () => {
   });
 
   it('below lg there is no posting page: the title is the link out to the posting', async () => {
+    signInAtBoot(h.fake);
     window.location.hash = '#/review';
     renderApp();
-    const ul = await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
+    const ul = await screen.findByRole('list', { name: 'New postings' });
     const card = within(ul)
       .getAllByRole('article')
       .find((a) => within(a).queryByText('Beta'))!;
@@ -208,12 +226,13 @@ describe('Review new on Today', () => {
   });
 
   it('at lg the tab opens on the first posting (#546); a pick shows beside the list, in place', async () => {
+    signInAtBoot(h.fake);
     viewport(1280);
     const user = userEvent.setup();
     window.location.hash = '#/review';
     const steps = window.history.length;
     renderApp();
-    const ul = await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
+    const ul = await screen.findByRole('list', { name: 'New postings' });
     // Like Apply's first job (Adrian 2026-11-12): the first posting, its title the page's h1, in
     // place (no history step).
     const first = within(ul).getAllByRole('heading', { level: 3 })[0].textContent!;
@@ -233,6 +252,7 @@ describe('Review new on Today', () => {
   });
 
   it('at lg the first posting waits while a dialog is open over Find (#546)', async () => {
+    signInAtBoot(h.fake);
     viewport(1280);
     window.location.hash = '#/review?documents=';
     renderApp();
@@ -250,6 +270,7 @@ describe('Review new on Today', () => {
   });
 
   it('a decision on the selected posting moves on to the next one', async () => {
+    signInAtBoot(h.fake);
     viewport(1280);
     const user = userEvent.setup();
     window.location.hash = '#/review/beta%3A%3Adesign%20systems%20engineer';
@@ -273,12 +294,13 @@ describe('Review new on Today', () => {
 
 describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
   it('a due follow-up shows under Apply, not on Find', async () => {
+    signInAtBoot(h.fake);
     addJob('https://acme.example.com/jobs/1', 'Designer');
     markAppliedByUrl('https://acme.example.com/jobs/1');
     updateJob('https://acme.example.com/jobs/1', { applied: ymd(daysAgo(9)), company: 'Acme' });
     window.location.hash = '#/review';
     renderApp();
-    await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
+    await screen.findByRole('list', { name: 'New postings' });
     expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
     expect(screen.queryByRole('region', { name: /^Apply/ })).toBeNull();
     await userEvent.click(topTab('Apply'));
@@ -290,11 +312,12 @@ describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
 
 describe('Found companies: the Companies dialog (#618, Adrian 2026-11-12)', () => {
   it('Follow and Ignore each say so with Undo in the dialog; Ignore mutes the company', async () => {
+    signInAtBoot(h.fake);
     const user = userEvent.setup();
     seedFound();
     window.location.hash = '#/review';
     renderApp();
-    await within(section(/^New postings$/)).findByRole('list', { name: 'New postings' });
+    await screen.findByRole('list', { name: 'New postings' });
     await user.click(screen.getByRole('button', { name: 'Account' }));
     await user.click(await screen.findByRole('menuitem', { name: 'Companies' }));
     const dialog = await screen.findByRole('dialog', { name: 'Companies' });

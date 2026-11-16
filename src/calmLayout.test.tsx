@@ -13,13 +13,16 @@ import { openAllJobs } from './test/allJobs';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
 
-vi.mock('@supabase/supabase-js', async () => {
+// One fake for the file, made before any test, so a test can sign it in before the app boots.
+const h = await vi.hoisted(async () => {
   const { createFakeSupabase } = await import('./test/fakeSupabase');
-  return { createClient: () => createFakeSupabase().client };
+  return { fake: createFakeSupabase() };
 });
+vi.mock('@supabase/supabase-js', () => ({ createClient: () => h.fake.client }));
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { signInAtBoot } from './test/signedIn';
 import { addStarterMessages } from './addStarters';
 import { BRAND } from './brand';
 import { getAllJobs, removeJob } from './store';
@@ -64,6 +67,7 @@ const tintedBoxesIn = (el: Element) => el.querySelectorAll('.bg-muted[data-tone]
 
 beforeEach(() => {
   window.location.hash = '';
+  h.fake.reset();
 });
 
 afterEach(() => {
@@ -174,6 +178,8 @@ describe('Pipeline panels (rev-3)', () => {
 
 describe('Today: no cards within cards (#449)', () => {
   it('Review new is a plain section (heading + count), not a card', async () => {
+    // Signed in: Review reads postings only then (#755).
+    signInAtBoot(h.fake);
     viewport(390);
     window.location.hash = '#/review';
     const { container } = renderApp();

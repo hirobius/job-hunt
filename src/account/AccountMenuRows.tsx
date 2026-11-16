@@ -14,7 +14,6 @@ import {
   Pause,
   RefreshCw,
   ShieldCheck,
-  CircleStop,
   Eraser,
   SlidersHorizontal,
   type LucideIcon,
@@ -24,8 +23,6 @@ import { MenuToggleItem } from '../hds-gaps/MenuToggleItem';
 import { openDocuments, openLegal } from '../route';
 import { motionPaused, setMotionPaused } from '../motionPref';
 import { useCloudSync } from './accountContext';
-import { cancelScan, scanNow, useScan } from '../feed/autoScan';
-import { useScanInput } from '../feed/useAutoScan';
 import { SIGN_IN_BENEFIT, SIGN_IN_ITEM, SIGN_IN_STATE } from './signInCopy';
 import { useJobs } from '../store';
 import { isSample } from '../demo/isSample';
@@ -97,7 +94,6 @@ export default function AccountMenuRows({
       </Row>
       {/* Scan now (#694, was Find's More menu): signed out only, as the server syncs every 15
           minutes signed in; Stop scan while one runs. When it last scanned is Scan details'. */}
-      {!sync.user && <ScanRow />}
       <Row icon={Building2} onSelect={opensDialog(openCompanies)}>
         Companies
       </Row>
@@ -119,21 +115,6 @@ export default function AccountMenuRows({
         Privacy and terms
       </Row>
     </>
-  );
-}
-
-/** Scan now, or Stop scan while a scan runs (signed out only). */
-function ScanRow() {
-  const { running } = useScan();
-  const input = useScanInput();
-  return running ? (
-    <Row icon={CircleStop} onSelect={cancelScan}>
-      Stop scan
-    </Row>
-  ) : (
-    <Row icon={RefreshCw} onSelect={() => void scanNow(input, undefined, { force: true })}>
-      Scan now
-    </Row>
   );
 }
 

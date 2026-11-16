@@ -207,7 +207,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.lastElementChild).toHaveTextContent(BRAND.name);
   });
 
-  it('signed out, the account menu is 9 items in 4 groups: who | things | display | about (#549, #694)', async () => {
+  it('signed out, the account menu is 8 items in 4 groups: who | things | display | about (#549, #694, #755)', async () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
@@ -217,8 +217,7 @@ describe('app shell (#115 Phase 1)', () => {
       '---',
       'item:Documents',
       'item:Search profile',
-      // Scan now (#694, was Find's More menu): signed out only; signed in the server syncs.
-      'item:Scan now',
+      // No Scan now (#755): signed out nothing scans, and signed in the server syncs.
       'item:Companies',
       // Data (#550): back up, restore, export and the repairs, in one lazy dialog.
       'item:Data',
