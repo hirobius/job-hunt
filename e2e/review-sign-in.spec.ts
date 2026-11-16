@@ -71,3 +71,23 @@ test('signed out: the Sign in key opens the screen again, and Back closes it', a
   await expect(dialog).toHaveCount(0);
   await expect(page.getByText('Sign in to see new postings.')).toBeVisible();
 });
+
+test('signed out: Try a demo loads the sample jobs here and opens Apply, with no reads', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const requests = outside(page);
+  await page.goto('/#/review');
+  await page.getByRole('button', { name: 'Continue without an account' }).click();
+  const demo = page.getByRole('button', { name: 'Try a demo' });
+  await expect(demo).toHaveAttribute('data-variant', 'secondary');
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toHaveAttribute(
+    'data-variant',
+    'primary',
+  );
+  await demo.click();
+  await expect(page).toHaveURL(/#\/apply$/);
+  await expect(page.locator('a[href^="#/apply/"]').first()).toBeVisible();
+  await page.waitForTimeout(1500);
+  expect(requests.map((r) => r.url())).toEqual([]);
+});

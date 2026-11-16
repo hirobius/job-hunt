@@ -188,6 +188,19 @@ describe('the auto-scan', () => {
   });
 });
 
+describe('Try a demo, signed out (#755, Adrian 2026-11-16)', () => {
+  it('loads the sample jobs on this device and opens Apply, with no feed read', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/review';
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Continue without an account' }));
+    await user.click(await screen.findByRole('button', { name: 'Try a demo' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+    expect(getAllJobs().length).toBeGreaterThan(0);
+    expect(feed.fetchFeed).not.toHaveBeenCalled();
+  });
+});
+
 describe('Review new on Today', () => {
   it('is the Browse list of every design-system posting, newest first', async () => {
     signInAtBoot(h.fake);

@@ -10,6 +10,8 @@ import { Button, Skeleton, Stack, Text } from '@hirobius/design-system';
 import { LogIn } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { firstSignInAsk } from './signInAsked';
+import { TrySampleButton } from './demo/SampleData';
+import { useJobs } from './store';
 import { hasPersistedSession } from './supabase';
 import { Panel, PanelBody } from './PipelinePanel';
 import { FindHeader } from './FindHeader';
@@ -19,9 +21,12 @@ import { useProfile } from './profile';
 import { useCloudSync } from './account/accountContext';
 
 /** Signed out, Review reads nothing (#755, Adrian 2026-11-15): no feed, board, description or
- *  postings read and no scan. One line and one filled key, Sign in, under the sign-in screen. */
+ *  postings read and no scan. One line and one filled key, Sign in, under the sign-in screen;
+ *  with no jobs on this device, the grey Try a demo (Adrian 2026-11-16) loads the sample jobs here,
+ *  with no account and no scan, and opens Apply. */
 export function SignedOutReview() {
   const { authResolved, setSignInOpen } = useCloudSync();
+  const noJobs = useJobs().length === 0;
   useEffect(() => {
     // A stored session is on its way in (its user lands a moment after `authResolved`): no screen.
     if (authResolved && !hasPersistedSession() && firstSignInAsk()) setSignInOpen(true);
@@ -35,9 +40,12 @@ export function SignedOutReview() {
           icon={LogIn}
           title="Sign in to see new postings."
           action={
-            <Button variant="primary" onClick={() => setSignInOpen(true)}>
-              Sign in
-            </Button>
+            <Stack direction="row" gap="px8" justify="center" wrap="wrap">
+              <Button variant="primary" onClick={() => setSignInOpen(true)}>
+                Sign in
+              </Button>
+              {noJobs && <TrySampleButton label="Try a demo" />}
+            </Stack>
           }
         />
       ) : (
