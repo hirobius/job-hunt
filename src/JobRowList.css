@@ -1,4 +1,4 @@
-/* One job row (JobRowList, #543): NavList's link-row look in tokens (body type for the title since 2026-11-15, fixed-xs inline and
+/* One job row (JobRowList, #543): NavList's link-row look in tokens (the titleSm type for the title, as Review's card titles, since 2026-11-16, fixed-xs inline and
    scale-xs block padding, the role radius, surface.hover on hover, the HDS focus ring), with the
    title as the link and its hit area stretched over the row. */
 .rjb-job-row {
@@ -19,10 +19,10 @@
 .rjb-job-row-link {
   color: var(--semantic-color-content-primary);
   text-decoration: none;
-  /* body, one HDS step above ui (Adrian 2026-11-15, with Review's card titles). */
-  font-family: var(--semantic-typography-body-font-family);
-  font-size: var(--semantic-typography-body-font-size);
-  line-height: var(--semantic-typography-body-line-height);
+  /* titleSm (20px), the step Review's card titles use (Adrian 2026-11-16; was body). */
+  font-family: var(--semantic-typography-titleSm-font-family);
+  font-size: var(--semantic-typography-titleSm-font-size);
+  line-height: var(--semantic-typography-titleSm-line-height);
 }
 
 /* The whole row takes the tap. The clamp's overflow would clip it, so the box sits on the row. */

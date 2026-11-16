@@ -53,7 +53,7 @@ code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figm
 
 ## Surfaces
 
-- **The compact Review card (#544).** Title (bold body, 3 lines at most; it opens the posting), company,
+- **The compact Review card (#544).** Title (bold titleSm, 20 px, 3 lines at most; it opens the posting), company,
   the facts, the pay when stated, then Save (filled, plus), Skip (grey) and More (icon). No source
   badge, no New badge, no Show description row, no Open posting key. Radius 12 until HDS G5.
 - **A posting's facts, one per line (#616).** Icon + one fact per line, in one order on every card:
@@ -139,7 +139,7 @@ code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figm
   right.
 - **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
   then the jobs (no search, filters or Sort since 2026-11-13). **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
-  each row is the badge row, the title (two lines at most), the company, the place and one date.
+  each row is the badge row, the title (semibold titleSm, 20 px, as a Review card title; two lines at most), the company, the place and one date.
   **Beside a detail at 1440, a list row is short (2026-11-15):** the badge row (status or due date), the
   title and the company only; the place, pay and posted date are the detail's, never read twice. The
   same on Review: a 1440 list card is the title and the company. Below 1024 px the rows and cards keep
