@@ -125,10 +125,7 @@ function useFlame(animated = true, settings: FlameSettings = FLAME) {
   const on = animated && !reduced;
   // Still (reduced motion, Pause animations): the brand's hand-drawn mark, flame.svg (R5), which sits
   // in the engine's coordinates; a tuner's own settings still show their own first frame.
-  const still = useMemo(
-    () => (settings === FLAME ? STILL_MARK : stillFrame(settings)),
-    [settings],
-  );
+  const still = useMemo(() => (settings === FLAME ? STILL_MARK : stillFrame(settings)), [settings]);
   // One live fire per settings, kept across a pause so a hidden tab resumes where it was.
   const next = useMemo(() => freshEndless(settings), [settings]);
   const ticks = useRef(0);

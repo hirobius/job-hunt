@@ -156,7 +156,9 @@ describe('flame.svg is the hand-drawn still mark, in the engine’s box', () => 
     const fire = pts(stillFrame()[0]);
     expect(Math.abs(Math.max(...mark.ys) - Math.max(...fire.ys))).toBeLessThan(1);
     // (Control points count, so the right tongue's curve pulls the box a unit right.)
-    expect(Math.abs((Math.min(...mark.xs) + Math.max(...mark.xs)) / 2 - FLAME.cx)).toBeLessThan(1.5);
+    expect(Math.abs((Math.min(...mark.xs) + Math.max(...mark.xs)) / 2 - FLAME.cx)).toBeLessThan(
+      1.5,
+    );
     // The same height as the engine's still frame, give or take a unit.
     const tall = (p: { ys: number[] }) => Math.max(...p.ys) - Math.min(...p.ys);
     expect(Math.abs(tall(mark) - tall(fire))).toBeLessThan(1.5);
