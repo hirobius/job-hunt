@@ -94,7 +94,7 @@ describe('reuse of unchanged rejected rows', () => {
       hash.update(readFileSync(`src/tracks/${f}`));
     expect({ rules: SCORE_RULES, files: hash.digest('hex') }).toEqual({
       rules: 2,
-      files: 'c937dcc1127ede3a07a79ac4ccb7fa4fe5e65db044b58e429f86f46c5f8cf7b9',
+      files: 'f342c46a0a21fbb9d46722ec7f0cb66a6ba996da0027e78d85bfb5d0d5892f92',
     });
   });
 });

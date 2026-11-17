@@ -15,9 +15,18 @@ import { readRemoteOk } from './remoteok.ts';
 import { readTheirStack, THEIRSTACK_ENV } from './theirstack.ts';
 import { readWwr } from './wwr.ts';
 import { readFourDayWeek } from './fourdayweek.ts';
+import { readRemoteJobsOrg } from './remotejobsorg.ts';
 
 export type ServerFeed =
-  'arbeitnow' | 'remoteok' | 'wwr' | 'theirstack' | 'adzuna' | 'jooble' | 'ids' | 'fourdayweek';
+  | 'arbeitnow'
+  | 'remoteok'
+  | 'wwr'
+  | 'theirstack'
+  | 'adzuna'
+  | 'jooble'
+  | 'ids'
+  | 'fourdayweek'
+  | 'remotejobsorg';
 export const SERVER_FEEDS: readonly ServerFeed[] = [
   'ids',
   'arbeitnow',
@@ -27,6 +36,7 @@ export const SERVER_FEEDS: readonly ServerFeed[] = [
   'adzuna',
   'jooble',
   'fourdayweek',
+  'remotejobsorg',
 ];
 
 export const SERVER_FEED_READERS: Record<
@@ -41,6 +51,7 @@ export const SERVER_FEED_READERS: Record<
   jooble: readJooble,
   ids: readIntoDesignSystems,
   fourdayweek: readFourDayWeek,
+  remotejobsorg: readRemoteJobsOrg,
 };
 
 /** The server feeds read whole every run (#576 item 11): Remote OK's one list and We Work
@@ -61,6 +72,7 @@ export const SERVER_FEED_GATES: Record<ServerFeed, Gate> = {
   jooble: { env: JOOBLE_ENV },
   ids: { waitsOn: "its operator's yes" },
   fourdayweek: { keyless: true },
+  remotejobsorg: { keyless: true },
 };
 
 type Env = (name: string) => string | undefined;

@@ -33,6 +33,7 @@ export interface NormalizedPosting {
     | 'remoteok'
     | 'wwr'
     | 'fourdayweek'
+    | 'remotejobsorg'
     | 'remotive'
     | 'jobicy'
     | 'hn'

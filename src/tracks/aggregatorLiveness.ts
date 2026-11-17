@@ -36,6 +36,7 @@ export const AGGREGATOR_BOARDS: readonly string[] = [
   'jooble',
   'ids',
   'fourdayweek',
+  'remotejobsorg',
 ];
 
 /** Boards checked per run: each is one list read (Ashby's run ~0.9 MB). */
