@@ -6,6 +6,7 @@
 // description). Lives in the lazy route chunks only (JobPage and Today share it).
 import type { ReactNode } from 'react';
 import { Box, Card, Stack, Text, type CardFact } from '@hirobius/design-system';
+import CompanyLine from './CompanyLine';
 import { ActionDock } from './hds-gaps/ActionDock';
 
 type Facts = CardFact[];
@@ -15,8 +16,8 @@ export function DetailTitleBlock({
   title,
   titleId,
   company,
+  url,
   noCompany,
-  logo,
   facts,
   badges,
 }: {
@@ -26,8 +27,8 @@ export function DetailTitleBlock({
   company?: string;
   /** The line shown when there is no company ("Company not stated"). */
   noCompany: string;
-  /** Beside the company (a job's CompanyLogo). */
-  logo?: ReactNode;
+  /** The posting's link, for the company's mark. */
+  url?: string;
   facts: Facts;
   /** Badges under the facts; nothing renders when it is empty. */
   badges?: ReactNode;
@@ -37,18 +38,7 @@ export function DetailTitleBlock({
       <Text variant="title" as="h1" id={titleId} className="rjb-break">
         {title}
       </Text>
-      <Stack direction="row" gap="px8" align="center">
-        {company && logo}
-        {company ? (
-          <Text variant="ui" as="p">
-            {company}
-          </Text>
-        ) : (
-          <Text variant="ui" as="p" tone="secondary">
-            {noCompany}
-          </Text>
-        )}
-      </Stack>
+      <CompanyLine company={company} url={url} noCompany={noCompany} />
       <Card.Facts className="p-0" items={facts} />
       {badges && (
         <Stack direction="row" wrap="wrap" gap="px8" align="center">
