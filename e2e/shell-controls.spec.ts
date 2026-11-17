@@ -112,6 +112,52 @@ for (const width of [390, 1440]) {
   });
 }
 
+// The segment's height (Adrian 2026-11-16: the bar was a short 30px at desktop): the HDS md control
+// height (44px) at every width, a touch target on a phone, and the count pill centred on the label
+// and on the open segment's fill (its 3px ledge below).
+for (const width of [390, 1440]) {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    test(`Review | Apply: 44px segments, the count centred (${width}, ${colorScheme})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
+      await page.emulateMedia({ colorScheme });
+      await manyPostings(page, 12);
+      await signInAtBoot(page);
+      await page.goto('/#/review');
+      const nav = page.getByRole('navigation', { name: 'Sections' });
+      await expect(nav.getByRole('link', { name: /^Review/ })).toHaveAccessibleName('Review 12');
+      const m = await nav.evaluate((el) =>
+        [...el.querySelectorAll<HTMLElement>('.rjb-seg')].map((s) => {
+          const r = s.getBoundingClientRect();
+          const text = [...s.childNodes].find((n) => n.nodeType === 3 && n.textContent?.trim());
+          const range = document.createRange();
+          range.selectNodeContents(text!);
+          const t = range.getBoundingClientRect();
+          const pill = s.querySelector('.rjb-seg-count')?.getBoundingClientRect();
+          const ledge = s.getAttribute('aria-current') === 'page' ? 3 : 0;
+          return {
+            height: r.height,
+            fill: (r.top + r.bottom - ledge) / 2,
+            label: t.top + t.height / 2,
+            pill: pill && pill.width > 1 ? pill.top + pill.height / 2 : null,
+          };
+        }),
+      );
+      for (const seg of m) {
+        expect(seg.height).toBeGreaterThanOrEqual(44);
+        expect(Math.abs(seg.label - seg.fill)).toBeLessThanOrEqual(1);
+        if (seg.pill !== null) expect(Math.abs(seg.pill - seg.fill)).toBeLessThanOrEqual(1);
+      }
+      if (process.env.SEG_SHOTS)
+        await page.screenshot({
+          path: `${process.env.SEG_SHOTS}/seg-${width}-${colorScheme}.png`,
+          clip: { x: 0, y: 0, width, height: 200 },
+        });
+    });
+  }
+}
+
 // Equal segments, Review's count (2026-11-13): Review | Apply are two equal segments, each 44px
 // tall on a phone, on one row. Below 400px the count pill is hidden visually (it stays in the name),
 // so the page bar never runs past the screen or overlaps its tools; from 400 the "99+" pill shows
