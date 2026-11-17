@@ -23,6 +23,7 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import boardsJson from '../../../src/feed/data/boards.json' with { type: 'json' };
 import { parseBoardSet, parseSetBoard, type SetBoard } from '../../../src/feed/boardSet.ts';
 import { runXray, withFoundBoards, XRAY_ENV } from '../../../src/tracks/feeds/xray.ts';
+import { findWorkableBoards } from '../../../src/tracks/feeds/workableSearch.ts';
 import {
   answeredFeeds,
   feedReadsFor,
@@ -810,14 +811,19 @@ async function scanSet(db: SupabaseClient, logs: Log[]): Promise<SetBoard[]> {
   return scanSetCache.boards;
 }
 
-/** The ATS x-ray search (#389, src/tracks/feeds/xray.ts) on the morning run, when a search secret
- *  is set: the boards it finds are upserted into found_boards (seen_at moves on a board found
+/** The board finders on the morning run: the ATS x-ray search (#389, src/tracks/feeds/xray.ts) when
+ *  a search secret is set, and Workable's own job search (workableSearch.ts, keyless). The boards
+ *  they find are upserted into found_boards (seen_at moves on a board found
  *  again), and the next rotations read them. Failures only log. */
 async function xraySearch(db: SupabaseClient, logs: Log[]): Promise<number> {
   const fail = (message: string) =>
     logs.push({ user_id: null, kind: 'failed', board: 'xray', status: null, message });
-  const run = await runXray(feedContext);
+  const run = xrayOn() ? await runXray(feedContext) : { boards: [], calls: 0, errors: [] };
   for (const e of run.errors) fail(`x-ray: ${e}`.slice(0, 2000));
+  // Workable's own cross-company search (keyless, workableSearch.ts): more boards to read.
+  const wk = await findWorkableBoards(feedContext);
+  for (const e of wk.errors) fail(`x-ray: ${e}`.slice(0, 2000));
+  run.boards = withFoundBoards(run.boards, wk.boards);
   if (!run.boards.length) return 0;
   const now = new Date().toISOString();
   const { error } = await db.from('found_boards').upsert(
@@ -1475,10 +1481,10 @@ Deno.serve(async (req) => {
                 url: sp.posting.url,
               });
       }
-      // The x-ray search: morning run only (its daily call budget), for design systems users.
+      // The board finders (x-ray search once its secret is set, Workable's search always): morning
+      // run only (the daily call budget), for design systems users.
       if (
         body.keyed !== false &&
-        xrayOn() &&
         [...plans.values()].some((p) => p.config.slug === designSystemsTrack.slug)
       )
         try {

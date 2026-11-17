@@ -1,0 +1,30 @@
+{
+  "jobs": [
+    {
+      "id": "a1b2c3",
+      "title": "Senior Design Systems Designer",
+      "url": "https://apply.workable.com/omega-health/j/9F8E7D6C5B/",
+      "workplace": "remote",
+      "company": { "title": "Omega Health", "url": "https://apply.workable.com/omega-health/", "website": "https://omegahealth.example" }
+    },
+    {
+      "id": "d4e5f6",
+      "title": "Design Engineer",
+      "url": "https://jobs.workable.com/view/d4e5f6/design-engineer",
+      "company": { "title": "Sigma", "url": "https://apply.workable.com/sigma-co/" }
+    },
+    {
+      "id": "g7h8",
+      "title": "Design Technologist",
+      "url": "https://apply.workable.com/omega-health/j/1234ABCD/",
+      "company": { "title": "Omega Health" }
+    },
+    {
+      "id": "x9",
+      "title": "No board link",
+      "url": "https://jobs.workable.com/view/x9/no-board",
+      "company": { "title": "Tau", "website": "https://tau.example" }
+    }
+  ],
+  "nextPageToken": "tok2"
+}

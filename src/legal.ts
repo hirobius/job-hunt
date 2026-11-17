@@ -90,7 +90,7 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Web searches our server runs',
     purpose:
-      'Once switched on, our server (not your browser) asks Brave Search, and Google Programmable Search while it lasts, for design systems openings on company hiring sites such as Greenhouse and Lever. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. We keep only the company hiring page each answer links to, and read its openings from that page.',
+      'Our server (not your browser) asks Workable’s job search and, once switched on, Brave Search and Google Programmable Search (while it lasts) for design systems openings on company hiring sites such as Greenhouse, Lever and Workable. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. We keep only the company hiring page each answer links to, and read its openings from that page.',
     hosts: [],
   },
   {
