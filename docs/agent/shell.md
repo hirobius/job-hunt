@@ -55,12 +55,9 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   secondary `Button` drawn as a select by `ApplyWalk.css` `.rjb-view-picker`: the Find chips' fill (HDS Tag tokens) as a
   40px pill (its `::after`; HDS's `::before` is the press wipe) in a 44px hit area, no edge or shadow, its left edge on
   the page gutter under Find | Apply and the job title, `e2e/shell-controls.spec.ts`; an HDS Menu drawn as
-  a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the seven views with counts and
-  "All jobs", which opens the sheet; the "N filters" chip went with the filters, 2026-11-13), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
+  a sheet below sm by late.css `.rjb-menu-sheet`, shared with the Account menu, holding the seven views and "All jobs", each with its count; the "N filters" chip went with the filters, 2026-11-13), and on the right the "‹ 3 of 55 ›" pager over the filtered list, which only steps (`ApplyPager.tsx`,
   label "Jobs in the list"; "Not in this filter" for a job it hides; a 64px sideways swipe on the job steps it too);
-  at 390 the view name truncates, never the pager; no pager at lg) and **All jobs**: a bottom sheet (`AllJobsSheet.tsx`, HDS Dialog drawn as a sheet by
-  `.rjb-bottom-sheet`: HDS Sheet would bust the entry budget) holding `TrackerView`'s `JobsList` (#543: Add job, the
-  view chips, then the rows; Passed shows `PassedList`).
+  at 390 the view name truncates, never the pager; no pager at lg) and **Add job** (the job's More menu below lg, `RowMenu` `onAddJob`; the lg column has its own key). There is no list below lg: the All jobs bottom sheet (`AllJobsSheet.tsx`) went 2026-11-17, so the view picker and the pager are the only ways between jobs. `TrackerView`'s `JobsList` is kept for tests (`src/test/allJobs.tsx` mounts it); delete it with the full rows of `JobRowList`.
   **One job list, sheet and lg column alike (#543):** `JobRowList.tsx` (+ `.css`), rows in an HDS NavList on one
   surface, never a Card per job: badges, the title (`rjb-clamp-2`, two lines), the company, place and one date;
   the title is the link, its hit area stretched over the row (`::after`, which carries the focus ring), so its name

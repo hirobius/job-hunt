@@ -7,7 +7,7 @@ you change before you change it.
 ## What this is
 
 **roleflame** is a job-application tracker and discovery board for design-systems roles, live at
-https://roleflame.vercel.app (repo `hirobius/job-hunt`). Two screens: **Review** (new postings) and
+https://roleflame.vercel.app (repo `hirobius/job-hunt`). Two screens (below lg Apply is one job with a view picker and a pager, no list sheet): **Review** (new postings) and
 **Apply** (saved jobs). Vite, React 19, TypeScript, HDS (`@hirobius/design-system`), Supabase, Vercel.
 
 ## Commands

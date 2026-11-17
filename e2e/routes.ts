@@ -30,13 +30,11 @@ export async function seed(page: Page) {
   // External requests are refused, so it never says closed.
   // The sample lands first (the tab becomes its first job, focus moves to the page head); a click
   // on Add job while that settles could be lost, so open the dialog until it shows. Below lg Add
-  // job is the All jobs sheet's (#543).
+  // job is the pager's.
   await expect(page.getByRole('button', { name: 'Try with sample data' })).toHaveCount(0);
-  const list = await listScope(page);
-  await expect(list.getByRole('button', { name: 'Add job' })).toBeVisible();
   const add = page.getByRole('dialog', { name: 'Add a job' });
   await expect(async () => {
-    if (!(await add.isVisible())) await list.getByRole('button', { name: 'Add job' }).click();
+    if (!(await add.isVisible())) await openAddJob(page);
     await expect(add).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 15_000 });
   await add.getByLabel('Job link').fill(BOARD_JOB);
@@ -67,11 +65,11 @@ export async function go(page: Page, hash: string) {
 /** A job's Apply view gets its id from the sample data, so it is reached by click. */
 export async function openJob(page: Page) {
   await go(page, '#/apply');
-  // Below lg the list is the All jobs sheet (Proposal A); from lg the list column beside the job.
-  // One job list in both (#543): the rows' nav "Jobs".
-  const scope = (await listScope(page)).getByRole('navigation', { name: 'Jobs' });
-  await scope.locator(JOB_LINK).first().click();
-  await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
+  // Below lg the tab is already the first job (Proposal A); from lg the list column beside the job.
+  if ((page.viewportSize()?.width ?? 0) >= 1024) {
+    const scope = (await listScope(page)).getByRole('navigation', { name: 'Jobs' });
+    await scope.locator(JOB_LINK).first().click();
+  }
   await page.waitForTimeout(500);
 }
 
@@ -95,30 +93,67 @@ export async function visitAll(page: Page, check: (name: string) => Promise<void
   await check('job page');
 }
 
-/** Below lg the Apply tab is one job (Proposal A, Adrian 2026-11-08); its list is the All jobs
- *  sheet. Opens it and returns it. */
-export async function openAllJobs(page: Page) {
-  await pressAllJobs(page);
-  const sheet = page.getByRole('dialog', { name: 'All jobs' });
-  await expect(sheet.getByRole('button', { name: 'Add job' })).toBeVisible();
-  return sheet;
-}
-
-/** The Apply list with its controls (#543): the All jobs sheet below lg (opened), the list
- *  column beside the job from lg. */
+/** The Apply list column beside the job, from lg only: below lg the Apply tab is one job with the
+ *  view picker and the pager, and no list (the All jobs sheet went 2026-11-17). */
 export async function listScope(page: Page) {
-  if ((page.viewportSize()?.width ?? 0) < 1024) {
-    const sheet = page.getByRole('dialog', { name: 'All jobs' });
-    if (await sheet.isVisible()) return sheet;
-    return openAllJobs(page);
-  }
+  if ((page.viewportSize()?.width ?? 0) < 1024)
+    throw new Error('Below lg there is no list: use the view picker and the pager.');
   return page.locator('.job-rail');
 }
 
-/** Below lg (#542): the walk row's view picker, then its "All jobs" row. */
+/** Opens the Add job dialog: the list column's key from lg; below lg the job's More menu. */
+export async function openAddJob(page: Page) {
+  if ((page.viewportSize()?.width ?? 0) >= 1024) {
+    await page.locator('.job-rail').getByRole('button', { name: 'Add job' }).click();
+  } else {
+    await page.getByRole('button', { name: /^More actions: / }).click();
+    await page.getByRole('menuitem', { name: 'Add job' }).click();
+  }
+  const dialog = page.getByRole('dialog', { name: 'Add a job' });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+/** Below lg (#542): the walk row's view picker, then its "All jobs" view. */
 export async function pressAllJobs(page: Page) {
   await page.getByRole('button', { name: /^View: / }).click();
-  await page.getByRole('menuitem', { name: 'All jobs' }).click();
+  await page.getByRole('menuitemradio', { name: /^All jobs/ }).click();
+}
+
+/** Below lg: the view picker's All jobs view, then the pager back to its first job (the open job
+ *  can be anywhere in the list). */
+export async function firstJob(page: Page) {
+  await pressAllJobs(page);
+  const prev = page.getByRole('button', { name: 'Previous page' });
+  for (let i = 0; i < 60 && (await prev.isEnabled()); i++) {
+    await prev.click();
+    await page.waitForTimeout(100);
+  }
+}
+
+/** Opens a job by its title on the Apply tab: from lg a click in the list column on its All jobs
+ *  view; below lg the view picker's All jobs view, then the pager steps until the title shows. */
+export async function openByTitle(page: Page, title: string) {
+  const h1 = page.getByRole('heading', { level: 1, name: title });
+  if ((page.viewportSize()?.width ?? 0) >= 1024) {
+    await page
+      .getByRole('group', { name: 'Views' })
+      .getByRole('button', { name: /^All jobs \d/ })
+      .click();
+    await page
+      .getByRole('navigation', { name: 'Jobs' })
+      .locator('a[href^="#/apply/"]', { hasText: title })
+      .first()
+      .click();
+  } else {
+    await firstJob(page);
+    const next = page.getByRole('button', { name: 'Next page' });
+    for (let i = 0; i < 40 && !(await h1.isVisible()); i++) {
+      await next.click();
+      await page.waitForTimeout(150);
+    }
+  }
+  await expect(h1).toBeVisible();
 }
 
 /** Turn the Search profile's Remote only off (every work mode), as a person would: Apply's list

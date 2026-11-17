@@ -89,6 +89,7 @@ export function RowMenu({
   onRemoved,
   onRetired,
   research = false,
+  onAddJob,
 }: {
   job: Job;
   size?: Size;
@@ -99,6 +100,9 @@ export function RowMenu({
   onRetired?: () => void;
   /** The job page's menu also holds the research links (rev-3 review: off the Details panel). */
   research?: boolean;
+  /** Below lg the job page has no list beside it, so its menu holds Add job. Gets the menu's
+   *  button, which takes focus back when the dialog closes. */
+  onAddJob?: (opener: HTMLElement | null) => void;
 }) {
   const title = titleOf(job);
   // The row the menu sits in, for its feedback: a flash on a change, a collapse on Remove.
@@ -121,6 +125,12 @@ export function RowMenu({
         />
       </Menu.Trigger>
       <Menu.Content align="end">
+        {onAddJob && (
+          <>
+            <Menu.Item onSelect={() => onAddJob(anchor.current)}>Add job</Menu.Item>
+            <Menu.Separator />
+          </>
+        )}
         {/* "Open posting", not the host: a long domain would widen the menu (rev-3 mock). */}
         <Menu.Item asChild>
           <a href={job.url} target="_blank" rel="noopener noreferrer">

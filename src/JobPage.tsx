@@ -1,7 +1,7 @@
 // A saved job's Apply view (#127, #130, #471): `#/apply/<jobId>`, inside the Apply tab. A header
 // (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks). At
 // lg the list sits beside it; below lg it stands alone, with Back and the "‹ 2 of N ›" pager.
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Search } from 'lucide-react';
 import {
   Box,
@@ -26,8 +26,6 @@ import {
   visibleJobs,
 } from './pipelineView';
 import { openNextAfter } from './applyNext';
-import AllJobsSheet from './AllJobsSheet';
-import { useBackCloses } from './useBackCloses';
 import ApplyWalk from './ApplyWalk';
 import { SwipeArea } from './SwipeArea';
 import { useFollowView } from './followView';
@@ -105,9 +103,6 @@ export default function JobPage({ jobId }: { jobId: string }) {
   const wide = useAtLeast('lg');
   const view = usePipelineView();
   const viewEmpty = useFollowView(job, jobs, view);
-  const [all, setAll] = useState(false);
-  // The id AllJobsSheet pops on a jump.
-  useBackCloses(all, () => setAll(false), 'all-jobs');
 
   // Not found yet: it may be about to sync in, so wait quietly. Once sync has settled the effect
   // above has already sent us back to the Pipeline.
@@ -132,8 +127,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
       </Sidebar>
     );
   // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The sticky walk control (#542: view picker, "‹ 3 of 55 ›"; a swipe steps it too),
-  // then the job in full. The picker's "All jobs" opens the All jobs sheet: Add job, the views
-  // and the list (#543; no search, filters or sort since 2026-11-13). A job opened from elsewhere keeps its Back.
+  // then the job in full. The picker holds the views, All jobs among them; Add job is in the job's More menu. A job opened from elsewhere keeps its Back.
   const list = visibleJobs(jobs, view);
   const order = visibleJobs(jobs, { ...view, filter: 'all', remoteOnly: false });
   const at = list.findIndex((j) => j.url === job.url);
@@ -152,7 +146,6 @@ export default function JobPage({ jobId }: { jobId: string }) {
             jobs={jobs}
             list={list}
             order={order}
-            onAllJobs={() => setAll(true)}
             empty={viewEmpty}
           />
         </Box>
@@ -175,7 +168,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
               }
               action={
                 view.filter === 'passed' ? (
-                  <Button variant="secondary" onClick={() => setAll(true)}>
+                  <Button variant="secondary" onClick={() => setPipelineView({ filter: 'all' })}>
                     All jobs
                   </Button>
                 ) : (
@@ -200,7 +193,6 @@ export default function JobPage({ jobId }: { jobId: string }) {
           </SwipeArea>
         )}
       </Stack>
-      <AllJobsSheet openId={jobId} open={all} onOpenChange={setAll} />
     </Box>
   );
 }

@@ -1,7 +1,12 @@
-// Proposal A (Adrian 2026-11-08): on a phone the Apply tab is one job; its list is the All jobs
-// sheet. Tests of the list open it first.
-import { screen, waitFor, within } from '@testing-library/react';
+// The Apply list as tests read it. Below lg the Apply tab is one job (Proposal A) with the view
+// picker and the pager: there is no list sheet since 2026-11-17, so a test of the list's rows
+// mounts `JobsList` (Add job, the views, the shared full rows) beside the app, in a region named
+// "Job list". At lg the list is the column beside the job (JobRail).
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
+import { ColorModeProvider } from '../ColorMode';
+import { JobsList } from '../TrackerView';
 
 const DONE = 'That is the list';
 const viewButton = () => screen.queryByRole('button', { name: /^View: / });
@@ -26,12 +31,27 @@ async function leaveDone(): Promise<void> {
   await screen.findByRole('button', { name: /^View: / });
 }
 
-/** #542: the walk row's view picker holds "All jobs and filters". */
+function mountList(): HTMLElement {
+  document.querySelector('[aria-label="Job list"]')?.remove();
+  const host = document.createElement('section');
+  host.setAttribute('role', 'region');
+  host.setAttribute('aria-label', 'Job list');
+  document.body.appendChild(host);
+  render(
+    <ColorModeProvider>
+      <ToastProvider>
+        <JobsList />
+      </ToastProvider>
+    </ColorModeProvider>,
+    { container: host },
+  );
+  return host;
+}
+
+/** Mounts the list region (see the file header). */
 export async function openAllJobs(): Promise<HTMLElement> {
   if ((await walkOrDone()) === 'done') await leaveDone();
-  await userEvent.click(await screen.findByRole('button', { name: /^View: / }));
-  await userEvent.click(await screen.findByRole('menuitem', { name: 'All jobs' }));
-  return screen.findByRole('dialog', { name: 'All jobs' });
+  return mountList();
 }
 
 /** Below lg only: at lg the list is the column beside the job (JobRail). */
@@ -42,7 +62,5 @@ export async function openListOnPhone(): Promise<void> {
   // No jobs yet: the first-run page, no list to open.
   if (!shown) return;
   if (shown === 'done') await leaveDone();
-  await userEvent.click(viewButton()!);
-  await userEvent.click(await screen.findByRole('menuitem', { name: 'All jobs' }));
-  await screen.findByRole('dialog', { name: 'All jobs' });
+  mountList();
 }

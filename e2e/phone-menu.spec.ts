@@ -76,7 +76,7 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   expect(Math.round(sheet.x)).toBe(0);
   expect(Math.round(sheet.y + sheet.height)).toBe(844);
   // Seven named views; This week right after Follow up (#640); Passed last (2026-11-13).
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(7);
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(8);
   await expect(menu.getByRole('menuitemradio').nth(6)).toHaveText(/^Passed \(\d+\)$/);
   await expect(menu.getByRole('menuitemradio').nth(2)).toHaveText(/^This week \(\d+\)$/);
   await menu.getByRole('menuitemradio', { name: /^Recently closed/ }).click();
@@ -102,8 +102,9 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   });
   expect(st).toEqual(['0px', 'none', 'none']);
   await picker.click();
-  await page.getByRole('menuitem', { name: 'All jobs' }).click();
-  await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeVisible();
+  await page.getByRole('menuitemradio', { name: /^All jobs/ }).click();
+  await expect(page.getByRole('button', { name: 'View: All jobs' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
 });
 
 // The non-empty worst case (prod audit review): the longest view name that has jobs. At 390 and

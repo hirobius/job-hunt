@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { topTab, pressAllJobs } from './routes';
+import { topTab } from './routes';
 
 // Review reads postings only for a signed-in visitor (#755).
 test.use({ signedIn: true });
@@ -71,14 +71,8 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await expect(page).toHaveURL(/#\/apply\/[^/?]+/);
   await topTab(page, 'Apply').click();
 
-  // Below lg the tab is one job (Proposal A); its list is the All jobs sheet.
-  await pressAllJobs(page);
-  const jobs = page
-    .getByRole('dialog', { name: 'All jobs' })
-    .getByRole('navigation', { name: 'Jobs' });
-  await expect(jobs.locator('a[href^="#/apply/"]')).toHaveCount(3);
-  await jobs.locator('a[href^="#/apply/"]').first().click();
-  await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeHidden();
+  // Below lg the tab is one job (Proposal A): the pager counts the 3 in To apply.
+  await expect(page.getByRole('navigation', { name: 'Jobs in the list' })).toContainText('1 of 3');
 
   // No Application kit on the job view (2026-11-13).
   await expect(page.getByRole('region', { name: /^Copy into the form/ })).toHaveCount(0);
@@ -97,7 +91,7 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   }
 
   // Nothing left to apply to: the done state (#554), the icon tile, the week, then two keys. All jobs
-  // opens the view's first job, and All jobs counts the 3 under Applied (the view chip, #543).
+  // opens the view's first job, and the view picker counts the 3 under Applied.
   const done = page.getByRole('region', { name: 'That is the list' });
   await expect(done).toBeVisible();
   await expect(done.locator('[aria-hidden="true"] svg')).toBeVisible();
@@ -105,10 +99,8 @@ test('save 3 postings → the Apply list → apply to each → Follow up (3)', a
   await expect(done.getByRole('button', { name: 'Find more jobs' })).toBeVisible();
   await done.getByRole('button', { name: 'All jobs' }).click();
   await expect(done).toBeHidden();
-  await pressAllJobs(page);
-  await expect(
-    page.getByRole('dialog', { name: 'All jobs' }).getByRole('button', { name: 'Applied 3' }),
-  ).toBeVisible();
+  await page.getByRole('button', { name: /^View: / }).click();
+  await expect(page.getByRole('menuitemradio', { name: 'Applied (3)' })).toBeVisible();
 });
 
 // From lg (#471): the Jobs tab opens on the first job's Apply view beside the list; Mark applied

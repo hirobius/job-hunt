@@ -77,18 +77,6 @@ afterEach(() => {
 });
 
 describe('a job page goes back to where it was opened from', () => {
-  it('a jump from the All jobs list moves in place: no history step (Proposal A)', async () => {
-    addJob(B, 'Welder');
-    window.location.hash = '#/apply';
-    renderApp();
-    const sheet = await openAllJobs();
-    const length = window.history.length;
-    await userEvent.click(within(sheet).getByRole('link', { name: 'Welder' }));
-    await at(`#/apply/${jobIdOf(B)}`);
-    expect(await heading('Welder')).toBeInTheDocument();
-    expect(window.history.length).toBe(length);
-  });
-
   it('from its Company page and back: each Back names the page it returns to', async () => {
     window.location.hash = `#/apply/${idA}`;
     renderApp();
@@ -290,7 +278,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     await screen.findByRole('dialog', { name: 'Add a job' });
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a job' })).toBeNull());
-    expect(screen.getByRole('dialog', { name: 'All jobs' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Job list' })).toBeInTheDocument();
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(window.location.hash).toBe('#/apply');
@@ -445,7 +433,6 @@ describe('one navigation per Remove, Delete or double click', () => {
     const sheet = await openAllJobs();
     await userEvent.click(within(sheet).getAllByRole('link', { name: 'Fabricator' })[0]);
     await heading('Fabricator');
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
   };
   const remove = async (title: string) => {
     await userEvent.click(screen.getByRole('button', { name: `More actions: ${title}` }));

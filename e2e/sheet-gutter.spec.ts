@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './fixtures';
-import { openAllJobs } from './routes';
+import { openAddJob } from './routes';
 
 // Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter
 // (Add job's bottom sheet on its contents, #551),
@@ -22,15 +22,9 @@ async function expectGutter(page: Page, name: string) {
 test('Add job and Search profile sheets keep a side gutter at 390', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await sample(page);
-  // Add job is in the All jobs sheet (#543); Add job itself is a bottom sheet (#551): the sheet runs
-  // edge to edge and its contents keep the gutter.
-  await openAllJobs(page);
-  await page
-    .getByRole('dialog', { name: 'All jobs' })
-    .getByRole('button', { name: 'Add job' })
-    .click();
-  const add = page.getByRole('dialog', { name: 'Add a job' });
-  await expect(add).toBeVisible();
+  // Add job is in the job's More menu below lg; Add job itself is a bottom sheet (#551): the sheet
+  // runs edge to edge and its contents keep the gutter.
+  const add = await openAddJob(page);
   const sheet = (await add.boundingBox())!;
   expect(sheet.x).toBeLessThanOrEqual(0.5);
   expect(sheet.width).toBeGreaterThanOrEqual(390 - 0.5);
@@ -45,8 +39,6 @@ test('Add job and Search profile sheets keep a side gutter at 390', async ({ pag
   }
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Add a job' })).toHaveCount(0);
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Account' }).click();
   await page.getByRole('menuitem', { name: 'Search profile' }).click();
   await expect(page.getByRole('dialog', { name: 'Search profile' })).toBeVisible();

@@ -10,10 +10,10 @@ The saved list, named views, Add job, Export links and the tracker model.
   ("Removed from Apply: <title>", Undo; focus to the next title). Pinned in `e2e/saved-list.spec.ts`, `e2e/review.spec.ts`.
 
 - **Add job (redesign §5.10, #551):** `src/AddJobDialog.tsx`, its own component so any host opens it (`AddJob.tsx`
-  is the button; the All jobs sheet, #543): the Job link field (helper "The title fills in from the link. You can
+  is the button; the list column's key from lg and the job's More menu below lg): the Job link field (helper "The title fills in from the link. You can
   edit it after."), Add job (filled) and "Type a company or title instead" (grey; turns the dialog into the Find
   box). No Cancel key: Close (the X), Escape, the scrim and Back cancel, focus back on the opener. Below sm a
-  bottom sheet (`.rjb-bottom-sheet`, now `src/hds-gaps/BottomSheet.css`, lazy with All jobs and Add job; only
+  bottom sheet (`.rjb-bottom-sheet`, now `src/hds-gaps/BottomSheet.css`, lazy with Add job; only
   the handle's `display: none` stays in base.css) above the keyboard (`AddJobDialog.css`), Add job at full width
   over the grey key; from sm HDS's centred dialog, Add job at the right. Pinned in `TrackerView.test.tsx`,
   `findBox.test.tsx`, `e2e/add-job.spec.ts`, `e2e/sheet-gutter.spec.ts`.
@@ -34,11 +34,12 @@ The saved list, named views, Add job, Export links and the tracker model.
   an http(s) `url` on its `decided` entry (`feed/decided.ts` `decide`; additive fields, sanitized, in sync, backup
   and the three-way merge, no blob bump); an older Skip has only its fingerprint and lists as "Skipped posting" with no
   link and no Save. The Passed count is its jobs (under the profile's Remote only) plus its listed Skips
-  (`filterCounts(…, skipped)`); pinned in `passed.test.tsx`, `jobViews.test.tsx`), then **All jobs** (every job, set-aside ones too: the old
+  (`filterCounts(…, skipped)`); pinned in `passed.test.tsx`, `jobViews.test.tsx`), then **All jobs** (every job, set-aside ones too; the last row of the phone picker and the last chip of the lg list: the old
   Saved / Offer / Rejected / Retired / Closing soon filters went with the select). `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"`
   "Views", `aria-pressed`, a `Badge` count, amber on Follow up while one is due), with no description line under them
-  (2026-11-13): at the top of the lg list column (`JobRail`) and in the Jobs list (the All jobs sheet); on a phone the
-  walk row's view picker picks them (#542). Default view To apply. **Control-free list (Adrian 2026-11-13):** no
+  (2026-11-13): at the top of the lg list column (`JobRail`) and on a phone the
+  walk row's view picker picks them, All jobs among them (#542; the All jobs bottom sheet went 2026-11-17, so below lg
+  the picker and the pager are the only ways between jobs, and Add job is the job's More menu). Default view To apply. **Control-free list (Adrian 2026-11-13):** no
   search, no Sort (newest first; To apply closing soonest first, This week soonest first), no Remote only switch, no
   status line, no sample line; `PipelineView` is `{ filter, remoteOnly? }` and only the view is the person's choice. Pinned in `pipelineView.test.ts`, `jobViews.test.tsx`.
 

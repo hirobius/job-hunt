@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from './fixtures';
-import { allWorkModes, openAllJobs, openData } from './routes';
+import { allWorkModes, firstJob, openByTitle, openData } from './routes';
 
 // Adrian 2026-10-22: "Anywhere a job is listed, we should be able to click on the URL to visit the
 // link, or there should be a visit jump link button near the URL or name of the job." With the
@@ -89,15 +89,11 @@ async function loadBusy(page: Page, { long = false } = {}) {
     localStorage.setItem('rjb_liveness', JSON.stringify(live));
   }, BOARD);
   await page.reload();
-  // The closed jobs show by their Closed badge (#601; the status line went 2026-11-13): the lg
-  // column's rows, or the All jobs sheet's below lg (#543).
+  // The closed jobs show by their Closed badge (#601; the status line went 2026-11-13): in the lg
+  // column's rows. Below lg there is no list: the pager steps through them.
   const phone = (page.viewportSize()?.width ?? 0) < 1024;
-  if (phone) await openAllJobs(page);
-  await expect(page.getByRole('navigation', { name: 'Jobs' }).first()).toBeVisible();
-  if (phone) {
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
-  }
+  if (phone) await expect(page.getByRole('button', { name: /^View: / })).toBeVisible();
+  else await expect(page.getByRole('navigation', { name: 'Jobs' }).first()).toBeVisible();
 }
 
 /**
@@ -220,16 +216,7 @@ function longTitleOffences(root: Locator) {
 
 /** Open the job page of the first listed job whose title contains `text`. */
 async function openJobTitled(page: Page, text: string) {
-  // Below lg the Jobs list is the All jobs sheet (Proposal A).
-  const phone = (page.viewportSize()?.width ?? 0) < 1024;
-  const scope = phone ? await openAllJobs(page) : page;
-  const hash = await scope
-    .getByRole('navigation', { name: 'Jobs' })
-    .locator('a[href^="#/apply/"]', { hasText: text })
-    .first()
-    .getAttribute('href');
-  if (phone) await page.keyboard.press('Escape');
-  await page.evaluate((h) => (location.hash = h!), hash);
+  await openByTitle(page, text);
   await expect(page.locator('header h1')).toContainText(text);
 }
 
@@ -261,37 +248,15 @@ for (const width of [390, 800] as const) {
   test.describe(`posting links at ${width}`, () => {
     test.use({ viewport: { width, height: 900 } });
 
-    test('the Apply list: job rows carry no posting glyph, the job page opens it (#543)', async ({
-      page,
-    }) => {
-      await loadSample(page);
-      const sheet = await openAllJobs(page);
-      // The rows carry no glyph by the title (Adrian 2026-11-08, #543): the job page has Open posting.
-      const rows = sheet.getByRole('navigation', { name: 'Jobs' });
-      await expect(rows.getByRole('listitem').first()).toBeVisible();
-      await expect(rows.getByRole('link', { name: /^Open posting for / })).toHaveCount(0);
-      // One link per row: its job's page.
-      for (const row of await rows.getByRole('listitem').all())
-        await expect(row.getByRole('link')).toHaveCount(1);
-      // The agenda (Follow up, Next 7 days) left the sheet with ApplyQueueSummary (#543): it sits
-      // under the lg list column, checked in "the job rail at 1440" below.
-      await expect(sheet.getByRole('region', { name: /^Follow up \(/ })).toHaveCount(0);
-    });
-
     test('every job page header: no glyph by the title, the menu opens the posting', async ({
       page,
     }) => {
       await loadSample(page);
       const jobs = await savedJobs(page);
-      const sheet = await openAllJobs(page);
-      const pages = await sheet
-        .getByRole('navigation', { name: 'Jobs' })
-        .locator('a[href^="#/apply/"]')
-        .evaluateAll((as) => as.map((a) => [a.getAttribute('href')!, a.textContent!.trim()]));
-      expect(pages.length).toBeGreaterThan(0);
-      await page.keyboard.press('Escape');
-      for (const [hash, title] of pages.slice(0, 3)) {
-        await page.evaluate((h) => (location.hash = h), hash);
+      // Below lg the pager steps through the jobs (the view picker's All jobs view has them all).
+      await firstJob(page);
+      for (let i = 0; i < 3; i++) {
+        const title = (await page.locator('header h1').first().textContent())!.trim();
         const heading = page.getByRole('heading', { level: 1, name: title, exact: true });
         await expect(heading).toBeVisible();
         const header = page.locator('header').filter({ has: heading });
@@ -303,6 +268,8 @@ for (const width of [390, 800] as const) {
           job.url,
         );
         await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'Next page' }).click();
+        await page.waitForTimeout(150);
       }
     });
 

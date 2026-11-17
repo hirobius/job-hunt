@@ -94,7 +94,7 @@ The job page: keys by state, the action dock, title block, notes, links, dates, 
   and Next 7 days rows, the closed-on-the-board list, Recently removed, the Company page, the job
   page header (all through `PostingTitle` / `JobPostingTitle`: the title shrinks and wraps anywhere,
   so a long unbroken title never runs under the link or pushes it off screen). **Apply rows carry no posting
-  icon** (the lg column and the All jobs sheet, since #543; Adrian accepts it, #640): the posting is one tap away
+  icon** (the lg column, since #543; Adrian accepts it, #640): the posting is one tap away
   through More → Open posting, and the job page's header has it. Its
   target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
   and is stacked above the text there, so all of it takes the tap; 44x44 on a phone. Unsaved listings (Find's Browse cards) have no page:

@@ -2,8 +2,7 @@
 // no box around it. Left, the view picker (the open view's name, bold, with a caret inside): an HDS
 // secondary select-style key with the Find chips' fill and height (`.rjb-view-picker`, ApplyWalk.css),
 // its left edge on the page gutter, under the Find | Apply control (2026-11-13). An HDS Menu,
-// drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the seven views and "All jobs" (the
-// sheet). No filters chip since 2026-11-13: there are no filters (Remote only follows the Search
+// drawn as a sheet on a phone (late.css `.rjb-menu-sheet`), with the seven views and "All jobs". No filters chip since 2026-11-13: there are no filters (Remote only follows the Search
 // profile). Right, the pager: it only steps (a sideways swipe on the job steps it too).
 // The view name takes the room it needs (prod audit 2026-11-12: it truncated with free space
 // left); when the row is too narrow for both, the pager wraps under it. It only truncates on a
@@ -40,14 +39,12 @@ export default function ApplyWalk({
   jobs,
   list,
   order,
-  onAllJobs,
   empty = false,
 }: {
   job: Job;
   jobs: Job[];
   list: Job[];
   order: Job[];
-  onAllJobs: () => void;
   /** The view shows no jobs: no pager, the page shows the view's empty state. */
   empty?: boolean;
 }) {
@@ -86,9 +83,9 @@ export default function ApplyWalk({
                   {`${FILTER_LABEL[f]} (${counts[f]})`}
                 </Menu.RadioItem>
               ))}
+              <Menu.Separator />
+              <Menu.RadioItem value="all">{`${FILTER_LABEL.all} (${counts.all})`}</Menu.RadioItem>
             </Menu.RadioGroup>
-            <Menu.Separator />
-            <Menu.Item onSelect={onAllJobs}>All jobs</Menu.Item>
           </Menu.Content>
         </Menu>
       </Stack>

@@ -77,6 +77,8 @@ for (const width of [390, 1440]) {
     test('the Apply list: views only, and each chip count matches its rows (2026-11-13)', async ({
       page,
     }) => {
+      // The list column is from lg only: below lg the view picker and pager (applyWalk.test.tsx).
+      test.skip(width < 1024, 'no list below lg');
       // Outside hosts refused: left open they hang and stall the lg column (#614).
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
       await seed(page);

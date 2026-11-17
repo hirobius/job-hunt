@@ -3,7 +3,9 @@ import {
   allWorkModes,
   go,
   JOB_LINK,
-  openAllJobs,
+  openAddJob,
+  openByTitle,
+  firstJob,
   openApply,
   seed,
   topTab,
@@ -23,13 +25,18 @@ async function expectScroll(page: Page, y: number) {
   await expect.poll(() => scrollY(page), { timeout: 4000 }).toBeGreaterThanOrEqual(y - 4);
   expect(Math.abs((await scrollY(page)) - y)).toBeLessThanOrEqual(4);
 }
-/** Below lg the Apply tab is one job (Proposal A, Adrian 2026-11-08): the All jobs sheet is its
- *  list. Opens it and returns its Jobs panel. */
-/** The All jobs sheet's rows, on its All jobs view (the sheet lists one view, #543). */
-async function allJobs(page: Page) {
-  const sheet = await openAllJobs(page);
-  await sheet.getByRole('button', { name: /^All jobs \d/ }).click();
-  return sheet.getByRole('navigation', { name: 'Jobs' });
+/** Below lg the Apply tab is one job (Proposal A): the view picker's All jobs view, then the pager
+ *  steps to the job at `index` (-1: the last one). Returns its title. */
+async function jumpTo(page: Page, index: number) {
+  await firstJob(page);
+  const pager = page.getByRole('navigation', { name: 'Jobs in the list' });
+  const [, n] = (await pager.getByText(/^\d+ of \d+$/).textContent())!.split(' of ').map(Number);
+  const to = index < 0 ? n : index + 1;
+  for (let k = 1; k < to; k++) {
+    await pager.getByRole('button', { name: 'Next page' }).click();
+    await expect(pager.getByText(`${k + 1} of ${n}`)).toBeVisible();
+  }
+  return (await h1(page).textContent())!.trim();
 }
 const h1 = (page: Page) => page.getByRole('heading', { level: 1 }).first();
 /** Step the "‹ k of N ›" pager one job (on, else back from the last); returns the new "k of N". */
@@ -53,14 +60,10 @@ for (const width of [390, 800] as const) {
       await seed(page);
     });
 
-    test('All jobs jumps to a job in place: one Back leaves the Apply tab', async ({ page }) => {
+    test('the pager steps to a job in place: one Back leaves the Apply tab', async ({ page }) => {
       await go(page, '#/review');
       await go(page, '#/apply');
-      const jobs = await allJobs(page);
-      const link = jobs.locator(JOB_LINK).last();
-      const title = (await link.textContent())!.trim();
-      await link.click();
-      await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
+      const title = await jumpTo(page, -1);
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       await expect(page).toHaveURL(/#\/apply\/[^/?]+$/);
       await expect.poll(() => scrollY(page)).toBe(0);
@@ -96,7 +99,7 @@ for (const width of [390, 800] as const) {
 
       // The Company page opened from the job (scrolled down to its Details) goes back to it, there.
       await go(page, '#/apply');
-      await (await allJobs(page)).getByRole('link', { name: title }).first().click();
+      await openByTitle(page, title);
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       const details = page.getByRole('region', { name: 'Details' });
       await details.scrollIntoViewIfNeeded();
@@ -147,12 +150,10 @@ for (const width of [390, 800] as const) {
       await go(page, '#/review');
       await go(page, '#/apply');
       const queue = /#\/apply$/;
-      // Add job is the All jobs sheet's (#543): Back closes the dialog, then the sheet.
-      const all = await openAllJobs(page);
-      await all.getByRole('button', { name: 'Add job' }).click();
+      // Add job is the job's More menu below lg: Back closes the dialog.
+      const addDialog = await openAddJob(page);
       await page.getByLabel('Job link').fill('https://example.com/jobs/typed');
-      await closesOnBack(page.getByRole('dialog', { name: 'Add a job' }), queue);
-      await closesOnBack(all, queue);
+      await closesOnBack(addDialog, queue);
 
       // Sign in, picked from the Account menu (whose own entry is popped as it closes), typed in.
       await page.getByRole('button', { name: /^Account/ }).click();
@@ -161,11 +162,9 @@ for (const width of [390, 800] as const) {
       await signIn.getByLabel('Email').fill('typed@example.com');
       await closesOnBack(signIn, queue);
 
-      // The view picker (#542), the All jobs sheet, the job's menu, and Recently removed.
+      // The view picker (#542), the job's menu, and Recently removed.
       await page.getByRole('button', { name: /^View: / }).click();
       await closesOnBack(page.getByRole('menu'), queue);
-      await openAllJobs(page);
-      await closesOnBack(page.getByRole('dialog', { name: 'All jobs' }), queue);
       const title = (await h1(page).textContent())!.trim();
       const more = page.getByRole('button', { name: `More actions: ${title}` }).first();
       await more.click();
@@ -207,12 +206,10 @@ for (const width of [390, 800] as const) {
       await page.waitForTimeout(600);
       await expect(page).toHaveURL(/#\/apply\/company\/larkspur-analytics$/);
 
-      // Jumped to from All jobs, with Find behind it: Remove lands on the Apply tab, once.
+      // Stepped to with the pager, with Find behind it: Remove lands on the Apply tab, once.
       await go(page, '#/review');
       await go(page, '#/apply');
-      const last = (await allJobs(page)).locator(JOB_LINK).last();
-      const lastTitle = (await last.textContent())!.trim();
-      await last.click();
+      const lastTitle = await jumpTo(page, -1);
       await expect(page.getByRole('heading', { level: 1, name: lastTitle })).toBeVisible();
       await removeOpenJob(lastTitle);
       await expect(page).toHaveURL(/#\/apply$/);
@@ -222,10 +219,8 @@ for (const width of [390, 800] as const) {
 
       // Opened from Find (a save notice's Open names it), with another page behind it: Remove
       // lands on Find, and the Apply tab then opens another job, not the removed one.
-      const next = (await allJobs(page)).locator(JOB_LINK).first();
-      const id = (await next.getAttribute('href'))!.replace('#/apply/', '');
-      const nextTitle = (await next.textContent())!.trim();
-      await page.keyboard.press('Escape');
+      const nextTitle = await jumpTo(page, 1); // a stepped job has its id in the address
+      const id = page.url().split('#/apply/')[1].split(/[?]/)[0];
       await go(page, '#/review?documents=');
       await go(page, '#/review');
       await go(page, `#/apply/${id}?from=%2Ffind`);
@@ -296,9 +291,7 @@ for (const width of [390, 800] as const) {
       // A job jumped to from All jobs, Find behind it: the open tab, tapped twice.
       await go(page, '#/review');
       await go(page, '#/apply');
-      const link = (await allJobs(page)).locator(JOB_LINK).nth(1);
-      const title = (await link.textContent())!.trim();
-      await link.click();
+      const title = await jumpTo(page, 1);
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
       await topTab(page, 'Apply').dblclick();
       await stays(/#\/apply$/);
