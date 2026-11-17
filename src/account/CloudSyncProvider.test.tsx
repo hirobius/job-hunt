@@ -519,7 +519,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
 
   it("sign-out clears what Review last read, so the Review tab never shows the last account's count", async () => {
     await signedInWithSyncedTrack();
-    act(() => setScanDetails({ failed: [], hidden: [], newToday: 12, sourcesRead: 3 }));
+    act(() => setScanDetails({ failed: [], hidden: [], newToday: 12, listed: 12, sourcesRead: 3 }));
     await chooseAccountItem('Sign out');
     await waitFor(() => expect(getScanDetails()).toBeNull());
   });

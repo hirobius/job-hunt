@@ -117,6 +117,7 @@ export default function ReviewView({
       failed: view.failed,
       hidden: hiddenParts(view.hidden),
       newToday: view.newToday,
+      listed: view.rows.length,
       sourcesRead: view.sourcesRead,
     });
   }, [view]);

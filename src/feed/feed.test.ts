@@ -379,3 +379,62 @@ describe('last read (#448 slice 2): kept across a reload', () => {
     expect(loadLastRead()?.result.postings).toEqual([]);
   });
 });
+
+describe('Remote only keeps every source to the work mode its location states', () => {
+  const remoteProfile: SearchProfile = { ...phraseProfile, mode: 'remote' };
+  const dsText = 'design systems';
+  const at = (id: string, location: string, extra: Partial<Posting> = {}) =>
+    p(id, 'Design Systems Designer', `Co${id}`, {
+      location,
+      mode: undefined,
+      text: dsText,
+      ...extra,
+    });
+
+  it('drops a row whose location says Hybrid, with no mode of its own', () => {
+    const v = build([at('1', 'Hybrid, Canada'), at('2', 'Germany')], {}, [], remoteProfile);
+    expect(v.rows).toHaveLength(0);
+  });
+
+  it('drops a bare non-US country or region with no remote signal', () => {
+    const v = build(
+      [at('1', 'Canada'), at('2', 'UK'), at('3', 'EMEA'), at('4', 'Berlin, Germany')],
+      {},
+      [],
+      remoteProfile,
+    );
+    expect(v.rows).toHaveLength(0);
+  });
+
+  it('keeps remote and worldwide, and sets the inferred mode', () => {
+    const v = build(
+      [at('1', 'Remote (Canada)'), at('2', 'United States'), at('3', 'Remote', { mode: 'remote' })],
+      {},
+      [],
+      remoteProfile,
+    );
+    expect(v.rows.map((r) => [r.location, r.mode, r.remoteUnstated])).toEqual(
+      expect.arrayContaining([
+        ['Remote (Canada)', 'remote', undefined],
+        ['United States', undefined, true],
+      ]),
+    );
+    expect(v.rows).toHaveLength(3);
+  });
+
+  it('leaves every posting alone when the profile is not remote only', () => {
+    expect(build([at('1', 'Hybrid, Canada')], {}, [], phraseProfile).rows).toHaveLength(1);
+  });
+});
+
+describe('the Review tab counts exactly the list', () => {
+  it('counts every undecided posting, not only those first seen today', () => {
+    const rows = [
+      p('1', 'Design Systems Designer', 'Acme', { text: 'design systems' }),
+      p('2', 'Design Systems Lead', 'Beta', { text: 'design systems' }),
+    ];
+    const v = build(rows, { seen: { [postingFingerprint(rows[0])]: '2026-10-01' } });
+    expect(v.rows).toHaveLength(2);
+    expect(v.newToday).toBe(1);
+  });
+});

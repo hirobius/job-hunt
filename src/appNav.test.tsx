@@ -171,7 +171,7 @@ describe('the one-row app bar (#548)', () => {
   });
 
   it('signed out, Review shows no count (#755)', async () => {
-    setScanDetails({ failed: [], hidden: [], newToday: 7, sourcesRead: 3 });
+    setScanDetails({ failed: [], hidden: [], newToday: 7, listed: 7, sourcesRead: 3 });
     window.location.hash = '#/apply';
     renderApp();
     await screen.findByRole('navigation', { name: 'Sections' });
@@ -182,13 +182,13 @@ describe('the one-row app bar (#548)', () => {
   it('signed in, Review shows its count, Apply none (2026-11-13)', async () => {
     signInAtBoot(h.fake);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    setScanDetails({ failed: [], hidden: [], newToday: 7, sourcesRead: 3 });
+    setScanDetails({ failed: [], hidden: [], newToday: 7, listed: 7, sourcesRead: 3 });
     window.location.hash = '#/apply';
     renderApp();
     await screen.findByRole('navigation', { name: 'Sections' });
     expect(topTab('Apply')).toHaveAccessibleName('Apply');
     expect(await screen.findByRole('link', { name: 'Review 7' })).toBeInTheDocument();
-    setScanDetails({ failed: [], hidden: [], newToday: 0, sourcesRead: 3 });
+    setScanDetails({ failed: [], hidden: [], newToday: 0, listed: 0, sourcesRead: 3 });
     await vi.waitFor(() => expect(topTab('Review').textContent).toBe('Review'));
     expect(topTab('Apply').textContent).toBe('Apply');
   });

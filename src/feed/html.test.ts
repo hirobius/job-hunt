@@ -48,24 +48,56 @@ describe('a hostile body (security review 2026-10-28)', () => {
 // global replaces gave: these are those replaces, checked over awkward inputs.
 describe('fast paths match the plain replaces', () => {
   const NAMED: Record<string, string> = {
-    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—',
-    hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', bull: '•',
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: ' ',
+    ndash: '–',
+    mdash: '—',
+    hellip: '…',
+    rsquo: '’',
+    lsquo: '‘',
+    rdquo: '”',
+    ldquo: '“',
+    bull: '•',
   };
   const refDecode = (s: string) =>
     s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
       if (e[0] === '#') {
-        const n = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        const n =
+          e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
         return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : m;
       }
       const k = e.toLowerCase();
       return Object.prototype.hasOwnProperty.call(NAMED, k) ? NAMED[k] : m;
     });
   const refTidy = (s: string) =>
-    s.replace(/[ \t\f\v\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim();
+    s
+      .replace(/[ \t\f\v\u00a0]+/g, ' ')
+      .replace(/ *\n */g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .trim();
   const cases = [
-    '', 'plain', '&', '&&amp;', '&amp;lt;p&amp;gt;', '&AMP; &Amp; &LT;', '&#0; &#x110000; &#65;&#X41;&#x41;',
-    '&nope; &amp &amp;amp;', 'a&b&c;&d&gt;', '&#xZZ; &#; &x41;', '&lt;p&gt;Hi&nbsp;there&lt;/p&gt;',
-    'a  b\t\tc \u00a0 d\v\fe', ' \n  \n\t x \n', 'x\n\n\n y', '\u00a0', ' a ', '\t', 'a \nb\n c',
+    '',
+    'plain',
+    '&',
+    '&&amp;',
+    '&amp;lt;p&amp;gt;',
+    '&AMP; &Amp; &LT;',
+    '&#0; &#x110000; &#65;&#X41;&#x41;',
+    '&nope; &amp &amp;amp;',
+    'a&b&c;&d&gt;',
+    '&#xZZ; &#; &x41;',
+    '&lt;p&gt;Hi&nbsp;there&lt;/p&gt;',
+    'a  b\t\tc \u00a0 d\v\fe',
+    ' \n  \n\t x \n',
+    'x\n\n\n y',
+    '\u00a0',
+    ' a ',
+    '\t',
+    'a \nb\n c',
   ];
   it('decodeEntities', () => {
     for (const c of cases) expect(decodeEntities(c)).toBe(refDecode(c));
@@ -81,14 +113,26 @@ describe('fast paths match the plain replaces', () => {
         ),
       );
     for (const c of cases) expect(htmlToText(c)).toBe(ref(c));
-    for (const c of cases) expect(htmlToText(`<p>${c}</p><br/> <li> ${c}\t</li>`)).toBe(ref(`<p>${c}</p><br/> <li> ${c}\t</li>`));
+    for (const c of cases)
+      expect(htmlToText(`<p>${c}</p><br/> <li> ${c}\t</li>`)).toBe(
+        ref(`<p>${c}</p><br/> <li> ${c}\t</li>`),
+      );
   });
 });
 
 describe('names that are Object.prototype keys', () => {
   it('stay as written', () => {
-    for (const c of ['&toString;', '&valueOf;', '&constructor;', '&hasOwnProperty;', '&__proto__;', '&TOSTRING;'])
+    for (const c of [
+      '&toString;',
+      '&valueOf;',
+      '&constructor;',
+      '&hasOwnProperty;',
+      '&__proto__;',
+      '&TOSTRING;',
+    ])
       expect(decodeEntities(c)).toBe(c);
-    expect(htmlToText('<p>a &toString; b &valueOf; c &constructor;</p>')).toBe('a &toString; b &valueOf; c &constructor;');
+    expect(htmlToText('<p>a &toString; b &valueOf; c &constructor;</p>')).toBe(
+      'a &toString; b &valueOf; c &constructor;',
+    );
   });
 });

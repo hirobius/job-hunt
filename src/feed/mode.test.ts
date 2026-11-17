@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inferMode, remoteVerdict } from './mode';
+import { inferMode, isNonUsPlace, remoteVerdict } from './mode';
 
 describe('a line that rules remote out (#624)', () => {
   it('is never read as remote', () => {
@@ -14,4 +14,14 @@ describe('a line that rules remote out (#624)', () => {
     expect(inferMode('Onsite or remote')).toBeUndefined(); // two modes: says nothing on its own
     expect(inferMode('Hybrid - Remote')).toBeUndefined();
   });
+});
+
+describe('isNonUsPlace: a non-US place with no remote offered', () => {
+  it.each(['Germany', 'Canada', 'UK', 'Berlin, Germany', 'EMEA'])('%s is non-US', (l) =>
+    expect(isNonUsPlace(l)).toBe(true),
+  );
+  it.each(['Remote (Canada)', 'Remote, Germany', 'New York, NY', 'NYC', '', 'United States'])(
+    '%s is not',
+    (l) => expect(isNonUsPlace(l)).toBe(false),
+  );
 });

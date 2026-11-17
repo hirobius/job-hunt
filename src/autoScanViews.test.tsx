@@ -185,6 +185,7 @@ describe('Scan details (the Search profile, #549)', () => {
 
   it('lists what Review new left out and each source that didn’t answer, with why', () => {
     setScanDetails({
+      listed: 0,
       failed: [
         { label: 'Acme · Greenhouse', error: 'Acme — no answer' },
         { label: 'Remotive · design system', error: 'daily limit reached' },

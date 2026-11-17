@@ -8,6 +8,8 @@
 import { dedupKey } from '../store';
 import type { Verdict } from '../tracks/score.ts';
 import { loadServerRows, type StoredPosting } from '../tracks/postings';
+import { inferMode } from './mode';
+import type { JobMode } from '../types';
 import type { FeedSourceId, Posting } from './types';
 
 export interface PostingReader {
@@ -46,6 +48,15 @@ const SOURCES: Record<string, FeedSourceId> = {
   wwr: 'wwr',
 };
 
+/** A stored row's work mode: the row's own flag, else what its location line states. A row stored
+ *  `remote: false` with no mode in its location is on-site, as the scan's keepForScan reads it. */
+function modeOfRow(r: StoredPosting): { mode?: JobMode } {
+  const mode = r.remote
+    ? 'remote'
+    : (inferMode(r.location) ?? (r.remote === false ? 'onsite' : undefined));
+  return mode ? { mode } : {};
+}
+
 /** A stored row as a Posting, with the server's score on it; null for a source the app has no
  *  name for. The sync stores a Posting's own id as source_id (`greenhouse:stripe:123`); the RSS
  *  feed's ids are its guids, so they get the `rss:` prefix here. */
@@ -59,7 +70,7 @@ export function postingFromRow(r: StoredPosting): Posting | null {
     company: r.company,
     url: r.url,
     location: r.location,
-    ...(r.remote && { mode: 'remote' as const }),
+    ...modeOfRow(r),
     postedAt: r.postedAt,
     // The stored description, so the Feed ranks it as the browser's read of it (#498 review).
     text: r.descriptionText ?? '',
