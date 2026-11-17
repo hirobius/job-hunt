@@ -78,6 +78,14 @@ const REMOTIVE: Remote[] = [
     type: 'contract',
   },
   { title: 'Customer Success Manager', company: 'Tandem', body: 'Help customers.', days: 1 },
+  // Adrian 2026-11-17: design engineering titles and contract roles are listed too.
+  {
+    title: 'Design Systems Engineer (Contract)',
+    company: 'Vellum',
+    body: '6 month contract: design tokens and Storybook.',
+    days: 2,
+    type: 'contract',
+  },
 ];
 const JOBICY: Remote[] = [
   {
@@ -88,6 +96,14 @@ const JOBICY: Remote[] = [
   },
   { title: 'Product Designer', company: 'Brightline', body: 'Design for our mobile app.', days: 2 },
   { title: 'UX Designer', company: 'Corvid', body: 'UX research and design.', days: 10 },
+  // Adrian 2026-11-17: a UX Engineer title, a contract role.
+  {
+    title: 'UX Engineer',
+    company: 'Prism',
+    body: 'Contract role: build our React component library with the design team.',
+    days: 3,
+    type: 'contract',
+  },
 ];
 
 interface BoardJob {
@@ -146,6 +162,12 @@ export const BOARDS: Record<string, BoardJob[]> = {
       days: 1,
     },
     { title: 'Product Designer, Platform', location: 'Remote', body: 'Platform UI.', days: 3 },
+    {
+      title: 'Senior Design Engineer, Web',
+      location: 'Remote',
+      body: 'Freelance or full-time. Ship the marketing site in React.',
+      days: 2,
+    },
   ],
   'greenhouse:epsilon': [
     {

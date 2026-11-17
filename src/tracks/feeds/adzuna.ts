@@ -12,8 +12,10 @@
 // is a 14-day trial, then a licence, so Adrian asks Adzuna before this is turned on. Keys are
 // Supabase function secrets (ADZUNA_APP_ID, ADZUNA_APP_KEY), never in the app bundle: the browser
 // never contacts Adzuna (no CSP entry); legal.ts names it as a service our server reads.
-// Budget: COUNTRIES × PHRASES = 8 calls on the morning run, CALL_GAP_MS apart (under 25 a minute;
-// 248 a month).
+// Budget: COUNTRIES × PHRASES = 20 calls on the morning run, CALL_GAP_MS apart (under 25 a minute;
+// 20 a day of 250, 140 a week of 1,000, 620 a month of 2,500). 2026-11-17: the design engineering
+// phrases too (design engineer, UX engineer, design technologist); the scorer keeps only the
+// design roles (designRoleGuard.ts), so a mechanical "design engineer" is stored as a reject.
 import { htmlToText } from '../../feed/html.ts';
 import { isRemoteRole } from './dsRole.ts';
 import { httpUrl } from '../../httpUrl.ts';
@@ -22,7 +24,13 @@ import { fetchKeyed, needKeys, SourceHttpError, type FeedContext } from './conte
 
 export const ADZUNA_ENV = ['ADZUNA_APP_ID', 'ADZUNA_APP_KEY'] as const;
 export const ADZUNA_COUNTRIES = ['us', 'gb', 'ca', 'de'] as const;
-export const ADZUNA_PHRASES = ['design system', 'design systems'] as const;
+export const ADZUNA_PHRASES = [
+  'design system',
+  'design systems',
+  'design engineer',
+  'ux engineer',
+  'design technologist',
+] as const;
 export const CALL_GAP_MS = 2500;
 
 export function adzunaUrl(country: string, phrase: string, id: string, key: string): string {
@@ -42,6 +50,18 @@ const obj = (v: unknown): O =>
   typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as O) : {};
 const str = (v: unknown) =>
   typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : '';
+
+/** Adzuna's `contract_type` / `contract_time` as an "Employment:" line when the role is not a
+ *  permanent full-time one, so the Feed's Contract signal (feed/match.ts) sees it. Contract and
+ *  part-time roles are kept like any other (Adrian 2026-11-17). */
+export function adzunaEmployment(j: Record<string, unknown>): string {
+  const type = str(j.contract_type).toLowerCase();
+  const time = str(j.contract_time).toLowerCase();
+  const words = [type === 'contract' && 'Contract', time === 'part_time' && 'Part-time'].filter(
+    Boolean,
+  );
+  return words.length ? `Employment: ${words.join(', ')}` : '';
+}
 
 export function parseAdzuna(json: unknown): NormalizedPosting[] {
   const rows = obj(json).results;
@@ -64,7 +84,9 @@ export function parseAdzuna(json: unknown): NormalizedPosting[] {
       location: location || undefined,
       remote: isRemoteRole(false, `${title} ${location}`) || undefined,
       url,
-      descriptionText: htmlToText(str(j.description)),
+      descriptionText: [adzunaEmployment(j), htmlToText(str(j.description))]
+        .filter(Boolean)
+        .join('\n'),
       postedAt: Number.isNaN(posted) ? undefined : new Date(posted).toISOString(),
     });
   }

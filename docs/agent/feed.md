@@ -47,8 +47,8 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   `BODY_SIGNALS_TO_LIST` (2) of the scorer's body signals** (`feed/include.ts` `bodyConfirms`; one mention of "design
   system" is not enough; same guard as the related titles). The scorer has the same titles as adjacent at the same
   bar, and a phone's light read fetches their descriptions (`bodyCanConfirm`). The design systems plan searches the
-  term feeds for its first design-system title, "design systems", then the related titles that are on (`plan.ts` `designSystemsTerms`, first 3 kept); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
-  2026-11-11) (`related` absent = on, `relatedOff` ids). **One design engineer guard,
+  term feeds for its first design-system title, "design systems", then the related titles that are on (design engineer, UX engineer, design technologist) (`plan.ts` `designSystemsTerms`, first `MAX_TERMS_PER_USER` = 5 kept, 3 → 5 on 2026-11-17); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
+  2026-11-11) (`related` absent = on, `relatedOff` ids). **A new profile searches them too** (Adrian 2026-11-17: `searchDefaults.ts` `NEW_PROFILE_TITLES` = the design-system titles + `DESIGN_ENGINEERING_TITLES`, remote only stays the default; `dsOnly.test.ts` lets a default title be a design-system or a related title only). **Contract and freelance roles are kept** (no scorer, fit or feed rule drops them; Adzuna's `contract_type` / `contract_time` and Jooble's `type` become an `Employment:` line so the Contract signal sees them; `feeds/widenedSearch.test.ts`, the breadth guard's new-user track). **One design engineer guard,
   `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
   process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
   by the related-title pass, `feeds/dsRole.ts` `isDsRole` and the scorer's `DESIGN_ENGINEER_STRONG` (a lookahead
@@ -120,7 +120,7 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   1/s, known rows from the `known_dsjobs_postings()` RPC; partial reads never close) and four windowed searches in
   `serverFeeds.ts`, never counted as answered (rows age out 30 days after last seen): TheirStack
   (`THEIRSTACK_API_KEY`, due 10 days a month × 18 rows), Adzuna (`ADZUNA_APP_ID`/`ADZUNA_APP_KEY`, rows say "Jobs by
-  Adzuna"), Jooble (`JOOBLE_API_KEY`, in the URL: never logged) and Into Design Systems (MCP, waits on its operator's
+  Adzuna"), Jooble (`JOOBLE_API_KEY`, in the URL: never logged); Adzuna and Jooble search design system(s), design engineer, UX engineer and design technologist (2026-11-17; Adzuna 20 calls a day) and Into Design Systems (MCP, waits on its operator's
   yes). **Gates live in `serverFeeds.ts` `SERVER_FEED_GATES` (claude/src-free-aggs), not `SOURCE_ENABLED`:** a keyed
   one runs as soon as any of its secrets is set (one of two missing → `MissingKeyError` names it in `sync_log`, the run
   goes on); the function's answer lists `serverFeedsOff` with the secret each needs. Plus three **keyless** remote boards

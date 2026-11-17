@@ -10,7 +10,8 @@
 // (SOURCE_LABEL.jooble). The key rides in the URL, so the URL is never logged or put in an error
 // (SourceHttpError names the status only). The browser never contacts Jooble (no CSP entry);
 // legal.ts names it as a service our server reads.
-// Rate limit: none published; we make PHRASES.length calls on the morning run, CALL_GAP_MS apart.
+// Rate limit: none published; we make PHRASES.length (5) calls on the morning run, CALL_GAP_MS
+// apart. 2026-11-17: the design engineering phrases too; the scorer keeps only the design roles.
 import { htmlToText } from '../../feed/html.ts';
 import { isRemoteRole } from './dsRole.ts';
 import { httpUrl } from '../../httpUrl.ts';
@@ -18,7 +19,13 @@ import type { NormalizedPosting } from '../score.ts';
 import { fetchKeyed, needKeys, SourceHttpError, type FeedContext } from './context.ts';
 
 export const JOOBLE_ENV = ['JOOBLE_API_KEY'] as const;
-export const JOOBLE_PHRASES = ['"design system"', '"design systems"'] as const;
+export const JOOBLE_PHRASES = [
+  '"design system"',
+  '"design systems"',
+  '"design engineer"',
+  '"ux engineer"',
+  '"design technologist"',
+] as const;
 export const CALL_GAP_MS = 1000;
 
 export const joobleUrl = (key: string) => `https://jooble.org/api/${encodeURIComponent(key)}`;
@@ -34,6 +41,11 @@ const obj = (v: unknown): O =>
   typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as O) : {};
 const str = (v: unknown) =>
   typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : '';
+
+/** Jooble's `type` as an "Employment:" line when it is not full-time (Contract, Temporary,
+ *  Part-time, Freelance), so the Feed's Contract signal sees it. Those roles are kept. */
+export const joobleEmployment = (type: string): string =>
+  type && !/^full[- ]?time$/i.test(type) ? `Employment: ${type}` : '';
 
 export function parseJooble(json: unknown): NormalizedPosting[] {
   const rows = obj(json).jobs;
@@ -59,7 +71,9 @@ export function parseJooble(json: unknown): NormalizedPosting[] {
       location: location || undefined,
       remote: isRemoteRole(false, `${title} ${location} ${str(j.type)}`) || undefined,
       url,
-      descriptionText: htmlToText(str(j.snippet)),
+      descriptionText: [joobleEmployment(htmlToText(str(j.type))), htmlToText(str(j.snippet))]
+        .filter(Boolean)
+        .join('\n'),
       postedAt: Number.isNaN(posted) ? undefined : new Date(posted).toISOString(),
     });
   }

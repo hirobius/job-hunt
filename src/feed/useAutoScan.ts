@@ -3,7 +3,7 @@
 // is design-system openings) and the host that scans on app open, once sync has settled so a
 // signed-in user's profile is here first.
 import { useEffect, useMemo, useRef } from 'react';
-import { DESIGN_SYSTEMS_TITLES } from '../searchDefaults';
+import { NEW_PROFILE_TITLES } from '../searchDefaults';
 import { canWrite, useCloudSync } from '../account/accountContext';
 import { useFeedInputs } from './useFeed';
 import { boardUrlsOf } from './profile';
@@ -23,7 +23,7 @@ export function useScanInput(): ScanInput {
             remoteOnly: profile.mode === 'remote',
             exclude: profile.exclude,
           }
-        : { terms: [...DESIGN_SYSTEMS_TITLES], boardUrls: boardUrlsOf(sources) },
+        : { terms: [...NEW_PROFILE_TITLES], boardUrls: boardUrlsOf(sources) },
     [profile, sources],
   );
 }

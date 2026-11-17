@@ -27,7 +27,7 @@ import { getCurationState, replaceCurationState } from './curation/curationStore
 import { getAllDocuments } from './documents';
 import { getProfile, replaceProfiles, saveProfile } from './profile';
 import { getSources, replaceSources } from './sources';
-import { DESIGN_SYSTEMS_ATS_ROLES, DESIGN_SYSTEMS_TITLES, seedSources } from './searchDefaults';
+import { DESIGN_SYSTEMS_ATS_ROLES, NEW_PROFILE_TITLES, seedSources } from './searchDefaults';
 
 const renderApp = () =>
   render(
@@ -68,7 +68,7 @@ describe('a first visit', () => {
     renderApp();
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(getProfile()).toMatchObject({
-      titles: DESIGN_SYSTEMS_TITLES,
+      titles: NEW_PROFILE_TITLES,
       mode: 'remote',
       location: '',
       include: { terms: ['design system'] },
@@ -186,7 +186,7 @@ describe('Account menu → Search profile, opened before the profile arrives', (
     await click('Account');
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Search profile' }));
     await screen.findByRole('dialog', { name: 'Search profile' });
-    expect(titles()).toEqual(DESIGN_SYSTEMS_TITLES);
+    expect(titles()).toEqual(NEW_PROFILE_TITLES);
     // A pull lands with this account's profile while the dialog is open.
     act(() => void saveProfile({ titles: ['Design Ops Lead'], mode: 'hybrid' }));
     expect(titles()).toEqual(['Design Ops Lead']);

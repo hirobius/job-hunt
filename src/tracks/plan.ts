@@ -30,7 +30,10 @@ import { LABEL, SUBDOMAIN_KINDS } from './boardFetch.ts';
  *  Far above a real list (a pack's boards + the Adele seed + verified). */
 export const MAX_BOARDS_PER_USER = 500;
 /** Titles searched on the term feeds per user and run. */
-export const MAX_TERMS_PER_USER = 3;
+/** 3 → 5 (Adrian 2026-11-17): room for "ux engineer" and "design technologist" beside the
+ *  design-system terms and "design engineer". The feeds run caps every user's terms together
+ *  (sync.ts `termsPerRun`), so this never adds a Remotive read. */
+export const MAX_TERMS_PER_USER = 5;
 const MAX_TERM = 60;
 
 /** Every board kind the app reads, all 13 (#576): the board set's list, so the sync, the rotation
@@ -103,6 +106,13 @@ const RELATED_PATTERNS: Record<string, string[]> = {
   'design technologist': [DESIGN_TECHNOLOGIST_STRONG],
   'design engineer': [DESIGN_ENGINEER_STRONG, DESIGN_ENGINEER_ADJACENT],
 };
+
+/** What the term feeds are searched for, per related title (its RELATED_TITLES phrases), in the
+ *  order a capped list keeps them: design engineer, then UX engineer, then design technologist. */
+const RELATED_TERMS: [id: string, terms: string[]][] = [
+  ['design engineer', ['design engineer', 'ux engineer']],
+  ['design technologist', ['design technologist']],
+];
 
 /** What a profile reads as a scorer config. `scorer: 'design-systems'` gets the tuned design
  *  systems config, Review bucket included (related titles switched off are dropped from its title
@@ -216,17 +226,18 @@ const cleanTerms = (titles: string[]) => {
 /** What a design systems plan searches the term feeds for (HN, Remotive, Jobicy), 2026-11-15:
  *  the profile's first design-system title (a feed that matches whole phrases finds it), then
  *  "design systems" (every design-system title; the old list's cap of 3 cut it), then the related
- *  titles that are on, which the old list never searched, then the profile's other design-system
- *  titles. `cleanTerms` keeps the first `MAX_TERMS_PER_USER`, so with a title of its own a
- *  profile searches that, "design systems" and "design engineer". */
+ *  titles that are on (2026-11-17: design engineer, UX engineer and design technologist), then the
+ *  profile's other design-system titles. `cleanTerms` keeps the first `MAX_TERMS_PER_USER` (5), so
+ *  with a title of its own and every related title on, a profile searches that, "design systems"
+ *  and the three design engineering terms. */
 export function designSystemsTerms(titles: string[], config: TrackConfig): string[] {
-  const related = Object.entries(RELATED_PATTERNS)
-    .filter(([, patterns]) =>
-      patterns.some((p) => config.titleStrong.includes(p) || config.titleAdjacent.includes(p)),
-    )
-    .map(([id]) => id);
+  const related = RELATED_TERMS.filter(([id]) =>
+    RELATED_PATTERNS[id].some(
+      (p) => config.titleStrong.includes(p) || config.titleAdjacent.includes(p),
+    ),
+  ).flatMap(([, terms]) => terms);
   const [first, ...rest] = titles.filter(saysDesignSystem);
-  return [...(first ? [first] : []), 'design systems', ...related.sort(), ...rest];
+  return [...(first ? [first] : []), 'design systems', ...related, ...rest];
 }
 
 const isV12 = (o: O) =>
