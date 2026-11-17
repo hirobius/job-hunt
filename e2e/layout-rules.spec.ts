@@ -10,9 +10,11 @@
 //   - the page starts 24 under the tab row on every route (the shell owns that space)
 //   - no italic text (HDS 0.30's EmptyState title is italic; hds-gaps/EmptyState resets it)
 //   - a back link's arrow sits on the page heading's left edge (no tertiary inset)
+//   - no ancestor clips a control's painted box, its HDS hard edge included (e2e/clipped.ts)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
 import { test, expect, type Page } from './fixtures';
 import { seed, visitAll, listScope, topTab } from './routes';
+import { findClipped } from './clipped';
 
 const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [390, 1440] as const;
@@ -277,6 +279,8 @@ for (const theme of THEMES) {
         const bad: string[] = [];
         await visitAll(page, async (name) => {
           for (const line of await probe(page)) bad.push(`${name} ${line}`);
+          // No ancestor cuts a control's painted box, the 3px HDS button edge included.
+          for (const line of await findClipped(page)) bad.push(`${name} clipped: ${line}`);
         });
         expect(bad).toEqual([]);
       });
