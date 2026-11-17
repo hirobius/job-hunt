@@ -115,6 +115,7 @@ const RANK: Record<string, number> = {
   remotejobsorg: 3,
   getonbrd: 3,
   osdjobs: 3,
+  jobgether: 4,
   remoteok: 3,
   wwr: 3,
   jobicy: 3,

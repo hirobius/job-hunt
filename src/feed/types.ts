@@ -42,7 +42,8 @@ export type FeedSourceId =
   | 'fourdayweek'
   | 'remotejobsorg'
   | 'getonbrd'
-  | 'osdjobs';
+  | 'osdjobs'
+  | 'jobgether';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -79,6 +80,7 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   remotejobsorg: 'RemoteJobs.org',
   getonbrd: 'Get on Board',
   osdjobs: 'Open Source Design',
+  jobgether: 'Jobgether',
   bluesky: 'Bluesky',
   mastodon: 'Mastodon',
   reddit: 'Reddit',

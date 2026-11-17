@@ -39,6 +39,7 @@ export const AGGREGATOR_BOARDS: readonly string[] = [
   'remotejobsorg',
   'getonbrd',
   'osdjobs',
+  'jobgether',
 ];
 
 /** Boards checked per run: each is one list read (Ashby's run ~0.9 MB). */

@@ -121,6 +121,7 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       'getonbrd',
       'hn',
       'ids',
+      'jobgether',
       'jobicy',
       'jooble',
       'osdjobs',

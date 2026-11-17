@@ -51,6 +51,7 @@ describe('feeds twice a day (#576)', () => {
       'remotejobsorg',
       'getonbrd',
       'osdjobs',
+      'jobgether',
     ]);
   });
 

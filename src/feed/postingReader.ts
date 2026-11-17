@@ -41,6 +41,7 @@ const SOURCES: Record<string, FeedSourceId> = {
   remotejobsorg: 'remotejobsorg',
   getonbrd: 'getonbrd',
   osdjobs: 'osdjobs',
+  jobgether: 'jobgether',
   remoteok: 'remoteok',
   wwr: 'wwr',
 };

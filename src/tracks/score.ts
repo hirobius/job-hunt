@@ -36,6 +36,7 @@ export interface NormalizedPosting {
     | 'remotejobsorg'
     | 'getonbrd'
     | 'osdjobs'
+    | 'jobgether'
     | 'remotive'
     | 'jobicy'
     | 'hn'

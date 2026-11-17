@@ -17,6 +17,7 @@ describe('which server feeds run', () => {
       'remotejobsorg',
       'getonbrd',
       'osdjobs',
+      'jobgether',
     ]);
     expect(serverFeedOn('ids', none)).toBe(false);
   });

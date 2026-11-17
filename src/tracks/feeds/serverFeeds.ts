@@ -18,6 +18,7 @@ import { readFourDayWeek } from './fourdayweek.ts';
 import { readRemoteJobsOrg } from './remotejobsorg.ts';
 import { readGetOnBrd } from './getonbrd.ts';
 import { readOsdJobs } from './osdjobs.ts';
+import { readJobgether } from './jobgether.ts';
 
 export type ServerFeed =
   | 'arbeitnow'
@@ -30,7 +31,8 @@ export type ServerFeed =
   | 'fourdayweek'
   | 'remotejobsorg'
   | 'getonbrd'
-  | 'osdjobs';
+  | 'osdjobs'
+  | 'jobgether';
 export const SERVER_FEEDS: readonly ServerFeed[] = [
   'ids',
   'arbeitnow',
@@ -43,6 +45,7 @@ export const SERVER_FEEDS: readonly ServerFeed[] = [
   'remotejobsorg',
   'getonbrd',
   'osdjobs',
+  'jobgether',
 ];
 
 export const SERVER_FEED_READERS: Record<
@@ -60,6 +63,7 @@ export const SERVER_FEED_READERS: Record<
   remotejobsorg: readRemoteJobsOrg,
   getonbrd: readGetOnBrd,
   osdjobs: readOsdJobs,
+  jobgether: readJobgether,
 };
 
 /** The server feeds read whole every run (#576 item 11): Remote OK's one list and We Work
@@ -83,6 +87,7 @@ export const SERVER_FEED_GATES: Record<ServerFeed, Gate> = {
   remotejobsorg: { keyless: true },
   getonbrd: { keyless: true },
   osdjobs: { keyless: true },
+  jobgether: { keyless: true },
 };
 
 type Env = (name: string) => string | undefined;
