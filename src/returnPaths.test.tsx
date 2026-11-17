@@ -270,19 +270,17 @@ describe('pages opened from the Account menu', () => {
 });
 
 describe('the browser Back closes a sheet and stays on the page', () => {
-  it('Add job (in the All jobs sheet, #543), then the sheet itself', async () => {
+  it('Add job (from the job\u2019s More menu below lg): Back closes the dialog and stays on the page', async () => {
     window.location.hash = '#/apply';
     renderApp();
-    const sheet = await openAllJobs();
-    await userEvent.click(within(sheet).getByRole('button', { name: 'Add job' }));
+    const title = (await screen.findByRole('heading', { level: 1 })).textContent!;
+    await userEvent.click(await screen.findByRole('button', { name: `More actions: ${title}` }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Add job' }));
     await screen.findByRole('dialog', { name: 'Add a job' });
-    window.history.back();
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a job' })).toBeNull());
-    expect(screen.getByRole('region', { name: 'Job list' })).toBeInTheDocument();
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(window.location.hash).toBe('#/apply');
-    expect(screen.getByRole('heading', { level: 1, name: 'Fabricator' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument();
   });
 
   it('Follow up, over the page it was opened on', async () => {
