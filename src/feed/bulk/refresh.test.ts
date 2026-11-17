@@ -142,8 +142,17 @@ describe('carryForward', () => {
       '2026-12-01',
     );
     expect(r.boards).toHaveLength(prev.boards.length);
-    expect(serializeBoardSet({ ...prev, boards: r.boards })).toBe(text);
-    expect(diffBoardSets(prev, { ...prev, boards: r.boards }).blockers).toEqual(['no change']);
+    // A board that answers live again loses its miss count (a missed board kept in the set has
+    // one); every other line stays as it is.
+    const live = prev.boards.map(({ misses: _m, ...b }) => b);
+    expect(serializeBoardSet({ ...prev, boards: r.boards })).toBe(
+      serializeBoardSet({ ...prev, boards: live }),
+    );
+    if (!prev.boards.some((b) => b.misses))
+      expect(serializeBoardSet({ ...prev, boards: r.boards })).toBe(text);
+    expect(
+      diffBoardSets({ ...prev, boards: live }, { ...prev, boards: r.boards }).blockers,
+    ).toEqual(['no change']);
   });
 });
 
