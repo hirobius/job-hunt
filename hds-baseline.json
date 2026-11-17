@@ -104,14 +104,6 @@
       "count": 1,
       "issue": "job-hunt#556",
       "why": "flame logo size; the flame rework owns it"
-    },
-    {
-      "rule": "px",
-      "file": "src/theme/base.css",
-      "match": "min-height: 30px",
-      "count": 1,
-      "issue": "job-hunt#548",
-      "why": "the shell tabs (.rjb-segs) move to HDS SegmentedControl links (G7, hds#1438)"
     }
   ]
 }
