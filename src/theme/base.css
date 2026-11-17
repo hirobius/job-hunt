@@ -585,6 +585,13 @@ p {
   overflow-y: auto;
   padding: calc(var(--primitive-space-1) / 2);
   margin: calc(var(--primitive-space-1) / -2);
+  /* A raised HDS Button draws its 3px edge below its box (a box-shadow, which adds nothing to the
+   * scroll area), so a button that ends the body lost its last edge pixel to the 2px pad. The
+   * bottom pad is the edge's height; the margin gives it back (e2e/clipped-controls.spec.ts). */
+  padding-block-end: max(calc(var(--primitive-space-1) / 2), var(--component-button-depth-edge));
+  margin-block-end: calc(
+    -1 * max(calc(var(--primitive-space-1) / 2), var(--component-button-depth-edge))
+  );
 }
 
 /* Select trigger text (HDS gap, registry: "Select trigger text centred and wrapping"): HDS Select
