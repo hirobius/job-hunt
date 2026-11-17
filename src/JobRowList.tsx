@@ -15,7 +15,7 @@ import { rowView } from './jobRow';
 import { dateLabel } from './jobDates';
 import { JobBadges } from './JobRowParts';
 import CompanyLine from './CompanyLine';
-import CompanyLogo from './CompanyLogo';
+import { metaLines } from './metaLines';
 import { JOB_ATTR } from './listFocus';
 import { useHighlight } from './feedback';
 import { jobHighlightKey } from './saveNotice';
@@ -42,7 +42,6 @@ function Row({
   // One date per job (Adrian 2026-10-28): posted, else found; the closing date is a badge.
   // Beside the job at lg (`brief`, Adrian 2026-11-15) a row is its badges, title and company: the
   // place and the date are the job's own page beside it.
-  const facts = [...v.factLines, dateLabel(job)].filter(Boolean);
   return (
     <li className="rjb-job-row" ref={highlight} {...{ [JOB_ATTR]: job.url }}>
       {/* One badge row above the title (rev-3 B). */}
@@ -58,32 +57,24 @@ function Row({
       >
         {v.title}
       </a>
-      {brief ? (
-        // Beside the job (JobRail): the same company line as a Find card and the job page.
-        <Box id={`${id}-facts`}>
-          <Stack gap="tight">
-            {job.archived && (
-              <Text variant="caption" as="span" tone="secondary">
-                Retired
+      {/* Apply and the rail share one company line with Find and the job page (CompanyLine). Full
+          rows add the place and the date under it; beside the job (brief) it is the company only. */}
+      <Box id={`${id}-facts`}>
+        <Stack gap="tight">
+          {job.archived && (
+            <Text variant="caption" as="span" tone="secondary">
+              Retired
+            </Text>
+          )}
+          {job.company && <CompanyLine company={job.company} url={job.url} as="span" />}
+          {!brief &&
+            metaLines([job.location, dateLabel(job)]).map((line, i) => (
+              <Text key={i} variant="caption" as="span" tone="secondary">
+                {line}
               </Text>
-            )}
-            {job.company && <CompanyLine company={job.company} url={job.url} as="span" />}
-          </Stack>
-        </Box>
-      ) : (
-        <Stack direction="row" gap="px8" align="center">
-          {job.company && <CompanyLogo inline company={job.company} postings={[job.url]} />}
-          <Box id={`${id}-facts`}>
-            <Stack>
-              {facts.map((line, i) => (
-                <Text key={i} variant="caption" as="span" tone="secondary">
-                  {line}
-                </Text>
-              ))}
-            </Stack>
-          </Box>
+            ))}
         </Stack>
-      )}
+      </Box>
       {keys && (
         <Stack direction="row" gap="px8" align="center" className="rjb-job-row-keys">
           {keys(job)}
