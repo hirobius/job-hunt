@@ -72,7 +72,8 @@ every call (403): there is no built-in fallback.
 
 ### 3b. Keys for the sync's own searches (adding a key turns its source on)
 
-Arbeitnow, Remote OK and We Work Remotely need no key and run every morning. Each keyed source
+Arbeitnow, Remote OK, We Work Remotely, 4dayweek.io, RemoteJobs.org, Get on Board, Open Source
+Design and Jobgether need no key and run on each feeds run. Each keyed source
 runs as soon as its secret is set (no code change; `src/tracks/feeds/serverFeeds.ts`). With one of
 two secrets missing, its read fails with a `sync_log` line naming it. The function's answer lists
 `serverFeedsOff` with the secret each one still needs. Add each in the same Secrets page:
@@ -103,6 +104,10 @@ It finds company boards on every ATS host the sync reads and stores them in `fou
 scan rotation reads them beside `boards.json`. Run
 `supabase/migrations/20261117100000_found_boards.sql` once before deploying the function that
 writes it (until then the x-ray only logs a failed write and the rotation walks `boards.json`).
+
+Run `supabase/migrations/20261117100100_postings_more_keyless_feeds.sql` once **before** deploying a
+function that reads 4dayweek.io, RemoteJobs.org, Get on Board, Open Source Design or Jobgether: it
+lets `postings` store their rows.
 
 ### 4. Deploy the function
 
