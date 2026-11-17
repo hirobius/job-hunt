@@ -43,7 +43,7 @@ describe('feeds twice a day (#576)', () => {
     const morning = serverFeedsForRun(env, true);
     const afternoon = serverFeedsForRun(env, false);
     expect(morning).toEqual(expect.arrayContaining(['arbeitnow', 'remoteok', 'wwr', 'theirstack']));
-    expect(afternoon).toEqual(['arbeitnow', 'remoteok', 'wwr']);
+    expect(afternoon).toEqual(['arbeitnow', 'remoteok', 'wwr', 'fourdayweek']);
   });
 
   it('reads Remotive on the morning run only: 2 terms, at most 4 requests with a retry each', () => {

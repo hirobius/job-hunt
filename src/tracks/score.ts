@@ -32,6 +32,7 @@ export interface NormalizedPosting {
     | 'arbeitnow'
     | 'remoteok'
     | 'wwr'
+    | 'fourdayweek'
     | 'remotive'
     | 'jobicy'
     | 'hn'

@@ -111,6 +111,7 @@ const RANK: Record<string, number> = {
   jooble: 2,
   remotive: 3,
   arbeitnow: 3,
+  fourdayweek: 3,
   remoteok: 3,
   wwr: 3,
   jobicy: 3,

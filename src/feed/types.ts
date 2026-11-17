@@ -37,7 +37,9 @@ export type FeedSourceId =
   | 'adzuna'
   | 'jooble'
   | 'ids'
-  | 'arbeitnow';
+  | 'arbeitnow'
+  // More keyless server searches (docs/research/job-sources-2026-11.md).
+  | 'fourdayweek';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -70,6 +72,7 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   ids: 'Into Design Systems',
   // Its terms: link back to Arbeitnow (each row links to its Arbeitnow page) and name it.
   arbeitnow: 'Arbeitnow',
+  fourdayweek: '4dayweek.io',
   bluesky: 'Bluesky',
   mastodon: 'Mastodon',
   reddit: 'Reddit',

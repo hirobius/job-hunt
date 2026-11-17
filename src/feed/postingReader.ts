@@ -37,6 +37,7 @@ const SOURCES: Record<string, FeedSourceId> = {
   jooble: 'jooble',
   ids: 'ids',
   arbeitnow: 'arbeitnow',
+  fourdayweek: 'fourdayweek',
   remoteok: 'remoteok',
   wwr: 'wwr',
 };
