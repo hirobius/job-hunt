@@ -88,6 +88,12 @@ export const THIRD_PARTIES: ThirdParty[] = [
     hosts: [],
   },
   {
+    name: 'Web searches our server runs',
+    purpose:
+      'Once switched on, our server (not your browser) asks Brave Search, and Google Programmable Search while it lasts, for design systems openings on company hiring sites such as Greenhouse and Lever. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. We keep only the company hiring page each answer links to, and read its openings from that page.',
+    hosts: [],
+  },
+  {
     name: 'DuckDuckGo',
     purpose:
       'Company logos. To show a company’s logo, your browser asks DuckDuckGo’s icon service for the icon of the company’s web address, such as acme.com. It receives that web address and your IP address, and may see that the request came from this app (our site address, never the page or job), but never your name, email, notes, documents or account. Where there is no logo, the app shows the company’s first letter.',

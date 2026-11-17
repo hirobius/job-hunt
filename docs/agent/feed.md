@@ -288,3 +288,9 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").
+- **ATS x-ray search (#389, server):** `tracks/feeds/xray.ts` asks Brave Search (and Google Programmable Search
+  while a pre-2026 key lasts) for `site:<ATS host> ("design system" OR …)` over every board kind the sync reads, 10
+  calls on the morning run, rotating by day. Gated on `BRAVE_SEARCH_API_KEY` / `GOOGLE_CSE_API_KEY`+`GOOGLE_CSE_ID`
+  (`serverFeedsOff.xray` names them). Only the board (kind + slug) of each result link is kept, in `found_boards`;
+  the scan rotation walks `boards.json` plus those (`withFoundBoards`), so postings come from the board's own API.
+  Never a Google results page; Workday, SuccessFactors, Taleo and Oracle hosts are never searched or read.

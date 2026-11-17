@@ -1,0 +1,24 @@
+{
+  "kind": "customsearch#search",
+  "searchInformation": { "totalResults": "3" },
+  "items": [
+    {
+      "kind": "customsearch#result",
+      "title": "Design Systems Engineer - Epsilon",
+      "link": "https://apply.workable.com/epsilon-co/j/AB12CD34EF/",
+      "snippet": "Epsilon is hiring a Design Systems Engineer..."
+    },
+    {
+      "kind": "customsearch#result",
+      "title": "UI Engineer, Design System | Zeta",
+      "link": "https://zeta.teamtailor.com/jobs/123456-ui-engineer-design-system",
+      "snippet": "Remote in Europe."
+    },
+    {
+      "kind": "customsearch#result",
+      "title": "Job Application for Design Technologist at Acme Robotics",
+      "link": "https://job-boards.greenhouse.io/AcmeRobotics/jobs/4012345111",
+      "snippet": "Same board as Brave found, other case."
+    }
+  ]
+}
