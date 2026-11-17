@@ -84,6 +84,8 @@ two secrets missing, its read fails with a `sync_log` line naming it. The functi
 | Jooble              | `JOOBLE_API_KEY`                      | jooble.org/api/about → request a key                                                        |
 | Into Design Systems | none                                  | its operator's yes to a server read (no key)                                                |
 | ATS x-ray search    | `BRAVE_SEARCH_API_KEY`                | brave.com/search/api → Get started → API key (monthly free credit; ~300 calls a month used) |
+| ATS x-ray (Tavily)  | `TAVILY_API_KEY`                      | app.tavily.com → sign up → API key (1,000 credits a month free; ~300 used)                  |
+| ATS x-ray (Exa)     | `EXA_API_KEY`                         | dashboard.exa.ai → sign up → API key (monthly free credit)                                  |
 | ATS x-ray (Google)  | `GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ID` | only a key made before Google closed sign-ups; it ends 2027-01-01                           |
 
 Also run `supabase/migrations/20261029100000_postings_more_sources.sql` once (after step 1): it

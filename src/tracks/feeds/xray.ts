@@ -17,7 +17,11 @@
 //                     → { items: [{ title, link, snippet }] }
 //                     100 calls a day free. Closed to new sign-ups and ends 2027-01-01 (Google), so
 //                     it only helps a key made before; Brave is the one to set up.
-// Neither is ever a Google results page (its terms ban that), and no Workday, SuccessFactors, Taleo
+//   Tavily  POST https://api.tavily.com/search  Bearer <TAVILY_API_KEY>  1,000 credits a month free
+//   Exa     POST https://api.exa.ai/search      x-api-key <EXA_API_KEY>  monthly free credit
+//           Both take the hosts as a domain filter and have no paging: page 0 of each host only.
+//           → { results: [{ url, title }] }  (shapes from their docs, unverified live)
+// None is ever a Google results page (its terms ban that), and no Workday, SuccessFactors, Taleo
 // or Oracle host is searched or fetched. The browser never contacts either API (no CSP entry);
 // legal.ts names them as services our server reads. Keys ride in a header (Brave) or the URL
 // (Google): fetchKeyed and SourceHttpError never log a URL.
@@ -28,10 +32,16 @@ import { fetchKeyed, SourceHttpError, type FeedContext } from './context.ts';
 export const BRAVE_ENV = ['BRAVE_SEARCH_API_KEY'] as const;
 export const GOOGLE_CSE_ENV = ['GOOGLE_CSE_API_KEY', 'GOOGLE_CSE_ID'] as const;
 /** Any of these set turns the x-ray on (a provider with one secret missing is skipped, logged). */
-export const XRAY_ENV = [...BRAVE_ENV, ...GOOGLE_CSE_ENV] as const;
+export const TAVILY_ENV = ['TAVILY_API_KEY'] as const;
+export const EXA_ENV = ['EXA_API_KEY'] as const;
+export const XRAY_ENV = [...BRAVE_ENV, ...GOOGLE_CSE_ENV, ...TAVILY_ENV, ...EXA_ENV] as const;
 
 export const BRAVE_URL = 'https://api.search.brave.com/res/v1/web/search';
 export const GOOGLE_CSE_URL = 'https://www.googleapis.com/customsearch/v1';
+export const TAVILY_URL = 'https://api.tavily.com/search';
+export const EXA_URL = 'https://api.exa.ai/search';
+/** Tavily and Exa take the domains as a parameter, not `site:`, and the phrases plainly. */
+export const PLAIN_QUERY = '"design system" OR "design technologist" OR "design engineer" job';
 
 /** The role words, ORed in one clause (both APIs read OR and quotes). */
 export const XRAY_PHRASES =
@@ -72,6 +82,28 @@ export interface XraySlot {
 }
 
 export const xrayQuery = (site: string) => `${site} ${XRAY_PHRASES}`;
+
+/** The hosts a slot's site clause names (Tavily's and Exa's domain filter). */
+export const slotDomains = (s: Pick<XraySlot, 'query'>) =>
+  [...s.query.matchAll(/site:([a-z0-9.-]+)/gi)].map((m) => m[1]!.toLowerCase());
+
+/** Tavily: POST { query, include_domains, max_results, time_range }, Bearer key. Basic search is
+ *  1 credit; the free plan has 1,000 a month (docs.tavily.com). No paging: page 0 slots only. */
+export const tavilyBody = (s: XraySlot) => ({
+  query: PLAIN_QUERY,
+  include_domains: slotDomains(s),
+  max_results: 20,
+  time_range: 'month',
+  search_depth: 'basic',
+});
+
+/** Exa: POST { query, includeDomains, numResults, startPublishedDate }, x-api-key. No paging. */
+export const exaBody = (s: XraySlot, now: Date) => ({
+  query: PLAIN_QUERY,
+  includeDomains: slotDomains(s),
+  numResults: 25,
+  startPublishedDate: new Date(now.getTime() - 30 * 86_400_000).toISOString(),
+});
 
 /** Every (query, page) the x-ray asks, page 0 of every host first. */
 export function xraySlots(): XraySlot[] {
@@ -125,6 +157,8 @@ const hits = (rows: unknown, urlKey: string): SearchHit[] =>
 
 export const parseBrave = (json: unknown): SearchHit[] => hits(obj(obj(json).web).results, 'url');
 export const parseGoogle = (json: unknown): SearchHit[] => hits(obj(json).items, 'link');
+/** Tavily and Exa both answer { results: [{ url, title }] }. */
+export const parseResults = (json: unknown): SearchHit[] => hits(obj(json).results, 'url');
 
 /** The company a result title names: Greenhouse "Job Application for X at Acme", Lever / Ashby
  *  "Acme - X", else the slug in title case. A guess for display only: the board key is the id. */
@@ -170,10 +204,17 @@ export interface XrayRun {
 
 type Provider = {
   name: string;
-  url: (s: XraySlot) => string;
-  init?: RequestInit;
+  /** False: no paging, so it asks page 0 of every host instead (Tavily, Exa). */
+  paged: boolean;
+  request: (s: XraySlot) => { url: string; init?: RequestInit };
   parse: (json: unknown) => SearchHit[];
 };
+
+const postJson = (headers: Record<string, string>, body: unknown): RequestInit => ({
+  method: 'POST',
+  headers: { 'content-type': 'application/json', accept: 'application/json', ...headers },
+  body: JSON.stringify(body),
+});
 
 function providers(ctx: FeedContext, errors: string[]): Provider[] {
   const v = (n: string) => ctx.env(n)?.trim() ?? '';
@@ -182,8 +223,11 @@ function providers(ctx: FeedContext, errors: string[]): Provider[] {
   if (brave)
     out.push({
       name: 'Brave Search',
-      url: braveUrl,
-      init: { headers: { accept: 'application/json', 'x-subscription-token': brave } },
+      paged: true,
+      request: (s) => ({
+        url: braveUrl(s),
+        init: { headers: { accept: 'application/json', 'x-subscription-token': brave } },
+      }),
       parse: parseBrave,
     });
   const gKey = v('GOOGLE_CSE_API_KEY');
@@ -191,13 +235,36 @@ function providers(ctx: FeedContext, errors: string[]): Provider[] {
   if (gKey && gCx)
     out.push({
       name: 'Google Programmable Search',
-      url: (s) => googleUrl(gKey, gCx, s),
+      paged: true,
+      request: (s) => ({ url: googleUrl(gKey, gCx, s) }),
       parse: parseGoogle,
     });
   else if (gKey || gCx)
     errors.push(
       `Google Programmable Search: ${gKey ? 'GOOGLE_CSE_ID' : 'GOOGLE_CSE_API_KEY'} is not set`,
     );
+  const tavily = v('TAVILY_API_KEY');
+  if (tavily)
+    out.push({
+      name: 'Tavily',
+      paged: false,
+      request: (s) => ({
+        url: TAVILY_URL,
+        init: postJson({ authorization: `Bearer ${tavily}` }, tavilyBody(s)),
+      }),
+      parse: parseResults,
+    });
+  const exa = v('EXA_API_KEY');
+  if (exa)
+    out.push({
+      name: 'Exa',
+      paged: false,
+      request: (s) => ({
+        url: EXA_URL,
+        init: postJson({ 'x-api-key': exa }, exaBody(s, ctx.now())),
+      }),
+      parse: parseResults,
+    });
   return out;
 }
 
@@ -208,12 +275,20 @@ export async function runXray(ctx: FeedContext, n = XRAY_CALLS_PER_RUN): Promise
   const found: SearchHit[] = [];
   let calls = 0;
   const slots = slotsForRun(ctx.now(), n);
+  // Page 0 of every host, for the providers with no paging, in the same day rotation.
+  const firstPages = xraySlots().filter((s) => s.page === 0);
+  const day = Math.floor(ctx.now().getTime() / 86_400_000);
+  const firsts = Array.from(
+    { length: Math.min(n, firstPages.length) },
+    (_, i) => firstPages[(day * n + i) % firstPages.length]!,
+  );
   for (const p of providers(ctx, errors)) {
-    for (let i = 0; i < slots.length; i++) {
+    for (const slot of p.paged ? slots : firsts) {
+      const req = p.request(slot);
       if (calls) await ctx.sleep(CALL_GAP_MS);
       calls++;
       try {
-        const r = await fetchKeyed(ctx, p.name, p.url(slots[i]!), p.init);
+        const r = await fetchKeyed(ctx, p.name, req.url, req.init);
         if (!r.ok) throw new SourceHttpError(p.name, r.status);
         found.push(...p.parse(await r.json()));
       } catch (e) {

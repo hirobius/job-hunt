@@ -4,6 +4,10 @@ import { BOARD_KINDS, setBoardKey, type SetBoard } from '../../feed/boardSet';
 import type { FeedContext } from './context';
 import {
   boardsFromHits,
+  exaBody,
+  parseResults,
+  slotDomains,
+  tavilyBody,
   braveUrl,
   companyFromHit,
   googleUrl,
@@ -22,11 +26,23 @@ const fixture = (f: string) =>
   JSON.parse(readFileSync(`src/tracks/feeds/fixtures/${f}`, 'utf8')) as unknown;
 const BRAVE = fixture('brave-xray.json');
 const GOOGLE = fixture('google-cse-xray.json');
+const TAVILY = fixture('tavily-xray.json');
+const EXA = fixture('exa-xray.json');
 
 const ctx = (env: Record<string, string>, o: Partial<FeedContext> = {}): FeedContext => ({
   fetch: vi.fn(
     async (url: string) =>
-      new Response(JSON.stringify(url.includes('googleapis') ? GOOGLE : BRAVE)),
+      new Response(
+        JSON.stringify(
+          url.includes('googleapis')
+            ? GOOGLE
+            : url.includes('tavily')
+              ? TAVILY
+              : url.includes('exa.ai')
+                ? EXA
+                : BRAVE,
+        ),
+      ),
   ),
   env: (n) => env[n],
   now: () => new Date('2026-11-17T06:23:00Z'),
@@ -180,5 +196,39 @@ describe('withFoundBoards', () => {
     expect(out.map(setBoardKey)).toEqual(['ashby:a', 'greenhouse:m', 'lever:z']);
     expect(out[0]!.company).toBe('Snapshot');
     expect(withFoundBoards(set, [])).toEqual(set);
+  });
+});
+
+describe('Tavily and Exa', () => {
+  const slot = xraySlots().find((s) => s.kind === 'greenhouse')!;
+  it('send the hosts as a domain filter, not site: words', () => {
+    expect(slotDomains(slot)).toEqual(['boards.greenhouse.io', 'job-boards.greenhouse.io']);
+    expect(tavilyBody(slot)).toMatchObject({
+      include_domains: ['boards.greenhouse.io', 'job-boards.greenhouse.io'],
+      time_range: 'month',
+    });
+    expect(tavilyBody(slot).query).not.toContain('site:');
+    expect(exaBody(slot, new Date('2026-11-17T00:00:00Z')).startPublishedDate).toBe(
+      '2026-10-18T00:00:00.000Z',
+    );
+  });
+
+  it('read results[].url', () => {
+    expect(parseResults(TAVILY).map((h) => h.url)).toHaveLength(2);
+    expect(parseResults(EXA)[0]!.title).toContain('Lambda Co');
+  });
+
+  it('run page 0 slots only, keys in headers, and add their boards', async () => {
+    const c = ctx({ TAVILY_API_KEY: 'tv-secret', EXA_API_KEY: 'ex-secret' });
+    const run = await runXray(c, 3);
+    expect(run.calls).toBe(6);
+    const calls = vi.mocked(c.fetch).mock.calls;
+    for (const [url, init] of calls) {
+      expect(url).not.toMatch(/secret/);
+      expect(init?.method).toBe('POST');
+    }
+    expect(JSON.stringify(calls[0]![1]!.headers)).toContain('Bearer tv-secret');
+    expect(JSON.stringify(calls[3]![1]!.headers)).toContain('ex-secret');
+    expect(run.boards.map(setBoardKey).sort()).toEqual(['ashby:kappa', 'lever:lambda-co']);
   });
 });
