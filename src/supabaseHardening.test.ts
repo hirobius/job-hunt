@@ -21,7 +21,7 @@ const code = (f: string) =>
 const lastWith = (re: RegExp) => [...files].reverse().find((f) => re.test(sql(f)));
 
 describe('client_errors: per-client limit (#319, #391)', () => {
-  const f = lastWith(/function public\.report_client_error\(/);
+  const f = lastWith(/create or replace function public\.report_client_error\(/);
   const body = f ? code(f) : '';
 
   it('is redefined after the global-bucket version', () => {
@@ -60,8 +60,9 @@ describe('client_errors: per-client limit (#319, #391)', () => {
   });
 
   it('stays callable by the public key only through the function', () => {
+    // The definition kept anon + authenticated; 20261117100300 narrows the grant to anon.
     expect(body).toMatch(
-      /grant execute on function public\.report_client_error\(text, text, text, text, text\) to anon, authenticated/,
+      /grant execute on function public\.report_client_error\(text, text, text, text, text\) to anon\b/,
     );
     expect(body).toContain('set search_path = ');
   });
@@ -312,5 +313,91 @@ describe('postings.listed_seen_at (#675)', () => {
     const src = fs.readFileSync('supabase/functions/sync-postings/index.ts', 'utf8');
     expect(src).toContain("select('id, url, listed_seen_at')");
     expect(src).toContain('listed_seen_at: seenAt');
+  });
+});
+
+describe('Security Advisor: SECURITY DEFINER grants (2026-11-17)', () => {
+  const f = '20261117100300_security_advisor_grants.sql';
+  const body = code(f);
+  const text = sql(f);
+
+  it('keeps the three token or rate-limited doors for anon only', () => {
+    for (const sig of [
+      'report_client_error(text, text, text, text, text)',
+      'add_daily_picks(text, jsonb)',
+      'client_error_count(text, timestamptz, timestamptz)',
+    ]) {
+      expect(body).toContain(`revoke all on function public.${sig} from public, authenticated;`);
+      expect(body).toContain(`grant execute on function public.${sig} to anon;`);
+    }
+  });
+
+  it('keeps delete_my_data for signed-in users only', () => {
+    expect(body).toContain('revoke all on function public.delete_my_data(uuid) from public, anon;');
+    expect(body).toContain(
+      'grant execute on function public.delete_my_data(uuid) to authenticated;',
+    );
+    expect(body).not.toMatch(
+      /grant execute on function public\.delete_my_data\(uuid\) to [^;]*anon/,
+    );
+  });
+
+  it('is the last migration to grant on these functions', () => {
+    for (const name of [
+      'report_client_error',
+      'add_daily_picks',
+      'client_error_count',
+      'delete_my_data',
+    ])
+      expect(lastWith(new RegExp(`grant execute on function public\\.${name}\\b`))).toBe(f);
+  });
+
+  it('grants no new function to anon or authenticated by default', () => {
+    expect(body).toContain(
+      'alter default privileges for role postgres in schema public revoke execute on functions from public, anon, authenticated;',
+    );
+  });
+
+  it('documents each remaining warning as a known exception', () => {
+    expect(text).toMatch(/KNOWN ADVISOR EXCEPTIONS/);
+    for (const name of [
+      'report_client_error',
+      'add_daily_picks',
+      'client_error_count',
+      'delete_my_data',
+      'pg_net',
+    ])
+      expect(text).toMatch(
+        new RegExp(`\\* (anon may execute |authenticated may execute )?${name}`),
+      );
+  });
+
+  it('every exception function keeps an empty search_path and its guard', () => {
+    const def = (name: string) => {
+      const g = lastWith(new RegExp(`create or replace function public\\.${name}\\(`));
+      expect(g).toBeDefined();
+      return code(g!);
+    };
+    for (const name of [
+      'report_client_error',
+      'add_daily_picks',
+      'client_error_count',
+      'delete_my_data',
+    ])
+      expect(def(name)).toMatch(
+        new RegExp(`function public\\.${name}\\([^$]*security definer set search_path = ''`),
+      );
+    expect(def('report_client_error')).toContain('client_per_minute');
+    expect(def('add_daily_picks')).toContain("raise exception 'bad feed token'");
+    expect(def('add_daily_picks')).toContain("raise exception 'daily limit reached'");
+    expect(def('client_error_count')).toContain("raise exception 'bad alert token'");
+    expect(def('delete_my_data')).toMatch(
+      /if uid is null or p_user is distinct from uid then raise exception/,
+    );
+  });
+
+  it('every pg_net call site is schema-qualified, so pg_net in public is harmless', () => {
+    for (const g of files)
+      for (const m of code(g).matchAll(/\b([\w.]*)http_post\(/g)) expect(m[1]).toBe('net.');
   });
 });
