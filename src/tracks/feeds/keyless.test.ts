@@ -4,8 +4,6 @@ import type { FeedContext } from './context';
 import { ARBEITNOW_PAGES, arbeitnowUrl, parseArbeitnow, readArbeitnow } from './arbeitnow';
 import { isDsRole } from './dsRole';
 import { parseRemoteOk, readRemoteOk, REMOTEOK_URL, remoteOkTermsOk } from './remoteok';
-import { parseWwr, readWwr, WWR_FEEDS } from './wwr';
-import { isPartial } from './context';
 
 const fixture = (name: string) => readFileSync(`src/tracks/feeds/fixtures/${name}`, 'utf8');
 const ctx = (fetch: FeedContext['fetch']): FeedContext => ({
@@ -98,54 +96,5 @@ describe('Remote OK', () => {
     expect(new Headers(fetch.mock.calls[0][1]?.headers).get('user-agent')).toMatch(/\+https:/);
     const changed = ctx(vi.fn(async () => new Response(JSON.stringify([{ legal: 'No.' }]))));
     await expect(readRemoteOk(changed)).rejects.toThrow(/Remote OK: its API terms changed/);
-  });
-});
-
-describe('We Work Remotely', () => {
-  it('splits "Company: Role", keeps design-system roles, credits WWR with its own link', () => {
-    expect(parseWwr(fixture('wwr-design.rss'))).toEqual([
-      {
-        source: 'wwr',
-        sourceId:
-          'wwr:https://weworkremotely.com/remote-jobs/acme-inc-senior-designer-design-systems',
-        title: 'Senior Designer, Design Systems',
-        company: 'Acme Inc',
-        location: 'Anywhere in the World',
-        remote: true,
-        url: 'https://weworkremotely.com/remote-jobs/acme-inc-senior-designer-design-systems',
-        descriptionText: 'Job type: Full-Time\nOwn the design system end to end.',
-        postedAt: '2026-10-28T10:00:00.000Z',
-      },
-    ]);
-  });
-
-  it('reads the Design and Front-End feeds, merged once per job', async () => {
-    const fetch = vi.fn(
-      async (u: string) =>
-        new Response(fixture(u.includes('design') ? 'wwr-design.rss' : 'wwr-frontend.rss')),
-    );
-    const out = await readWwr(ctx(fetch));
-    expect(fetch.mock.calls.map((x) => x[0])).toEqual([...WWR_FEEDS]);
-    expect(out.map((p) => p.title)).toEqual([
-      'Senior Designer, Design Systems',
-      'Design Technologist',
-    ]);
-  });
-
-  it('keeps what one feed gave when the other fails, and fails loud when both do', async () => {
-    const half = vi.fn(async (u: string) =>
-      u.includes('design')
-        ? new Response(fixture('wwr-design.rss'))
-        : new Response('', { status: 500 }),
-    );
-    const got = await readWwr(ctx(half));
-    expect(got).toHaveLength(1);
-    // Half the list: nothing may close as missed against it (#576 item 11).
-    expect(isPartial(got)).toBe(true);
-    expect(
-      isPartial(await readWwr(ctx(vi.fn(async () => new Response(fixture('wwr-design.rss')))))),
-    ).toBe(false);
-    const none = ctx(vi.fn(async () => new Response('', { status: 403 })));
-    await expect(readWwr(none)).rejects.toThrow(/We Work Remotely: HTTP 403/);
   });
 });

@@ -2,7 +2,7 @@
 // entry); legal.ts names it as a service our server reads.
 // UNVERIFIED LIVE: 4dayweek.io is outside the build sandbox's network. The shape is from its
 // developer page and OpenAPI file (4dayweek.io/developers, /openapi.yaml, via search), pinned in
-// keylessMore.test.ts:
+// fourdayweek.test.ts:
 //   GET https://4dayweek.io/api/v2/jobs?page=<n>&limit=100
 //   → { data: [{ slug, title, company: { name, url }, location, remote, posted_at, url,
 //        description }], page, limit, total, has_more }

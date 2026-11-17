@@ -1,7 +1,7 @@
 // RemoteJobs.org public jobs API (keyless, keyword search). Server only: the browser never
 // contacts it (no CSP entry); legal.ts names it as a service our server reads.
 // UNVERIFIED LIVE: remotejobs.org is outside the build sandbox's network. The shape is from its
-// developer page (remotejobs.org/developers/api, via search), pinned in keylessMore.test.ts:
+// developer page (remotejobs.org/developers/api, via search), pinned in remotejobsorg.test.ts:
 //   GET https://remotejobs.org/api/v1/jobs?search=<term>&limit=50&offset=0
 //   → { jobs: [{ id, title, company, location, url, apply_url, description (HTML), posted_at }] }
 // Terms (remotejobs.org/developers/api): free, no sign-up; "include a visible link back to

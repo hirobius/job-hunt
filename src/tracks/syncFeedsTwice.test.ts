@@ -42,11 +42,10 @@ describe('feeds twice a day (#576)', () => {
     const env = (n: string) => (n.endsWith('_KEY') || n.endsWith('_ID') ? 'set' : undefined);
     const morning = serverFeedsForRun(env, true);
     const afternoon = serverFeedsForRun(env, false);
-    expect(morning).toEqual(expect.arrayContaining(['arbeitnow', 'remoteok', 'wwr', 'theirstack']));
+    expect(morning).toEqual(expect.arrayContaining(['arbeitnow', 'remoteok', 'theirstack']));
     expect(afternoon).toEqual([
       'arbeitnow',
       'remoteok',
-      'wwr',
       'fourdayweek',
       'remotejobsorg',
       'getonbrd',

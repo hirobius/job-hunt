@@ -12,7 +12,6 @@ describe('which server feeds run', () => {
     expect(SERVER_FEEDS.filter((f) => serverFeedOn(f, none))).toEqual([
       'arbeitnow',
       'remoteok',
-      'wwr',
       'fourdayweek',
       'remotejobsorg',
       'getonbrd',

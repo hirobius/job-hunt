@@ -2,7 +2,7 @@
 // browser never contacts it (no CSP entry); legal.ts names it as a service our server reads.
 // UNVERIFIED LIVE: jobgether.com is outside the build sandbox's network. The shape is from its
 // developer page and OpenAPI 3.1 file (jobgether.com/developers, /openapi.json, via search),
-// pinned in keylessMore.test.ts:
+// pinned in jobgether.test.ts:
 //   GET https://jobgether.com/api/v1/jobs?keyword=<term>
 //   → { jobs: [{ id, title, company: { name }, location, remote, posted_at, url, description }] }
 // Terms (jobgether.com/developers): "No API key · No signup", made for agents answering job

@@ -30,7 +30,6 @@ export const AGGREGATOR_BOARDS: readonly string[] = [
   'jobicy',
   'arbeitnow',
   'remoteok',
-  'wwr',
   'theirstack',
   'adzuna',
   'jooble',
