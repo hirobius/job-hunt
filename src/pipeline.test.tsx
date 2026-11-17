@@ -25,11 +25,13 @@ import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { JobsList } from './TrackerView';
+import { decide } from './feed/decided';
 import { getPipelineView, setPipelineView } from './pipelineView';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 
 const SAVED = 'https://acme.example/jobs/1';
 const APPLIED = 'https://zenith.example/jobs/2';
+const ZEN = 'https://boards.greenhouse.io/zen/jobs/9';
 
 const renderApp = () =>
   render(
@@ -119,6 +121,39 @@ afterEach(() => {
 
 describe('Pipeline on a phone (#129)', () => {
   beforeEach(() => viewport(390));
+
+  // The real phone UI (no sheet): the view picker, the Passed view and an empty view.
+  const pickView = async (name: RegExp) => {
+    await userEvent.click(await screen.findByRole('button', { name: /^View: / }));
+    await userEvent.click(await screen.findByRole('menuitemradio', { name }));
+  };
+
+  it('Passed: skipped postings are listed with Save, whether or not a job is passed', async () => {
+    act(() => decide({ title: 'Zen Systems Designer', company: 'Zen', url: ZEN }, 'skipped'));
+    renderApp();
+    await pickView(/^Passed/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Save Zen Systems Designer' }));
+    await waitFor(() => expect(getAllJobs().some((j) => j.url === ZEN)).toBe(true));
+  });
+
+  it('Passed with a passed job: its page, then the skipped postings under it', async () => {
+    updateJob(SAVED, { archived: true });
+    act(() => decide({ title: 'Zen Systems Designer', company: 'Zen', url: ZEN }, 'skipped'));
+    setPipelineView({ filter: 'passed' });
+    renderApp();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Zen Systems Designer' })).toBeInTheDocument();
+  });
+
+  it('an empty view still offers Add job', async () => {
+    renderApp();
+    await pickView(/^Recently closed/);
+    expect(await screen.findByText('Nothing under “Recently closed”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Add job' }));
+    expect(await screen.findByRole('dialog', { name: 'Add a job' })).toBeInTheDocument();
+  });
 
   it('has no All jobs sheet; Add job is in the job\u2019s More menu and opens its dialog', async () => {
     openJobPage(SAVED);

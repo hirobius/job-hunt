@@ -29,6 +29,10 @@ import { openNextAfter } from './applyNext';
 import ApplyWalk from './ApplyWalk';
 import { SwipeArea } from './SwipeArea';
 import { useFollowView } from './followView';
+import AddJobButton from './AddJob';
+import { SkippedPostings } from './PassedList';
+import { decided } from './decided';
+import { skippedPostings } from './passed';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
@@ -103,6 +107,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
   const wide = useAtLeast('lg');
   const view = usePipelineView();
   const viewEmpty = useFollowView(job, jobs, view);
+  const skippedCount = skippedPostings(decided.use().values()).length;
 
   // Not found yet: it may be about to sync in, so wait quietly. Once sync has settled the effect
   // above has already sent us back to the Pipeline.
@@ -141,13 +146,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
         <Box className="rjb-apply-pager">
-          <ApplyWalk
-            job={job}
-            jobs={jobs}
-            list={list}
-            order={order}
-            empty={viewEmpty}
-          />
+          <ApplyWalk job={job} jobs={jobs} list={list} order={order} empty={viewEmpty} />
         </Box>
         {viewEmpty ? (
           <Stack gap="normal">
@@ -157,40 +156,45 @@ export default function JobPage({ jobId }: { jobId: string }) {
                 Apply
               </Text>
             </VisuallyHidden>
-            <EmptyState
-              centered
-              icon={Search}
-              title={`Nothing under “${FILTER_LABEL[view.filter]}”`}
-              description={
-                view.filter === 'passed'
-                  ? 'Postings you skipped in Review are in All jobs.'
-                  : 'Try another view.'
-              }
-              action={
-                view.filter === 'passed' ? (
-                  <Button variant="secondary" onClick={() => setPipelineView({ filter: 'all' })}>
-                    All jobs
-                  </Button>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    onClick={() => setPipelineView({ filter: 'toApply' })}
-                  >
-                    Show to apply
-                  </Button>
-                )
-              }
-            />
+            {view.filter === 'passed' && skippedCount > 0 ? (
+              // Nothing passed but postings skipped in Review: they are here, with Save.
+              <SkippedPostings />
+            ) : (
+              <EmptyState
+                centered
+                icon={Search}
+                title={`Nothing under “${FILTER_LABEL[view.filter]}”`}
+                description={
+                  view.filter === 'passed'
+                    ? 'Jobs you set aside and postings you skip in Review show here.'
+                    : 'Try another view.'
+                }
+                action={
+                  <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="center">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setPipelineView({ filter: 'toApply' })}
+                    >
+                      Show to apply
+                    </Button>
+                    <AddJobButton />
+                  </Stack>
+                }
+              />
+            )}
           </Stack>
         ) : (
-          <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
-            <JobDetail
-              key={job.url}
-              job={job}
-              showBack={!!origin}
-              onAnswered={() => openNextAfter(job, jobs)}
-            />
-          </SwipeArea>
+          <>
+            <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
+              <JobDetail
+                key={job.url}
+                job={job}
+                showBack={!!origin}
+                onAnswered={() => openNextAfter(job, jobs)}
+              />
+            </SwipeArea>
+            {view.filter === 'passed' && <SkippedPostings />}
+          </>
         )}
       </Stack>
     </Box>

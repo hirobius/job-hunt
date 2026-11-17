@@ -82,6 +82,8 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   await menu.getByRole('menuitemradio', { name: /^Recently closed/ }).click();
   await expect(page.getByRole('button', { name: 'View: Recently closed' })).toBeVisible();
   await expect(page.getByText('Nothing under “Recently closed”')).toBeVisible();
+  // An empty view still offers Add job (the phone has no list to hold its key).
+  await expect(page.getByRole('button', { name: 'Add job' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Jobs in the list' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /filters?, open All jobs/ })).toHaveCount(0);
   const k = (await picker.boundingBox())!;

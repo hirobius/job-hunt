@@ -103,7 +103,7 @@ code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figm
   picker (the view's name, bold, with the caret inside it, drawn as a select: a soft grey pill with the
   Review chips' fill and 40 px height, no edge, its left edge on the page gutter under Review | Apply and
   the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the seven views and
-  "All jobs", which opens the All jobs bottom sheet; no filters chip since 2026-11-13), and right the pager "7 of 12" with previous and next, which only steps (a
+  "All jobs", each with its count; no filters chip since 2026-11-13), and right the pager "7 of 12" with previous and next, which only steps (a
   sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. A job's view holds Open application, Mark applied | Not a fit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
@@ -137,8 +137,7 @@ code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figm
   instead" (grey). No Cancel key: Close (the X) and the scrim cancel. At 390 a bottom sheet with a
   grab handle, Add job at full width over the grey key. At 1440 a centred dialog, Add job at the
   right.
-- **The All jobs sheet (#543).** A bottom sheet on a phone. Top to bottom: Add job, the view chips,
-  then the jobs (no search, filters or Sort since 2026-11-13). **One job list, sheet and 1440 column alike:** rows on one surface, never a Card per job;
+- **The Apply job list (#543).** At 1440 only: Add job, the view chips, then the jobs (no search, filters or Sort since 2026-11-13). Below 1024 px there is no list and no All jobs sheet (removed 2026-11-17): the view picker and the pager are the only way between jobs, and Add job is the job's More menu (and an empty view's state). **One job list, the 1440 column:** rows on one surface, never a Card per job;
   each row is the badge row, the title (semibold titleSm, 20 px, as a Review card title; two lines at most), the company, the place and one date.
   **Beside a detail at 1440, a list row is short (2026-11-15):** the badge row (status or due date), the
   title and the company only; the place, pay and posted date are the detail's, never read twice. The
