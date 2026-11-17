@@ -13,6 +13,11 @@ describe('which server feeds run', () => {
       'arbeitnow',
       'remoteok',
       'wwr',
+      'fourdayweek',
+      'remotejobsorg',
+      'getonbrd',
+      'osdjobs',
+      'jobgether',
     ]);
     expect(serverFeedOn('ids', none)).toBe(false);
   });

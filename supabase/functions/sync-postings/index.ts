@@ -21,7 +21,9 @@
 // Nothing is accepted until SYNC_SECRET is set. Deploy and secrets: README.md beside this file.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import boardsJson from '../../../src/feed/data/boards.json' with { type: 'json' };
-import { parseBoardSet } from '../../../src/feed/boardSet.ts';
+import { parseBoardSet, parseSetBoard, type SetBoard } from '../../../src/feed/boardSet.ts';
+import { runXray, withFoundBoards, XRAY_ENV } from '../../../src/tracks/feeds/xray.ts';
+import { findWorkableBoards } from '../../../src/tracks/feeds/workableSearch.ts';
 import {
   answeredFeeds,
   feedReadsFor,
@@ -109,6 +111,11 @@ const RANK: Record<string, number> = {
   jooble: 2,
   remotive: 3,
   arbeitnow: 3,
+  fourdayweek: 3,
+  remotejobsorg: 3,
+  getonbrd: 3,
+  osdjobs: 3,
+  jobgether: 4,
   remoteok: 3,
   wwr: 3,
   jobicy: 3,
@@ -772,6 +779,79 @@ async function chainNext(
 // The bulk board set, checked, parsed once per worker (rotation.ts orders it, cached too).
 const BOARD_SET = parseBoardSet(boardsJson);
 
+/** The x-ray search's boards (found_boards) merged into the snapshot, kept for ROTATION.plansTtlMs
+ *  like the plans. One array per load, so rotationOrder's per-array cache holds. A failed read
+ *  (table not migrated yet) walks the snapshot alone. */
+let scanSetCache: { at: number; boards: SetBoard[] } | null = null;
+async function scanSet(db: SupabaseClient, logs: Log[]): Promise<SetBoard[]> {
+  if (scanSetCache && Date.now() - scanSetCache.at < ROTATION.plansTtlMs)
+    return scanSetCache.boards;
+  const found = await readPaged<Record<string, unknown>>(
+    async (from, to) =>
+      (await db
+        .from('found_boards')
+        .select('kind, slug, eu, company, evidence, seen_at')
+        .order('kind')
+        .order('slug')
+        .range(from, to)) as {
+        data: Record<string, unknown>[] | null;
+        error: { message: string } | null;
+      },
+    TILE_PAGE,
+  );
+  if (found.error)
+    logs.push({
+      user_id: null,
+      kind: 'failed',
+      board: null,
+      status: null,
+      message: `found boards: ${found.error}`.slice(0, 2000),
+    });
+  const extra = found.error
+    ? []
+    : found.rows
+        .map((r) => parseSetBoard({ ...r, lastChecked: String(r.seen_at ?? '').slice(0, 10) }))
+        .filter((b): b is SetBoard => !!b);
+  scanSetCache = { at: Date.now(), boards: withFoundBoards(BOARD_SET.boards, extra) };
+  return scanSetCache.boards;
+}
+
+/** The board finders on the morning run: the ATS x-ray search (#389, src/tracks/feeds/xray.ts) when
+ *  a search secret is set, and Workable's own job search (workableSearch.ts, keyless). The boards
+ *  they find are upserted into found_boards (seen_at moves on a board found
+ *  again), and the next rotations read them. Failures only log. */
+async function xraySearch(db: SupabaseClient, logs: Log[]): Promise<number> {
+  const fail = (message: string) =>
+    logs.push({ user_id: null, kind: 'failed', board: 'xray', status: null, message });
+  const run = xrayOn() ? await runXray(feedContext) : { boards: [], calls: 0, errors: [] };
+  for (const e of run.errors) fail(`x-ray: ${e}`.slice(0, 2000));
+  // Workable's own cross-company search (keyless, workableSearch.ts): more boards to read.
+  const wk = await findWorkableBoards(feedContext);
+  for (const e of wk.errors) fail(`x-ray: ${e}`.slice(0, 2000));
+  run.boards = withFoundBoards(run.boards, wk.boards);
+  if (!run.boards.length) return 0;
+  const now = new Date().toISOString();
+  const { error } = await db.from('found_boards').upsert(
+    run.boards.map((b) => ({
+      kind: b.kind,
+      slug: b.slug,
+      eu: b.eu === true,
+      company: b.company.slice(0, 200) || b.slug,
+      evidence: b.evidence.slice(0, 300),
+      seen_at: now,
+    })),
+    { onConflict: 'kind,slug,eu' },
+  );
+  if (error) {
+    fail(`x-ray: found boards: ${error.message}`.slice(0, 2000));
+    return 0;
+  }
+  // A board found today joins the rotation on its next load.
+  scanSetCache = null;
+  return run.boards.length;
+}
+const xrayOn = () => XRAY_ENV.some((n) => !!envOf(n)?.trim());
+
 type RotationRow = {
   cursor_key: string;
   cycle: number;
@@ -919,7 +999,8 @@ async function rotate(db: SupabaseClient): Promise<Response> {
         .filter(([, p]) => p.boards.some((b) => boardOf(b) === board))
         .map(([u]) => u);
 
-    const pick = pickBatch(BOARD_SET.boards, state, dead, startedAt);
+    const setBoards = await scanSet(db, logs);
+    const pick = pickBatch(setBoards, state, dead, startedAt);
     const steps = new Map(pick.steps.filter((s) => s.action === 'read').map((s) => [s.key, s]));
     // Stored Greenhouse rows for the delta reads (#448): one load for the whole batch.
     const knownBoards = await knownBoardPostings(db);
@@ -935,7 +1016,7 @@ async function rotate(db: SupabaseClient): Promise<Response> {
         )[0],
       { ...ROTATION, now: Date.now, startedAt },
     );
-    const moved = advance(BOARD_SET.boards, state, pick, results, dead, Date.now());
+    const moved = advance(setBoards, state, pick, results, dead, Date.now());
 
     const answered: ReadOutcome[] = [];
     let closed = 0;
@@ -1055,7 +1136,8 @@ async function rotate(db: SupabaseClient): Promise<Response> {
       rotate: true,
       cycle: next.cycle,
       cursor: next.cursor,
-      boards: BOARD_SET.boards.length,
+      boards: setBoards.length,
+      found: setBoards.length - BOARD_SET.boards.length,
       read: results.length - count('unstarted') - count('deferred'),
       ok: count('ok'),
       gone: count('gone'),
@@ -1259,6 +1341,7 @@ Deno.serve(async (req) => {
   const next = last ? null : boardOf(boards[boards.length - 1]);
   // (A skip with nothing after it leaves `rest` empty: this is then the last slice.)
   let feedsRead = 0;
+  let xrayFound = 0;
   let closedLive = 0;
   let retriedReads = 0;
   const summary: Record<string, unknown>[] = [];
@@ -1403,6 +1486,23 @@ Deno.serve(async (req) => {
                 url: sp.posting.url,
               });
       }
+      // The board finders (x-ray search once its secret is set, Workable's search always): morning
+      // run only (the daily call budget), for design systems users.
+      if (
+        body.keyed !== false &&
+        [...plans.values()].some((p) => p.config.slug === designSystemsTrack.slug)
+      )
+        try {
+          xrayFound = await xraySearch(db, logs);
+        } catch (e) {
+          logs.push({
+            user_id: null,
+            kind: 'failed',
+            board: 'xray',
+            status: null,
+            message: `x-ray: ${String(e)}`.slice(0, 2000),
+          });
+        }
       try {
         await suggestBoards(db, plans, seenForSuggest, logs);
       } catch (e) {
@@ -1581,7 +1681,11 @@ Deno.serve(async (req) => {
     feeds: feedsRead,
     closedLive,
     // The server searches not running and what turns each on (secret names, never values).
-    serverFeedsOff: serverFeedsOff(envOf),
+    serverFeedsOff: {
+      ...serverFeedsOff(envOf),
+      ...(!xrayOn() && { xray: XRAY_ENV.join(', ') }),
+    },
+    xrayFound,
     failedBoards: failedBoards.size,
     retriedReads,
     summary,

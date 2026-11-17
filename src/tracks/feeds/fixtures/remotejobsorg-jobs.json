@@ -1,0 +1,21 @@
+{
+  "jobs": [
+    {
+      "id": 501,
+      "title": "Senior Design Technologist",
+      "company": "Gamma Remote",
+      "location": "Anywhere",
+      "url": "https://remotejobs.org/jobs/501-senior-design-technologist",
+      "apply_url": "https://gamma.example/apply/501",
+      "description": "<p>Prototype in code.</p><p><a href=\"https://remotejobs.org/jobs/501/apply\">Apply via RemoteJobs.org</a></p>",
+      "posted_at": "2026-11-15T12:00:00Z"
+    },
+    {
+      "id": 502,
+      "title": "Account Executive",
+      "company": "Delta",
+      "url": "https://remotejobs.org/jobs/502",
+      "description": "Sales."
+    }
+  ]
+}

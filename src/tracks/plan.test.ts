@@ -117,10 +117,15 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     expect([...(plan?.feeds ?? [])].sort()).toEqual([
       'adzuna',
       'arbeitnow',
+      'fourdayweek',
+      'getonbrd',
       'hn',
       'ids',
+      'jobgether',
       'jobicy',
       'jooble',
+      'osdjobs',
+      'remotejobsorg',
       'theirstack',
       'wwr',
     ]);
