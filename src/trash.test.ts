@@ -251,7 +251,9 @@ describe('trash (Recently removed)', () => {
     // The clock at the fixture's day: mergeTrash drops entries past the 30-day window by the real
     // clock, so on 2026-11-16 NOW's entries had aged out and the test failed (CI, #772).
     vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
-    onTestFinished(() => vi.useRealTimers());
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const r = (url: string, label: string) => ({
       job: { url, label, status: 'Saved' as const },
       removedAt: NOW.toISOString(),
