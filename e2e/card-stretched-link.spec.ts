@@ -126,3 +126,65 @@ test.describe('390 with a pointer', () => {
     await expect.poll(fill).toBe(rest);
   });
 });
+
+// One hangline at lg (Adrian 2026-11-17): the list column's first card and the detail's title
+// block start at the same top, with no extra margin or line-height gap above the h1.
+test.describe('1440', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`the first card and the detail h1 share one top (${scheme})`, async ({ page }) => {
+      await open(page, scheme);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const h1 = page.locator('main [data-rjb-title-block] h1').first();
+      await expect(h1).toBeVisible();
+      const card = page.getByRole('list', { name: 'New postings' }).getByRole('article').first();
+      const [c, h] = [(await card.boundingBox())!, (await h1.boundingBox())!];
+      // The h1's ink box top: its line box less the half-leading above the cap height is the
+      // type's own; the hangline is the h1's box top, with no margin or padding above it.
+      expect(Math.abs(c.y - h.y)).toBeLessThanOrEqual(1);
+      if (SHOTS) await page.screenshot({ path: `${SHOTS}/hangline-1440-${scheme}.png` });
+    });
+  }
+});
+
+// Bold in a posting's description (Adrian 2026-11-17: "Company:", "Work Mode:" read in another,
+// condensed-looking face): <strong> and <b> take the body's family at the HDS bold weight.
+test.describe('description bold', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('a bold run keeps the body family at the HDS bold weight', async ({ page }) => {
+    const html =
+      '<p><strong>Company:</strong> Norrow. <b>Work Mode:</b> Remote. Own the design system.</p>';
+    await open(page);
+    // After open()'s feed: the route added last answers first.
+    await page.route(/boards-api\.greenhouse\.io\/v1\/boards\/[^/]+\/jobs\/\d+/, (r) =>
+      r.fulfill({
+        status: 200,
+        headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+        body: JSON.stringify({ id: 2, content: html.replace(/</g, '&lt;').replace(/>/g, '&gt;') }),
+      }),
+    );
+    await page.reload();
+    const bold = page.locator('[data-rjb-description] strong').first();
+    await expect(bold).toBeVisible();
+    const m = await bold.evaluate(async (el) => {
+      await document.fonts.ready;
+      const p = getComputedStyle(el.parentElement!);
+      const b = getComputedStyle(el);
+      const token = getComputedStyle(document.documentElement)
+        .getPropertyValue('--primitive-typography-weight-bold')
+        .trim();
+      // A face loaded for the run's weight: the browser draws it, not a synthesized fallback.
+      const loaded = document.fonts.check(`${b.fontWeight} ${b.fontSize} ${b.fontFamily}`);
+      return { fam: b.fontFamily, parentFam: p.fontFamily, weight: b.fontWeight, token, loaded };
+    });
+    expect(m.fam).toBe(m.parentFam);
+    expect(m.weight).toBe(m.token);
+    expect(m.loaded).toBe(true);
+    if (SHOTS) {
+      await bold.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `${SHOTS}/desc-bold-1440.png` });
+    }
+  });
+});
