@@ -2,7 +2,7 @@
 // volunteer). Server only: the browser never contacts it (no CSP entry); legal.ts names it as a
 // service our server reads.
 // UNVERIFIED LIVE: opensourcedesign.net is outside the build sandbox's network. The feed is the
-// Jekyll site's (github.com/opensourcedesign/jobs), pinned in keylessMore.test.ts:
+// Jekyll site's (github.com/opensourcedesign/jobs), pinned in osdjobs.test.ts:
 //   GET https://opensourcedesign.net/jobs/feed.xml
 //   <item>: title, link, guid, pubDate, description (HTML)
 // Terms: a community site whose posts are submitted openly on GitHub; each row links to its job

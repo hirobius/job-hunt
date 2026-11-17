@@ -1,7 +1,7 @@
 // Get on Board public API (keyless; Latin American tech, remote-heavy). Server only: the browser
 // never contacts it (no CSP entry); legal.ts names it as a service our server reads.
 // UNVERIFIED LIVE: getonbrd.com is outside the build sandbox's network. The shape is from its API
-// docs (api-doc.getonbrd.com, via search), pinned in keylessMore.test.ts:
+// docs (api-doc.getonbrd.com, via search), pinned in getonbrd.test.ts:
 //   GET https://www.getonbrd.com/api/v0/search/jobs?query=<term>&per_page=100&page=1&expand=["company"]
 //   → { data: [{ id, type: "job", attributes: { title, description, remote, remote_modality,
 //        countries, published_at (unix s), company: { data: { attributes: { name } } } },
