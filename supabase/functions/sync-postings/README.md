@@ -72,7 +72,7 @@ every call (403): there is no built-in fallback.
 
 ### 3b. Keys for the sync's own searches (adding a key turns its source on)
 
-Arbeitnow, Remote OK, We Work Remotely, 4dayweek.io, RemoteJobs.org, Get on Board, Open Source
+Arbeitnow, Remote OK, 4dayweek.io, RemoteJobs.org, Get on Board, Open Source
 Design and Jobgether need no key and run on each feeds run. Each keyed source
 runs as soon as its secret is set (no code change; `src/tracks/feeds/serverFeeds.ts`). With one of
 two secrets missing, its read fails with a `sync_log` line naming it. The function's answer lists

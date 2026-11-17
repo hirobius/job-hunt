@@ -123,16 +123,15 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   Adzuna"), Jooble (`JOOBLE_API_KEY`, in the URL: never logged) and Into Design Systems (MCP, waits on its operator's
   yes). **Gates live in `serverFeeds.ts` `SERVER_FEED_GATES` (claude/src-free-aggs), not `SOURCE_ENABLED`:** a keyed
   one runs as soon as any of its secrets is set (one of two missing → `MissingKeyError` names it in `sync_log`, the run
-  goes on); the function's answer lists `serverFeedsOff` with the secret each needs. Plus three **keyless** remote boards
-  read whole and kept only when remote + design-systems (`dsRole.ts`): Arbeitnow (link back to Arbeitnow), Remote OK
-  (its API `legal` notice is checked on every read; a change stops the read, loud) and We Work Remotely (Design +
-  Front-End RSS); a muted Remote OK Source mutes it. All unverified live. Himalayas and Working Nomads stay off (terms
+  goes on); the function's answer lists `serverFeedsOff` with the secret each needs. Plus **keyless** remote boards
+  kept only when remote + design-systems (`dsRole.ts`): Arbeitnow (link back to Arbeitnow) and Remote OK
+  (its API `legal` notice is checked on every read; a change stops the read, loud). We Work Remotely is no longer read:
+  its API terms ban storing its data (Adrian 2026-11-17, migration `20261117100200` deleted its rows). A muted Remote OK Source mutes it. All unverified live. Himalayas and Working Nomads stay off (terms
   unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
   Migrations `20261029100000` and `20261029100200` widen the `postings.source` check. **Aggregator liveness (#576 item 11, #675):** `tracks/aggregatorLiveness.ts` checks open feed rows whose link is a Greenhouse / Lever / Ashby job on that board; a row closes as absent from the list only once `postings.listed_seen_at` is set (the first read that finds its id sets it; Ashby isListed:false / Lever unlisted jobs never list, so they are left to the 30-day age-out); a 404 board still closes. Migration `20261112100100_postings_listed_seen.sql`, applied before the function is redeployed.
-  **Aggregator liveness (#576 item 11):** Remote OK and We Work Remotely are read whole (`WHOLE_LIST_FEEDS` in
+  **Aggregator liveness (#576 item 11):** Remote OK is read whole (`WHOLE_LIST_FEEDS` in
   `serverFeeds.ts`), so `answeredFeeds` counts them like rss and a row missing from 2 whole reads closes through
-  `mark_missed_postings`; a WWR read with one feed failed is `partial` (`markPartial`, `feeds/context.ts`) and closes
-  nothing. Arbeitnow (its newest pages) and the keyed searches keep the 30-day age-out. On the feeds run the sync also
+  `mark_missed_postings`; a read that is `partial` (`markPartial`, `feeds/context.ts`) closes nothing. Arbeitnow (its newest pages) and the keyed searches keep the 30-day age-out. On the feeds run the sync also
   checks open feed rows (`AGGREGATOR_BOARDS`) whose link is a Greenhouse / Lever / Ashby job on that board
   (`tracks/aggregatorLiveness.ts`: ≤ `MAX_LIVENESS_BOARDS` = 20 boards a run in a run-seeded order, `guardedFetch`
   fixed hosts, `readWithRetry`): absent from an answered list or a 404 board closes it, any failure closes nothing.

@@ -51,7 +51,6 @@ export const SUGGEST_SOURCES: ReadonlySet<string> = new Set([
   'jobicy',
   'arbeitnow',
   'remoteok',
-  'wwr',
   'fourdayweek',
   'remotejobsorg',
   'getonbrd',

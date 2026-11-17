@@ -28,7 +28,9 @@ titles, contract roles, Adzuna, Jooble and `boards.json` at the same time, so th
   snippet) say: _"Scraping, copying, saving, or storing our data is strictly prohibited."_ The sync
   reads WWR's RSS (`tracks/feeds/wwr.ts`) and stores rows in `postings`. Those terms are for the API,
   and the RSS page asks only for attribution, but storing rows may still conflict. **Adrian to
-  decide**: keep, or turn `wwr` off in `SERVER_FEED_GATES` until WWR confirms. Not changed here.
+  decide**. **Decided 2026-11-17 (Adrian): the sync no longer reads WWR** (`tracks/feeds/wwr.ts`
+  removed, migration `20261117100200` deletes its stored rows). The browser's WWR source stays off
+  (`SOURCE_ENABLED.wwr`).
 
 ## What this PR built (ranked best first)
 
