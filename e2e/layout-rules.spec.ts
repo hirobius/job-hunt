@@ -333,16 +333,18 @@ for (const theme of THEMES) {
         await seed(page);
         await page.evaluate(() => (location.hash = '#/apply'));
         // A view with nothing in it (no search since 2026-11-13): Recently closed, from the
-        // view chips (the list column at lg, the All jobs sheet below it).
+        // view chips (the list column at lg, the view picker below it).
         const phone = (page.viewportSize()?.width ?? 0) < 1024;
-        const list = await listScope(page);
-        await list
-          .getByRole('group', { name: 'Views' })
-          .getByRole('button', { name: /^Recently closed/ })
-          .click();
         if (phone) {
-          await page.keyboard.press('Escape');
-          await expect(page.getByRole('dialog', { name: 'All jobs' })).toHaveCount(0);
+          await page.getByRole('button', { name: /^View: / }).click();
+          await page.getByRole('menuitemradio', { name: /^Recently closed/ }).click();
+        } else {
+          await (
+            await listScope(page)
+          )
+            .getByRole('group', { name: 'Views' })
+            .getByRole('button', { name: /^Recently closed/ })
+            .click();
         }
         // Below lg the page shows the view's empty state; from lg the open job stays and the
         // list column says nothing matches (#614: no "Not in this filter" card there).

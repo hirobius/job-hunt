@@ -6,7 +6,7 @@
 // An Interviewing job's primary is Add interview (opens its dialog, #416); a job with no next
 // step (Offer, Rejected, retired, applied and not yet due) has none, so More stands alone.
 import { Banknote, Bell, CalendarClock, Clock, Copy, Link2, Link2Off, MapPin } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Badge, Button, Icon, useAtLeast, useToast } from '@hirobius/design-system';
 import { DetailHeader, DetailTitleBlock } from './DetailHeader';
 import { closingOf, dateLabel, dueBadgeOf } from './jobDates';
@@ -20,6 +20,7 @@ import {
 } from './applyActions';
 import { applicationLink, dockKeys, type DockKey } from './dockKeys';
 import AddLinkDialog from './AddLinkDialog';
+import { AddJobDialog } from './AddJobDialog';
 import { useOutreachTemplates } from './outreachTemplates';
 import { useApplyKit } from './applyKit';
 import { openFollowUp, pickFollowUpTemplate } from './followUpFlow';
@@ -102,6 +103,9 @@ export default function JobHeader({
   onAnswered?: () => void;
 }) {
   const [addingLink, setAddingLink] = useState(false);
+  // Below lg the job's More menu holds Add job (no list beside the job to hold its key).
+  const [addingJob, setAddingJob] = useState(false);
+  const addOpener = useRef<HTMLElement | null>(null);
   const templates = useOutreachTemplates();
   const kitName = useApplyKit().fields.name;
   const { toast } = useToast();
@@ -258,6 +262,14 @@ export default function JobHeader({
           job={job}
           size="md"
           research
+          onAddJob={
+            wide
+              ? undefined
+              : (el) => {
+                  addOpener.current = el;
+                  setAddingJob(true);
+                }
+          }
           onRemoved={() => {
             // Back to where the job was opened from (return paths); the Apply tab opens its
             // next job there. #534: focus then goes to the new page's title (the next job's,
@@ -274,6 +286,7 @@ export default function JobHeader({
       onKeysGone={focusTitle}
       keys={keys}
     >
+      {!wide && <AddJobDialog open={addingJob} onOpenChange={setAddingJob} opener={addOpener} />}
       {ranked.some((k) => k.id === 'addLink') && (
         <AddLinkDialog job={job} open={addingLink} onOpenChange={setAddingLink} />
       )}

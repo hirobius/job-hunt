@@ -308,8 +308,9 @@ describe('FIGMA-RULES.md', () => {
   });
 
   it('pins the All jobs sheet and the one job list (#543)', () => {
-    expect(RULES).toContain('**The All jobs sheet (#543).**');
-    expect(RULES).toMatch(/One job list, sheet and 1440 column alike/);
+    expect(RULES).toContain('**The Apply job list (#543).**');
+    expect(RULES).toMatch(/One job list, the 1440 column/);
+    expect(RULES).toMatch(/no All jobs sheet/);
     expect(CLAUDE).toMatch(/One job list, sheet and lg column alike/);
     const list = fs.readFileSync('src/TrackerView.tsx', 'utf8');
     expect(list).not.toMatch(/PipelineMenus|SampleBanner|Search saved jobs|Remote only/);
@@ -319,7 +320,8 @@ describe('FIGMA-RULES.md', () => {
     expect(rail).toContain('<JobRowList');
     expect(rail).not.toContain('JobPostingLink');
     const page = fs.readFileSync('src/JobPage.tsx', 'utf8');
-    expect(page).not.toMatch(/ApplyFilterBar|RemoteOnlySwitch|AddJobButton|SampleBanner/);
+    // Add job is in an empty view's state (the phone has no list to hold its key).
+    expect(page).not.toMatch(/ApplyFilterBar|RemoteOnlySwitch|SampleBanner/);
     for (const gone of ['ApplyFilterBar', 'ApplyQueueSummary', 'JobListCard'])
       expect(fs.existsSync(`src/${gone}.tsx`)).toBe(false);
   });

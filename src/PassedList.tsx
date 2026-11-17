@@ -52,68 +52,76 @@ export default function PassedList({
           )}
         />
       )}
-      {skipped.length > 0 && (
-        <Stack gap="tight" as="section" aria-label="Skipped in Review">
-          <Text variant="body" as="h3" className="rjb-semibold">
-            Skipped in Review
-          </Text>
-          <ItemList inset="none" label="Skipped postings">
-            {skipped.map((d) => {
-              const title = skippedTitle(d);
-              return (
-                <ItemRow key={d.fingerprint} label={title}>
-                  <Stack gap="px4">
-                    {d.url ? (
-                      <InlineLink href={d.url} size="sm">
-                        {title}
-                      </InlineLink>
-                    ) : (
-                      <Text variant="ui" as="p" className="rjb-semibold">
-                        {title}
-                      </Text>
+      <SkippedPostings />
+    </Stack>
+  );
+}
+
+/** The postings skipped in Find, each with Save (a job, like Review's Save), Undo skip and Delete.
+ *  Draws nothing when there are none. Alone on the phone's Apply tab under the Passed view. */
+export function SkippedPostings() {
+  const skipped = skippedPostings(decided.use().values());
+  if (skipped.length === 0) return null;
+  return (
+    <Stack gap="tight" as="section" aria-label="Skipped in Review">
+      <Text variant="body" as="h3" className="rjb-semibold">
+        Skipped in Review
+      </Text>
+      <ItemList inset="none" label="Skipped postings">
+        {skipped.map((d) => {
+          const title = skippedTitle(d);
+          return (
+            <ItemRow key={d.fingerprint} label={title}>
+              <Stack gap="px4">
+                {d.url ? (
+                  <InlineLink href={d.url} size="sm">
+                    {title}
+                  </InlineLink>
+                ) : (
+                  <Text variant="ui" as="p" className="rjb-semibold">
+                    {title}
+                  </Text>
+                )}
+                {d.company && (
+                  <Text variant="caption" as="p" tone="secondary">
+                    {d.company}
+                  </Text>
+                )}
+                <Box>
+                  <Stack direction="row" wrap="wrap" gap="px8" align="center">
+                    {d.url && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        label={`Save ${title}`}
+                        onClick={() => saveSkipped(d)}
+                      >
+                        Save
+                      </Button>
                     )}
-                    {d.company && (
-                      <Text variant="caption" as="p" tone="secondary">
-                        {d.company}
-                      </Text>
-                    )}
-                    <Box>
-                      <Stack direction="row" wrap="wrap" gap="px8" align="center">
-                        {d.url && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            label={`Save ${title}`}
-                            onClick={() => saveSkipped(d)}
-                          >
-                            Save
-                          </Button>
-                        )}
-                        <Button
-                          variant="tertiary"
-                          size="sm"
-                          label={`Undo skip of ${title}`}
-                          onClick={() => undoSkip(d)}
-                        >
-                          Undo skip
-                        </Button>
-                        <Button
-                          variant="tertiary"
-                          size="sm"
-                          label={`Delete ${title}`}
-                          onClick={() => deleteSkipped(d)}
-                        >
-                          Delete
-                        </Button>
-                      </Stack>
-                    </Box>
+                    <Button
+                      variant="tertiary"
+                      size="sm"
+                      label={`Undo skip of ${title}`}
+                      onClick={() => undoSkip(d)}
+                    >
+                      Undo skip
+                    </Button>
+                    <Button
+                      variant="tertiary"
+                      size="sm"
+                      label={`Delete ${title}`}
+                      onClick={() => deleteSkipped(d)}
+                    >
+                      Delete
+                    </Button>
                   </Stack>
-                </ItemRow>
-              );
-            })}
-          </ItemList>
-        </Stack>
-      )}
+                </Box>
+              </Stack>
+            </ItemRow>
+          );
+        })}
+      </ItemList>
     </Stack>
   );
 }

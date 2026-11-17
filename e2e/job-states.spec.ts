@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './fixtures';
-import { seed, pressAllJobs, allWorkModes } from './routes';
+import { seed, openByTitle, allWorkModes } from './routes';
 
 // The filled key follows the state (#540): one filled key, then a grey key and an exit.
 const ranks = (page: Page) =>
@@ -8,21 +8,11 @@ const ranks = (page: Page) =>
     .locator('a, button')
     .evaluateAll((els) => els.map((e) => [e.textContent?.trim(), e.getAttribute('data-variant')]));
 
-/** Open a job by its title from the list: the All jobs sheet below lg, the rail from lg. */
-async function openTitled(page: Page, title: string, width: number) {
+/** Open a job by its title: the rail from lg, the view picker and the pager below it. */
+async function openTitled(page: Page, title: string, _width: number) {
   await page.goto('/#/apply');
   await page.getByRole('heading', { level: 1 }).first().waitFor();
-  // Below lg the All jobs sheet (through the view picker); from lg the rail, on its All jobs
-  // view: the default view is To apply, which no longer lists an applied job (#611 named views).
-  // The sheet lists one view too since #543 (its Follow up section left): pick All jobs in both.
-  if (width < 1024) await pressAllJobs(page);
-  await page
-    .getByRole('group', { name: 'Views' })
-    .getByRole('button', { name: /^All jobs \d/ })
-    .click();
-  const scope = page.getByRole('navigation', { name: 'Jobs' });
-  await scope.locator('a[href^="#/apply/"]', { hasText: title }).first().click();
-  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+  await openByTitle(page, title);
 }
 
 for (const width of [390, 1440]) {

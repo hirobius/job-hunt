@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('the walk row on a phone', () => {
-  it('names the open view; the picker lists the seven views and All jobs', async () => {
+  it('names the open view; the picker lists the seven views, then All jobs', async () => {
     const user = userEvent.setup();
     renderApp();
     const picker = await screen.findByRole('button', { name: 'View: To apply' });
@@ -61,35 +61,30 @@ describe('the walk row on a phone', () => {
       'Applied (1)',
       'Recently closed (0)',
       'Passed (0)',
+      'All jobs (3)',
     ]);
     expect(radios[0]).toHaveAttribute('aria-checked', 'true');
-    expect(within(menu).getByRole('menuitem', { name: 'All jobs' })).toBeVisible();
     await user.click(radios[4]);
     expect(getPipelineView().filter).toBe('applied');
     expect(await screen.findByRole('button', { name: 'View: Applied' })).toBeInTheDocument();
   });
 
-  it('All jobs opens the All jobs sheet', async () => {
+  it('All jobs in the picker sets the All jobs view; there is no sheet', async () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(await screen.findByRole('button', { name: 'View: To apply' }));
-    await user.click(await screen.findByRole('menuitem', { name: 'All jobs' }));
-    expect(await screen.findByRole('dialog', { name: 'All jobs' })).toBeInTheDocument();
+    await user.click(await screen.findByRole('menuitemradio', { name: /^All jobs/ }));
+    expect(getPipelineView().filter).toBe('all');
+    expect(await screen.findByRole('button', { name: 'View: All jobs' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull();
   });
 
-  it('has no filters chip, and the sheet has no search, filters or Sort', async () => {
-    const user = userEvent.setup();
+  it('has no filters chip, no Sort and no search', async () => {
     renderApp();
     await screen.findByRole('button', { name: 'View: To apply' });
     expect(screen.queryByRole('button', { name: /filters?, open All jobs/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Sort:/ })).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'View: To apply' }));
-    await user.click(await screen.findByRole('menuitem', { name: 'All jobs' }));
-    const sheet = await screen.findByRole('dialog', { name: 'All jobs' });
-    expect(within(sheet).queryByRole('textbox')).toBeNull();
-    expect(within(sheet).queryByRole('button', { name: /^Sort:/ })).toBeNull();
-    expect(within(sheet).queryByRole('group', { name: 'Filters' })).toBeNull();
-    expect(within(sheet).getByRole('group', { name: 'Views' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /search/i })).toBeNull();
   });
 
   it('the pager only steps', async () => {

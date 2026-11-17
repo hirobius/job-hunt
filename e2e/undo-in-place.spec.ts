@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { JOB_LINK, listScope, openJob, seed, topTab } from './routes';
+import { JOB_LINK, listScope, openByTitle, openJob, seed, topTab } from './routes';
 
 // #593 item 8 (Adrian 2026-11-11): every Undo puts the item back and leaves the person on the page
 // they are on. Remove a job from its page, go to Find, press the toast's Undo: still on Find, and
@@ -39,8 +39,12 @@ for (const width of [390, 1440] as const) {
       // The job is back in Apply.
       await topTab(page, 'Apply').click();
       await expect(page).toHaveURL(/#\/apply/);
-      const list = (await listScope(page)).getByRole('navigation', { name: 'Jobs' });
-      await expect(list.locator(JOB_LINK).filter({ hasText: title }).first()).toBeVisible();
+      if ((page.viewportSize()?.width ?? 0) < 1024) {
+        await openByTitle(page, title);
+      } else {
+        const list = (await listScope(page)).getByRole('navigation', { name: 'Jobs' });
+        await expect(list.locator(JOB_LINK).filter({ hasText: title }).first()).toBeVisible();
+      }
     });
   });
 }

@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from './fixtures';
-import { listScope, seed } from './routes';
+import { openAddJob, seed } from './routes';
 
 // The exit (#537, redesign §3): every way out is HDS Button variant="link": underlined, the
 // primary text colour, no fill, no ledge, and a 44px hit area at every width. Never blue.
@@ -55,20 +55,12 @@ for (const width of [390, 1440]) {
       await seed(page);
       await page.goto('/#/apply');
       await expectExit(page.getByRole('button', { name: /^Not a fit: / }).first());
-      // Add job is the list's (#543): the All jobs sheet below lg. No Cancel key (#551): Close and
-      // the scrim cancel it.
-      await (await listScope(page)).getByRole('button', { name: 'Add job' }).click();
-      const add = page.getByRole('dialog', { name: 'Add a job' });
-      await expect(add).toBeVisible();
+      // Add job: the list column's key from lg, the job's More menu below it. No Cancel key
+      // (#551): Close and the scrim cancel it.
+      const add = await openAddJob(page);
       await expect(add.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
       await add.getByRole('button', { name: 'Close' }).click();
       await expect(add).toBeHidden();
-      // Below lg the All jobs sheet it opened from is still up: close it too (#543).
-      const sheet = page.getByRole('dialog', { name: 'All jobs' });
-      if (await sheet.isVisible()) {
-        await page.keyboard.press('Escape');
-        await expect(sheet).toBeHidden();
-      }
       // A form dialog's Cancel is an exit (Search profile).
       await page.getByRole('button', { name: /^Account/ }).click();
       await page.getByRole('menuitem', { name: 'Search profile' }).click();

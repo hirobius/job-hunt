@@ -25,11 +25,13 @@ import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { JobsList } from './TrackerView';
+import { decide } from './feed/decided';
 import { getPipelineView, setPipelineView } from './pipelineView';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 
 const SAVED = 'https://acme.example/jobs/1';
 const APPLIED = 'https://zenith.example/jobs/2';
+const ZEN = 'https://boards.greenhouse.io/zen/jobs/9';
 
 const renderApp = () =>
   render(
@@ -66,7 +68,7 @@ const faded = (el: HTMLElement) =>
 
 /** The All jobs sheet's list (below lg). */
 const jobsNav = () =>
-  within(screen.getByRole('dialog', { name: 'All jobs' })).getByRole('navigation', {
+  within(screen.getByRole('region', { name: 'Job list' })).getByRole('navigation', {
     name: 'Jobs',
   });
 /** A job's row in the list: the `li` around its link. */
@@ -119,6 +121,49 @@ afterEach(() => {
 
 describe('Pipeline on a phone (#129)', () => {
   beforeEach(() => viewport(390));
+
+  // The real phone UI (no sheet): the view picker, the Passed view and an empty view.
+  const pickView = async (name: RegExp) => {
+    await userEvent.click(await screen.findByRole('button', { name: /^View: / }));
+    await userEvent.click(await screen.findByRole('menuitemradio', { name }));
+  };
+
+  it('Passed: skipped postings are listed with Save, whether or not a job is passed', async () => {
+    act(() => decide({ title: 'Zen Systems Designer', company: 'Zen', url: ZEN }, 'skipped'));
+    renderApp();
+    await pickView(/^Passed/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Save Zen Systems Designer' }));
+    await waitFor(() => expect(getAllJobs().some((j) => j.url === ZEN)).toBe(true));
+  });
+
+  it('Passed with a passed job: its page, then the skipped postings under it', async () => {
+    updateJob(SAVED, { archived: true });
+    act(() => decide({ title: 'Zen Systems Designer', company: 'Zen', url: ZEN }, 'skipped'));
+    setPipelineView({ filter: 'passed' });
+    renderApp();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Design Engineer' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Zen Systems Designer' })).toBeInTheDocument();
+  });
+
+  it('an empty view still offers Add job', async () => {
+    renderApp();
+    await pickView(/^Recently closed/);
+    expect(await screen.findByText('Nothing under “Recently closed”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Add job' }));
+    expect(await screen.findByRole('dialog', { name: 'Add a job' })).toBeInTheDocument();
+  });
+
+  it('has no All jobs sheet; Add job is in the job\u2019s More menu and opens its dialog', async () => {
+    openJobPage(SAVED);
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'More actions: Design Engineer' }),
+    );
+    expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Add job' }));
+    expect(await screen.findByRole('dialog', { name: 'Add a job' })).toBeInTheDocument();
+  });
 
   it('shows compact rows: each is a link to the job page, named by its title', async () => {
     renderApp();
@@ -180,6 +225,7 @@ describe('Pipeline on a phone (#129)', () => {
     // No Star (#534); Remove says what it takes the job off. The header's menu adds the company's
     // research links.
     expect(items).toEqual([
+      'Add job',
       'Open posting',
       'Add interview…',
       'Retire',
@@ -329,9 +375,10 @@ describe('Pipeline filter (#129, #543)', () => {
   it('the list has no search, filter chips, Clear or Sort (2026-11-13)', async () => {
     renderApp();
     await openListOnPhone();
-    expect(screen.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByRole('group', { name: 'Filters' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /^Clear \d/ })).toBeNull();
+    const list = screen.getByRole('region', { name: 'Job list' });
+    expect(within(list).queryByRole('textbox')).toBeNull();
+    expect(within(list).queryByRole('group', { name: 'Filters' })).toBeNull();
+    expect(within(list).queryByRole('button', { name: /^Clear \d/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Sort:/ })).toBeNull();
   });
 
@@ -415,10 +462,9 @@ describe('shared list state (#130 slice 4)', () => {
     setPipelineView({ filter: 'applied' });
     renderApp();
     await openListOnPhone();
-    // A jump from the sheet opens the job in place and closes it (Proposal A).
+    // A jump from the list opens the job in place (Proposal A).
     await userEvent.click(within(jobsNav()).getByRole('link', { name: 'Zenith Product Designer' }));
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(APPLIED)}`));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
     await openAllJobs();
     expect(screen.getByRole('button', { name: /^Applied \d/ })).toHaveAttribute(
       'aria-pressed',

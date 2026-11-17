@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from './fixtures';
-import { go, openAllJobs, openJob, PROD_URL, seed, topTab } from './routes';
+import { go, openJob, PROD_URL, seed, topTab } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -205,28 +205,25 @@ test('Find: the Account menu’s Companies and Data answer within 300 ms', async
   await closeOverlay(page);
 });
 
-test('Apply list: every control in the All jobs sheet answers within 300 ms (#543)', async ({
+test('Apply (phone): the view picker, the pager and Add job answer within 300 ms', async ({
   page,
 }) => {
-  // Below lg the list is the All jobs sheet (Proposal A); it holds the list's controls (#543).
+  // Below lg the tab is one job: the view picker (All jobs among the views), the pager, and Add
+  // job in the job's More menu (the All jobs sheet went 2026-11-17).
   await page.setViewportSize({ width: 800, height: 900 });
   await go(page, '#/apply');
-  const sheet = await openAllJobs(page);
-  // The named views (#541): a press swaps the list at once.
-  await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
-  await press(page, button(sheet, /^Applied \d/), 'Applied view');
-  await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
-  await press(page, button(sheet, /^Passed \d/), 'Passed view');
-  await press(page, button(sheet, /^All jobs \d/), 'All jobs view');
-  await press(page, button(sheet, 'Add job'), 'Add job');
+  const view = async (name: RegExp, label: string) => {
+    await page.getByRole('button', { name: /^View: / }).click();
+    await press(page, page.getByRole('menuitemradio', { name }), label);
+  };
+  await view(/^All jobs/, 'All jobs view');
+  await view(/^Applied/, 'Applied view');
+  await view(/^Passed/, 'Passed view');
+  await view(/^All jobs/, 'All jobs view');
+  await press(page, page.getByRole('button', { name: 'Next page' }), 'pager next');
+  await page.getByRole('button', { name: /^More actions: / }).click();
+  await press(page, item(page, 'Add job'), 'More → Add job');
   await closeOverlay(page);
-  // A row opens its job in place and the sheet closes.
-  await press(
-    page,
-    sheet.getByRole('navigation', { name: 'Jobs' }).getByRole('link').nth(1),
-    'a row',
-  );
-  await expect(sheet).toHaveCount(0);
   // Clear sample data is the Account menu's since 2026-11-13.
   await menu(page, 'Account', 'Clear sample data');
   await page.getByRole('button', { name: /^Account/ }).click();

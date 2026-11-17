@@ -105,7 +105,6 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Bolt Designer' }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'All jobs' })).toBeNull());
   });
 
   it('Mark applied and Not a fit move on to the next job in the list, each with Undo', async () => {

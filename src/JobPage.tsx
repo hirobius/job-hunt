@@ -1,7 +1,7 @@
 // A saved job's Apply view (#127, #130, #471): `#/apply/<jobId>`, inside the Apply tab. A header
 // (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks). At
 // lg the list sits beside it; below lg it stands alone, with Back and the "‹ 2 of N ›" pager.
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Search } from 'lucide-react';
 import {
   Box,
@@ -26,11 +26,13 @@ import {
   visibleJobs,
 } from './pipelineView';
 import { openNextAfter } from './applyNext';
-import AllJobsSheet from './AllJobsSheet';
-import { useBackCloses } from './useBackCloses';
 import ApplyWalk from './ApplyWalk';
 import { SwipeArea } from './SwipeArea';
 import { useFollowView } from './followView';
+import AddJobButton from './AddJob';
+import { SkippedPostings } from './PassedList';
+import { decided } from './decided';
+import { skippedPostings } from './passed';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
@@ -105,9 +107,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
   const wide = useAtLeast('lg');
   const view = usePipelineView();
   const viewEmpty = useFollowView(job, jobs, view);
-  const [all, setAll] = useState(false);
-  // The id AllJobsSheet pops on a jump.
-  useBackCloses(all, () => setAll(false), 'all-jobs');
+  const skippedCount = skippedPostings(decided.use().values()).length;
 
   // Not found yet: it may be about to sync in, so wait quietly. Once sync has settled the effect
   // above has already sent us back to the Pipeline.
@@ -132,8 +132,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
       </Sidebar>
     );
   // Below lg (Proposal A, Adrian 2026-11-08): one Apply screen. The sticky walk control (#542: view picker, "‹ 3 of 55 ›"; a swipe steps it too),
-  // then the job in full. The picker's "All jobs" opens the All jobs sheet: Add job, the views
-  // and the list (#543; no search, filters or sort since 2026-11-13). A job opened from elsewhere keeps its Back.
+  // then the job in full. The picker holds the views, All jobs among them; Add job is in the job's More menu. A job opened from elsewhere keeps its Back.
   const list = visibleJobs(jobs, view);
   const order = visibleJobs(jobs, { ...view, filter: 'all', remoteOnly: false });
   const at = list.findIndex((j) => j.url === job.url);
@@ -147,14 +146,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
         <Box className="rjb-apply-pager">
-          <ApplyWalk
-            job={job}
-            jobs={jobs}
-            list={list}
-            order={order}
-            onAllJobs={() => setAll(true)}
-            empty={viewEmpty}
-          />
+          <ApplyWalk job={job} jobs={jobs} list={list} order={order} empty={viewEmpty} />
         </Box>
         {viewEmpty ? (
           <Stack gap="normal">
@@ -164,43 +156,47 @@ export default function JobPage({ jobId }: { jobId: string }) {
                 Apply
               </Text>
             </VisuallyHidden>
-            <EmptyState
-              centered
-              icon={Search}
-              title={`Nothing under “${FILTER_LABEL[view.filter]}”`}
-              description={
-                view.filter === 'passed'
-                  ? 'Postings you skipped in Review are in All jobs.'
-                  : 'Try another view.'
-              }
-              action={
-                view.filter === 'passed' ? (
-                  <Button variant="secondary" onClick={() => setAll(true)}>
-                    All jobs
-                  </Button>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    onClick={() => setPipelineView({ filter: 'toApply' })}
-                  >
-                    Show to apply
-                  </Button>
-                )
-              }
-            />
+            {view.filter === 'passed' && skippedCount > 0 ? (
+              // Nothing passed but postings skipped in Review: they are here, with Save.
+              <SkippedPostings />
+            ) : (
+              <EmptyState
+                centered
+                icon={Search}
+                title={`Nothing under “${FILTER_LABEL[view.filter]}”`}
+                description={
+                  view.filter === 'passed'
+                    ? 'Jobs you set aside and postings you skip in Review show here.'
+                    : 'Try another view.'
+                }
+                action={
+                  <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="center">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setPipelineView({ filter: 'toApply' })}
+                    >
+                      Show to apply
+                    </Button>
+                    <AddJobButton />
+                  </Stack>
+                }
+              />
+            )}
           </Stack>
         ) : (
-          <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
-            <JobDetail
-              key={job.url}
-              job={job}
-              showBack={!!origin}
-              onAnswered={() => openNextAfter(job, jobs)}
-            />
-          </SwipeArea>
+          <>
+            <SwipeArea onPrev={() => step(-1)} onNext={() => step(1)}>
+              <JobDetail
+                key={job.url}
+                job={job}
+                showBack={!!origin}
+                onAnswered={() => openNextAfter(job, jobs)}
+              />
+            </SwipeArea>
+            {view.filter === 'passed' && <SkippedPostings />}
+          </>
         )}
       </Stack>
-      <AllJobsSheet openId={jobId} open={all} onOpenChange={setAll} />
     </Box>
   );
 }

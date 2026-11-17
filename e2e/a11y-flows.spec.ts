@@ -5,7 +5,7 @@
 import { test, expect, type Page } from './fixtures';
 import { signInAtBoot } from './fixtures';
 import { createRequire } from 'node:module';
-import { topTab, currentTab, pressAllJobs, listScope, allWorkModes } from './routes';
+import { topTab, currentTab, pressAllJobs, openAddJob, allWorkModes } from './routes';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
@@ -122,24 +122,12 @@ for (const theme of ['light', 'dark'] as const) {
         bad.push(...(await axe(page, 'outreach editor')));
 
         await go(page, '#/apply');
-        // Add job is the list's (#543): the column from lg, the All jobs sheet below it.
+        // Add job is the list column's from lg, the job's More menu below it.
         const rail = page.getByRole('navigation', { name: 'Jobs', exact: true });
-        const wide = (await rail.count()) > 0;
-        const list = await listScope(page);
-        await list.getByRole('button', { name: 'Add job' }).click();
-        await expect(page.getByRole('dialog', { name: 'Add a job' })).toBeVisible();
+        await openAddJob(page);
         bad.push(...(await axe(page, 'add job')));
         await page.keyboard.press('Escape');
         await expect(page.getByRole('dialog', { name: 'Add a job' })).toHaveCount(0);
-
-        // Below lg the tab is one job (Proposal A): axe the All jobs sheet open.
-        if (!wide) {
-          await expect(page.getByRole('dialog', { name: 'All jobs' })).toBeVisible();
-          await page.waitForTimeout(300);
-          bad.push(...(await axe(page, 'all jobs sheet')));
-          await page.keyboard.press('Escape');
-          await expect(page.getByRole('dialog')).toBeHidden();
-        }
         // The job page is one page (#416, a11y.spec.ts scans it): axe its Add interview dialog.
         if (await rail.count()) await rail.locator('a[href^="#/apply/"]').first().click();
         await page
@@ -362,15 +350,25 @@ for (const width of [390, 1440] as const) {
       await allWorkModes(page);
       await go(page, '#/apply');
       // From lg the Jobs tab is the list beside a job (#471): a pick there moves in place, so open
-      // the second row. Below lg the list is the All jobs sheet (Proposal A): a pick closes it.
+      // the second row. Below lg the view picker's All jobs view shows every job, the pager steps.
       const wide = width > 1000;
-      if (!wide) await pressAllJobs(page);
-      // One job list in both (#543): the rows' links hold the title alone.
-      const scope = page.getByRole('navigation', { name: 'Jobs' });
-      const link = scope.locator('a[href^="#/apply/"]:not([aria-current])').nth(wide ? 0 : 1);
-      const title = (await link.textContent())!.trim();
-      await link.focus();
-      await page.keyboard.press('Enter');
+      let title: string;
+      if (wide) {
+        const link = page
+          .getByRole('navigation', { name: 'Jobs' })
+          .locator('a[href^="#/apply/"]:not([aria-current])')
+          .first();
+        title = (await link.textContent())!.trim();
+        await link.focus();
+        await page.keyboard.press('Enter');
+      } else {
+        // Below lg the pager steps to the next job (the view picker's All jobs view has them all).
+        await pressAllJobs(page);
+        const next = page.getByRole('button', { name: 'Next page' });
+        await next.focus();
+        await page.keyboard.press('Enter');
+        title = (await page.getByRole('heading', { level: 1 }).first().textContent())!.trim();
+      }
       await expect(page).toHaveURL(/#\/apply\/./);
       await expect(page.getByRole('dialog')).toHaveCount(0);
       await expect.poll(() => focused(page)).toBe(`H1 ${title}`);
