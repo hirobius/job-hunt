@@ -78,9 +78,20 @@ body[data-hds]:has(.rjb-find-new) {
   z-index: 1;
   border-radius: inherit;
 }
-[data-hds] .rjb-card-stretch button {
+/* Every other control in the card (buttons, the opened description's "Read the full posting"
+   link, anything focusable) sits above the stretched area, so its own tap and focus work. */
+[data-hds] .rjb-card-stretch :is(a, button, [tabindex]:not([tabindex="-1"])):not(.rjb-posting-title a) {
   position: relative;
   z-index: 2;
+}
+/* Keyboard focus on the title rings the whole card it opens (one ring: the link draws none). */
+[data-hds] .rjb-card-stretch .rjb-posting-title a:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+[data-hds] .rjb-card-stretch:has(.rjb-posting-title a:focus-visible) {
+  outline: var(--semantic-focus-ring-width) solid var(--semantic-focus-ring-color);
+  outline-offset: var(--semantic-focus-gap-width);
 }
 @media (hover: hover) {
   [data-hds] .rjb-card-stretch:hover {

@@ -111,6 +111,42 @@ test.describe('390', () => {
   });
 });
 
+test.describe('390 keyboard and inner links', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('keyboard focus on the title rings the whole card, once', async ({ page }) => {
+    const card = await open(page);
+    const link = card.locator('.rjb-posting-title a');
+    await link.focus();
+    // Focus from the keyboard (:focus-visible): Shift+Tab away and Tab back.
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(link).toBeFocused();
+    const ring = await card.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) };
+    });
+    expect(ring.style).not.toBe('none');
+    expect(ring.width).toBeGreaterThan(0);
+    // One ring: the link draws none of its own.
+    expect(await link.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('none');
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/card-390-focus.png` });
+  });
+
+  test('a link inside the opened description sits above the stretched area', async ({ page }) => {
+    const card = await open(page);
+    await card.getByRole('button', { name: 'Show more' }).click();
+    const inner = card.getByRole('link', { name: /Read the full posting/ });
+    await inner.scrollIntoViewIfNeeded();
+    const box = (await inner.boundingBox())!;
+    const hit = await inner.evaluate(
+      (el, [x, y]) => document.elementFromPoint(x, y)?.closest('a') === el,
+      [box.x + box.width / 2, box.y + box.height / 2],
+    );
+    expect(hit).toBe(true);
+  });
+});
+
 test.describe('390 with a pointer', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
