@@ -24,17 +24,12 @@ const verdict = (title: string, body = '', track = designSystemsTrack) =>
   scoreForTrack(posting(title, body), track).verdict;
 const RULE = { terms: ['design system'], atsOff: [] };
 
+/** UI design engineer titles: a UI word in the title (or UX / design technologist), so the title
+ *  alone queues and lists them. */
 const MUST_MATCH = [
-  'Design Engineer',
-  'Senior Design Engineer',
   'Staff Design Engineer, Web',
-  'Design Engineer - Product',
   'Design Engineer (Frontend)',
   'Design Engineer (Design Systems)',
-  'Design Engineer, Developer Tooling',
-  'Design Engineer, Internal Tooling',
-  'Design Engineer, Design Process',
-  'Design Engineer, Developer Tools',
   'Front-end Design Engineer',
   'Frontend Design Engineer',
   'Senior UX Engineer',
@@ -43,10 +38,40 @@ const MUST_MATCH = [
   'UI Design Engineer',
   'UI Product Design Engineer',
   'Product Design Engineer, Web',
-  'Design Engineer, Prototyping',
-  'Design Engineer (IC4)',
+  'Design Engineer, React',
+  'Design Engineer, User Interface',
   'Design Technologist',
   'Senior Design Technologist, Prototyping',
+];
+
+/** Plain design engineer titles (Adrian 2026-11-17: "Senior Railway Yard Drainage Design Engineer"
+ *  and "Exhibit Design Engineer" reached Review on the title alone): no UI word, so the
+ *  description has to show design-systems work, as a product-design title's does. */
+const NEEDS_EVIDENCE = [
+  'Design Engineer',
+  'Senior Design Engineer',
+  'Design Engineer - Product',
+  'Design Engineer, Developer Tooling',
+  'Design Engineer, Internal Tooling',
+  'Design Engineer, Design Process',
+  'Design Engineer, Developer Tools',
+  'Design Engineer, Prototyping',
+  'Design Engineer (IC4)',
+];
+/** Two body signals: the scorer's queue bar and the Feed's (BODY_SIGNALS_TO_LIST). */
+const DS_BODY =
+  'You will build our design system in React: the component library, design tokens and Storybook.';
+/** A body with no design-systems work. */
+const OTHER_BODY = 'Design site drainage, stormwater and rail yard grading for transit clients.';
+
+/** Off-target titles found in Review (2026-11-17): their field words are in the guard now. */
+const OFF_TARGET = [
+  'Senior Railway Yard Drainage Design Engineer',
+  'Exhibit Design Engineer',
+  'Exhibition Design Engineer',
+  'Rail Design Engineer',
+  'Stormwater Design Engineer',
+  'Drainage Design Engineer',
 ];
 
 /** Design engineer titles naming non-UI work: never listed, never queued (review of #581). */
@@ -108,6 +133,7 @@ const HARDWARE = [
   'Staff Actuator Design Engineer',
   'Sensor Design Engineer',
   'Enclosure Design Engineer',
+  ...OFF_TARGET,
 ];
 
 /** Interns: the scorer rejects them (fitRejectReason), and the Feed now does for related titles. */
@@ -158,7 +184,7 @@ const dsProfile = profileFrom({
 });
 
 describe('the design engineer guard (designRoleGuard.ts)', () => {
-  it.each(MUST_MATCH)('lets %s in', (title) => {
+  it.each([...MUST_MATCH, ...NEEDS_EVIDENCE])('lets %s in', (title) => {
     expect(notUiDesignTitle(title)).toBe(false);
     expect(relatedTitleOk(title)).toBe(true);
   });
@@ -173,6 +199,7 @@ describe('the design engineer guard (designRoleGuard.ts)', () => {
 
   it('matches words, never parts of words', () => {
     for (const t of [
+      'Design Engineer, Ruby on Rails', // rails, the framework, not rail work
       'Design Engineer, Developer Tools', // tools, not tool
       'Design Engineer, Powerful Interfaces', // powerful, not power
       'Design Engineer, Diet App', // diet, not die
@@ -189,6 +216,24 @@ describe('design engineer roles', () => {
     expect(verdict(title)).toBe('queue');
     expect(passesInclude(RULE, title)).toBe(true);
     expect(isDsRole(title)).toBe(true);
+  });
+
+  it.each(NEEDS_EVIDENCE)('needs design-systems evidence to queue or list %s', (title) => {
+    expect(verdict(title)).toBe('reject');
+    expect(verdict(title, OTHER_BODY)).toBe('reject');
+    expect(passesInclude(RULE, title)).toBe(false);
+    expect(passesInclude(RULE, title, OTHER_BODY)).toBe(false);
+    expect(isDsRole(title)).toBe(false);
+    expect(verdict(title, DS_BODY)).toBe('queue');
+    expect(passesInclude(RULE, title, DS_BODY)).toBe(true);
+    expect(isDsRole(title, DS_BODY)).toBe(true);
+  });
+
+  it.each(OFF_TARGET)('never queues or lists %s, whatever the body says', (title) => {
+    expect(verdict(title)).toBe('reject');
+    expect(verdict(title, DS_BODY)).not.toBe('queue');
+    expect(passesInclude(RULE, title, OTHER_BODY)).toBe(false);
+    expect(isDsRole(title, OTHER_BODY)).toBe(false);
   });
 
   it.each(MUST_NOT_MATCH)('does not queue %s', (title) => {
@@ -209,6 +254,7 @@ describe('design engineer roles', () => {
       expect(listed(MUST_MATCH, profile)).toEqual(expect.arrayContaining(MUST_MATCH));
       expect(listed(MUST_MATCH, profile)).toHaveLength(MUST_MATCH.length);
       expect(listed(NOT_LISTED, profile)).toEqual([]);
+      expect(listed(NEEDS_EVIDENCE, profile)).toEqual([]);
     }
   });
 
@@ -237,7 +283,11 @@ describe('design engineer roles', () => {
       scorer: 'design-systems',
       relatedOff: ['Design Engineer'],
     })!;
+    // Off, the title counts for nothing: a body this strong is only held for review, as any
+    // title's would be (no title signal, 3+ body signals).
     expect(verdict('Senior Design Engineer', '', off)).toBe('reject');
+    expect(verdict('Senior Design Engineer', DS_BODY, off)).not.toBe('queue');
+    expect(verdict('UI Design Engineer', '', off)).toBe('reject');
     expect(verdict('Design Technologist', '', off)).toBe('queue');
     expect(verdict('Design Systems Engineer', '', off)).toBe('queue');
     expect(passesInclude({ ...RULE, relatedOff: ['Design Engineer'] }, 'UX Engineer')).toBe(false);

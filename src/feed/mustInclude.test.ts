@@ -200,15 +200,21 @@ describe('related titles (2026-10-23)', () => {
   // titles saying design system(s) or Design Technologist).
   const rule = { terms: ['design system'], inText: true };
   const DS = 'You will grow our design system with Claude Code and Cursor.';
+  // Two of the scorer's body signals: what a plain design engineer title needs (2026-11-17).
+  const DS2 = 'You will grow our design system and its component library with Claude Code.';
   it.each([
     ['Design Technologist', '', true],
     ['Senior Design Technologist', 'Nothing about it.', true],
     ['Staff Design Engineer, Design Systems', '', true],
-    // Live postings (Adrian's phone): Design Engineer is a related title again (2026-11-11).
-    ['Senior Design Engineer', DS, true],
-    ['Staff Design Engineer', DS, true],
-    ['Design Engineer – Americas', DS, true],
-    ['Design Engineer', '', true],
+    // Live postings (Adrian's phone): Design Engineer is a related title again (2026-11-11). A
+    // plain one needs two body signals since 2026-11-17 (civil and exhibit design engineers got
+    // in on the title alone); one with a UI word in the title still passes on its own.
+    ['Senior Design Engineer', DS, false],
+    ['Senior Design Engineer', DS2, true],
+    ['Staff Design Engineer', DS2, true],
+    ['Design Engineer – Americas', DS2, true],
+    ['Design Engineer', '', false],
+    ['Design Engineer, Web', '', true],
     ['Senior UX Engineer', '', true],
     ['Senior Software Engineer', DS, false],
     ['UI Platform Engineer', DS, false],
@@ -248,7 +254,8 @@ describe('related titles (2026-10-23)', () => {
     const roles = [
       { id: 'a', title: 'Design Technologist', text: '' },
       { id: 'b', title: 'Backend Engineer', text: DS },
-      { id: 'c', title: 'Staff Design Engineer', text: DS },
+      { id: 'c', title: 'Staff Design Engineer', text: DS2 },
+      { id: 'd', title: 'Staff Design Engineer', text: DS },
     ];
     expect(keepIncluded(roles, rule).map((r) => r.id)).toEqual(['a', 'c']);
   });
@@ -258,7 +265,7 @@ describe('related titles (2026-10-23)', () => {
       { title: 'Design Technologist', text: '' },
       { title: 'Design Technologist II', text: '' },
       { title: 'Design Systems Lead', text: '' }, // passes on its own: not counted
-      { title: 'Design Engineer', text: DS },
+      { title: 'Design Engineer', text: DS2 },
     ];
     expect(relatedCounts(ps, { ...rule, relatedOff: ['Design Technologist'] })).toEqual({
       'Design Technologist': 2,

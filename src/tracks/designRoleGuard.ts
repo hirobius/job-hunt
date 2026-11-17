@@ -90,6 +90,18 @@ const NOT_UI_TERMS = [
   'lighting',
   'interior',
   'landscape',
+  // Rail, drainage and exhibit work (Adrian 2026-11-17: "Senior Railway Yard Drainage Design
+  // Engineer" and "Exhibit Design Engineer" reached Review).
+  // Not a bare "rails": "Design Engineer, Ruby on Rails" is software work.
+  'railways?',
+  'railroads?',
+  `rail${S}(?:yards?|transit|systems?|infrastructure)`,
+  'rail',
+  'yards?',
+  'drainage',
+  'stormwater',
+  'exhibits?',
+  'exhibitions?',
   // Physical products and manufacturing.
   `medical${S}devices?`,
   'industrial',
@@ -116,6 +128,17 @@ const NOT_UI_RE = new RegExp(NOT_UI_DESIGN_SOURCE, 'i');
 /** The title names hardware, building or physical-product work: as a design engineer (or UX
  *  engineer, design technologist) title, never a UI role. */
 export const notUiDesignTitle = (title: string): boolean => NOT_UI_RE.test(title);
+
+/** A UI word in a title: what lets a design engineer title count on its own (Adrian 2026-11-17).
+ *  "UX Engineer" carries it in its own name. */
+export const UI_TITLE_SOURCE = `\\b(?:ui|ux|web|front(?:${S})?end|frontend|design${S}systems?|react|user${S}interfaces?|interfaces?)\\b`;
+const UI_TITLE_RE = new RegExp(UI_TITLE_SOURCE, 'i');
+
+/** A design engineer or UX engineer title that says UI work on its own (a UI word in it). A plain
+ *  one ("Design Engineer", "Senior Design Engineer") is also a civil, exhibit or hardware title,
+ *  so it counts only when the description shows design-systems work (feed/include.ts, the
+ *  scorer's adjacent title). */
+export const uiDesignEngineerTitle = (title: string): boolean => UI_TITLE_RE.test(title);
 
 /** The scorer's intern rule (score.ts `fitRejectReason`). */
 const INTERN_RE = /\b(?:intern|internship|apprentice)\b/i;

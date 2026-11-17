@@ -8,7 +8,7 @@ import type { TrackConfig } from './track-config.ts';
 
 /** Bump when score.ts, scoreForTrack.ts (the fit rule) or designRoleGuard.ts change what a
  *  posting scores as without changing the config: every stored verdict is then scored again. */
-export const SCORE_RULES = 1;
+export const SCORE_RULES = 2;
 
 /** The key of a scorer config: FNV-1a over the rules version and the whole config. Two plans with
  *  the same key give every posting the same verdict. */

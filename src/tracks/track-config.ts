@@ -1,7 +1,7 @@
 // Track config (Muse handoff, 2026-10-24): what the scorer (score.ts) reads for one track. Ported
 // as given; a track is tuned here, never in the scorer. Pure, so the client and the sync edge
 // function (supabase/functions/sync-postings) share it.
-import { NOT_UI_DESIGN_SOURCE } from './designRoleGuard.ts';
+import { NOT_UI_DESIGN_SOURCE, UI_TITLE_SOURCE } from './designRoleGuard.ts';
 
 export interface DescriptionSignal {
   pattern: string;
@@ -21,11 +21,17 @@ export interface TrackConfig {
   aggregatorQueries: string[];
 }
 
-/** Design engineering (Adrian 2026-11-11): Design Engineer, UX Engineer and Front-end Design
- *  Engineer titles are strong, unless the title names hardware or physical-product work (the shared
- *  guard, designRoleGuard.ts, which the Feed and the keyless feeds use too). The guard sits inside
- *  the pattern because a strong title overrides titleNegative. */
-export const DESIGN_ENGINEER_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\b(design|ux) engineers?\\b`;
+/** Design engineering (Adrian 2026-11-11): a design engineer or UX engineer title with a UI word
+ *  in it (UX, UI, web, front-end, design system, React, interface; Adrian 2026-11-17) is strong,
+ *  unless the title names hardware, physical-product, civil or exhibit work (the shared guard,
+ *  designRoleGuard.ts, which the Feed and the keyless feeds use too). The guard sits inside the
+ *  pattern because a strong title overrides titleNegative. */
+export const DESIGN_ENGINEER_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE})(?=.*${UI_TITLE_SOURCE}).*\\b(design|ux) engineers?\\b`;
+/** A plain design engineer title ("Design Engineer", "Senior Design Engineer"; Adrian 2026-11-17:
+ *  "Senior Railway Yard Drainage Design Engineer" and "Exhibit Design Engineer" queued on the title
+ *  alone): adjacent, so the description has to show design-systems work, as a product-design
+ *  title's does. */
+export const DESIGN_ENGINEER_ADJACENT = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\bdesign engineers?\\b`;
 /** Design Technologist titles, with the same guard. */
 export const DESIGN_TECHNOLOGIST_STRONG = `^(?!.*${NOT_UI_DESIGN_SOURCE}).*\\bdesign technologists?\\b`;
 
@@ -57,6 +63,7 @@ export const designSystemsTrack: TrackConfig = {
   // Creative technologist stays adjacent: it is often an agency or marketing role, so the body
   // has to show design-system work.
   titleAdjacent: [
+    DESIGN_ENGINEER_ADJACENT,
     'creative technologist',
     'ui engineer',
     // "Frontend" too (2026-11-15: "Frontend Engineer, UI Platform" matched nothing).

@@ -93,8 +93,8 @@ describe('reuse of unchanged rejected rows', () => {
     for (const f of ['score.ts', 'scoreForTrack.ts', 'designRoleGuard.ts'])
       hash.update(readFileSync(`src/tracks/${f}`));
     expect({ rules: SCORE_RULES, files: hash.digest('hex') }).toEqual({
-      rules: 1,
-      files: '7194be9a7995d76c45afc2431e0c660ac060cc30a2ef6ef05a7d106c84a2ad7e',
+      rules: 2,
+      files: '1533721ed4f28a296582ef8563260afe00ac32c1e0bf15e005afbc34f56333eb',
     });
   });
 });

@@ -52,7 +52,7 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
   process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
   by the related-title pass, `feeds/dsRole.ts` `isDsRole` and the scorer's `DESIGN_ENGINEER_STRONG` (a lookahead
-  built from `NOT_UI_DESIGN_SOURCE`); pinned in `tracks/designEngineer.test.ts`. The check itself (`passesInclude`,
+  built from `NOT_UI_DESIGN_SOURCE`); pinned in `tracks/designEngineer.test.ts`. **A design engineer title counts on its own only with a UI word in it** (UX, UI, web, front-end, design system, React, interface: `UI_TITLE_SOURCE`, `uiDesignEngineerTitle`; Adrian 2026-11-17, after "Senior Railway Yard Drainage Design Engineer" and "Exhibit Design Engineer" from TheirStack reached Review): a plain one is the scorer's adjacent title (`DESIGN_ENGINEER_ADJACENT`) and the Feed's `bodyConfirms` title, so its description needs `BODY_SIGNALS_TO_LIST` (2) body signals; rail, yard, drainage, stormwater and exhibit(ion) are guard words too. TheirStack and every other server feed row goes through the same scorer (`SCORE_RULES` 2 re-scores stored verdicts). The check itself (`passesInclude`,
   `keepIncluded`, `relatedCounts`, `mentionsAny`) is `feed/include.ts`, so the guard stays out of the entry. The per-track
   store (`rjb_must_include`, blob **v11**, incl. `atsOff` and a Contracts track's stored `naics`, `cleanNaics`) stays
   readable and feeds the v12 move; its editors (Calibrate, Manage track) are gone. `App`'s `SystemsOnlyMigration`
