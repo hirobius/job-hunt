@@ -700,7 +700,13 @@ function RowList({
                 padding="none"
                 aria-label={rowName(r)}
                 aria-current={r.fingerprint === selected ? 'true' : undefined}
-                className={r.fingerprint === selected ? 'rjb-selected' : undefined}
+                // Below lg the whole card opens the posting (the title link stretched over it,
+                // FindList.css); at lg a card selects in place through its title only.
+                className={
+                  [r.fingerprint === selected && 'rjb-selected', !onOpen && 'rjb-card-stretch']
+                    .filter(Boolean)
+                    .join(' ') || undefined
+                }
               >
                 <Box sx={{ p: 'sm' }}>
                   <PostingCard
