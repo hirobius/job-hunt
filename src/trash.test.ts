@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
 import { createDocument, getAllDocuments, replaceDocuments } from './documents';
@@ -248,6 +248,12 @@ describe('trash (Recently removed)', () => {
   });
 
   it('merge keeps both sides, cloud wins a shared job', () => {
+    // The clock at the fixture's day: mergeTrash drops entries past the 30-day window by the real
+    // clock, so on 2026-11-16 NOW's entries had aged out and the test failed (CI, #772).
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const r = (url: string, label: string) => ({
       job: { url, label, status: 'Saved' as const },
       removedAt: NOW.toISOString(),
