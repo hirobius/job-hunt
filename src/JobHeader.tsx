@@ -33,7 +33,6 @@ import { checkFor, useLiveness } from './livenessStore';
 import { RowMenu } from './JobRowParts';
 import { openAddInterview } from './jobDialogs';
 import type { Job } from './types';
-import CompanyLogo from './CompanyLogo';
 import { ExitButton } from './hds-gaps/ExitButton';
 import { IconBadge } from './hds-gaps/IconBadge';
 import { normStatus } from './jobState';
@@ -77,7 +76,7 @@ export function JobTitleBlock({ job }: { job: Job }) {
       title={titleOf(job)}
       company={company}
       noCompany="Company not stated"
-      logo={company && <CompanyLogo inline company={company} postings={[job.url]} />}
+      url={job.url}
       facts={facts}
       badges={badges || undefined}
     />

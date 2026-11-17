@@ -66,7 +66,7 @@ import { useHeldPostings } from './heldPostings';
 import { spacerRef, useWindowedList } from './useWindowedList';
 import { placeSaysRemote } from './feed/placeRemote';
 import { capsToSentence } from './feed/capsCase';
-import CompanyLogo from './CompanyLogo';
+import CompanyLine from './CompanyLine';
 import { NoResultsKeys } from './AutoScanViews';
 import { filterCounts, newTodayLine, payLabel, sortRows, type FeedRow } from './feed/feed';
 import { companyKey, decide, muteCompany, undecide } from './feed/decided';
@@ -922,19 +922,7 @@ function PostingCard({
         )}
         {/* No company (an HN post naming none): said, as the detail's title block does. Its More
             would hold only Not this company, so it has none (PostingMenu). */}
-        {r.company.trim() ? (
-          // The company's logo first (letter until it loads; companyLogo.ts's rule), then its name.
-          <Stack direction="row" gap="px8" align="center">
-            <CompanyLogo inline company={r.company} postings={[r.url]} />
-            <Text variant="ui" as="p" className="min-w-0">
-              {r.company}
-            </Text>
-          </Stack>
-        ) : (
-          <Text variant="ui" as="p" tone="secondary">
-            Company not stated
-          </Text>
-        )}
+        <CompanyLine company={r.company} url={r.url} />
         {/* At lg a list card is the title and the company only (Adrian 2026-11-15): the place,
             pay, posted day and text are the detail's beside it, never read twice. */}
         {!brief && (
@@ -1115,6 +1103,7 @@ function PostingDetail({
             title={r.title}
             titleId="rjb-posting-title"
             company={r.company}
+            url={r.url}
             noCompany="Company not stated"
             facts={facts}
             // The source shows here (neutral, as a job's status does).
