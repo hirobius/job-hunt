@@ -123,6 +123,7 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       'ids',
       'jobicy',
       'jooble',
+      'osdjobs',
       'remotejobsorg',
       'theirstack',
       'wwr',

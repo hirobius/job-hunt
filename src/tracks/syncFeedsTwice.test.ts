@@ -50,6 +50,7 @@ describe('feeds twice a day (#576)', () => {
       'fourdayweek',
       'remotejobsorg',
       'getonbrd',
+      'osdjobs',
     ]);
   });
 

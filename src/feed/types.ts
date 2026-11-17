@@ -41,7 +41,8 @@ export type FeedSourceId =
   // More keyless server searches (docs/research/job-sources-2026-11.md).
   | 'fourdayweek'
   | 'remotejobsorg'
-  | 'getonbrd';
+  | 'getonbrd'
+  | 'osdjobs';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -77,6 +78,7 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   fourdayweek: '4dayweek.io',
   remotejobsorg: 'RemoteJobs.org',
   getonbrd: 'Get on Board',
+  osdjobs: 'Open Source Design',
   bluesky: 'Bluesky',
   mastodon: 'Mastodon',
   reddit: 'Reddit',

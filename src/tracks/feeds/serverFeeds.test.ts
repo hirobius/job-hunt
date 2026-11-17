@@ -16,6 +16,7 @@ describe('which server feeds run', () => {
       'fourdayweek',
       'remotejobsorg',
       'getonbrd',
+      'osdjobs',
     ]);
     expect(serverFeedOn('ids', none)).toBe(false);
   });
