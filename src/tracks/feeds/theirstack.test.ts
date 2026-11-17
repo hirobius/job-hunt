@@ -92,3 +92,35 @@ describe('TheirStack', () => {
     expect(String(err)).not.toMatch(/ts-key/);
   });
 });
+
+// TheirStack's title search is a substring match ("design engineer"), so it hands back civil and
+// exhibit roles (Adrian 2026-11-17: "Senior Railway Yard Drainage Design Engineer"). Its rows get
+// no check of their own: the sync scores them with the same scorer as every source, which is
+// where a plain design engineer title needs design-systems evidence.
+describe('TheirStack rows through the scorer', async () => {
+  const { scoreForTrack } = await import('../scoreForTrack');
+  const { designSystemsTrack } = await import('../track-config');
+  const row = (job_title: string, description: string) =>
+    parseTheirStack({
+      data: [{ id: 1, job_title, url: 'https://example.com/jobs/1', company: 'Acme', description }],
+    })[0];
+
+  it('rejects an off-target design engineer row', () => {
+    for (const title of [
+      'Senior Railway Yard Drainage Design Engineer',
+      'Exhibit Design Engineer',
+    ]) {
+      const p = row(title, 'Design drainage and stormwater systems for rail yards.');
+      expect(p).toBeDefined();
+      expect(scoreForTrack(p, designSystemsTrack).verdict).toBe('reject');
+    }
+  });
+
+  it('queues a plain design engineer row whose description shows design-systems work', () => {
+    const p = row(
+      'Design Engineer',
+      'Build our design system in React: the component library, design tokens and Storybook.',
+    );
+    expect(scoreForTrack(p, designSystemsTrack).verdict).toBe('queue');
+  });
+});

@@ -15,6 +15,7 @@ import type { WatchedCompany } from './sources.ts';
 import { SERVER_FEEDS, WHOLE_LIST_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import {
+  DESIGN_ENGINEER_ADJACENT,
   DESIGN_ENGINEER_STRONG,
   DESIGN_TECHNOLOGIST_STRONG,
   designSystemsTrack,
@@ -98,9 +99,9 @@ const phrase = (s: string) =>
 
 /** feed/mustInclude.ts RELATED_TITLES (not imported: that module is the app's store): the related
  *  titles a design systems rule lets in, by id, with the scorer pattern each one is. */
-const RELATED_PATTERNS: Record<string, string> = {
-  'design technologist': DESIGN_TECHNOLOGIST_STRONG,
-  'design engineer': DESIGN_ENGINEER_STRONG,
+const RELATED_PATTERNS: Record<string, string[]> = {
+  'design technologist': [DESIGN_TECHNOLOGIST_STRONG],
+  'design engineer': [DESIGN_ENGINEER_STRONG, DESIGN_ENGINEER_ADJACENT],
 };
 
 /** What a profile reads as a scorer config. `scorer: 'design-systems'` gets the tuned design
@@ -118,7 +119,9 @@ export function compileProfile(p: {
 }): TrackConfig | null {
   const leaveOut = (p.leaveOut ?? []).filter(Boolean).map(phrase);
   if (p.scorer === designSystemsTrack.slug) {
-    const off = new Set((p.relatedOff ?? []).map((id) => RELATED_PATTERNS[id.toLowerCase()]));
+    const off = new Set(
+      (p.relatedOff ?? []).flatMap((id) => RELATED_PATTERNS[id.toLowerCase()] ?? []),
+    );
     return {
       ...designSystemsTrack,
       titleStrong: designSystemsTrack.titleStrong.filter((t) => !off.has(t)),
@@ -218,7 +221,9 @@ const cleanTerms = (titles: string[]) => {
  *  profile searches that, "design systems" and "design engineer". */
 export function designSystemsTerms(titles: string[], config: TrackConfig): string[] {
   const related = Object.entries(RELATED_PATTERNS)
-    .filter(([, pattern]) => config.titleStrong.includes(pattern))
+    .filter(([, patterns]) =>
+      patterns.some((p) => config.titleStrong.includes(p) || config.titleAdjacent.includes(p)),
+    )
     .map(([id]) => id);
   const [first, ...rest] = titles.filter(saysDesignSystem);
   return [...(first ? [first] : []), 'design systems', ...related.sort(), ...rest];

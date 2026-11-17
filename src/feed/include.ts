@@ -3,7 +3,7 @@
 // rule's phrases, or a related title that is on names its title. Its own module (2026-11-11), so the
 // design engineer guard (tracks/designRoleGuard.ts, shared with the scorer and the keyless feeds)
 // stays out of the entry chunk: only the Feed, the auto-scan and the scorer's forTrack call it.
-import { relatedTitleOk } from '../tracks/designRoleGuard';
+import { relatedTitleOk, uiDesignEngineerTitle } from '../tracks/designRoleGuard';
 import {
   BODY_SIGNALS_TO_LIST,
   designSystemsTrack,
@@ -25,8 +25,10 @@ const RELATED_RES = RELATED_TITLES.map((r) => regexesOf(r.phrases));
 
 /** The related titles a title names that are on (none on a rule without a design system phrase
  *  or with the control off). A title naming non-UI work ("Mechanical Design Engineer") or an
- *  internship names none: the same guard as the scorer (tracks/designRoleGuard.ts). */
-function relatedPass(rule: IncludeRule, title: string): RelatedTitle[] {
+ *  internship names none: the same guard as the scorer (tracks/designRoleGuard.ts). A design
+ *  engineer title names its related title only with a UI word in it (Adrian 2026-11-17); a plain
+ *  one is let in by its description instead (`bodyConfirms`). */
+function namesRelated(rule: IncludeRule, title: string): RelatedTitle[] {
   if (!hasRelatedTitles(rule) || ruleOf(rule).related === false) return [];
   if (!relatedTitleOk(title)) return [];
   const t = normalizeForPhrase(title);
@@ -35,14 +37,27 @@ function relatedPass(rule: IncludeRule, title: string): RelatedTitle[] {
   );
 }
 
+function relatedPass(rule: IncludeRule, title: string): RelatedTitle[] {
+  return namesRelated(rule, title).filter(
+    (h) => h.id !== DESIGN_ENGINEER_ID || uiDesignEngineerTitle(title),
+  );
+}
+
+const DESIGN_ENGINEER_ID = 'Design Engineer';
+
 const PRODUCT_DESIGN_RE = new RegExp(PRODUCT_DESIGN_TITLE, 'i');
 const SIGNAL_RES = designSystemsTrack.descriptionSignals.map((d) => new RegExp(d.pattern, 'i'));
 
-/** A product-design title on a design system rule (Adrian 2026-11-15): one the description can
- *  let in. The same guard as the related titles (no internship, no hardware sense). The phone's
- *  light read asks this to know which descriptions to fetch. */
+/** A product-design title on a design system rule (Adrian 2026-11-15), or a plain design engineer
+ *  title while that related title is on (Adrian 2026-11-17): one the description can let in. The
+ *  same guard as the related titles (no internship, no hardware sense). The phone's light read
+ *  asks this to know which descriptions to fetch. */
 export function bodyCanConfirm(rule: IncludeRule, title: string): boolean {
-  return hasRelatedTitles(rule) && PRODUCT_DESIGN_RE.test(title) && relatedTitleOk(title);
+  if (!hasRelatedTitles(rule) || !relatedTitleOk(title)) return false;
+  return (
+    PRODUCT_DESIGN_RE.test(title) ||
+    namesRelated(rule, title).some((h) => h.id === DESIGN_ENGINEER_ID)
+  );
 }
 
 /** The description confirms design-systems work for such a title: it shows at least

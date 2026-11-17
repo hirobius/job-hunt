@@ -182,12 +182,13 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       'Senior Staff Engineer, Design Systems',
       'Software Engineer, Design Systems',
       'Senior Frontend Platform Engineer, Design Systems',
-      'Staff Design Engineer',
       'Sr. UX Engineer',
     ])
       expect(verdict(title), title).toBe('queue');
-    // A plain title with no design-system evidence is not kept, and hardware stays out.
+    // A plain title with no design-system evidence is not kept, and hardware stays out. A plain
+    // design engineer title needs that evidence too since 2026-11-17 (civil and exhibit roles).
     expect(verdict('Product Designer, Growth')).toBe('reject');
+    expect(verdict('Staff Design Engineer')).toBe('reject');
     expect(verdict('Mechanical Design Engineer, Motor Design & Prototyping')).toBe('reject');
   });
 
