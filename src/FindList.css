@@ -80,7 +80,9 @@ body[data-hds]:has(.rjb-find-new) {
 }
 /* Every other control in the card (buttons, the opened description's "Read the full posting"
    link, anything focusable) sits above the stretched area, so its own tap and focus work. */
-[data-hds] .rjb-card-stretch :is(a, button, [tabindex]:not([tabindex="-1"])):not(.rjb-posting-title a) {
+[data-hds]
+  .rjb-card-stretch
+  :is(a, button, [tabindex]:not([tabindex='-1'])):not(.rjb-posting-title a) {
   position: relative;
   z-index: 2;
 }
