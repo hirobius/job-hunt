@@ -62,6 +62,93 @@ const BLOCKISH = new Set([
   'th',
 ]);
 
+// ---- Unicode "bold" letters (Adrian 2026-11-17) ----
+// Boards copied from LinkedIn fake bold and italic with Mathematical Alphanumeric Symbols
+// (U+1D400–U+1D7FF, "𝗖𝗼𝗺𝗽𝗮𝗻𝘆:"). Sora has no glyphs for them, so a phone drew them in a fallback
+// face that looked condensed. They read as their plain letters (NFKC), in a strong or em run.
+
+/** Bold blocks of the range: bold, bold italic, bold script, bold fraktur, sans bold, sans bold
+ *  italic, and the bold and sans bold digits. */
+const MATH_BOLD: [number, number][] = [
+  [0x1d400, 0x1d433],
+  [0x1d468, 0x1d49b],
+  [0x1d4d0, 0x1d503],
+  [0x1d56c, 0x1d59f],
+  [0x1d5d4, 0x1d607],
+  [0x1d63c, 0x1d66f],
+  [0x1d7ce, 0x1d7d7],
+  [0x1d7ec, 0x1d7f5],
+];
+/** Italic blocks: italic and sans italic (the italic h is U+210E, outside the range). */
+const MATH_ITALIC: [number, number][] = [
+  [0x1d434, 0x1d467],
+  [0x1d608, 0x1d63b],
+];
+const inRanges = (cp: number, rs: [number, number][]) => rs.some(([a, b]) => cp >= a && cp <= b);
+type Style = 'strong' | 'em' | 'plain';
+const styleOf = (ch: string): Style | null => {
+  const cp = ch.codePointAt(0)!;
+  if (cp === 0x210e) return 'em';
+  if (cp < 0x1d400 || cp > 0x1d7ff) return null;
+  return inRanges(cp, MATH_BOLD) ? 'strong' : inRanges(cp, MATH_ITALIC) ? 'em' : 'plain';
+};
+const MATH_RE = /[\u{1d400}-\u{1d7ff}\u{210e}]/u;
+
+/** The text with every mathematical letter as its plain letter. */
+export const plainLetters = (s: string): string =>
+  MATH_RE.test(s) ? s.replace(/[\u{1d400}-\u{1d7ff}\u{210e}]/gu, (c) => c.normalize('NFKC')) : s;
+
+/** A text run as inline runs: mathematical bold letters as a strong run, italic ones as an em run
+ *  (with the spaces and punctuation between and right after them), all as plain letters. */
+export function textRuns(text: string): RichInline[] {
+  if (!MATH_RE.test(text)) return [{ t: 'text', text }];
+  const out: RichInline[] = [];
+  let style: Style = 'plain';
+  let buf = '';
+  let gap = ''; // non-letters after a styled run: kept with it if the same style follows
+  const push = (st: Style, t: string) => {
+    if (!t) return;
+    const last = out[out.length - 1];
+    if (st === 'plain') {
+      if (last?.t === 'text') last.text += t;
+      else out.push({ t: 'text', text: t });
+    } else out.push({ t: st, children: [{ t: 'text', text: t }] });
+  };
+  for (const ch of text) {
+    const st = styleOf(ch);
+    if (st && st !== 'plain') {
+      if (st === style) buf += gap;
+      else {
+        push(style, buf);
+        push('plain', gap);
+        style = st;
+        buf = '';
+      }
+      gap = '';
+      buf += ch.normalize('NFKC');
+    } else if (style !== 'plain' && !/[\p{L}\p{N}]/u.test(ch)) {
+      gap += ch;
+    } else {
+      const plain = st ? ch.normalize('NFKC') : ch;
+      if (style !== 'plain') {
+        // Punctuation right after a styled run ("Company:") goes with it; a space does not.
+        const lead = /^[^\s]*/.exec(gap)![0];
+        push(style, buf + lead);
+        buf = gap.slice(lead.length);
+        style = 'plain';
+        gap = '';
+      }
+      buf += plain;
+    }
+  }
+  if (style !== 'plain') {
+    const lead = /^[^\s]*/.exec(gap)![0];
+    push(style, buf + lead);
+    push('plain', gap.slice(lead.length));
+  } else push('plain', buf + gap);
+  return out;
+}
+
 // ---- Sentence case for all-caps headings (CLAUDE.md: no ALL CAPS anywhere) ----
 
 /** Kept as capitals when a heading is set in sentence case: short words people write in capitals. */
@@ -148,7 +235,7 @@ class Walker {
   }
 
   inline(node: Node): RichInline[] {
-    if (node.nodeType === 3) return [{ t: 'text', text: squash(node.textContent ?? '') }];
+    if (node.nodeType === 3) return textRuns(squash(node.textContent ?? ''));
     if (node.nodeType !== 1) return [];
     const el = node as Element;
     const tag = el.tagName.toLowerCase();
@@ -166,7 +253,7 @@ class Walker {
 
   block(node: Node, into: RichBlock[]) {
     if (node.nodeType === 3) {
-      this.line.push({ t: 'text', text: squash(node.textContent ?? '') });
+      this.line.push(...textRuns(squash(node.textContent ?? '')));
       return;
     }
     if (node.nodeType !== 1) return;
@@ -176,7 +263,7 @@ class Walker {
     const h = HEADING.exec(tag);
     if (h) {
       this.flush(into);
-      const text = squash(el.textContent ?? '').trim();
+      const text = plainLetters(squash(el.textContent ?? '')).trim();
       if (text)
         into.push({
           t: 'h',
@@ -256,12 +343,14 @@ export function textToBlocks(text: string, keep: string[] = []): RichBlock[] {
         list = { t: kind, items: [] };
         out.push(list);
       }
-      list.items.push([{ t: 'p', children: [{ t: 'text', text: line.replace(BULLET, '') }] }]);
+      list.items.push([{ t: 'p', children: textRuns(line.replace(BULLET, '')) }]);
       continue;
     }
     list = null;
-    if (looksLikeCapsHeading(line)) out.push({ t: 'h', level: 4, text: sentenceCase(line, keep) });
-    else out.push({ t: 'p', children: [{ t: 'text', text: line }] });
+    const plain = plainLetters(line);
+    if (looksLikeCapsHeading(plain))
+      out.push({ t: 'h', level: 4, text: sentenceCase(plain, keep) });
+    else out.push({ t: 'p', children: textRuns(line) });
   }
   return out;
 }

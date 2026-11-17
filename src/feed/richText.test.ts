@@ -128,3 +128,64 @@ describe('textToBlocks: plain-text fallback', () => {
     ]);
   });
 });
+
+// Unicode "bold" letters (Adrian 2026-11-17: "Company:", "Work Mode:" in a condensed-looking face).
+// Boards copied from LinkedIn fake bold with Mathematical Alphanumeric Symbols, which Sora has no
+// glyphs for, so the phone drew them in a fallback face. They read as plain letters in a strong run.
+describe('mathematical bold and italic letters', () => {
+  // "Company:" and "Work Mode:" in Mathematical Sans-Serif Bold, as LinkedIn tools write them.
+  const SANS_BOLD = (s: string) =>
+    [...s]
+      .map((c) =>
+        /[A-Z]/.test(c)
+          ? String.fromCodePoint(0x1d5d4 + c.charCodeAt(0) - 65)
+          : /[a-z]/.test(c)
+            ? String.fromCodePoint(0x1d5ee + c.charCodeAt(0) - 97)
+            : c,
+      )
+      .join('');
+  const ITALIC = (s: string) =>
+    [...s]
+      .map((c) => (/[a-z]/.test(c) ? String.fromCodePoint(0x1d44e + c.charCodeAt(0) - 97) : c))
+      .join('')
+      .replace('\u{1d455}', 'ℎ'); // italic h is U+210E
+
+  it('a bold run in HTML becomes plain letters in a strong run, its colon with it', () => {
+    const [p] = htmlToBlocks(`<p>${SANS_BOLD('Work Mode:')} Remote</p>`);
+    expect(p).toEqual({
+      t: 'p',
+      children: [
+        { t: 'strong', children: [{ t: 'text', text: 'Work Mode:' }] },
+        { t: 'text', text: ' Remote' },
+      ],
+    });
+  });
+
+  it('the same in plain text, and an italic run becomes em', () => {
+    const [p] = textToBlocks(`${SANS_BOLD('Company:')} Norrow, ${ITALIC('remote')} first`);
+    expect(p).toEqual({
+      t: 'p',
+      children: [
+        { t: 'strong', children: [{ t: 'text', text: 'Company:' }] },
+        { t: 'text', text: ' Norrow, ' },
+        { t: 'em', children: [{ t: 'text', text: 'remote' }] },
+        { t: 'text', text: ' first' },
+      ],
+    });
+  });
+
+  it('a heading or a list item made of them reads as plain letters', () => {
+    const blocks = htmlToBlocks(
+      `<h3>${SANS_BOLD('About us')}</h3><ul><li>${SANS_BOLD('Figma')} daily</li></ul>`,
+    );
+    expect(blocks[0]).toEqual({ t: 'h', level: 4, text: 'About us' });
+    expect(JSON.stringify(blocks[1])).toContain('"text":"Figma"');
+    expect(JSON.stringify(blocks)).not.toMatch(/[\u{1d400}-\u{1d7ff}]/u);
+  });
+
+  it('ordinary text is unchanged', () => {
+    expect(textToBlocks('Plain text, 100% ASCII: café')).toEqual([
+      { t: 'p', children: [{ t: 'text', text: 'Plain text, 100% ASCII: café' }] },
+    ]);
+  });
+});

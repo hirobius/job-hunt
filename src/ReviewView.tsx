@@ -301,24 +301,22 @@ export default function ReviewView({
   const empty = <FindEmpty cause={emptyCause} onRetry={feed.refresh} />;
   const panel = (
     <Panel label={label} title={label} titleHidden flat>
-      <PanelBody>
-        <Stack gap="normal">
-          {/* No status text above the list (Adrian 2026-11-08): the source health and the "not
-              shown" counts are the Account menu's Scan details. Screen readers still hear progress. */}
-          {/* The counts left the heading and Find's caption (the New and Remote chips show them);
-              a screen reader still hears them here, politely. */}
-          <VisuallyHidden as="p" role="status" aria-live="polite">
-            {loadedMore ||
-              (held.length ? newPostingsLabel(held.length) : null) ||
-              ((scanStatus ? null : line) ??
-                (feed.loading
-                  ? 'Reading your sources…'
-                  : view
-                    ? `${listed.length} postings, ${counts.new} new`
-                    : ''))}
-          </VisuallyHidden>
-        </Stack>
-      </PanelBody>
+      {/* No status text above the list (Adrian 2026-11-08): the source health and the "not
+          shown" counts are the Account menu's Scan details. Screen readers still hear progress.
+          The counts left the heading and Find's caption (the New and Remote chips show them); a
+          screen reader still hears them here, politely. Out of the flow, in no PanelBody: an
+          empty body's padding put the list 16px under the detail's h1 at lg (Adrian 2026-11-17,
+          one hangline). */}
+      <VisuallyHidden as="p" role="status" aria-live="polite">
+        {loadedMore ||
+          (held.length ? newPostingsLabel(held.length) : null) ||
+          ((scanStatus ? null : line) ??
+            (feed.loading
+              ? 'Reading your sources…'
+              : view
+                ? `${listed.length} postings, ${counts.new} new`
+                : ''))}
+      </VisuallyHidden>
       {feed.error ? (
         <PanelBody>
           <EmptyState
@@ -409,7 +407,10 @@ export default function ReviewView({
     <PostingDetail
       key={selected?.fingerprint ?? selectedFp ?? 'none'}
       r={selected}
-      waiting={(!!selectedFp && !selected && (feed.loading || !view)) || (!selectedFp && (!view || reading))}
+      waiting={
+        (!!selectedFp && !selected && (feed.loading || !view)) ||
+        (!selectedFp && (!view || reading))
+      }
       wide={wide}
       now={feed.at}
       actions={detailActions}
@@ -700,7 +701,13 @@ function RowList({
                 padding="none"
                 aria-label={rowName(r)}
                 aria-current={r.fingerprint === selected ? 'true' : undefined}
-                className={r.fingerprint === selected ? 'rjb-selected' : undefined}
+                // Below lg the whole card opens the posting (the title link stretched over it,
+                // FindList.css); at lg a card selects in place through its title only.
+                className={
+                  [r.fingerprint === selected && 'rjb-selected', !onOpen && 'rjb-card-stretch']
+                    .filter(Boolean)
+                    .join(' ') || undefined
+                }
               >
                 <Box sx={{ p: 'sm' }}>
                   <PostingCard

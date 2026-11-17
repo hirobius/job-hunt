@@ -23,7 +23,7 @@ The posting list, its window, the full description and Daily picks.
   h3 to h6 → h4 (`Text ui bold`); an all-caps line alone (Ashby's `<p><strong>ABOUT RAMP</strong></p>`) is an h4.
   All-caps headings go to sentence case (`sentenceCase`): acronyms in `ACRONYMS` (UX, API, US, EU…) or with a digit
   stay, the company's own words keep their casing ("About Ramp"). Plain text falls back to paragraphs, "-"/"•"/"1."
-  bullet lists and caps headings (`textToBlocks`). Pinned in `feed/richText.test.ts`, `postingDescription.test.tsx`,
+  bullet lists and caps headings (`textToBlocks`). Unicode "bold" letters (Mathematical Alphanumeric Symbols, LinkedIn-style "𝗖𝗼𝗺𝗽𝗮𝗻𝘆:", which Sora has no glyphs for, so a phone drew a fallback face) read as plain letters in a strong or em run (`textRuns`, `plainLetters`, Adrian 2026-11-17); real `<strong>`/`<b>` keep the body family at the HDS bold weight (`e2e/card-stretched-link.spec.ts`). At lg the list's first card and the detail's h1 share one top (the status line takes no space, 2026-11-17). Pinned in `feed/richText.test.ts`, `postingDescription.test.tsx`,
   `e2e/full-description.spec.ts`.
 
 - **Daily picks (2026-11-05, `docs/daily-picks.md`):** the scheduled Claude run's hand-picked roles, no longer a
