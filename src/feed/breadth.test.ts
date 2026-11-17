@@ -21,6 +21,7 @@ import type { Dream } from './dreams';
 import type { Target } from './targets';
 import type { Seniority } from '../curation/types';
 import type { Posting } from './types';
+import { NEW_PROFILE_TITLES } from '../searchDefaults';
 
 beforeEach(() => localStorage.clear());
 
@@ -137,6 +138,16 @@ const TRACKS: [string, Track][] = [
   ],
 ];
 
+// A new user's profile (searchDefaults.ts NEW_PROFILE, Adrian 2026-11-17): the design-system
+// titles and the design engineering ones, remote only, the design system rule.
+const NEW_USER: Track = {
+  atsRoles: ['Design Systems'],
+  seniority: 'any',
+  include: { terms: ['design system'], atsOff: [] },
+  sweep: { titles: [...NEW_PROFILE_TITLES], off: [] },
+};
+TRACKS.push(['a new user’s profile', NEW_USER]);
+
 describe('breadth guard', () => {
   it.each(TRACKS)(
     'the Feed lists every design-system posting Live postings lists, on %s',
@@ -196,6 +207,18 @@ describe('breadth guard', () => {
       expect.arrayContaining([
         'delta::design systems designer', // a dream company's board
         'glyph::design technologist', // found by searching the related title
+      ]),
+    );
+  });
+
+  it('a new user’s profile lists design engineering and contract roles (Adrian 2026-11-17)', async () => {
+    const { listed } = await feed(NEW_USER);
+    expect([...listed]).toEqual(
+      expect.arrayContaining([
+        'prism::ux engineer', // a UX Engineer title, a contract role
+        'vellum::design systems engineer contract', // "(Contract)" in the title
+        'delta::design engineer web', // a design engineer title with a UI word, freelance
+        'lumen::design technologist',
       ]),
     );
   });

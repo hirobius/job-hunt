@@ -10,6 +10,8 @@ import { STARTER_PACKS, packIdForLabel } from './curation/starterPacks';
 import { DIRECTORY_BY_PACK, TARGETS_BY_PACK } from './radar/directory';
 import { GROUPS } from './jobsData';
 import { SOURCE_LABEL } from './feed/types';
+import { RELATED_TITLES } from './feed/mustInclude';
+import { NEW_PROFILE_TITLES } from './searchDefaults';
 
 const SRC = resolve(__dirname);
 const DS_PACKS = ['designsystems'];
@@ -54,6 +56,20 @@ describe('design systems only (Adrian 2026-10-29)', () => {
     expect(GROUPS.map((g) => g.id)).toEqual(['ds-brief', 'ds-watch']);
     for (const g of GROUPS)
       for (const t of g.tiles) expect(`${t.name} ${t.meta} ${t.url}`, t.name).not.toMatch(NON_DS);
+  });
+
+  // Widened on purpose (Adrian 2026-11-17): a new profile searches design engineer, UX engineer and
+  // design technologist roles too. Each is a related title the design system rule already lets in
+  // (mustInclude.ts RELATED_TITLES), so the content stays design-systems work; any other title
+  // in the default profile fails here.
+  it('a new profile searches design-system titles and the related design engineering titles only', () => {
+    const related = RELATED_TITLES.flatMap((r) => r.phrases);
+    for (const t of NEW_PROFILE_TITLES)
+      expect(
+        /design systems?/i.test(t) || related.includes(t.toLowerCase()),
+        `${t} is neither a design-system title nor a related title`,
+      ).toBe(true);
+    expect(NEW_PROFILE_TITLES.map((t) => t.toLowerCase())).toEqual(expect.arrayContaining(related));
   });
 
   it('reads no SAM.gov contracts source', () => {

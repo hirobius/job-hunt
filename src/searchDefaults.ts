@@ -30,6 +30,17 @@ export const DESIGN_SYSTEMS_TITLES = [
   'Principal Design Systems',
 ];
 
+/** The design engineering titles a new profile searches beside the design-system ones (Adrian
+ *  2026-11-17: apply to design engineer, UX engineer and design technologist roles as well). The
+ *  Feed lets them in as related titles (feed/mustInclude.ts RELATED_TITLES) under the one design
+ *  engineer guard (tracks/designRoleGuard.ts): a plain "Design Engineer" still needs a UI word or
+ *  the description's design-system evidence, so railway and exhibit roles stay out. */
+export const DESIGN_ENGINEERING_TITLES = ['Design Engineer', 'UX Engineer', 'Design Technologist'];
+
+/** Every title a new profile starts with: the design-system titles, then the design engineering
+ *  ones. */
+export const NEW_PROFILE_TITLES = [...DESIGN_SYSTEMS_TITLES, ...DESIGN_ENGINEERING_TITLES];
+
 /** The broad searches (the pack's ATS roles): the feeds are read for each, so a posting that says
  *  "design systems" under another title is read too (and counted when it is not a design-system
  *  role). */
@@ -70,7 +81,7 @@ export interface ProfileDraft {
 }
 
 export const NEW_PROFILE: ProfileDraft = {
-  titles: [...DESIGN_SYSTEMS_TITLES],
+  titles: [...NEW_PROFILE_TITLES],
   remoteOnly: true,
   location: '',
   leaveOut: [],

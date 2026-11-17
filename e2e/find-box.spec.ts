@@ -42,9 +42,12 @@ test('a board is followed at once; a title joins the Search profile', async ({ p
     .getByRole('dialog', { name: 'Add a job' })
     .getByRole('button', { name: 'Type a company or title instead' })
     .click();
-  await field.fill('Design Technologist');
-  await expect(dialog.getByText('Adds “Design Technologist” to your titles.')).toBeVisible();
+  await field.fill('Design Systems Consultant');
+  await expect(dialog.getByText('Adds “Design Systems Consultant” to your titles.')).toBeVisible();
   await field.press('Enter');
-  // A first visit has the design-systems profile on its own (no setup screen).
-  await expect(page.getByText('Added “Design Technologist” to your titles').first()).toBeVisible();
+  // A first visit has the default profile on its own (no setup screen). Its titles include
+  // Design Technologist (searchDefaults.ts NEW_PROFILE_TITLES), so this adds one it lacks.
+  await expect(
+    page.getByText('Added “Design Systems Consultant” to your titles').first(),
+  ).toBeVisible();
 });
