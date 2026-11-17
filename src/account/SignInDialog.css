@@ -170,3 +170,15 @@
     display: none;
   }
 }
+
+/* The sign-in CAPTCHA (#278, only with a site key): the invisible widget's anchor takes no room,
+   and the place a challenge is drawn takes none while it is empty. */
+.rjb-signin-captcha__anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.rjb-signin-captcha__challenge:empty {
+  display: none;
+}

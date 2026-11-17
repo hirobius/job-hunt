@@ -8,9 +8,11 @@ import { LEGAL_TITLES } from './legalRoute';
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
  *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. The legal gaps
  *  revision (2026-11-13: privacy contact, erasure of the sign-in, processors and region, retention)
- *  he approved on 2026-11-14, with the delete_my_data migration applied. */
+ *  he approved on 2026-11-14, with the delete_my_data migration applied. The sign-in email and
+ *  CAPTCHA revision (2026-11-15, #278: Resend and hCaptcha named, each "once it is switched on")
+ *  ships with its PR: merging that PR is the approval. */
 export const LEGAL_DRAFT = false;
-export const LEGAL_UPDATED = '13 November 2026';
+export const LEGAL_UPDATED = '15 November 2026';
 export const OPERATOR = 'Hirobius';
 /** The one contact for privacy requests and questions (Adrian 2026-11-13: a public business address). */
 export const CONTACT_EMAIL = 'info@hirobius.com'; // pii-allow: public business address (Adrian 2026-11-13)
@@ -46,6 +48,18 @@ export const THIRD_PARTIES: ThirdParty[] = [
     name: 'Supabase',
     purpose: `Sign-in, cloud sync and crash reports, as our processor. If you sign in, it stores your email address and a copy of your data so it can sync between your devices. It also stores the anonymous crash reports described above. Your data is stored in ${DATA_REGION}.`,
     hosts: ['https://nelrcmbkimjjmfmgnixj.supabase.co', 'wss://nelrcmbkimjjmfmgnixj.supabase.co'],
+  },
+  {
+    name: 'Resend',
+    purpose:
+      'Sign-in emails, once it is switched on, as our processor. When you ask for a sign-in link, Supabase hands the email to Resend to deliver. It receives your email address and the email with the link, and keeps a record that it was delivered. It is used for nothing else.',
+    hosts: [],
+  },
+  {
+    name: 'hCaptcha',
+    purpose:
+      'A check that a person, not a program, is asking for a sign-in link, once it is switched on. It loads only on the sign-in screen. hCaptcha receives your IP address, your browser details and how you interact with the check, and may keep a cookie or similar storage of its own for the check. It never receives your email address, jobs, notes, documents or account. Its own privacy policy and terms apply to the check.',
+    hosts: ['https://hcaptcha.com', 'https://*.hcaptcha.com'],
   },
   {
     name: 'Vercel',
@@ -138,7 +152,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Local storage and cookies',
       paragraphs: [
-        `${name} keeps your data, your sign-in session and a few display settings in your browser’s local storage. It also keeps short-lived caches there, such as which job boards it has already checked. We do not use cookies, and we do not track you across other sites.`,
+        `${name} keeps your data, your sign-in session and a few display settings in your browser’s local storage. It also keeps short-lived caches there, such as which job boards it has already checked. We do not use cookies, and we do not track you across other sites. The one exception is the sign-in check described under hCaptcha below, which may set its own.`,
       ],
     },
     {

@@ -99,6 +99,18 @@ Sign-in guards, OAuth, Privacy and terms, crash reports, the installable app and
   `src/account/linkedin-in.svg` is LinkedIn's "in" bug as given (#0A66C2), allowed in `THIRD_PARTY_MARKS`. No new
   browser fetch host (the start is a navigation; the exchange is Supabase's own host). Pinned in
   `googleSignIn.test.tsx`, `SignInDialog.test.tsx`, `authLinkError.test.ts`.
+- **Sign-in CAPTCHA (#278, prepared 2026-11-15, OFF by default):** hCaptcha, on only when the build has a public
+  site key in `VITE_HCAPTCHA_SITEKEY` (`account/captchaKey.ts`; the build stops on a value that is not a site key, so a
+  pasted secret never ships). Off: the sign-in screen is as before, no script, no token. On: `account/hcaptcha.ts` (no
+  dependency; in the sign-in screen's lazy chunk) adds hCaptcha's `api.js` when the screen opens and keeps one
+  invisible widget; each Send link and Resend gets a fresh token (`execute`), `sendLink(email, token)` passes it as
+  `options.captchaToken` on `signInWithOtp`, and the widget is reset after each attempt. A challenge is drawn inside
+  the screen (`challenge-container`: on `<body>` it would be inert under the modal). A blocked script, a closed or
+  expired challenge and Supabase's `captcha_failed` each show a plain line (`signInErrors.ts`); the same button tries
+  again, and focus goes back to it. hCaptcha's own line shows at the foot (`CAPTCHA_NOTICE`). The OAuth starts take no
+  token (supabase-js has none on `signInWithOAuth`). Secrets and dashboard steps are Adrian's, in order, in
+  `docs/sign-in-email-and-captcha.md` (the site key goes live before Supabase enforces). Pinned in
+  `account/signInCaptcha.test.tsx`, `hcaptcha.test.ts`, `captchaKey.test.ts`, `CloudSyncProvider.test.tsx`, `csp.test.ts`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.

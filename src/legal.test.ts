@@ -50,6 +50,27 @@ describe('legal pages (#43)', () => {
     expect(supa.purpose).toMatch(/email/);
   });
 
+  // #278: the sign-in email's sender and the sign-in CAPTCHA, each named before it is switched on.
+  it('names Resend for sign-in emails: the address and the link, nothing else, no browser host', () => {
+    const resend = THIRD_PARTIES.find((t) => t.name === 'Resend')!;
+    expect(resend.hosts).toEqual([]); // Supabase sends through it; the browser never contacts it
+    expect(resend.purpose).toMatch(/once it is switched on/);
+    expect(resend.purpose).toMatch(/email address/);
+    expect(resend.purpose).toMatch(/as our processor/);
+  });
+
+  it('names hCaptcha for the sign-in check: what it receives, what it never does, its cookie', () => {
+    const hc = THIRD_PARTIES.find((t) => t.name === 'hCaptcha')!;
+    expect(hc.hosts).toEqual(['https://hcaptcha.com', 'https://*.hcaptcha.com']);
+    expect(hc.purpose).toMatch(/once it is switched on/);
+    expect(hc.purpose).toMatch(/only on the sign-in screen/);
+    expect(hc.purpose).toMatch(/IP address/);
+    expect(hc.purpose).toMatch(/never receives your email address/);
+    // "We do not use cookies" stays true only with its one exception said beside it.
+    expect(hc.purpose).toMatch(/cookie/);
+    expect(text(PRIVACY)).toMatch(/We do not use cookies[^\n]*one exception is the sign-in check/);
+  });
+
   it('names Vercel for hosting and cookieless analytics', () => {
     const vercel = THIRD_PARTIES.find((t) => t.name === 'Vercel')!;
     expect(vercel.purpose).toMatch(/Hosting/);

@@ -1,5 +1,8 @@
 # Sign-in email: Resend SMTP runbook (#278)
 
+> The current step list, with the CAPTCHA steps and their order, is in
+> [`sign-in-email-and-captcha.md`](sign-in-email-and-captcha.md). This file keeps the audit.
+
 Status: **prepared, not live.** The code side is done; the switch itself happens
 entirely in the Resend and Supabase dashboards plus DNS, and those steps are
 Adrian's alone (DNS + credentials). Nothing in this repo can turn it on.

@@ -794,7 +794,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return failed.length ? deleteFailedMsg(failed) : '';
   }
 
-  const sendLink = async (email: string): Promise<string | null> => {
+  const sendLink = async (email: string, captchaToken?: string): Promise<string | null> => {
     // The link lands on the app's root: remember this page so that tab comes back here, and that
     // this browser asked for it (a link it asked for signs in without the confirm, authLink.ts).
     rememberSignInReturn();
@@ -810,7 +810,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       email,
       // Only this app's own origins, at the root (#44). The real gate is the Supabase dashboard's
       // Redirect URLs allow-list (server side, Adrian's to keep); this keeps the ask honest.
-      options: { emailRedirectTo: magicLinkRedirect(location) },
+      // The CAPTCHA token (#278) goes along only when the sign-in screen got one (a site key is
+      // set); with none, the call is as it always was. The OAuth start takes no token: supabase-js
+      // has no `captchaToken` on signInWithOAuth, it is a page navigation.
+      options: {
+        emailRedirectTo: magicLinkRedirect(location),
+        ...(captchaToken ? { captchaToken } : {}),
+      },
     });
     // The dialog shows the error inline, in plain words (no vendor message).
     return r.error ? signInErrorMessage(r.error) : null;

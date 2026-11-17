@@ -40,6 +40,12 @@ const FEED_HOSTS = [
   'https://api.github.com',
 ];
 
+// hCaptcha (#278), the sign-in screen's CAPTCHA, used only when a site key is set at build time
+// (account/captchaKey.ts). Its own documented policy: these two sources in script-src, frame-src,
+// style-src and connect-src. Its script comes from js.hcaptcha.com and its frames from other
+// hcaptcha.com subdomains, which it may change, so its wildcard is kept as it gives it.
+const HCAPTCHA = ['https://hcaptcha.com', 'https://*.hcaptcha.com'];
+
 type Header = { key: string; value: string };
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8')) as {
   headers: { source: string; headers: Header[] }[];
@@ -66,7 +72,8 @@ describe('content security policy', () => {
 
   it('locks down scripts, plugins, framing, base and form targets', () => {
     expect(src('default-src')).toEqual(["'self'"]);
-    expect(src('script-src')).toEqual(["'self'"]); // no unsafe-inline / unsafe-eval
+    // no unsafe-inline / unsafe-eval; the one outside script is hCaptcha's (#278)
+    expect(src('script-src')).toEqual(["'self'", ...HCAPTCHA]);
     expect(src('object-src')).toEqual(["'none'"]);
     expect(src('frame-ancestors')).toEqual(["'none'"]);
     expect(src('base-uri')).toEqual(["'self'"]);
@@ -80,7 +87,19 @@ describe('content security policy', () => {
   it('loads fonts and styles from the app only — no font CDN', () => {
     // HDS fonts.css ships woff2 files the bundler hashes into dist/ — no data: fonts either.
     expect(src('font-src')).toEqual(["'self'"]);
-    expect(src('style-src')).toEqual(["'self'", "'unsafe-inline'"]);
+    expect(src('style-src')).toEqual(["'self'", "'unsafe-inline'", ...HCAPTCHA]);
+  });
+
+  it('lets the sign-in CAPTCHA load: hCaptcha in the four directives it documents, nowhere else (#278)', () => {
+    for (const d of ['script-src', 'frame-src', 'style-src', 'connect-src'])
+      for (const host of HCAPTCHA) expect(src(d), d).toContain(host);
+    // Frames come from hCaptcha only; the app itself is never framed (frame-ancestors, above).
+    expect(src('frame-src')).toEqual(HCAPTCHA);
+    for (const d of ['default-src', 'img-src', 'font-src', 'form-action', 'base-uri'])
+      expect(src(d).join(' '), d).not.toMatch(/hcaptcha/);
+    // The loader asks for the script the policy allows.
+    const loader = fs.readFileSync('src/account/hcaptcha.ts', 'utf8');
+    expect(loader).toContain("HCAPTCHA_SCRIPT = 'https://js.hcaptcha.com/1/api.js'");
   });
 
   it.each(FEED_HOSTS)('lets the live feed reach %s', (host) => {
@@ -107,7 +126,7 @@ describe('content security policy', () => {
     for (const origin of sheets) expect(src('style-src')).toContain(origin);
   });
 
-  it('loads no external scripts from index.html (script-src is self only)', () => {
+  it('loads no external scripts from index.html (the CAPTCHA script is added on demand)', () => {
     expect(indexHtml).not.toMatch(/<script\b[^>]*src=["']?(?:https?:)?\/\//);
   });
 });
@@ -138,10 +157,13 @@ describe('security headers', () => {
 
   // Accepted risk: anyone can register a subdomain on these hosts, so after an XSS they could
   // take data out. script-src 'self' is what stops the XSS; a same-origin proxy would close it.
-  // Pinned so no other wildcard joins them without the same call being made.
+  // Pinned so no other wildcard joins them without the same call being made. hCaptcha's wildcard
+  // (#278) is not a tenant one: only hCaptcha can make a subdomain of hcaptcha.com.
   it('allows tenant wildcards only for the boards hosted on a per-company subdomain', () => {
     const csp = policy();
-    expect((csp.get('connect-src') ?? []).filter((s) => s.includes('*'))).toEqual([
+    const wild = (csp.get('connect-src') ?? []).filter((s) => s.includes('*'));
+    expect(wild.filter((s) => s.endsWith('.hcaptcha.com'))).toEqual(['https://*.hcaptcha.com']);
+    expect(wild.filter((s) => !s.endsWith('.hcaptcha.com'))).toEqual([
       'https://*.recruitee.com',
       'https://*.teamtailor.com',
       'https://*.jobs.personio.de',

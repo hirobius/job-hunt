@@ -86,7 +86,7 @@ top of the Shortlist.
   2026-10-21. The fix (#278) is a custom SMTP sender (Resend, on
   `mail.hirobius.com`) with the Auth rate limit raised to 60/hour. Both are
   dashboard-only settings (this repo has no `supabase/config.toml`); the exact
-  fields and steps are in `docs/resend-smtp-runbook.md`.
+  fields and steps are in `docs/sign-in-email-and-captcha.md` (with the CAPTCHA steps).
 - **One small caveat:** if you _delete_ a job on one device while the other device
   is offline with an older copy, the delete may not propagate to that stale device.
   Day-to-day adding/updating syncs cleanly; this only bites in that offline-delete

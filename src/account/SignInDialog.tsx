@@ -7,7 +7,11 @@
 // on a short one the brand shrinks (SignInDialog.css). "Continue with Google" (#482), when its
 // flag is on (googleSignInFlag.ts, on since 2026-11-12), sits above the field: Google's mark and label on an HDS secondary Button; the page then leaves for Google.
 // Only the presentation lives here: sending and every auth rule stay in the CloudSync seam.
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+// CAPTCHA (#278): off unless a site key is set at build time (captchaKey.ts). When on, each Send
+// link and Resend first gets a fresh hCaptcha token (invisible; a challenge shows in this screen
+// only when hCaptcha wants one) and hands it to `sendLink`; a failure says so and the same button
+// tries again. The provider buttons take no token (the OAuth start is a page navigation).
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Alert,
   Box,
@@ -24,7 +28,10 @@ import { BRAND } from '../brand';
 import { legalHash, useRoute } from '../route';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
-import { emailProblem } from './signInErrors';
+import { captchaErrorMessage, emailProblem } from './signInErrors';
+import { captchaSiteKey } from './captchaKey';
+import { Captcha } from './hcaptcha';
+import { CAPTCHA_NOTICE } from './signInCopy';
 import { useBackCloses } from '../useBackCloses';
 import { GoogleMark } from './GoogleMark';
 import { googleSignInEnabled } from './googleSignInFlag';
@@ -56,6 +63,29 @@ export default function SignInDialog() {
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
+  // The CAPTCHA, when a site key is set: its script is fetched when the screen opens, and the
+  // widget leaves with the screen. With no key none of this exists.
+  const siteKey = captchaSiteKey();
+  const captcha = useMemo(() => (siteKey ? new Captcha(siteKey) : null), [siteKey]);
+  const captchaAnchor = useRef<HTMLDivElement>(null);
+  const captchaChallenge = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!captcha || !signInOpen) return;
+    captcha.warm();
+    return () => captcha.remove();
+  }, [captcha, signInOpen]);
+  // After a CAPTCHA attempt, focus goes back to the key that asked when it has ended up on the
+  // page or on the screen's own panel (a closed challenge, the busy key). Never taken from a
+  // control the person moved to, and not when the step changed (the key is gone).
+  const askedRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (sending) return;
+    const asked = askedRef.current;
+    askedRef.current = null;
+    if (!asked || !asked.isConnected) return;
+    const at = document.activeElement;
+    if (!at || at === document.body || (at !== asked && at.contains(asked))) asked.focus();
+  }, [sending]);
 
   // Seconds left before Resend; one tick a second while the cooldown runs.
   const cooldown = Math.max(0, Math.ceil((resendAt - now) / 1000));
@@ -68,7 +98,18 @@ export default function SignInDialog() {
   const request = async (to: string): Promise<boolean> => {
     setSending(true);
     setSendError(null);
-    const err = await sendLink(to);
+    let err: string | null;
+    if (captcha && captchaAnchor.current && captchaChallenge.current) {
+      // A challenge takes the focus, and the busy key gives it up: the key that asked gets it
+      // back once it is ready again (the effect below), so the retry is one press away.
+      const asked = document.activeElement;
+      askedRef.current = asked instanceof HTMLElement ? asked : null;
+      const got = await captcha.token(captchaAnchor.current, captchaChallenge.current);
+      err = 'token' in got ? await sendLink(to, got.token) : captchaErrorMessage(got.failure);
+      captcha.reset(); // a token is good for one send
+    } else {
+      err = await sendLink(to);
+    }
     setSending(false);
     if (err) {
       setSendError(err);
@@ -257,10 +298,18 @@ export default function SignInDialog() {
             </Form>
           </>
         )}
+        {/* The CAPTCHA's widget (nothing to see) and the place a challenge is drawn, on both steps. */}
+        {captcha && (
+          <>
+            <div ref={captchaAnchor} className="rjb-signin-captcha__anchor" />
+            <div ref={captchaChallenge} className="rjb-signin-captcha__challenge" />
+          </>
+        )}
         <ExitButton className="sign-in-dialog__primary" onClick={() => onOpenChange(false)}>
           Continue without an account
         </ExitButton>
         <SignInAgree />
+        {captcha && <CaptchaNotice />}
       </SignInShell>
     </Dialog>
   );
@@ -277,6 +326,20 @@ function SignInAgree() {
       {SIGN_IN_AGREE.and}
       <InlineLink href={legalHash('privacy', route)}>{SIGN_IN_AGREE.privacy}</InlineLink>
       {SIGN_IN_AGREE.after}
+    </Text>
+  );
+}
+
+/** hCaptcha's own line, which it asks for when no checkbox shows (the invisible size). HDS
+ *  InlineLink opens an outside address in a new tab, with noopener, and says so. */
+function CaptchaNotice() {
+  return (
+    <Text variant="caption" as="p" tone="secondary">
+      {CAPTCHA_NOTICE.before}
+      <InlineLink href={CAPTCHA_NOTICE.privacyUrl}>{CAPTCHA_NOTICE.privacy}</InlineLink>
+      {CAPTCHA_NOTICE.and}
+      <InlineLink href={CAPTCHA_NOTICE.termsUrl}>{CAPTCHA_NOTICE.terms}</InlineLink>
+      {CAPTCHA_NOTICE.after}
     </Text>
   );
 }

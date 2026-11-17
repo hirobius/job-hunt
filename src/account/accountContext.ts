@@ -20,8 +20,9 @@ export interface CloudSyncApi {
    *  stopped this one (#288: such a tab is settled for the UI, so nothing waits forever, but never
    *  read). What a migration or a store write waits on, never `settled` alone (#517 review). */
   cloudRead?: boolean;
-  /** Email a magic sign-in link. Resolves to an error message, or null when sent. */
-  sendLink: (email: string) => Promise<string | null>;
+  /** Email a magic sign-in link. Resolves to an error message, or null when sent. `captchaToken`
+   *  is the sign-in screen's fresh CAPTCHA token when a site key is set (#278), else left out. */
+  sendLink: (email: string, captchaToken?: string) => Promise<string | null>;
   /** Start "Continue with Google" (the page leaves for Google); an error message, else null. */
   signInWithGoogle: () => Promise<string | null>;
   /** Start "Continue with LinkedIn" (Supabase's linkedin_oidc; the page leaves); an error, else null. */
