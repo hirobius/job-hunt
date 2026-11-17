@@ -34,6 +34,7 @@ export interface NormalizedPosting {
     | 'wwr'
     | 'fourdayweek'
     | 'remotejobsorg'
+    | 'getonbrd'
     | 'remotive'
     | 'jobicy'
     | 'hn'

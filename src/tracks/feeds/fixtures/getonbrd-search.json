@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "id": "design-systems-engineer-eta-remote",
+      "type": "job",
+      "attributes": {
+        "title": "Design Systems Engineer",
+        "description": "<p>Build our component library.</p>",
+        "functions": "<ul><li>Maintain tokens</li></ul>",
+        "projects": "",
+        "remote": true,
+        "remote_modality": "fully_remote",
+        "countries": ["Chile", "Mexico"],
+        "published_at": 1794700800,
+        "company": { "data": { "id": "eta", "type": "company", "attributes": { "name": "Eta" } } }
+      },
+      "links": { "public_url": "https://www.getonbrd.com/jobs/design-systems-engineer-eta-remote" }
+    },
+    {
+      "id": "ux-writer-theta",
+      "type": "job",
+      "attributes": { "title": "UX Writer", "description": "Words.", "remote": false },
+      "links": { "public_url": "https://www.getonbrd.com/jobs/ux-writer-theta" }
+    }
+  ],
+  "meta": { "page": 1, "per_page": 100, "total_pages": 1 }
+}

@@ -39,6 +39,7 @@ const SOURCES: Record<string, FeedSourceId> = {
   arbeitnow: 'arbeitnow',
   fourdayweek: 'fourdayweek',
   remotejobsorg: 'remotejobsorg',
+  getonbrd: 'getonbrd',
   remoteok: 'remoteok',
   wwr: 'wwr',
 };

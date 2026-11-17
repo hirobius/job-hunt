@@ -118,6 +118,7 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       'adzuna',
       'arbeitnow',
       'fourdayweek',
+      'getonbrd',
       'hn',
       'ids',
       'jobicy',
