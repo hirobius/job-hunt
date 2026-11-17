@@ -92,7 +92,11 @@ const NOT_UI_TERMS = [
   'landscape',
   // Rail, drainage and exhibit work (Adrian 2026-11-17: "Senior Railway Yard Drainage Design
   // Engineer" and "Exhibit Design Engineer" reached Review).
-  'rail(?:way|road)?s?',
+  // Not a bare "rails": "Design Engineer, Ruby on Rails" is software work.
+  'railways?',
+  'railroads?',
+  `rail${S}(?:yards?|transit|systems?|infrastructure)`,
+  'rail',
   'yards?',
   'drainage',
   'stormwater',

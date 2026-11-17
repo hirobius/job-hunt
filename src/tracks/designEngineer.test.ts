@@ -199,6 +199,7 @@ describe('the design engineer guard (designRoleGuard.ts)', () => {
 
   it('matches words, never parts of words', () => {
     for (const t of [
+      'Design Engineer, Ruby on Rails', // rails, the framework, not rail work
       'Design Engineer, Developer Tools', // tools, not tool
       'Design Engineer, Powerful Interfaces', // powerful, not power
       'Design Engineer, Diet App', // diet, not die
