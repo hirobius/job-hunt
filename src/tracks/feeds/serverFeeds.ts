@@ -13,18 +13,36 @@ import { readIntoDesignSystems } from './intoDesignSystems.ts';
 import { JOOBLE_ENV, readJooble } from './jooble.ts';
 import { readRemoteOk } from './remoteok.ts';
 import { readTheirStack, THEIRSTACK_ENV } from './theirstack.ts';
-import { readWwr } from './wwr.ts';
+import { readFourDayWeek } from './fourdayweek.ts';
+import { readRemoteJobsOrg } from './remotejobsorg.ts';
+import { readGetOnBrd } from './getonbrd.ts';
+import { readOsdJobs } from './osdjobs.ts';
+import { readJobgether } from './jobgether.ts';
 
 export type ServerFeed =
-  'arbeitnow' | 'remoteok' | 'wwr' | 'theirstack' | 'adzuna' | 'jooble' | 'ids';
+  | 'arbeitnow'
+  | 'remoteok'
+  | 'theirstack'
+  | 'adzuna'
+  | 'jooble'
+  | 'ids'
+  | 'fourdayweek'
+  | 'remotejobsorg'
+  | 'getonbrd'
+  | 'osdjobs'
+  | 'jobgether';
 export const SERVER_FEEDS: readonly ServerFeed[] = [
   'ids',
   'arbeitnow',
   'remoteok',
-  'wwr',
   'theirstack',
   'adzuna',
   'jooble',
+  'fourdayweek',
+  'remotejobsorg',
+  'getonbrd',
+  'osdjobs',
+  'jobgether',
 ];
 
 export const SERVER_FEED_READERS: Record<
@@ -33,18 +51,22 @@ export const SERVER_FEED_READERS: Record<
 > = {
   arbeitnow: readArbeitnow,
   remoteok: readRemoteOk,
-  wwr: readWwr,
   theirstack: readTheirStack,
   adzuna: readAdzuna,
   jooble: readJooble,
   ids: readIntoDesignSystems,
+  fourdayweek: readFourDayWeek,
+  remotejobsorg: readRemoteJobsOrg,
+  getonbrd: readGetOnBrd,
+  osdjobs: readOsdJobs,
+  jobgether: readJobgether,
 };
 
 /** The server feeds read whole every run (#576 item 11): Remote OK's one list and We Work
  *  Remotely's two category feeds. A posting missing from 2 whole reads in a row closes as missed
  *  (mark_missed_postings), like a company board's. Arbeitnow is not one: it reads the newest
  *  ARBEITNOW_PAGES pages, a window, so it ages out with the keyed searches. */
-export const WHOLE_LIST_FEEDS: readonly ServerFeed[] = ['remoteok', 'wwr'];
+export const WHOLE_LIST_FEEDS: readonly ServerFeed[] = ['remoteok'];
 
 type Gate = { keyless: true } | { env: readonly string[] } | { waitsOn: string };
 
@@ -52,11 +74,15 @@ type Gate = { keyless: true } | { env: readonly string[] } | { waitsOn: string }
 export const SERVER_FEED_GATES: Record<ServerFeed, Gate> = {
   arbeitnow: { keyless: true },
   remoteok: { keyless: true },
-  wwr: { keyless: true },
   theirstack: { env: THEIRSTACK_ENV },
   adzuna: { env: ADZUNA_ENV },
   jooble: { env: JOOBLE_ENV },
   ids: { waitsOn: "its operator's yes" },
+  fourdayweek: { keyless: true },
+  remotejobsorg: { keyless: true },
+  getonbrd: { keyless: true },
+  osdjobs: { keyless: true },
+  jobgether: { keyless: true },
 };
 
 type Env = (name: string) => string | undefined;

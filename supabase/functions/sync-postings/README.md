@@ -72,17 +72,22 @@ every call (403): there is no built-in fallback.
 
 ### 3b. Keys for the sync's own searches (adding a key turns its source on)
 
-Arbeitnow, Remote OK and We Work Remotely need no key and run every morning. Each keyed source
+Arbeitnow, Remote OK, 4dayweek.io, RemoteJobs.org, Get on Board, Open Source
+Design and Jobgether need no key and run on each feeds run. Each keyed source
 runs as soon as its secret is set (no code change; `src/tracks/feeds/serverFeeds.ts`). With one of
 two secrets missing, its read fails with a `sync_log` line naming it. The function's answer lists
 `serverFeedsOff` with the secret each one still needs. Add each in the same Secrets page:
 
-| Source              | Secret(s)                         | Get it                                                                           |
-| ------------------- | --------------------------------- | -------------------------------------------------------------------------------- |
-| TheirStack          | `THEIRSTACK_API_KEY`              | app.theirstack.com/signup → API key (free tier: 200 credits a month; ≤ 180 used) |
-| Adzuna              | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | developer.adzuna.com/signup → register an app (commercial use: ask Adzuna)       |
-| Jooble              | `JOOBLE_API_KEY`                  | jooble.org/api/about → request a key                                             |
-| Into Design Systems | none                              | its operator's yes to a server read (no key)                                     |
+| Source              | Secret(s)                             | Get it                                                                                      |
+| ------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| TheirStack          | `THEIRSTACK_API_KEY`                  | app.theirstack.com/signup → API key (free tier: 200 credits a month; ≤ 180 used)            |
+| Adzuna              | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`     | developer.adzuna.com/signup → register an app (commercial use: ask Adzuna)                  |
+| Jooble              | `JOOBLE_API_KEY`                      | jooble.org/api/about → request a key                                                        |
+| Into Design Systems | none                                  | its operator's yes to a server read (no key)                                                |
+| ATS x-ray search    | `BRAVE_SEARCH_API_KEY`                | brave.com/search/api → Get started → API key (monthly free credit; ~300 calls a month used) |
+| ATS x-ray (Tavily)  | `TAVILY_API_KEY`                      | app.tavily.com → sign up → API key (1,000 credits a month free; ~300 used)                  |
+| ATS x-ray (Exa)     | `EXA_API_KEY`                         | dashboard.exa.ai → sign up → API key (monthly free credit)                                  |
+| ATS x-ray (Google)  | `GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ID` | only a key made before Google closed sign-ups; it ends 2027-01-01                           |
 
 Also run `supabase/migrations/20261029100000_postings_more_sources.sql` once (after step 1): it
 lets `postings` store rows from TheirStack, Jooble and Into Design Systems, and adds
@@ -93,6 +98,16 @@ ones). Then run `supabase/migrations/20261029100200_postings_keyless_aggregators
 function that reads all 13 board kinds (#576): it lets `postings` store BambooHR, Rippling, Gem,
 Pinpoint and Breezy HR rows under their own source (they were stored as `manual`, which the app
 never shows).
+
+The ATS x-ray search (`src/tracks/feeds/xray.ts`) runs on the morning run once its secret is set.
+It finds company boards on every ATS host the sync reads and stores them in `found_boards`; the
+scan rotation reads them beside `boards.json`. Run
+`supabase/migrations/20261117100000_found_boards.sql` once before deploying the function that
+writes it (until then the x-ray only logs a failed write and the rotation walks `boards.json`).
+
+Run `supabase/migrations/20261117100100_postings_more_keyless_feeds.sql` once **before** deploying a
+function that reads 4dayweek.io, RemoteJobs.org, Get on Board, Open Source Design or Jobgether: it
+lets `postings` store their rows.
 
 ### 4. Deploy the function
 

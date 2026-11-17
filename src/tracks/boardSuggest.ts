@@ -51,7 +51,11 @@ export const SUGGEST_SOURCES: ReadonlySet<string> = new Set([
   'jobicy',
   'arbeitnow',
   'remoteok',
-  'wwr',
+  'fourdayweek',
+  'remotejobsorg',
+  'getonbrd',
+  'osdjobs',
+  'jobgether',
 ]);
 export const PROBE_KINDS = ['greenhouse', 'lever', 'ashby'] as const satisfies readonly BoardKind[];
 type ProbeKind = (typeof PROBE_KINDS)[number];

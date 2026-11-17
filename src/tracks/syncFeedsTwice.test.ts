@@ -42,8 +42,16 @@ describe('feeds twice a day (#576)', () => {
     const env = (n: string) => (n.endsWith('_KEY') || n.endsWith('_ID') ? 'set' : undefined);
     const morning = serverFeedsForRun(env, true);
     const afternoon = serverFeedsForRun(env, false);
-    expect(morning).toEqual(expect.arrayContaining(['arbeitnow', 'remoteok', 'wwr', 'theirstack']));
-    expect(afternoon).toEqual(['arbeitnow', 'remoteok', 'wwr']);
+    expect(morning).toEqual(expect.arrayContaining(['arbeitnow', 'remoteok', 'theirstack']));
+    expect(afternoon).toEqual([
+      'arbeitnow',
+      'remoteok',
+      'fourdayweek',
+      'remotejobsorg',
+      'getonbrd',
+      'osdjobs',
+      'jobgether',
+    ]);
   });
 
   it('reads Remotive on the morning run only: 2 terms, at most 4 requests with a retry each', () => {

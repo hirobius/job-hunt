@@ -1,0 +1,23 @@
+{
+  "jobs": [
+    {
+      "id": "jg-77",
+      "title": "Design System Designer",
+      "company": { "name": "Epsilon" },
+      "location": "Remote - US",
+      "remote": true,
+      "posted_at": "2026-11-14",
+      "url": "https://jobgether.com/offer/jg-77-design-system-designer",
+      "description": "Figma libraries and tokens."
+    },
+    {
+      "id": "jg-78",
+      "title": "Product Designer",
+      "company": { "name": "Zeta" },
+      "location": "Berlin",
+      "url": "https://jobgether.com/offer/jg-78",
+      "description": "Flows."
+    }
+  ],
+  "page": 1
+}

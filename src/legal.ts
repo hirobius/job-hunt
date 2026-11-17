@@ -84,7 +84,13 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Job searches our server runs',
     purpose:
-      'If you sign in and your search is for design systems roles, our server (not your browser) looks for openings on designsystems.jobs, Arbeitnow, Remote OK and We Work Remotely and, once each is switched on, TheirStack, Adzuna, Jooble and Into Design Systems. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. Each opening links back to the site it came from and names it; openings from Adzuna are labelled “Jobs by Adzuna”.',
+      'If you sign in and your search is for design systems roles, our server (not your browser) looks for openings on designsystems.jobs, Arbeitnow, Remote OK, 4dayweek.io, RemoteJobs.org, Get on Board, Open Source Design and Jobgether and, once each is switched on, TheirStack, Adzuna, Jooble and Into Design Systems. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. Each opening links back to the site it came from and names it; openings from Adzuna are labelled “Jobs by Adzuna”.',
+    hosts: [],
+  },
+  {
+    name: 'Web searches our server runs',
+    purpose:
+      'Our server (not your browser) asks Workable’s job search and, once switched on, Brave Search, Tavily, Exa and Google Programmable Search (while it lasts) for design systems openings on company hiring sites such as Greenhouse, Lever and Workable. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. We keep only the company hiring page each answer links to, and read its openings from that page.',
     hosts: [],
   },
   {

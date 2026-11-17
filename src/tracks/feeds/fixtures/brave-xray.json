@@ -1,0 +1,41 @@
+{
+  "type": "search",
+  "query": { "original": "(site:boards.greenhouse.io OR site:job-boards.greenhouse.io) (\"design system\" OR \"design systems\")" },
+  "web": {
+    "type": "search",
+    "results": [
+      {
+        "title": "Job Application for Senior Design Systems Engineer at Acme Robotics",
+        "url": "https://job-boards.greenhouse.io/acmerobotics/jobs/4012345007",
+        "description": "Acme Robotics is hiring a Senior Design Systems Engineer to own our component library...",
+        "age": "3 days ago"
+      },
+      {
+        "title": "Job Application for Design Systems Designer at Acme Robotics",
+        "url": "https://boards.greenhouse.io/acmerobotics/jobs/4012345099",
+        "description": "Second role on the same board."
+      },
+      {
+        "title": "Beta Labs - Design Technologist",
+        "url": "https://jobs.lever.co/betalabs/8c1f6f2e-1b7d-4d55-9a5e-0d1f0b6a1c11",
+        "description": "Design technologist, design system."
+      },
+      {
+        "title": "Design System Lead - Gamma",
+        "url": "https://jobs.ashbyhq.com/gamma-ai/2b9a7d0e-aaaa-bbbb-cccc-1234567890ab",
+        "description": "Lead our design system."
+      },
+      {
+        "title": "Greenhouse blog: how to write a job post",
+        "url": "https://www.greenhouse.com/blog/job-posts",
+        "description": "Not a board."
+      },
+      {
+        "title": "Senior Designer, Design Systems - Delta",
+        "url": "https://delta.wd5.myworkdayjobs.com/en-US/careers/job/Remote/Senior-Designer_R123",
+        "description": "A Workday tenant: never read."
+      },
+      { "title": "no url" }
+    ]
+  }
+}

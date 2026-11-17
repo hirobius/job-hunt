@@ -117,12 +117,16 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     expect([...(plan?.feeds ?? [])].sort()).toEqual([
       'adzuna',
       'arbeitnow',
+      'fourdayweek',
+      'getonbrd',
       'hn',
       'ids',
+      'jobgether',
       'jobicy',
       'jooble',
+      'osdjobs',
+      'remotejobsorg',
       'theirstack',
-      'wwr',
     ]);
   });
 
@@ -187,7 +191,7 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     const plan = planFromBlob(v12({ profiles: [moved] }))!;
     expect(plan.config.slug).toBe('design-systems');
     // The design-systems feeds and searches are on again, and the rotation takes the plan.
-    for (const f of ['rss', 'arbeitnow', 'remoteok', 'wwr', 'jooble', 'theirstack', 'adzuna'])
+    for (const f of ['rss', 'arbeitnow', 'remoteok', 'jooble', 'theirstack', 'adzuna'])
       expect(plan.feeds.has(f as never), f).toBe(true);
     expect(plan.terms).toEqual([
       'Design Systems Engineer',
@@ -506,11 +510,8 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
   });
 
   it('a feed read whole counts as answered, unless it failed or came back partial (#576 item 11)', () => {
-    expect(answeredFeeds(plan, [read('remoteok', undefined), read('wwr', undefined)])).toEqual([
-      'remoteok',
-      'wwr',
-    ]);
-    expect(answeredFeeds(plan, [read('wwr', undefined, false)])).toEqual([]);
-    expect(answeredFeeds(plan, [{ ...read('wwr', undefined), partial: true }])).toEqual([]);
+    expect(answeredFeeds(plan, [read('remoteok', undefined)])).toEqual(['remoteok']);
+    expect(answeredFeeds(plan, [read('remoteok', undefined, false)])).toEqual([]);
+    expect(answeredFeeds(plan, [{ ...read('remoteok', undefined), partial: true }])).toEqual([]);
   });
 });

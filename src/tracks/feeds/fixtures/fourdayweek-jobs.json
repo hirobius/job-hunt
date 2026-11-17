@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "slug": "design-systems-engineer-acme-4day",
+      "title": "Design Systems Engineer",
+      "company": { "name": "Acme 4Day", "url": "https://acme.example" },
+      "location": "Remote (Europe)",
+      "remote": true,
+      "posted_at": "2026-11-12T09:00:00Z",
+      "url": "https://4dayweek.io/remote-job/design-systems-engineer-acme-4day",
+      "description": "<p>Own our <b>design system</b> in React.</p>"
+    },
+    {
+      "slug": "backend-engineer-beta",
+      "title": "Backend Engineer",
+      "company": { "name": "Beta" },
+      "url": "https://4dayweek.io/remote-job/backend-engineer-beta",
+      "description": "APIs."
+    },
+    { "slug": "no-url", "title": "Design System Lead" }
+  ],
+  "page": 1,
+  "limit": 100,
+  "total": 3,
+  "has_more": false
+}

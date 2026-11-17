@@ -28,7 +28,6 @@ when its host can be reached.
 
 ## Not recorded: the keyless server feeds
 
-Arbeitnow (`www.arbeitnow.com`), Remote OK (`remoteok.com`) and We Work Remotely
-(`weworkremotely.com`) were refused by the build container's network policy (proxy 403 on
+Arbeitnow (`www.arbeitnow.com`) and Remote OK (`remoteok.com`) were refused by the build container's network policy (proxy 403 on
 CONNECT), so their fixtures in `src/tracks/feeds/fixtures/` are still built from the documented
 shapes and those sources stay **unverified live**.

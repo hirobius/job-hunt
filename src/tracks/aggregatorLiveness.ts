@@ -30,11 +30,15 @@ export const AGGREGATOR_BOARDS: readonly string[] = [
   'jobicy',
   'arbeitnow',
   'remoteok',
-  'wwr',
   'theirstack',
   'adzuna',
   'jooble',
   'ids',
+  'fourdayweek',
+  'remotejobsorg',
+  'getonbrd',
+  'osdjobs',
+  'jobgether',
 ];
 
 /** Boards checked per run: each is one list read (Ashby's run ~0.9 MB). */
