@@ -2,13 +2,15 @@
 // #416; they stay on the Job. Every change flows through updateJob, so it persists and syncs.
 // It saves on a Save key under the field (on only while there are unsaved changes; Adrian
 // 2026-11-13, in place of saving while typing) and still on blur, tab hide and leaving the page;
-// a quiet polite line beside the key then says "Saved to this job".
+// a quiet polite line beside the key then says "Saved to this job". Copy beside it puts the
+// field's text on the clipboard (Adrian 2026-11-16), saved or not.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Textarea, Box, Button, Stack, Text } from '@hirobius/design-system';
+import { Textarea, Box, Button, Stack, Text, useToast } from '@hirobius/design-system';
 import { updateJob } from './store';
 import { Panel, PanelBody } from './PipelinePanel';
 import type { Job } from './types';
 import { NOTES_STATUS, olderNoteLine, type NotesSaveState } from './notesSave';
+import { copyFailed, copyFilled } from './templateCopy';
 
 function NotesField({ job }: { job: Job }) {
   const shown = job.notes || job.note || '';
@@ -29,6 +31,14 @@ function NotesField({ job }: { job: Job }) {
     setState('saved');
   }, [url]);
   const dirty = draft !== saved;
+  const { toast } = useToast();
+  // What the field shows, saved or not: the person copies what they see.
+  const copy = async () => {
+    const text = draftRef.current;
+    const r = await copyFilled(text);
+    if (!r.ok) return toast(copyFailed('your notes', text));
+    toast({ title: 'Notes copied', tone: 'success' });
+  };
   // A newer note from a sync pull replaces the field while nothing is unsaved (#330); an unsaved
   // edit wins and is saved over it, as before. Only `notes` is followed: the older `note` the field
   // falls back to must not come back into it when the user clears Notes.
@@ -73,6 +83,10 @@ function NotesField({ job }: { job: Job }) {
             finds it off, so a note is never saved twice. */}
         <Button variant="secondary" size="md" disabled={!dirty} onClick={flush}>
           Save
+        </Button>
+        {/* A grey key too: a second choice beside Save, off while the field is empty. */}
+        <Button variant="secondary" size="md" disabled={!draft.trim()} onClick={copy}>
+          Copy
         </Button>
         {/* Polite: said once after a save; empty again on the next edit. */}
         <Text variant="caption" as="p" tone="secondary" role="status" aria-live="polite">
