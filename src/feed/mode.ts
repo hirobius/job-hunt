@@ -80,6 +80,26 @@ export function inferMode(s: string): JobMode | undefined {
   return mode === 'unstated' ? undefined : mode;
 }
 
+// A country or region outside the US. A Remote, US profile has no reason to keep a posting whose
+// place is one of these and states no remote (the Snapaddy "Germany" row).
+const NON_US_PLACE = new RegExp(
+  '^(?:canada|uk|united kingdom|england|scotland|ireland|europe|emea|apac|latam|germany|deutschland|' +
+    'france|spain|italy|portugal|netherlands|belgium|austria|switzerland|poland|sweden|norway|denmark|' +
+    'finland|czechia|czech republic|romania|greece|hungary|india|china|japan|singapore|australia|' +
+    'new zealand|brazil|mexico|argentina|israel|turkey|ukraine|south africa|nigeria|philippines|' +
+    'indonesia|vietnam|pakistan|bangladesh|egypt|uae|united arab emirates)$',
+  'i',
+);
+
+/** A location line whose last part is a non-US country or region, with no remote offered in it. */
+export function isNonUsPlace(location: string): boolean {
+  if (mentionsRemote(location)) return false;
+  // The last part with something in it: "Germany," and "Germany." name Germany.
+  const parts = location.split(/[,;|/]/).map((x) => x.trim().replace(/\.$/, ''));
+  const last = parts.filter(Boolean).pop() ?? '';
+  return NON_US_PLACE.test(last);
+}
+
 // A place that names no city: a remote posting's usual location line, without the word.
 const PLACE_UNSTATED =
   /^(anywhere|worldwide|global|earth|united states( of america)?|usa?|u\.s\.?a?\.?|north america|americas|europe|emea|apac|latam|canada|uk|united kingdom)$/i;

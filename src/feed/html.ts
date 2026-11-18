@@ -71,15 +71,17 @@ function dropScripts(html: string): string {
 
 /** Strip tags, keeping block boundaries as newlines; decode entities; tidy whitespace. */
 export function htmlToText(html: string): string {
-  return decodeEntities(
-    dropScripts(html)
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/?(p|div|li|ul|ol|h[1-6]|tr|section|article)\b[^>]*>/gi, '\n')
-      .replace(/<[^>]+>/g, ''),
-  )
-    // Only runs that change: a lone space stays (matching every space doubled the cost).
-    .replace(/(?: [ \t\f\v\u00a0]|[\t\f\v\u00a0])[ \t\f\v\u00a0]*/g, ' ')
-    .replace(/ +\n *|\n +/g, '\n')
-    .replace(/\n{2,}/g, '\n')
-    .trim();
+  return (
+    decodeEntities(
+      dropScripts(html)
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/?(p|div|li|ul|ol|h[1-6]|tr|section|article)\b[^>]*>/gi, '\n')
+        .replace(/<[^>]+>/g, ''),
+    )
+      // Only runs that change: a lone space stays (matching every space doubled the cost).
+      .replace(/(?: [ \t\f\v\u00a0]|[\t\f\v\u00a0])[ \t\f\v\u00a0]*/g, ' ')
+      .replace(/ +\n *|\n +/g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .trim()
+  );
 }

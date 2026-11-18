@@ -112,3 +112,20 @@ describe('the server adapter', () => {
     expect(postingFromRow(row('y', 'https://y.example', { source: 'manual' }))).toBeNull();
   });
 });
+
+describe('postingFromRow: a stored row keeps the mode its location states', () => {
+  it('infers hybrid from the location, and a false remote flag is on-site', () => {
+    expect(
+      postingFromRow(row('a', 'https://x.example/a', { location: 'Hybrid, Canada' }))?.mode,
+    ).toBe('hybrid');
+    expect(
+      postingFromRow(row('b', 'https://x.example/b', { location: 'Germany', remote: false }))?.mode,
+    ).toBe('onsite');
+    expect(
+      postingFromRow(row('c', 'https://x.example/c', { location: 'Germany' }))?.mode,
+    ).toBeUndefined();
+    expect(
+      postingFromRow(row('d', 'https://x.example/d', { location: 'Berlin', remote: true }))?.mode,
+    ).toBe('remote');
+  });
+});

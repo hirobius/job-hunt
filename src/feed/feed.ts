@@ -17,6 +17,7 @@
 import { dedupKey } from '../store';
 import { NO_TARGETING, type HiddenCounts, type Targeting } from './targeting';
 import { rankAll } from './match';
+import { inferMode, isNonUsPlace, remoteVerdict } from './mode';
 import { applyTargeting } from './targeting';
 import { normalizeForPhrase, phraseRegex, saysDesignSystem } from './mustInclude';
 import type { SweptPosting } from './sweep';
@@ -99,6 +100,28 @@ export const boardKeyOf = (id: string): string | null => {
   return kind && slug && id.split(':').length >= 3 ? `${kind}:${slug.toLowerCase()}` : null;
 };
 
+/** Remote only, for every posting whatever its source (browser read, server row): the work mode the
+ *  posting states or its location line infers (mode.ts `inferMode`) keeps or drops it, and the
+ *  inferred mode is set so the card never says "not stated" beside "Hybrid, Canada". */
+export function remoteKept<T extends Posting>(postings: T[], profile: SearchProfile): T[] {
+  if (profile.mode !== 'remote') return postings;
+  const out: T[] = [];
+  for (const p of postings) {
+    // A placed posting that states no mode is kept (Live postings lists it, and the breadth guard
+    // holds the Feed to that); only a stated or inferred other mode, or a non-US place, drops.
+    const inferred = p.mode ?? inferMode(p.location);
+    if ((inferred && inferred !== 'remote') || (!inferred && isNonUsPlace(p.location))) continue;
+    const mode = inferred;
+    const v = remoteVerdict(p.mode, p.location);
+    out.push({
+      ...p,
+      ...(mode && { mode }),
+      ...(v === 'unstated' && !mode && { remoteUnstated: true as const }),
+    });
+  }
+  return out;
+}
+
 export function buildFeed(
   read: FeedResult,
   profile: SearchProfile,
@@ -114,7 +137,11 @@ export function buildFeed(
 ): FeedView {
   // Every posting read that passes the place and work mode: the titles chose what to read, the
   // inclusion check (not a search term) decides what is listed.
-  const matched = rankAll(read.postings, { where: profile.where, mode: profile.mode, now: o.now });
+  const matched = rankAll(remoteKept(read.postings, profile), {
+    where: profile.where,
+    mode: profile.mode,
+    now: o.now,
+  });
   const list = applyTargeting(
     matched.map((p) => ({ ...p, titles: titlesIn(p.title, profile.titles) })),
     targetingOf(profile),

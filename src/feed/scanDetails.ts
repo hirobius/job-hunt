@@ -11,6 +11,8 @@ export interface ScanDetails {
   /** What the Feed left out, as plain phrases ("3 skipped", "12 not design-system roles"). */
   hidden: string[];
   newToday: number;
+  /** Postings the list shows (undecided, not saved or muted): the Review tab's count. */
+  listed: number;
   sourcesRead: number;
 }
 
