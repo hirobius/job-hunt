@@ -94,13 +94,9 @@ const NON_US_PLACE = new RegExp(
 /** A location line whose last part is a non-US country or region, with no remote offered in it. */
 export function isNonUsPlace(location: string): boolean {
   if (mentionsRemote(location)) return false;
-  const last =
-    location
-      .trim()
-      .replace(/[.,;]+$/, '')
-      .split(/[,;|/]/)
-      .pop()
-      ?.trim() ?? '';
+  // The last part with something in it: "Germany," and "Germany." name Germany.
+  const parts = location.split(/[,;|/]/).map((x) => x.trim().replace(/\.$/, ''));
+  const last = parts.filter(Boolean).pop() ?? '';
   return NON_US_PLACE.test(last);
 }
 
