@@ -12,6 +12,7 @@ Sign-in guards, OAuth, Privacy and terms, crash reports, the installable app and
   `CONTACT_EMAIL` info@hirobius.com (a public business address) <!-- pii-allow -->, with a Privacy requests line; Supabase and Vercel
   named as processors, Supabase's region `DATA_REGION` (us-east-2, read from the project); retention per kind
   (account until deleted, Recently removed 30 days, crash reports 90, rate-limit hashes 2, Daily picks 60); and
+  **Delete my data asks in an HDS confirm (#793, 2026-11-18)**: `DeleteDataConfirm.tsx` (lazy; "Delete all your data?", Cancel underlined and in focus, Delete my data danger; Cancel, Escape, Back and the scrim delete nothing), never `window.confirm`; the session is checked again after the answer. `hdsOnly.test.ts` allows one browser dialog, the error screen's Reset.
   **Delete my data deletes the sign-in too**: migration `20261113100000_delete_my_data_auth_user.sql` ends
   `delete_my_data` with `delete from auth.users where id = uid` (after every table; the function's owner, postgres,
   may delete there), and the client then signs out with `scope: 'local'`. Apply the migration before the policy

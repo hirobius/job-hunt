@@ -23,12 +23,13 @@ import {
   renderAccount,
   addDeviceDataIfAsked,
   chooseAccountItem,
+  answerDeleteAsk,
   answerSignOutAsk,
   chooseDataAction,
 } from '../test/renderAccount';
 import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
 import { addJob, getAllJobs, removeJob } from '../store';
-import { TAB_SIGNED_OUT, TAB_SWITCHED } from '../cloudMessages';
+import { DELETE_MY_DATA, TAB_SIGNED_OUT, TAB_SWITCHED } from '../cloudMessages';
 import { tabFrozen } from '../tabAccount';
 import type { Job } from '../types';
 
@@ -245,11 +246,10 @@ describe('an account switch in another tab (#288)', () => {
     await tabASignedInAsX();
     const { signOut, reload } = watchSignOut();
     // The person leaves the confirm open, switches account in tab B, comes back and says OK.
-    vi.spyOn(window, 'confirm').mockImplementation(() => {
-      tabB('y');
-      return true;
-    });
     await chooseDataAction('Delete my data');
+    await screen.findByRole('alertdialog', { name: DELETE_MY_DATA.title });
+    tabB('y');
+    await answerDeleteAsk(true);
     await settle();
     expect(signOut).not.toHaveBeenCalled();
     expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']);

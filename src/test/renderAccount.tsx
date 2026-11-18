@@ -8,7 +8,7 @@ import { ColorModeProvider } from '../ColorMode';
 import CloudSyncProvider from '../account/CloudSyncProvider';
 import DataToolsProvider from '../account/DataToolsProvider';
 import AccountMenu from '../account/AccountMenu';
-import { SIGN_OUT_UNSYNCED } from '../cloudMessages';
+import { DELETE_MY_DATA, SIGN_OUT_UNSYNCED } from '../cloudMessages';
 
 export const renderAccount = () =>
   render(
@@ -63,6 +63,14 @@ export async function answerSignOutAsk(signOut: boolean) {
     within(ask).getByRole('button', {
       name: signOut ? SIGN_OUT_UNSYNCED.confirm : SIGN_OUT_UNSYNCED.cancel,
     }),
+  );
+}
+
+/** Delete my data asks first (an HDS confirm, #793): answer it. Fails when it never shows. */
+export async function answerDeleteAsk(yes: boolean) {
+  const ask = await screen.findByRole('alertdialog', { name: DELETE_MY_DATA.title });
+  await userEvent.click(
+    within(ask).getByRole('button', { name: yes ? DELETE_MY_DATA.confirm : DELETE_MY_DATA.cancel }),
   );
 }
 

@@ -27,6 +27,7 @@ import {
   chooseAccountItem,
   chooseDataAction,
   addDeviceDataIfAsked,
+  answerDeleteAsk,
   answerSignOutAsk,
   signOutAsked,
 } from '../test/renderAccount';
@@ -43,7 +44,7 @@ import { setCurationSyncedAt } from '../curation/syncStatus';
 import { clearAllPending, getPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
-import { OFFLINE_MSG, OFFLINE_TITLE, TAB_SIGNED_OUT } from '../cloudMessages';
+import { DELETE_MY_DATA, OFFLINE_MSG, OFFLINE_TITLE, TAB_SIGNED_OUT } from '../cloudMessages';
 import { resetTabAccount } from '../tabAccount';
 import { saveTarget, readTargets } from '../feed/targets';
 import { readDreams, starDream } from '../feed/dreams';
@@ -188,7 +189,6 @@ describe('CloudSyncProvider (via the account menu)', () => {
   });
 
   it('Delete my data reports a failed delete and keeps the local copy', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
@@ -196,6 +196,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     fake().failNext('groups', 'delete');
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     expect(await screen.findByText(/Deleted 3 of 4 — couldn't delete groups/)).toBeInTheDocument();
     const toast = screen.getByText('Delete incomplete').closest('li')!;
     expect(within(toast).getByRole('button', { name: /^Reload/ })).toBeInTheDocument();
@@ -204,7 +205,6 @@ describe('CloudSyncProvider (via the account menu)', () => {
 
   // #393: one server call erases every per-user table, the scorer's too, when the server has it.
   it('Delete my data erases the scorer tables through delete_my_data', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
@@ -220,6 +220,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().failNext('groups', 'delete');
     const signOut = vi.spyOn(fake().client.auth, 'signOut');
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     // The server deleted the auth user and its sessions too: sign out on this device only.
     await waitFor(() => expect(signOut).toHaveBeenCalledWith({ scope: 'local' }));
@@ -235,7 +236,6 @@ describe('CloudSyncProvider (via the account menu)', () => {
 
   // Without the function (the per-table fallback) the auth user stays, so sign-out stays global.
   it('Delete my data without delete_my_data signs out everywhere', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
@@ -243,6 +243,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     const signOut = vi.spyOn(fake().client.auth, 'signOut');
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     await waitFor(() => expect(signOut).toHaveBeenCalledWith(undefined));
   });
@@ -250,7 +251,6 @@ describe('CloudSyncProvider (via the account menu)', () => {
   // A tab's shared session can flip to another tab's account between its check and the call:
   // the call names the account it means, and the server refuses any other.
   it('delete_my_data names the account and is refused for another one', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
@@ -268,13 +268,13 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect(fake().tables.postings).toHaveLength(2);
     const rpc = vi.spyOn(fake().client, 'rpc');
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     expect(rpc).toHaveBeenCalledWith('delete_my_data', { p_user: 'u1' });
     expect(fake().tables.postings.map((p) => p.user_id)).toEqual(['u2']);
   });
 
   it('Delete my data falls back to the app tables when the scorer tables are not there yet', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
@@ -283,12 +283,12 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().installRpc('delete_my_data');
     fake().failNext('delete_my_data', 'rpc', '42P01'); // relation "public.skips" does not exist
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     await waitFor(() => expect(fake().tables.tracker).toEqual([]));
     expect(screen.queryByText('Delete incomplete')).toBeNull();
   });
 
   it('Delete my data says so and keeps the local copy when delete_my_data fails', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
@@ -297,6 +297,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().installRpc('delete_my_data');
     fake().failNext('delete_my_data', 'rpc');
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     expect(await screen.findByText('Delete incomplete')).toBeInTheDocument();
     expect(fake().tables.tracker).toHaveLength(1);
     expect(getAllJobs()).toHaveLength(1);
@@ -304,7 +305,6 @@ describe('CloudSyncProvider (via the account menu)', () => {
 
   // #393: a push already sent when Delete starts must not land after it and write the row back.
   it('Delete my data waits out a push in flight and sends no more', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
@@ -319,6 +319,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     addJob('https://acme.example/jobs/3', 'Third job');
     const releaseDelete = fake().holdNext('tiles', 'delete');
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     await new Promise((r) => setTimeout(r, 50));
     // No delete is sent while the push is out (it could land after the row's delete).
     expect(fake().holding('tiles', 'delete')).toBe(true);
@@ -369,6 +370,74 @@ describe('CloudSyncProvider (via the account menu)', () => {
 // Tracks never reached the cloud for any account (2026-10-15). These pin the three ways that can
 // hurt: a write the cloud refused went unnoticed, a sign-in against an empty cloud could drop this
 // browser's tracks, and sign-out wiped tracks that only lived here.
+// The confirm before Delete my data (#793): an HDS alert dialog in place of window.confirm. Cancel
+// has focus as it opens; Cancel, Escape and Back delete nothing; only the danger key deletes.
+describe('Delete my data asks in an HDS dialog (#793)', () => {
+  const ask = () => screen.findByRole('alertdialog', { name: DELETE_MY_DATA.title });
+  const asked = () => screen.queryByRole('alertdialog', { name: DELETE_MY_DATA.title }) !== null;
+  const signedInWithOneJob = async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+  };
+  const nothingDeleted = () => {
+    expect(fake().tables.tracker).toHaveLength(1);
+    expect(getAllJobs()).toHaveLength(1);
+  };
+
+  it('never opens a browser confirm', async () => {
+    const native = vi.spyOn(window, 'confirm');
+    await signedInWithOneJob();
+    await chooseDataAction('Delete my data');
+    await ask();
+    expect(native).not.toHaveBeenCalled();
+    nothingDeleted();
+  });
+
+  it('says what goes and that it cannot be undone; one danger key; Cancel has focus', async () => {
+    await signedInWithOneJob();
+    await chooseDataAction('Delete my data');
+    const dialog = await ask();
+    expect(within(dialog).getByText(DELETE_MY_DATA.description)).toBeInTheDocument();
+    expect(DELETE_MY_DATA.description).toMatch(/cannot be undone/);
+    const cancel = within(dialog).getByRole('button', { name: DELETE_MY_DATA.cancel });
+    const confirm = within(dialog).getByRole('button', { name: DELETE_MY_DATA.confirm });
+    // Enter as it opens must delete nothing.
+    await waitFor(() => expect(cancel).toHaveFocus());
+    expect(confirm).toHaveAttribute('data-variant', 'primary');
+    // Cancel is the exit (underlined text), not a second key.
+    expect(cancel).toHaveAttribute('data-rjb-exit');
+  });
+
+  it('Cancel deletes nothing, in the cloud or on this device', async () => {
+    await signedInWithOneJob();
+    await chooseDataAction('Delete my data');
+    await answerDeleteAsk(false);
+    await waitFor(() => expect(asked()).toBe(false));
+    nothingDeleted();
+  });
+
+  it('Escape deletes nothing', async () => {
+    await signedInWithOneJob();
+    await chooseDataAction('Delete my data');
+    await ask();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(asked()).toBe(false));
+    nothingDeleted();
+  });
+
+  it('the browser Back closes it and deletes nothing', async () => {
+    await signedInWithOneJob();
+    await chooseDataAction('Delete my data');
+    await ask();
+    act(() => window.history.back());
+    await waitFor(() => expect(asked()).toBe(false));
+    nothingDeleted();
+  });
+});
+
 describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   beforeEach(() => {
     setCurationSyncedAt(null);
