@@ -208,13 +208,13 @@ describe('Retired HDS workarounds (#146)', () => {
 });
 
 // HDS components only, and every dialog is wired to Back (CLAUDE.md): a browser dialog
-// (`window.confirm`, `alert`, `prompt`) is neither. Rules audit 2026-11-18 found two, kept here at
-// their exact count so no new one comes in: only lower these. (ErrorBoundary's runs when the app
-// itself is down; Delete my data's is tracked as an issue.)
+// (`window.confirm`, `alert`, `prompt`) is neither. Rules audit 2026-11-18 found two; Delete my
+// data's became an HDS confirm (#793, DeleteDataConfirm.tsx). The one left is kept here at its
+// exact count so no new one comes in: only lower it. (ErrorBoundary's runs when the app itself is
+// down and may not be able to draw a dialog.)
 const NATIVE_DIALOG = /\b(?:window\.)?(?:confirm|alert|prompt)\(/g;
 const NATIVE_DIALOG_ALLOWED: Record<string, number> = {
   'ErrorBoundary.tsx': 1,
-  'account/CloudSyncProvider.tsx': 1,
 };
 
 describe('no browser dialogs (rules audit 2026-11-18)', () => {

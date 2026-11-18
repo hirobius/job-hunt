@@ -21,6 +21,7 @@ import {
   renderAccount,
   addDeviceDataIfAsked,
   chooseAccountItem,
+  answerDeleteAsk,
   answerSignOutAsk,
   chooseDataAction,
   openAccount,
@@ -150,17 +151,17 @@ describe('a newer blob version in the cloud (#382)', () => {
 
   it('Delete my data still deletes', async () => {
     const { signOut } = await stoppedByNewer();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     await waitFor(() => expect(signOut).toHaveBeenCalled());
     expect(row()).toBeUndefined();
   });
 
   it('a Delete my data that fails to delete the blob stays stopped (no push over it)', async () => {
     await stoppedByNewer();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     fake().failNext('tracker', 'delete');
     await chooseDataAction('Delete my data');
+    await answerDeleteAsk(true);
     await waitFor(() => expect(tabFrozen()).toBe('newerVersion'));
     act(() => {
       addJob('https://x.example/jobs/after-delete', 'After');

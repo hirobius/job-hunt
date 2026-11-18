@@ -36,6 +36,15 @@ export const SIGN_OUT_UNSYNCED = {
   cancel: 'Cancel',
 };
 
+/** The confirm before Delete my data (#793): what goes, where from, and that it cannot be undone. */
+export const DELETE_MY_DATA = {
+  title: 'Delete all your data?',
+  description:
+    'This deletes your synced data (jobs, tracks, boards, watched companies and scored postings) and your sign-in from the cloud, and your data from this device. This cannot be undone.',
+  confirm: 'Delete my data',
+  cancel: 'Cancel',
+};
+
 /** Child → parent, so erasure never depends on the FK cascade. */
 export const DELETE_ORDER = ['tiles', 'groups', 'categories', 'tracker'] as const;
 
