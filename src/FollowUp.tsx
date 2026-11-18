@@ -23,6 +23,7 @@ import BlankText from './BlankText';
 import { useOutreachTemplates } from './outreachTemplates';
 import {
   closeFollowUp,
+  focusFollowUpOpener,
   openFollowUp,
   pickFollowUpTemplate,
   useFollowUpTarget,
@@ -137,7 +138,7 @@ function FollowUpContent({ job }: { job: Job }) {
   return (
     // The same HDS Dialog chrome as Use template (rjb-dialog: 16px gutter at 390, the body
     // scrolls under a pinned header and footer).
-    <Dialog.Content className="rjb-dialog">
+    <Dialog.Content className="rjb-dialog" onCloseAutoFocus={focusFollowUpOpener}>
       <Dialog.Header>
         <Dialog.Title>Follow up</Dialog.Title>
         <Dialog.Description>
