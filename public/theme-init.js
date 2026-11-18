@@ -19,4 +19,12 @@
   var root = document.documentElement;
   root.setAttribute('data-theme', mode);
   if (mode === 'dark') root.classList.add('dark');
+  // Pause animations (motionPref.ts, per device): the app's own motion reads this attribute
+  // (base.css), so a paused device shows no enter or collapse on its first paint either.
+  try {
+    if (localStorage.getItem('rjb_ui_pause_motion') === '1')
+      root.setAttribute('data-rjb-motion', 'paused');
+  } catch {
+    /* storage blocked: motion follows the system setting */
+  }
 })();

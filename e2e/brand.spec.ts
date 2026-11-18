@@ -167,7 +167,10 @@ test('the sign-in screen pauses the flame and its size easing, and plays it agai
   const transition = await screenEl
     .locator('.rjb-signin-screen__brand .rjb-rf')
     .evaluate((el) => getComputedStyle(el).transitionDuration);
-  expect(transition).toBe('0s');
+  // No easing: `transition: none` here, which Pause animations' own rule for every element
+  // (base.css `:root[data-rjb-motion='paused']`, as for reduced motion) reports as its 0.01 ms.
+  // The eased move is 300 ms.
+  expect(parseFloat(transition)).toBeLessThanOrEqual(0.00001);
   await screenEl.getByRole('button', { name: 'Play animations' }).click();
   await expect.poll(() => path.getAttribute('d'), { timeout: 2000 }).not.toBe(still);
 });

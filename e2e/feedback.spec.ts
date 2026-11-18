@@ -395,3 +395,62 @@ test.describe('reduced motion', () => {
     expect(await moving()).toEqual([]);
   });
 });
+
+// Pause animations (the Account menu, motionPref.ts) stops the app's own motion as reduced motion
+// does (motion pass 2026-11-18: flash, collapse, arrive and view enter read only the system
+// setting, so they ran while paused).
+test.describe('Pause animations', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('rjb_ui_pause_motion', '1'));
+    await page.reload();
+  });
+
+  test('the attribute is on <html> at boot, and view enter does not run', async ({ page }) => {
+    await expect(page.locator('html')).toHaveAttribute('data-rjb-motion', 'paused');
+    await go(page, '#/review');
+    const name = await page.evaluate(() => {
+      const el = document.querySelector('.rjb-view-enter');
+      return el ? getComputedStyle(el).animationName : null;
+    });
+    expect(name).toBe('none');
+  });
+
+  test('keeps the state and the toast, drops the movement', async ({ page }) => {
+    const moving = () =>
+      page.evaluate(() =>
+        document
+          .getAnimations()
+          .filter((a) => a instanceof CSSAnimation && a.animationName.startsWith('rjb-'))
+          .map((a) => (a as CSSAnimation).animationName),
+      );
+    await openJob(page);
+    const more = (await page
+      .getByRole('button', { name: /^More actions: / })
+      .getAttribute('aria-label'))!;
+    await menu(page, more, 'Offer');
+    await expect(page.getByText('Moved to Offer').first()).toBeVisible();
+    expect(await moving()).toEqual([]);
+    await page
+      .getByRole('group', { name: 'Views' })
+      .getByRole('button', { name: /^All jobs \d/ })
+      .click();
+    const title = (await page.getByRole('main').locator('header h1').textContent())!.trim();
+    await menu(page, `More actions: ${title}`, 'Remove from Apply');
+    await page
+      .getByRole('region', { name: /^Notifications/ })
+      .getByRole('button', { name: 'Undo' })
+      .click();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Jobs' })
+        .getByRole('link', { name: title, exact: true }),
+    ).toHaveCount(1);
+    expect(await moving()).toEqual([]);
+  });
+
+  test('Play again takes the attribute off', async ({ page }) => {
+    await page.getByRole('button', { name: /^Account/ }).click();
+    await page.getByRole('menuitemcheckbox', { name: /Pause animations/ }).click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-rjb-motion', 'paused');
+  });
+});
