@@ -19,3 +19,9 @@
 .rjb-desc .rjb-desc-list li::marker {
   color: var(--semantic-color-content-secondary);
 }
+
+/* No italic text anywhere (CLAUDE.md): a board's <em> or <i> stays an emphasis run for a screen
+ * reader and reads upright (rules audit 2026-11-18: the browser's default set it italic). */
+.rjb-desc em {
+  font-style: normal;
+}

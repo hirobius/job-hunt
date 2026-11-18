@@ -199,7 +199,7 @@ function DetailsEditor({ job, onDone, focus }: { job: Job; onDone: () => void; f
 function companyLink(name: string, from: Route) {
   const slug = companySlug(name);
   return slug ? (
-    <InlineLink href={linkTo(parseHash(companyHash(slug)), from)} externalIcon={false}>
+    <InlineLink href={linkTo(parseHash(companyHash(slug)), from)} externalIcon={false} standalone>
       {name}
     </InlineLink>
   ) : (
@@ -213,8 +213,8 @@ function postingLink(job: Job, domain: string) {
   return (
     <Stack direction="row" gap="px4" align="center">
       <Icon icon={ExternalLink} size="small" />
-      <Box className="rjb-truncate" sx={{ minWidth: 0 }}>
-        <InlineLink href={job.url} externalIcon={false}>
+      <Box className="rjb-truncate rjb-truncate-x" sx={{ minWidth: 0 }}>
+        <InlineLink href={job.url} externalIcon={false} standalone>
           {domain}
         </InlineLink>
       </Box>
