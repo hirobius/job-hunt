@@ -164,10 +164,11 @@ export function installFocusRescue(shown = shownInBrowser): void {
       // on a new page) the heading. The page's next change looks again (the observer below).
       const mark = marks.get(page);
       const back = mark ? findMark(mark, shown) : null;
-      if (back) {
-        back.focus({ preventScroll: true });
-        pageChanged = 0;
-      } else if (!onHeading) focusHeading(shown);
+      // The control must take focus: one that cannot (it is no tab stop any more) leaves the
+      // heading to do it, and the wait goes on.
+      if (back) back.focus({ preventScroll: true });
+      if (back && document.activeElement === back) pageChanged = 0;
+      else if (!onHeading) focusHeading(shown);
       return;
     }
     if (onHeading) return;
@@ -208,7 +209,10 @@ export function installFocusRescue(shown = shownInBrowser): void {
     const left = spot?.[0].node;
     if (left?.isConnected && left.closest('main')) {
       marks.delete(page);
-      marks.set(page, markOf(left));
+      // The page's heading is no control to come back to: a new render of it has no tabindex, so
+      // focus() on it did nothing and focus stayed on <body> (rules audit 2026-11-18). A page left
+      // from its heading is come back to at its heading.
+      if (!left.hasAttribute('data-focus-heading')) marks.set(page, markOf(left));
       if (marks.size > MAX_MARKS) marks.delete(marks.keys().next().value!);
     }
     page = next;

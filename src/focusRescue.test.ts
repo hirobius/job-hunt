@@ -127,6 +127,28 @@ describe('installFocusRescue', () => {
   });
 });
 
+describe('installFocusRescue: a page left from its heading (rules audit 2026-11-18)', () => {
+  it('coming back focuses the heading again, never <body>', async () => {
+    installFocusRescue(shown);
+    window.location.hash = '#/apply';
+    await new Promise((r) => setTimeout(r, 50));
+    document.body.innerHTML = `<main><h1 id="apply">Apply</h1></main>`;
+    await waitFor(() => expect(document.activeElement?.id).toBe('apply'));
+    // Away, with focus still on the heading: the heading must not be kept as the control to come
+    // back to (a new render of it has no tabindex, so focus() on it does nothing).
+    window.location.hash = '#/review';
+    await new Promise((r) => setTimeout(r, 0));
+    document.body.innerHTML = `<main><h1 id="review">Review</h1></main>`;
+    await waitFor(() => expect(document.activeElement?.id).toBe('review'));
+    // Back: a new heading element, with no tabindex of its own.
+    window.location.hash = '#/apply';
+    await new Promise((r) => setTimeout(r, 0));
+    document.body.innerHTML = `<main><h1 id="apply2">Apply</h1></main>`;
+    await waitFor(() => expect(document.activeElement?.id).toBe('apply2'));
+    expect(document.activeElement).not.toBe(document.body);
+  });
+});
+
 describe('findMark', () => {
   it('finds a link by its target, anything else by its name', () => {
     list();
