@@ -185,6 +185,13 @@ p {
     transition-duration: 0.01ms !important;
   }
 }
+/* Pause animations (the Account menu, motionPref.ts) does the same as the system setting: the
+ * attribute is on <html> while the person has paused (motion pass 2026-11-18). */
+:root[data-rjb-motion='paused'] *,
+:root[data-rjb-motion='paused'] *::before,
+:root[data-rjb-motion='paused'] *::after {
+  transition-duration: 0.01ms !important;
+}
 
 /* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
  * (HDS 0.31 TokenField's look, from the same tokens: a soft muted fill, no edge). A blank that fills in place is an HDS Tag set in
@@ -700,6 +707,16 @@ p {
   [data-motion='collapse'] {
     animation: none;
   }
+}
+/* Pause animations: as reduced motion above. */
+:root[data-rjb-motion='paused'] [data-motion='flash'] {
+  animation: none;
+  background-color: var(--semantic-color-surface-selected);
+}
+:root[data-rjb-motion='paused'] .rjb-arrive,
+:root[data-rjb-motion='paused'] .rjb-view-enter,
+:root[data-rjb-motion='paused'] [data-motion='collapse'] {
+  animation: none;
 }
 
 /* The flame logo (src/brand/Flame.tsx, drawn from src/brand/flame.svg) and the header lockup.

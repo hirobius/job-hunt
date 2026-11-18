@@ -54,6 +54,10 @@
     transform: none;
   }
 }
+/* Pause animations (motionPref.ts): the dock shows and hides with no movement. */
+:root[data-rjb-motion='paused'] .rjb-dock[data-hidden='true'] {
+  transform: none;
+}
 
 :root {
   --rjb-dock-height: calc(

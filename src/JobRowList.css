@@ -9,7 +9,8 @@
   padding-block: var(--semantic-space-scale-xs);
   padding-inline: var(--semantic-space-fixed-xs);
   border-radius: var(--role-radius);
-  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color var(--hds-motion-productive-duration)
+    var(--hds-motion-productive-easing);
 }
 
 .rjb-job-row:hover {
