@@ -749,6 +749,16 @@ p {
 :root[data-rjb-motion='paused'] [data-motion='collapse'] {
   animation: none;
 }
+/* Pause animations: as reduced motion above. */
+:root[data-rjb-motion='paused'] [data-motion='flash'] {
+  animation: none;
+  background-color: var(--semantic-color-surface-selected);
+}
+:root[data-rjb-motion='paused'] .rjb-arrive,
+:root[data-rjb-motion='paused'] .rjb-view-enter,
+:root[data-rjb-motion='paused'] [data-motion='collapse'] {
+  animation: none;
+}
 
 /* The flame logo (src/brand/Flame.tsx, drawn from src/brand/flame.svg) and the header lockup.
    The file's layers (.flame-1 outer .. .flame-3 core) take HDS primitives here, light and dark; a
