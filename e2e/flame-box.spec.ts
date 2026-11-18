@@ -47,7 +47,9 @@ test.beforeEach(async ({ context }) => {
 
 test('app bar: the logo and the page keep their boxes on every frame', async ({ page }) => {
   await page.goto('/#/review');
-  await page.locator('.rjb-rf svg').waitFor();
+  // The app bar's flame, by name: signed out, the sign-in screen opens over Review on its own and
+  // has a flame too, so a bare `.rjb-rf svg` matched two elements now and then (strict mode).
+  await page.locator('header .rjb-rf svg').waitFor();
   // The recording: Review, scrolled a little, the page under the bar moving with the flame. The
   // segmented control (Review / Apply) is the first thing under the bar.
   await page.mouse.wheel(0, 24);
@@ -56,13 +58,13 @@ test('app bar: the logo and the page keep their boxes on every frame', async ({ 
     await sample(
       page,
       {
-        flame: '.rjb-rf svg',
-        logo: '.rjb-rf',
+        flame: 'header .rjb-rf svg',
+        logo: 'header .rjb-rf',
         bar: '.rjb-logo',
         header: 'header',
         tabs: '.rjb-page-bar',
       },
-      '.rjb-rf svg',
+      'header .rjb-rf svg',
     ),
   );
 });
@@ -113,7 +115,7 @@ test('scrolled: the flame is never the scroll anchor, so the page holds still', 
   page,
 }) => {
   await page.goto('/#/review');
-  await page.locator('.rjb-rf svg').waitFor();
+  await page.locator('header .rjb-rf svg').waitFor();
   // The app bar's live logo (the still wordmark and the splash's .rjb-flame take the same rule).
   expect(
     await page.locator('header .rjb-rf').evaluate((el) => getComputedStyle(el).overflowAnchor),

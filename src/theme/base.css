@@ -185,6 +185,13 @@ p {
     transition-duration: 0.01ms !important;
   }
 }
+/* Pause animations (the Account menu, motionPref.ts) does the same as the system setting: the
+ * attribute is on <html> while the person has paused (motion pass 2026-11-18). */
+:root[data-rjb-motion='paused'] *,
+:root[data-rjb-motion='paused'] *::before,
+:root[data-rjb-motion='paused'] *::after {
+  transition-duration: 0.01ms !important;
+}
 
 /* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
  * (HDS 0.31 TokenField's look, from the same tokens: a soft muted fill, no edge). A blank that fills in place is an HDS Tag set in
@@ -634,6 +641,37 @@ p {
   margin-block: calc(var(--primitive-space-1) * -1);
 }
 
+/* 44px on a phone (rules audit 2026-11-18: the chip's Remove key was 40x40). The chip keeps its
+ * height: the key overhangs it. */
+@media (max-width: 639px) {
+  [data-hds] .rjb-term .rjb-term-x {
+    width: var(--rjb-touch);
+    min-width: var(--rjb-touch);
+    height: var(--rjb-touch);
+    min-height: var(--rjb-touch);
+    margin-block: calc((var(--primitive-space-8) - var(--rjb-touch)) / 2);
+  }
+}
+
+/* The ellipsis box of a standalone link (a job's Details: the posting's domain) cuts the line's
+ * ends only: HDS's 44px touch target for `InlineLink standalone` reaches above and below the line,
+ * and `overflow: hidden` cut it back to the 19px line (rules audit 2026-11-18). */
+.rjb-truncate.rjb-truncate-x {
+  overflow: visible;
+  overflow-x: clip;
+}
+
+/* `InlineLink standalone` is 44px tall under `pointer: coarse` only. The app's touch rule is by
+ * width (below sm, like every other control here), and the target sits above the rows around it so
+ * all of it takes the tap. Upstream ask in docs/hds-upstream-asks-0.9.md. */
+@media (max-width: 639px) {
+  [data-hds] .hds-link-standalone {
+    --hds-link-hit: var(--rjb-touch);
+    position: relative;
+    z-index: 1;
+  }
+}
+
 /* Action feedback (#212, feedback.ts), on HDS motion tokens only. A row whose state just changed,
  * or the item an action made (a duplicate, a pinned document that moved), flashes the selected
  * surface and fades back; a star pops on each toggle; a removed row collapses before it goes.
@@ -700,6 +738,16 @@ p {
   [data-motion='collapse'] {
     animation: none;
   }
+}
+/* Pause animations: as reduced motion above. */
+:root[data-rjb-motion='paused'] [data-motion='flash'] {
+  animation: none;
+  background-color: var(--semantic-color-surface-selected);
+}
+:root[data-rjb-motion='paused'] .rjb-arrive,
+:root[data-rjb-motion='paused'] .rjb-view-enter,
+:root[data-rjb-motion='paused'] [data-motion='collapse'] {
+  animation: none;
 }
 
 /* The flame logo (src/brand/Flame.tsx, drawn from src/brand/flame.svg) and the header lockup.

@@ -266,7 +266,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
 - **Action feedback (#212):** every action answers within 300 ms: a toast, a state change with motion, or
   the item it made scrolled into view and flashed. `src/feedback.ts` (`flashRow`, `collapseRow`, `highlightNew`
   with `useHighlight`, `starClass`) drives `[data-motion=flash|collapse]` and `.rjb-pop` in `base.css` (HDS motion
-  tokens only; reduced motion keeps the state and toast, drops the movement). Flash and collapse are an attribute,
+  tokens only; reduced motion keeps the state and toast, drops the movement; so does the Account menu's **Pause animations**: `motionPref.ts` sets `data-rjb-motion="paused"` on `<html>` (`theme-init.js` at boot), `motionOk()` reads the choice, and `motionTokens.test.ts` fails on a raw length or curve in CSS or a keyframe animation with no off rule for both). Flash and collapse are an attribute,
   not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
   row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
   raise a notice with Undo; **Remove is soft everywhere**: every Remove (a Pipeline job, a job's to-do or interview,

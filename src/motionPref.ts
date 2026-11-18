@@ -22,7 +22,26 @@ function stored(v?: string): string | null {
 export const motionPaused = (): boolean =>
   (stored() ?? (window.matchMedia?.(REDUCE).matches ? '1' : '0')) === '1';
 
+/** The attribute the app's own motion reads (base.css, ActionDock.css): set while the person has
+ *  paused animations, so flash, collapse, arrive, view enter and the dock stop with the flame
+ *  (motion pass 2026-11-18: only the flame, the save flight and the burn read the choice). The
+ *  system's reduced-motion setting needs no attribute: the same CSS reads its media query.
+ *  `public/theme-init.js` sets it before the first paint. */
+export const PAUSED_ATTR = 'data-rjb-motion';
+export function syncMotionAttr(): void {
+  if (typeof document === 'undefined') return;
+  if (stored() === '1') document.documentElement.setAttribute(PAUSED_ATTR, 'paused');
+  else document.documentElement.removeAttribute(PAUSED_ATTR);
+}
+
 export function setMotionPaused(paused: boolean): void {
   stored(paused ? '1' : '0');
+  syncMotionAttr();
   dispatchEvent(new Event(MOTION_EVENT));
 }
+
+// The choice made in another tab.
+if (typeof window !== 'undefined')
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY || e.key === null) syncMotionAttr();
+  });

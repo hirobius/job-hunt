@@ -22,5 +22,20 @@ export function pickFollowUpTemplate<T extends Template>(snippets: readonly T[])
 // or navigating away simply forgets it.
 const target = createStore<string | null>(null);
 export const useFollowUpTarget = target.use;
-export const openFollowUp = (url: string) => target.set(url);
+// The control to give focus back to on close: a menu item that opened the dialog is gone by then,
+// and focus fell to <body> (rules audit 2026-11-18). A button that opens it gets focus back from
+// Radix, and names no opener.
+let opener: HTMLElement | null = null;
+export const openFollowUp = (url: string, from?: HTMLElement | null) => {
+  opener = from ?? null;
+  target.set(url);
+};
 export const closeFollowUp = () => target.set(null);
+/** For the dialog's `onCloseAutoFocus`: focus its opener when it is still on the page. */
+export function focusFollowUpOpener(e: Event) {
+  const el = opener;
+  opener = null;
+  if (!el?.isConnected) return;
+  e.preventDefault();
+  el.focus();
+}

@@ -176,7 +176,7 @@ export function RowMenu({
         </Menu.Item>
         {/* A due follow-up's dialog (edit the message, snooze): the dock copies it (#540). */}
         {primaryAction(job) === 'followup' && (
-          <Menu.Item onSelect={() => openFollowUp(job.url)}>Follow up…</Menu.Item>
+          <Menu.Item onSelect={() => openFollowUp(job.url, anchor.current)}>Follow up…</Menu.Item>
         )}
         <Menu.Separator />
         <Menu.Item

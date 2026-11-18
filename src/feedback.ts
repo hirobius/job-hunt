@@ -7,13 +7,16 @@
 // and its cells' divider class changes), which would wipe a class mid-flash.
 import { useCallback, useState } from 'react';
 import { createStore } from './createStore';
+import { motionPaused } from './motionPref';
 
-/** Motion is on: the browser can tell, and the user has not asked for less. Without matchMedia
- *  (jsdom) there is no motion, so tests see the state change at once. */
+/** Motion is on: the browser can tell, and the user has not asked for less, by the system's
+ *  reduced-motion setting or by the Account menu's Pause animations (motionPref.ts). Without
+ *  matchMedia (jsdom) there is no motion, so tests see the state change at once. */
 export function motionOk(): boolean {
   return (
     typeof window.matchMedia === 'function' &&
-    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+    !motionPaused()
   );
 }
 

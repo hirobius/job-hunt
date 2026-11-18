@@ -37,6 +37,42 @@ describe('motionOk', () => {
   });
 });
 
+describe('Pause animations (motion pass 2026-11-18)', () => {
+  afterEach(() => {
+    localStorage.removeItem('rjb_ui_pause_motion');
+    document.documentElement.removeAttribute('data-rjb-motion');
+  });
+
+  it('motionOk is false while the person has paused animations', async () => {
+    const { setMotionPaused } = await import('./motionPref');
+    reduce(false);
+    expect(motionOk()).toBe(true);
+    setMotionPaused(true);
+    expect(motionOk()).toBe(false);
+    setMotionPaused(false);
+    expect(motionOk()).toBe(true);
+  });
+
+  it('the choice sets and clears the attribute the CSS reads', async () => {
+    const { setMotionPaused } = await import('./motionPref');
+    setMotionPaused(true);
+    expect(document.documentElement.getAttribute('data-rjb-motion')).toBe('paused');
+    setMotionPaused(false);
+    expect(document.documentElement.hasAttribute('data-rjb-motion')).toBe(false);
+  });
+
+  it('a paused collapse runs its action at once, with no motion on the row', async () => {
+    const { setMotionPaused } = await import('./motionPref');
+    reduce(false);
+    setMotionPaused(true);
+    document.body.innerHTML = '<ul><li id="row"><button id="b">Remove</button></li></ul>';
+    const then = vi.fn();
+    collapseRow(document.getElementById('b'), then);
+    expect(then).toHaveBeenCalledTimes(1);
+    expect(motion(document.getElementById('row'))).toBeNull();
+  });
+});
+
 describe('flash', () => {
   it('marks the element, then clears the mark', () => {
     vi.useFakeTimers();
