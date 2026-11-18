@@ -96,11 +96,11 @@ describe('App motion stops for reduced motion and for Pause animations', () => {
     ]
       .map((m) => m[1])
       .join('\n');
-    for (const sel of starters) {
-      // `.rjb-pop` and other one-shot marks may carry more than one class: match on the last.
-      const key = sel.split(/\s+/).pop()!;
-      expect(reduced, `reduced motion: ${sel}`).toContain(key);
-      expect(base, `Pause animations: ${sel}`).toContain(`${PAUSED} ${key}`);
+    for (const full of starters) {
+      // The page scope is no part of the off rule's selector.
+      const sel = full.replace(/^\[data-hds\] /, '').replace(/\s+/g, ' ');
+      expect(reduced.replace(/\s+/g, ' '), `reduced motion: ${sel}`).toContain(sel);
+      expect(base.replace(/\s+/g, ' '), `Pause animations: ${sel}`).toContain(`${PAUSED} ${sel}`);
     }
   });
 

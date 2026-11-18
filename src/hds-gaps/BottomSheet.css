@@ -3,8 +3,19 @@
  * base.css). From sm up it stays HDS's centred dialog. Imported by each sheet's own lazy chunk, off
  * the first-load CSS. Upstream: HDS Sheet does this (hds#690), but it costs the startup chunk
  * ~0.7 kB, which is at its budget. */
+/* A sheet slides (motion pass 2026-11-18): up from the bottom edge as it opens.
+ * Transform only; off for reduced motion and Pause animations (the rules at the end of this file). */
+@keyframes rjb-dialog-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
 /* hds-gap: hirobius/hds#1433 (G2) */
 @media (max-width: 639.98px) {
+  [data-hds] .rjb-bottom-sheet[role='dialog'][data-state='open'] {
+    animation: rjb-dialog-sheet-in var(--hds-motion-productive-duration)
+      var(--hds-motion-productive-easing);
+  }
   [data-hds] .rjb-bottom-sheet {
     top: auto;
     bottom: 0;
@@ -27,4 +38,14 @@
     border-radius: var(--primitive-radius-full, 999px);
     background: var(--semantic-color-border-default);
   }
+}
+
+/* The sheet's slide stops for reduced motion and for Pause animations (motionPref.ts). */
+@media (prefers-reduced-motion: reduce) {
+  [data-hds] .rjb-bottom-sheet[role='dialog'][data-state='open'] {
+    animation: none;
+  }
+}
+:root[data-rjb-motion='paused'] .rjb-bottom-sheet[role='dialog'][data-state='open'] {
+  animation: none;
 }

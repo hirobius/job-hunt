@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { topTab, currentTab } from './routes';
+import { topTab, currentTab, settled } from './routes';
 
 // Core happy path: paste a job URL → it lands in the queue. The Pipeline is `#/apply`; the empty
 // hash is Companies (Calm list).
@@ -56,6 +56,7 @@ test('Add job at 390 is a bottom sheet with Add job at full width', async ({ pag
     dialog.getByText('The title fills in from the link. You can edit it after.'),
   ).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+  await settled(page); // the sheet slides up
   const sheet = (await dialog.boundingBox())!;
   expect(Math.round(sheet.y + sheet.height)).toBe(844);
   expect(Math.round(sheet.width)).toBe(390);

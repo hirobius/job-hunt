@@ -204,3 +204,20 @@ export async function accountMenuItem(page: Page, name: string) {
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name, exact: true }).click();
 }
+
+/** Wait until every finite animation on the page has ended. A spec that measures where a menu or a
+ *  dialog sits calls it first: an overlay enters with motion (base.css `rjb-overlay-in`, a phone's
+ *  sheets slide), so its box moves for its first 150 ms. */
+export async function settled(page: Page) {
+  await page.evaluate(async () => {
+    for (let i = 0; i < 10; i++) {
+      const running = document
+        .getAnimations()
+        .filter(
+          (a) => a.playState === 'running' && a.effect?.getComputedTiming().endTime !== Infinity,
+        );
+      if (!running.length) return;
+      await Promise.all(running.map((a) => a.finished.catch(() => {})));
+    }
+  });
+}

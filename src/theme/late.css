@@ -85,6 +85,13 @@
   background: var(--semantic-color-border-subtle);
 }
 
+/* A sheet slides (motion pass 2026-11-18): up from the bottom edge as it opens.
+ * Transform only; off for reduced motion and Pause animations (the rules at the end of this file). */
+@keyframes rjb-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
 @media (max-width: 639.98px) {
   [data-radix-popper-content-wrapper]:has(> .rjb-menu-sheet) {
     position: fixed !important;
@@ -109,6 +116,11 @@
      * menu (an outside press). */
     box-shadow: 0 0 0 100vmax
       color-mix(in srgb, var(--semantic-color-surface-scrim) 60%, transparent);
+  }
+
+  [data-hds] .rjb-menu-sheet[role='menu'][data-state='open'] {
+    animation: rjb-sheet-in var(--hds-motion-productive-duration)
+      var(--hds-motion-productive-easing);
   }
 
   /* The grab handle: 36x4, a pill in the strong border colour, centred on top. Its own box here,
@@ -137,4 +149,14 @@
     [role^='menuitem']:not(.rjb-menu-key)[data-highlighted]:not(:focus-visible) {
     background-color: transparent;
   }
+}
+
+/* The sheet's slide stops for reduced motion and for Pause animations (motionPref.ts). */
+@media (prefers-reduced-motion: reduce) {
+  [data-hds] .rjb-menu-sheet[role='menu'][data-state='open'] {
+    animation: none;
+  }
+}
+:root[data-rjb-motion='paused'] .rjb-menu-sheet[role='menu'][data-state='open'] {
+  animation: none;
 }
