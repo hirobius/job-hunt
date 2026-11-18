@@ -20,10 +20,23 @@ export function motionOk(): boolean {
   );
 }
 
-/** How long a flash holds (its animation fades out within it; reduced motion holds it still). */
-const FLASH_MS = 1200;
-/** The collapse's length: `--hds-motion-productive-duration` (150ms) plus a frame of slack. */
-const COLLAPSE_MS = 180;
+/** An HDS motion token's length in ms, read from the page's own variables
+ *  (`--hds-motion-<name>-duration`, variables.css), so a wait here and the CSS it waits for can
+ *  never disagree. 0 where the variable is not set (jsdom): nothing waits. */
+export function motionMs(name: 'productive' | 'spatial' | 'exit' | 'expressive'): number {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--hds-motion-${name}-duration`)
+    .trim();
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n)) return 0;
+  return raw.endsWith('ms') ? n : n * 1000;
+}
+/** How long a flash holds: base.css `rjb-flash` runs three spatial lengths (reduced motion holds
+ *  it still for as long). */
+const flashMs = () => motionMs('spatial') * 3;
+/** The collapse's length: base.css `rjb-collapse` runs one productive length; a fifth more is
+ *  the slack of a frame or two. */
+const collapseMs = () => motionMs('productive') * 1.2;
 
 /** The row an action sits in: a table row (an HDS Table's is a `role="row"` div), a list item or
  *  a card. */
@@ -47,14 +60,18 @@ export function flash(el: Element | null) {
   const boxes = boxesOf(el);
   for (const box of boxes) box.removeAttribute(MOTION);
   void (boxes[0] as HTMLElement | undefined)?.offsetWidth; // restart the animation
+  // With no token on the page (jsdom) there is no animation to wait for: the mark stays, so a test
+  // reads it.
+  const hold = flashMs();
   for (const box of boxes) {
     box.setAttribute(MOTION, 'flash');
     clearTimeout(timers.get(box));
+    if (!hold) continue;
     timers.set(
       box,
       setTimeout(() => {
         if (box.getAttribute(MOTION) === 'flash') box.removeAttribute(MOTION);
-      }, FLASH_MS),
+      }, hold),
     );
   }
 }
@@ -68,7 +85,7 @@ export function collapseRow(from: Element | null, then: () => void) {
   const row = rowOf(from);
   if (!row || !motionOk()) return then();
   for (const box of boxesOf(row)) box.setAttribute(MOTION, 'collapse');
-  setTimeout(then, COLLAPSE_MS);
+  setTimeout(then, collapseMs());
 }
 
 // A new item (a duplicate, a pinned document that moved): the action names it here, and the item

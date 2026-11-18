@@ -85,6 +85,79 @@
   background: var(--semantic-color-border-subtle);
 }
 
+/* Overlays (motion pass 2026-11-18): an HDS Dialog and Menu showed whole on their first frame.
+ * They rise and fade in at the productive length: opacity and transform only, never a layout
+ * property, and the first frame is on screen as before, so the answer is not later. `transform`
+ * is free on both: a Dialog is centred by `translate`, a Menu's popper moves its wrapper. A phone's
+ * sheets slide instead (below, and BottomSheet.css). In this file, not base.css: the first-load
+ * CSS is at its size budget, and this sheet loads with the app bar's logo, before a press can
+ * open anything. There is no exit motion yet: HDS unmounts a
+ * closed Dialog at once (measured: one frame), so CSS cannot hold it. Upstream: hds
+ * `claude/component-motion` (docs/hds-upstream-asks-0.9.md). */
+@keyframes rjb-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--primitive-space-2));
+  }
+}
+@keyframes rjb-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+[data-hds] [role='dialog'][data-state='open'],
+[data-hds] [role='alertdialog'][data-state='open'],
+[data-hds] [role='menu'][data-state='open'] {
+  animation: rjb-overlay-in var(--hds-motion-productive-duration)
+    var(--hds-motion-productive-easing);
+}
+/* A Dialog's scrim, the element before it. */
+[data-hds] [data-state='open']:has(+ [role='dialog']),
+[data-hds] [data-state='open']:has(+ [role='alertdialog']) {
+  animation: rjb-scrim-in var(--hds-motion-productive-duration) var(--hds-motion-productive-easing);
+}
+/* The overlay enter stops for reduced motion and for Pause animations (motionPref.ts). */
+@media (prefers-reduced-motion: reduce) {
+  [data-hds] [role='dialog'][data-state='open'],
+  [data-hds] [role='alertdialog'][data-state='open'],
+  [data-hds] [role='menu'][data-state='open'],
+  [data-hds] [data-state='open']:has(+ [role='dialog']),
+  [data-hds] [data-state='open']:has(+ [role='alertdialog']) {
+    animation: none;
+  }
+}
+:root[data-rjb-motion='paused'] [role='dialog'][data-state='open'],
+:root[data-rjb-motion='paused'] [role='alertdialog'][data-state='open'],
+:root[data-rjb-motion='paused'] [role='menu'][data-state='open'],
+:root[data-rjb-motion='paused'] [data-state='open']:has(+ [role='dialog']),
+:root[data-rjb-motion='paused'] [data-state='open']:has(+ [role='alertdialog']) {
+  animation: none;
+}
+
+/* HDS's own keyframe motion, paused too. HDS switches these off under the system setting only
+ * (a media query per component, and `useReducedMotion` for what it animates in script), with no
+ * attribute or variable an app can set; these are its reduced-motion rules again, under the Pause
+ * attribute. What HDS animates in script (a toast's rise, a switch's thumb) still runs while
+ * paused: upstream ask in docs/hds-upstream-asks-0.9.md. Spinner and Skeleton keep their loop. */
+:root[data-rjb-motion='paused'] .hds-tabs-content,
+:root[data-rjb-motion='paused'] .hds-icon-swap,
+:root[data-rjb-motion='paused'] .hds-sheet {
+  animation: none;
+}
+:root[data-rjb-motion='paused'] .hds-toast,
+:root[data-rjb-motion='paused'] .hds-toast[data-swipe] {
+  transition: none;
+  animation: none;
+  transform: translate(0);
+}
+
+/* A sheet slides (motion pass 2026-11-18): up from the bottom edge as it opens.
+ * Transform only; off for reduced motion and Pause animations (the rules at the end of this file). */
+@keyframes rjb-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
 @media (max-width: 639.98px) {
   [data-radix-popper-content-wrapper]:has(> .rjb-menu-sheet) {
     position: fixed !important;
@@ -109,6 +182,11 @@
      * menu (an outside press). */
     box-shadow: 0 0 0 100vmax
       color-mix(in srgb, var(--semantic-color-surface-scrim) 60%, transparent);
+  }
+
+  [data-hds] .rjb-menu-sheet[role='menu'][data-state='open'] {
+    animation: rjb-sheet-in var(--hds-motion-productive-duration)
+      var(--hds-motion-productive-easing);
   }
 
   /* The grab handle: 36x4, a pill in the strong border colour, centred on top. Its own box here,
@@ -137,6 +215,16 @@
     [role^='menuitem']:not(.rjb-menu-key)[data-highlighted]:not(:focus-visible) {
     background-color: transparent;
   }
+}
+
+/* The sheet's slide stops for reduced motion and for Pause animations (motionPref.ts). */
+@media (prefers-reduced-motion: reduce) {
+  [data-hds] .rjb-menu-sheet[role='menu'][data-state='open'] {
+    animation: none;
+  }
+}
+:root[data-rjb-motion='paused'] .rjb-menu-sheet[role='menu'][data-state='open'] {
+  animation: none;
 }
 
 /* A solid glyph (Adrian 2026-11-18: Pause and Play, on the sign-in screen and in the Account menu).

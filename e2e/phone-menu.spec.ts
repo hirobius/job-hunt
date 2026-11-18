@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from './fixtures';
-import { openData } from './routes';
+import { openData, settled } from './routes';
 
 // A long row menu on a phone (44px items) must fit a 390px screen with the page scroll-locked, so
 // Remove, the last item, can be reached. HDS Menu caps its own height since 0.28 (hds#821; the
@@ -72,6 +72,7 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   await picker.click();
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible();
+  await settled(page); // the sheet slides up
   const sheet = (await menu.boundingBox())!;
   expect(Math.round(sheet.x)).toBe(0);
   expect(Math.round(sheet.y + sheet.height)).toBe(844);

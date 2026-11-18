@@ -83,7 +83,12 @@ import {
 import { deviceData, mergeQuestion } from './deviceData';
 import { dropSampleTrack } from '../demo/sampleTrack';
 import { dropAutoSetup } from '../autoSetup';
-import { LinkConfirmScreen, MergeConfirmDialog, SignOutConfirmDialog } from '../lazyDialogs';
+import {
+  DeleteDataConfirmDialog,
+  LinkConfirmScreen,
+  MergeConfirmDialog,
+  SignOutConfirmDialog,
+} from '../lazyDialogs';
 import {
   clearDeviceAccount,
   KEPT_ON_SIGN_OUT,
@@ -203,6 +208,14 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const answerSignOut = (yes: boolean) => {
     signOutAsk?.(yes);
     setSignOutAsk(null);
+  };
+  // Delete my data asks first, in the same way (#793): the HDS confirm's answer (true = delete).
+  const [deleteAsk, setDeleteAsk] = useState<((yes: boolean) => void) | null>(null);
+  const askDelete = () =>
+    new Promise<boolean>((resolve) => setDeleteAsk(() => (yes: boolean) => resolve(yes)));
+  const answerDelete = (yes: boolean) => {
+    deleteAsk?.(yes);
+    setDeleteAsk(null);
   };
   // The user that passed the whole sign-in path (email check, then the merge guard). Nothing is
   // pulled or pushed for anyone else, and only their token refreshes skip that path: an expired
@@ -717,12 +730,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Delete removes the cloud row (RLS-scoped to this user) AND local data, then signs out.
   const deleteMyData = async () => {
     if (!user || (tabFrozen() && tabFrozen() !== 'newerVersion')) return;
-    if (
-      !window.confirm(
-        'Delete all your synced data (jobs, tracks, boards, watched companies and scored postings) and your sign-in from the cloud, and your data from this device? This cannot be undone.',
-      )
-    )
-      return;
+    // The HDS confirm (DeleteDataConfirm.tsx; a browser confirm until #793). Cancel, Escape, Back
+    // and the scrim all answer no.
+    if (!(await askDelete())) return;
     // The confirm may have stayed open while another tab switched account (#288): then the
     // deletes would run under that account's session, and the sign-out below would end it.
     const stoppedByNewer = tabFrozen() === 'newerVersion';
@@ -955,6 +965,15 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
             question={mergeAsk.question}
             onAdd={addDeviceData}
             onKeep={keepDeviceData}
+          />
+        </Suspense>
+      )}
+      {/* "Delete all your data?": the HDS confirm in place of window.confirm (#793). */}
+      {deleteAsk && (
+        <Suspense fallback={null}>
+          <DeleteDataConfirmDialog
+            onDelete={() => answerDelete(true)}
+            onCancel={() => answerDelete(false)}
           />
         </Suspense>
       )}
