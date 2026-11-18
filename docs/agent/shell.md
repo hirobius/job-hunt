@@ -51,7 +51,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   screen (Proposal A, Adrian 2026-11-08).** The tab opens on the same job (no list page; `PipelinePage` is only the
   empty state; no filter bar on the job since #543; no search, filters, Sort or sample line anywhere since the
   control-free list, 2026-11-13), the sticky **walk control** (#542, `ApplyWalk.tsx`:
-  one row, no box: the **view picker** (the open view's name, bold, caret inside, named "View: <name>"; since 2026-11-13 an HDS
+  one row, no box: the **view picker** (the open view's name in the Button's own type, no weight of its own since 2026-11-18 (it was bold beside semibold keys; `e2e/control-type.spec.ts`), caret inside, named "View: <name>"; since 2026-11-13 an HDS
   secondary `Button` drawn as a select by `ApplyWalk.css` `.rjb-view-picker`: the Find chips' fill (HDS Tag tokens) as a
   40px pill (its `::after`; HDS's `::before` is the press wipe) in a 44px hit area, no edge or shadow, its left edge on
   the page gutter under Find | Apply and the job title, `e2e/shell-controls.spec.ts`; an HDS Menu drawn as

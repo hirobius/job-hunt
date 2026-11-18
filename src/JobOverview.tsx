@@ -267,18 +267,24 @@ function DetailsPanel({ job }: { job: Job }) {
             }}
           />
         ) : (
-          <MetadataList
-            orientation="horizontal"
-            items={facts.map((f) => ({
-              term: f.term,
-              description:
-                f.term === 'Company'
-                  ? companyLink(f.description, route)
-                  : f.term === 'Link'
-                    ? postingLink(job, f.description)
-                    : f.description,
-            }))}
-          />
+          <>
+            {/* `.rjb-details-list` (base.css): on a phone the rows sit a 44px target apart, so the
+              Company link and the Link never lie over each other (Adrian 2026-11-18). */}
+            <Box className="rjb-details-list">
+              <MetadataList
+                orientation="horizontal"
+                items={facts.map((f) => ({
+                  term: f.term,
+                  description:
+                    f.term === 'Company'
+                      ? companyLink(f.description, route)
+                      : f.term === 'Link'
+                        ? postingLink(job, f.description)
+                        : f.description,
+                }))}
+              />
+            </Box>
+          </>
         )}
       </PanelBody>
     </Panel>

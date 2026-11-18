@@ -159,7 +159,7 @@ function MotionToggle() {
         setMotionPaused(next);
         setPaused(next);
       }}
-      icon={<Icon icon={Pause} size="small" />}
+      icon={<Icon icon={Pause} size="small" weight="fill" className="rjb-icon-solid" />}
     >
       Pause animations
     </MenuToggleItem>

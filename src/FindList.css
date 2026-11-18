@@ -103,3 +103,16 @@ body[data-hds]:has(.rjb-find-new) {
 [data-hds] .rjb-card-stretch:active {
   background-color: var(--semantic-color-surface-pressed);
 }
+
+/* A card's Show more / Show less and Read the full posting, on one row (Adrian 2026-11-18). On a
+ * phone each is a 44px target: the row takes that height and the links stand in it with no
+ * negative margin, so no target lies over the text's other link or over the Save row
+ * (e2e/open-state-targets.spec.ts checks that targets do not overlap). */
+@media (max-width: 639px) {
+  [data-hds] .rjb-excerpt-links {
+    min-height: var(--rjb-touch);
+  }
+  [data-hds] .rjb-excerpt-links > * {
+    margin-block: 0;
+  }
+}

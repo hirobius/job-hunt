@@ -999,20 +999,25 @@ function BrowseExcerpt({ r }: { r: FeedRow }) {
       >
         {body}
       </Text>
-      <Button
-        variant="link"
-        size="sm"
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? 'Show less' : 'Show more'}
-      </Button>
-      {open && link && (
-        <InlineLink href={r.url} standalone size="sm">
-          Read the full posting
-        </InlineLink>
-      )}
+      {/* One row for the two links (Adrian 2026-11-18): stacked, their 44px targets lay over each
+          other and over the Save row. `.rjb-excerpt-links` (FindList.css) gives the row the
+          target's own height on a phone, so nothing overhangs a neighbour. */}
+      <Stack direction="row" gap="normal" align="center" wrap="wrap" className="rjb-excerpt-links">
+        <Button
+          variant="link"
+          size="sm"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? 'Show less' : 'Show more'}
+        </Button>
+        {open && link && (
+          <InlineLink href={r.url} standalone size="sm">
+            Read the full posting
+          </InlineLink>
+        )}
+      </Stack>
     </Stack>
   );
 }

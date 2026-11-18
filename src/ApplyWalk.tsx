@@ -8,7 +8,7 @@
 // left); when the row is too narrow for both, the pager wraps under it. It only truncates on a
 // screen too narrow for the name alone. Below lg only: at lg the list sits beside the job.
 import { ChevronDown } from 'lucide-react';
-import { Box, Button, Menu, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Menu, Stack } from '@hirobius/design-system';
 import { decided } from './decided';
 import { skippedPostings } from './passed';
 import ApplyPager from './ApplyPager';
@@ -26,12 +26,6 @@ import type { Job } from './types';
 
 // HDS Button has no truncation: the picker may shrink and its name ellipsises (the pager never).
 const PICKER = { minWidth: 0, maxWidth: '100%', overflow: 'hidden' } as const;
-const NAME = {
-  minWidth: 0,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-} as const;
 const GROW = { flex: '1 0 auto', minWidth: 0, maxWidth: '100%' } as const;
 
 export default function ApplyWalk({
@@ -67,9 +61,11 @@ export default function ApplyWalk({
               className="rjb-view-picker"
               style={PICKER}
             >
-              <Text as="span" variant="ui" weight="bold" style={NAME}>
+              {/* The label is the Button's own type (HDS ui size, the Button weight), like every
+                  other key: no weight of its own (Adrian 2026-11-18: it was bold, 700 beside 600). */}
+              <Box as="span" className="rjb-truncate" sx={{ minWidth: 0 }}>
                 {name}
-              </Text>
+              </Box>
             </Button>
           </Menu.Trigger>
           <Menu.Content align="start" className="rjb-menu-sheet">
