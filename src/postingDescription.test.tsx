@@ -82,3 +82,23 @@ describe('PostingDescription', () => {
     expect(text).not.toMatch(/ABOUT/);
   });
 });
+
+// No italic text anywhere (CLAUDE.md). A board's <em> or <i> is kept as an emphasis run, and the
+// browser sets that italic unless the description's CSS says otherwise (rules audit 2026-11-18;
+// e2e/layout-rules.spec.ts reads only the sample data, which has none).
+describe('a posting description sets no italic text', () => {
+  it('keeps <em> and <i> as an em run', async () => {
+    const { htmlToBlocks } = await import('./feed/richText');
+    const flat = JSON.stringify(
+      htmlToBlocks('<p>We are <i>remote first</i> and <em>kind</em>.</p>'),
+    );
+    expect(flat.match(/"t":"em"/g)).toHaveLength(2);
+  });
+
+  it('PostingDescription.css sets the em run upright', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const css = readFileSync(resolve(__dirname, 'PostingDescription.css'), 'utf8');
+    expect(css).toMatch(/\.rjb-desc em\s*\{[^}]*font-style:\s*normal/);
+  });
+});
