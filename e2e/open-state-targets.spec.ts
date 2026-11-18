@@ -60,6 +60,62 @@ function small(page: Page) {
   });
 }
 
+/** One line per pair of controls whose boxes lie over each other (Adrian 2026-11-18: a card's
+ *  Show less and Read the full posting were stacked with their 44px boxes 10px into each other, and
+ *  the lower one 4px into the Save row). Size alone does not show that. A control inside another
+ *  (a key in a row that is itself a link) and a card's stretched title link are not a pair. */
+function overlapping(page: Page) {
+  return page.evaluate(() => {
+    const shown = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none';
+    };
+    const layers = [...document.querySelectorAll('[role=dialog],[role=alertdialog],[role=menu]')];
+    const root = layers.filter(shown).pop() ?? document.querySelector('main')!;
+    const controls = [
+      ...root.querySelectorAll<HTMLElement>(
+        'button, a[href], [role=tab], [role^=menuitem], [role=switch], [role=checkbox], select, input:not([type=hidden])',
+      ),
+    ].filter((el) => shown(el) && !el.closest('[aria-hidden=true]'));
+    const name = (el: Element) =>
+      (el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 24);
+    /** The part of a control's box that shows: a row scrolled under a pinned header is cut by its
+     *  scroll box, and does not lie over the header's Close. */
+    const seen = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if (cs.overflowY === 'visible' && cs.overflowX === 'visible') continue;
+        const c = n.getBoundingClientRect();
+        if (cs.overflowY !== 'visible') {
+          box.top = Math.max(box.top, c.top);
+          box.bottom = Math.min(box.bottom, c.bottom);
+        }
+        if (cs.overflowX !== 'visible') {
+          box.left = Math.max(box.left, c.left);
+          box.right = Math.min(box.right, c.right);
+        }
+      }
+      return box;
+    };
+    const out: string[] = [];
+    for (let i = 0; i < controls.length; i++)
+      for (let j = i + 1; j < controls.length; j++) {
+        const [a, b] = [controls[i], controls[j]];
+        if (a.contains(b) || b.contains(a)) continue;
+        const [ra, rb] = [seen(a), seen(b)];
+        const w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+        const h = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+        // A pixel of rounding is not an overlap.
+        if (w > 1.5 && h > 1.5)
+          out.push(`"${name(a)}" and "${name(b)}" overlap ${Math.round(w)}x${Math.round(h)}`);
+      }
+    return out;
+  });
+}
+
 for (const theme of ['light', 'dark'] as const)
   test.describe(`44px targets in the open states, ${theme} 390`, () => {
     test.use({ viewport: { width: 390, height: 844 }, colorScheme: theme });
@@ -76,6 +132,7 @@ for (const theme of ['light', 'dark'] as const)
       const read = async (where: string) => {
         await page.waitForTimeout(300);
         bad.push(...(await small(page)).map((s) => `${where}: ${s}`));
+        bad.push(...(await overlapping(page)).map((s) => `${where}: ${s}`));
       };
       const account = page.getByRole('button', { name: /^Account/ });
 
@@ -111,5 +168,60 @@ for (const theme of ['light', 'dark'] as const)
       await page.keyboard.press('Escape');
 
       expect(bad).toEqual([]);
+    });
+  });
+
+// A Review card with its description open (signed in: Review reads postings only then).
+for (const theme of ['light', 'dark'] as const)
+  test.describe(`a Review card's open description, ${theme} 390`, () => {
+    test.use({
+      viewport: { width: 390, height: 844 },
+      colorScheme: theme,
+      signedIn: true,
+    });
+
+    test('Show less, Read the full posting and the action row: 44px each, none over another', async ({
+      page,
+    }) => {
+      await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
+      const long = 'We build the library with the product teams. '.repeat(12);
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => {
+        const url = r.request().url();
+        const json = (body: unknown) =>
+          r.fulfill({
+            status: 200,
+            headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        if (url.startsWith('https://api.lever.co/')) return json([]);
+        if (!url.startsWith('https://hn.algolia.com/')) return json({ jobs: [] });
+        if (url.includes('search_by_date'))
+          return json({
+            hits: [
+              {
+                objectID: '9',
+                title: 'Ask HN: Who is hiring? (October 2026)',
+                created_at: '2026-10-01',
+              },
+            ],
+          });
+        return json({
+          hits: [
+            {
+              objectID: 'p-1',
+              story_id: 9,
+              parent_id: 9,
+              created_at: new Date().toISOString(),
+              comment_text: `Orbit | Design Systems Engineer | Remote<p>Own our design system. ${long}</p>`,
+            },
+          ],
+        });
+      });
+      await page.goto('/#/review');
+      const card = page.locator('main article').first();
+      await card.getByRole('button', { name: 'Show more' }).click();
+      await expect(card.getByRole('link', { name: /^Read the full posting/ })).toBeVisible();
+      await page.waitForTimeout(300);
+      expect([...(await small(page)), ...(await overlapping(page))]).toEqual([]);
     });
   });

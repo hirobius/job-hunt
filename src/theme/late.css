@@ -138,3 +138,10 @@
     background-color: transparent;
   }
 }
+
+/* A solid glyph (Adrian 2026-11-18: Pause and Play, on the sign-in screen and in the Account menu).
+ * HDS `Icon weight="fill"` sets only the stroke width, so the shape stays an outline; this fills it
+ * in the icon's own colour. Upstream ask in docs/hds-upstream-asks-0.9.md. */
+[data-hds] svg.rjb-icon-solid {
+  fill: currentColor;
+}

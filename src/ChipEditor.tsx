@@ -36,7 +36,11 @@ export function ChipEditor({
   return (
     <Stack gap="px8">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}>
+      {/* Below sm the rows sit 12px apart: each Remove key is a 44px target on a 32px chip, and at
+          8px the keys of two rows lay 4px over each other (e2e/open-state-targets.spec.ts). */}
+      <Box
+        sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 'xs', rowGap: { base: 3, sm: 'xs' } }}
+      >
         {/* A term is a static pill; only its X removes it (rev-3 mock), so a stray tap on the
             text can't drop a term. HDS Tag is always one whole button, so this is a Box pill
             with an icon Button: `.rjb-term` / `.rjb-term-x` in base.css. Tag's soft fill, no edge (HDS 0.31). */}

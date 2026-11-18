@@ -46,7 +46,9 @@ export function SignInShell({
             size="sm"
             variant="tertiary"
             iconOnly
-            iconLeft={<Icon icon={paused ? Play : Pause} />}
+            iconLeft={
+              <Icon icon={paused ? Play : Pause} weight="fill" className="rjb-icon-solid" />
+            }
             label={paused ? 'Play animations' : 'Pause animations'}
             onClick={() => setMotionPaused(!paused)}
           />
