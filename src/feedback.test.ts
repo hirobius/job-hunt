@@ -13,6 +13,10 @@ import {
 /** The motion an element is marked with (`data-motion`), or null. */
 const motion = (el: Element | null) => el?.getAttribute('data-motion') ?? null;
 
+/** The page's HDS spatial length, as variables.css sets it: a flash holds three of them. */
+const spatial = () =>
+  document.documentElement.style.setProperty('--hds-motion-spatial-duration', '.4s');
+
 const reduce = (on: boolean) =>
   (window.matchMedia = vi.fn().mockImplementation((media: string) => ({
     matches: on && media.includes('reduce'),
@@ -24,6 +28,7 @@ const reduce = (on: boolean) =>
 afterEach(() => {
   vi.useRealTimers();
   delete (window as { matchMedia?: unknown }).matchMedia;
+  document.documentElement.removeAttribute('style');
   document.body.innerHTML = '';
 });
 
@@ -73,13 +78,42 @@ describe('Pause animations (motion pass 2026-11-18)', () => {
   });
 });
 
-describe('flash', () => {
-  it('marks the element, then clears the mark', () => {
+describe('motionMs: a wait is an HDS token length, never a number of its own', () => {
+  afterEach(() => document.documentElement.removeAttribute('style'));
+
+  it('reads seconds and milliseconds from the page variables, and is 0 with none', async () => {
+    const { motionMs } = await import('./feedback');
+    expect(motionMs('productive')).toBe(0);
+    document.documentElement.style.setProperty('--hds-motion-productive-duration', '.15s');
+    document.documentElement.style.setProperty('--hds-motion-spatial-duration', '400ms');
+    expect(motionMs('productive')).toBe(150);
+    expect(motionMs('spatial')).toBe(400);
+  });
+
+  it('a collapse waits a productive length and a fifth, then runs', async () => {
+    reduce(false);
+    document.documentElement.style.setProperty('--hds-motion-productive-duration', '.15s');
+    document.body.innerHTML = '<ul><li id="row"><button id="b">Remove</button></li></ul>';
     vi.useFakeTimers();
+    const then = vi.fn();
+    collapseRow(document.getElementById('b'), then);
+    vi.advanceTimersByTime(179);
+    expect(then).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(then).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('flash', () => {
+  it('marks the element, then clears the mark after three spatial lengths', () => {
+    vi.useFakeTimers();
+    spatial();
     const el = document.createElement('div');
     flash(el);
     expect(motion(el)).toBe('flash');
-    vi.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(1199);
+    expect(motion(el)).toBe('flash');
+    vi.advanceTimersByTime(1);
     expect(motion(el)).toBeNull();
   });
 
@@ -134,6 +168,7 @@ describe('a table row with no box (HDS Table)', () => {
 
   it('flashRow flashes every cell of the row the action sits in', () => {
     vi.useFakeTimers();
+    spatial();
     const { btn, cells, row } = gridRow();
     flashRow(btn);
     for (const cell of cells) expect(motion(cell)).toBe('flash');
