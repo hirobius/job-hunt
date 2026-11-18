@@ -82,10 +82,14 @@ describe('HDS motion tokens only, in CSS (motion pass 2026-11-18)', () => {
 });
 
 describe('App motion stops for reduced motion and for Pause animations', () => {
-  const base = strip(readFileSync(join(SRC, 'theme/base.css'), 'utf8'));
+  // base.css is the first-load sheet; late.css (it loads with the app bar's logo) holds the overlay
+  // enter and HDS's rules, off the first-load CSS budget.
+  const base =
+    strip(readFileSync(join(SRC, 'theme/base.css'), 'utf8')) +
+    strip(readFileSync(join(SRC, 'theme/late.css'), 'utf8'));
   const PAUSED = ":root[data-rjb-motion='paused']";
 
-  it('every keyframe animation of base.css is switched off in both', () => {
+  it('every keyframe animation of base.css and late.css is switched off in both', () => {
     // The classes and attributes that start a keyframe animation in base.css.
     const starters = [
       ...base.matchAll(/([^{}]+)\{[^{}]*\banimation:\s*rjb-[^;]+;[^{}]*\}/g),

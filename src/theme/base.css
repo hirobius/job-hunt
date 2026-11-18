@@ -192,22 +192,6 @@ p {
 :root[data-rjb-motion='paused'] *::after {
   transition-duration: 0.01ms !important;
 }
-/* HDS's own keyframe motion, paused too. HDS switches these off under the system setting only
- * (a media query per component, and `useReducedMotion` for what it animates in script), with no
- * attribute or variable an app can set; these are its reduced-motion rules again, under the Pause
- * attribute. What HDS animates in script (a toast's rise, a switch's thumb) still runs while
- * paused: upstream ask in docs/hds-upstream-asks-0.9.md. Spinner and Skeleton keep their loop. */
-:root[data-rjb-motion='paused'] .hds-tabs-content,
-:root[data-rjb-motion='paused'] .hds-icon-swap,
-:root[data-rjb-motion='paused'] .hds-sheet {
-  animation: none;
-}
-:root[data-rjb-motion='paused'] .hds-toast,
-:root[data-rjb-motion='paused'] .hds-toast[data-swipe] {
-  transition: none;
-  animation: none;
-  transform: translate(0);
-}
 
 /* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
  * (HDS 0.31 TokenField's look, from the same tokens: a soft muted fill, no edge). A blank that fills in place is an HDS Tag set in
@@ -742,35 +726,6 @@ p {
   animation: rjb-view-enter var(--hds-motion-productive-duration)
     var(--hds-motion-productive-easing);
 }
-/* Overlays (motion pass 2026-11-18): an HDS Dialog and Menu showed whole on their first frame.
- * They rise and fade in at the productive length: opacity and transform only, never a layout
- * property, and the first frame is on screen as before, so the answer is not later. `transform`
- * is free on both: a Dialog is centred by `translate`, a Menu's popper moves its wrapper. A phone's
- * sheets slide instead (late.css, BottomSheet.css). There is no exit motion yet: HDS unmounts a
- * closed Dialog at once (measured: one frame), so CSS cannot hold it. Upstream: hds
- * `claude/component-motion` (docs/hds-upstream-asks-0.9.md). */
-@keyframes rjb-overlay-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--primitive-space-2));
-  }
-}
-@keyframes rjb-scrim-in {
-  from {
-    opacity: 0;
-  }
-}
-[data-hds] [role='dialog'][data-state='open'],
-[data-hds] [role='alertdialog'][data-state='open'],
-[data-hds] [role='menu'][data-state='open'] {
-  animation: rjb-overlay-in var(--hds-motion-productive-duration)
-    var(--hds-motion-productive-easing);
-}
-/* A Dialog's scrim, the element before it. */
-[data-hds] [data-state='open']:has(+ [role='dialog']),
-[data-hds] [data-state='open']:has(+ [role='alertdialog']) {
-  animation: rjb-scrim-in var(--hds-motion-productive-duration) var(--hds-motion-productive-easing);
-}
 /* Reduced motion: the state change and the toast stay, the movement goes. A flash holds still for
  * its length (feedback.ts clears it); a collapse doesn't run. */
 @media (prefers-reduced-motion: reduce) {
@@ -783,24 +738,12 @@ p {
   [data-motion='collapse'] {
     animation: none;
   }
-  [data-hds] [role='dialog'][data-state='open'],
-  [data-hds] [role='alertdialog'][data-state='open'],
-  [data-hds] [role='menu'][data-state='open'],
-  [data-hds] [data-state='open']:has(+ [role='dialog']),
-  [data-hds] [data-state='open']:has(+ [role='alertdialog']) {
-    animation: none;
-  }
 }
 /* Pause animations: as reduced motion above. */
 :root[data-rjb-motion='paused'] [data-motion='flash'] {
   animation: none;
   background-color: var(--semantic-color-surface-selected);
 }
-:root[data-rjb-motion='paused'] [role='dialog'][data-state='open'],
-:root[data-rjb-motion='paused'] [role='alertdialog'][data-state='open'],
-:root[data-rjb-motion='paused'] [role='menu'][data-state='open'],
-:root[data-rjb-motion='paused'] [data-state='open']:has(+ [role='dialog']),
-:root[data-rjb-motion='paused'] [data-state='open']:has(+ [role='alertdialog']),
 :root[data-rjb-motion='paused'] .rjb-arrive,
 :root[data-rjb-motion='paused'] .rjb-view-enter,
 :root[data-rjb-motion='paused'] [data-motion='collapse'] {

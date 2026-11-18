@@ -206,7 +206,7 @@ export async function accountMenuItem(page: Page, name: string) {
 }
 
 /** Wait until every finite animation on the page has ended. A spec that measures where a menu or a
- *  dialog sits calls it first: an overlay enters with motion (base.css `rjb-overlay-in`, a phone's
+ *  dialog sits calls it first: an overlay enters with motion (late.css `rjb-overlay-in`, a phone's
  *  sheets slide), so its box moves for its first 150 ms. */
 export async function settled(page: Page) {
   await page.evaluate(async () => {
