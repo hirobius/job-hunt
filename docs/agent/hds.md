@@ -75,3 +75,9 @@ How the app uses `@hirobius/design-system` (HDS): components, `sx`, density, the
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (all at 4.5 since the 0.32.0 audit; tracked
   upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 44px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
+
+- **Rules audit guards (2026-11-18):** `e2e/open-state-targets.spec.ts` probes 44px targets in the Account menu, its
+  dialogs, the view picker, a job and its More menu at 390 (a link that is a row's whole value is HDS
+  `InlineLink standalone`; below sm `base.css` sets its target to `--rjb-touch`). A posting description's `em` run is
+  upright (`PostingDescription.css`, `postingDescription.test.tsx`). `hdsOnly.test.ts` lists each browser dialog
+  (`confirm`, `alert`, `prompt`) at its exact count: only lower it.

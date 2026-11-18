@@ -393,6 +393,73 @@ for (const width of [390, 1440] as const) {
       await expect.poll(() => focused(page)).toBe('A Review');
     });
 
+    // Rules audit 2026-11-18: a page left from its heading kept the heading as the control to come
+    // back to; a new render of it has no tabindex, so Back left focus on <body>.
+    test('Back and Forward between the tabs never leave focus on body', async ({ page }) => {
+      await seed(page);
+      await go(page, '#/apply');
+      await expect.poll(() => focused(page)).not.toBe('BODY');
+      await go(page, '#/review');
+      await expect.poll(() => focused(page)).toBe('H1 Review');
+      await go(page, '#/apply');
+      await expect.poll(() => focused(page)).not.toBe('BODY');
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/review$/);
+      await expect.poll(() => focused(page)).toBe('H1 Review');
+      await page.goForward();
+      await expect(page).toHaveURL(/#\/apply/);
+      await expect.poll(() => focused(page)).not.toBe('BODY');
+    });
+
+    // Rules audit 2026-11-18: each dialog a job's More menu opens gives focus back to More (the
+    // menu item that opened it is gone by then). Follow up… dropped it on <body>.
+    test("each dialog from a job's More menu gives focus back to More, by Escape and by Back", async ({
+      page,
+    }) => {
+      await seed(page);
+      await go(page, '#/apply');
+      // The job with a follow-up due is in the Follow up view (the sample has one).
+      if (width > 1000) {
+        await page
+          .getByRole('group', { name: 'Views' })
+          .getByRole('button', { name: /^Follow up/ })
+          .click();
+        await page
+          .getByRole('navigation', { name: 'Jobs' })
+          .locator('a[href^="#/apply/"]')
+          .first()
+          .click();
+      } else {
+        await page.getByRole('button', { name: /^View: / }).click();
+        await page.getByRole('menuitemradio', { name: /^Follow up/ }).click();
+      }
+      const more = page.getByRole('button', { name: /^More actions/ }).first();
+      await expect(more).toBeVisible();
+      const opened: string[] = [];
+      for (const item of ['Add interview…', 'Follow up…'])
+        for (const close of ['Escape', 'Back'] as const) {
+          await more.click();
+          const entry = page.getByRole('menuitem', { name: item, exact: true });
+          await expect(page.getByRole('menu')).toBeVisible();
+          if (!(await entry.count())) {
+            await page.keyboard.press('Escape');
+            continue;
+          }
+          await entry.click();
+          await expect(page.getByRole('dialog')).toBeVisible();
+          if (close === 'Escape') await page.keyboard.press('Escape');
+          else await page.goBack();
+          await expect(page.getByRole('dialog')).toHaveCount(0);
+          await expect
+            .poll(() => focused(page), { message: `${item} closed by ${close}` })
+            .toMatch(/^BUTTON More actions/);
+          opened.push(`${item} ${close}`);
+        }
+      // Add interview is on every job; Follow up… only below lg's dock-less menu and from lg.
+      expect(opened).toContain('Add interview… Escape');
+      if (width > 1000) expect(opened).toContain('Follow up… Back');
+    });
+
     // #345: the pressed control leaves with what it changed (the empty state, the banner).
     test('Try with sample data hands focus to the page heading; Clear (Account menu) keeps it off body', async ({
       page,

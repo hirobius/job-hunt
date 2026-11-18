@@ -206,3 +206,41 @@ describe('Retired HDS workarounds (#146)', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// HDS components only, and every dialog is wired to Back (CLAUDE.md): a browser dialog
+// (`window.confirm`, `alert`, `prompt`) is neither. Rules audit 2026-11-18 found two, kept here at
+// their exact count so no new one comes in: only lower these. (ErrorBoundary's runs when the app
+// itself is down; Delete my data's is tracked as an issue.)
+const NATIVE_DIALOG = /\b(?:window\.)?(?:confirm|alert|prompt)\(/g;
+const NATIVE_DIALOG_ALLOWED: Record<string, number> = {
+  'ErrorBoundary.tsx': 1,
+  'account/CloudSyncProvider.tsx': 1,
+};
+
+describe('no browser dialogs (rules audit 2026-11-18)', () => {
+  const strip = (text: string) => text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+  const counts = Object.fromEntries(
+    sourceFiles(SRC)
+      // feed/seed/resolve.ts has its own function named `confirm` (it checks a board).
+      .filter((f) => !f.includes(`${join('feed', 'seed')}`))
+      .map((f) => [
+        f
+          .slice(SRC.length + 1)
+          .split('\\')
+          .join('/'),
+        (strip(readFileSync(f, 'utf8')).match(NATIVE_DIALOG) ?? []).length,
+      ])
+      .filter(([, n]) => n),
+  );
+
+  it('uses confirm(), alert() and prompt() only where listed, at the listed count', () => {
+    expect(counts).toEqual(NATIVE_DIALOG_ALLOWED);
+  });
+
+  it('bites: the pattern catches a call and passes a mention', () => {
+    expect('if (!window.confirm("x")) return'.match(NATIVE_DIALOG)).toHaveLength(1);
+    expect('alert("x")'.match(NATIVE_DIALOG)).toHaveLength(1);
+    expect('const askConfirm = useConfirmDialog()'.match(NATIVE_DIALOG)).toBeNull();
+    expect('<Alert tone="success">'.match(NATIVE_DIALOG)).toBeNull();
+  });
+});
