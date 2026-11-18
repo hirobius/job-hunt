@@ -4,7 +4,7 @@
 // with postings), at 390 and 1440, light and dark. layout-rules.spec.ts runs the same probe.
 import { test, expect, type Page } from './fixtures';
 import { findClipped } from './clipped';
-import { seed, visitAll, go, listScope } from './routes';
+import { seed, visitAll, go, listScope, openAddJob } from './routes';
 
 const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [390, 1440] as const;
@@ -87,15 +87,28 @@ for (const theme of THEMES) {
         const bad: string[] = [];
         await visitAll(page, (name) => check(page, name, bad));
         await go(page, '#/apply');
-        const list = await listScope(page);
-        await check(page, 'job list', bad);
-        await list.getByRole('button', { name: 'Add job' }).click();
-        const add = page.getByRole('dialog', { name: 'Add a job' });
-        await expect(add).toBeVisible();
+        // From lg the list column sits beside the job. Below lg there is no list (the All jobs
+        // sheet went with #788): the view picker and the job's More menu took its place, and Add
+        // job is in that menu (`openAddJob` knows both).
+        if (width >= 1024) {
+          await listScope(page);
+          await check(page, 'job list', bad);
+        } else {
+          await page.getByRole('button', { name: /^View: / }).click();
+          await expect(page.getByRole('menu')).toBeVisible();
+          await check(page, 'view picker', bad);
+          await page.keyboard.press('Escape');
+          await expect(page.getByRole('menu')).toHaveCount(0);
+          await page.getByRole('button', { name: /^More actions: / }).click();
+          await expect(page.getByRole('menu')).toBeVisible();
+          await check(page, 'job More menu', bad);
+          await page.keyboard.press('Escape');
+          await expect(page.getByRole('menu')).toHaveCount(0);
+        }
+        const add = await openAddJob(page);
         await check(page, 'Add a job dialog', bad);
         await page.keyboard.press('Escape');
         await expect(add).toBeHidden();
-        if (width < 1024) await page.keyboard.press('Escape');
         await accountSurfaces(page, bad);
         expect(bad).toEqual([]);
       });
