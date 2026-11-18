@@ -170,3 +170,10 @@
     display: none;
   }
 }
+
+/* The sign-in screen is a full-screen step, not an overlay over a page: it does not rise or fade
+ * in as a Dialog does (base.css `rjb-overlay-in`). Its brand sits at the same place on each step
+ * from the first frame (e2e/sign-in.spec.ts). */
+[data-hds] .rjb-signin-screen[role='dialog'][data-state='open'] {
+  animation: none;
+}
