@@ -358,3 +358,20 @@ url, text (HTML), date_posted, keywords[], source}]`.
 themuse.com, 4dayweek.io, getonbrd.com, remotejobs.org, jobgether.com, jobs.workable.com, api.polymer.co, careers.jobscore.com,
 api.careers-page.com, comeet.co, data.usajobs.gov, developer.usajobs.gov, findwork.dev, hacker-news.firebaseio.com,
 index.commoncrawl.org, web.archive.org, api.exa.ai, api.tavily.com, api.search.brave.com, weworkremotely.com.
+
+## Eztrackr (checked 2026-11-17, LinkedIn remote-first list)
+
+- **Verdict: not built.** Its terms and API could not be read: eztrackr.app is blocked from the build
+  container (curl: proxy 403) and a web search found no Eztrackr terms page or API docs (K: it is a
+  job tracker and extension, no public keyless API known). Without terms that allow reading, the
+  rule is to not read it. Re-check from a machine that can open the site; build only if the terms
+  allow it and a keyless JSON list exists.
+- Same list: Remotive (already read), Remote Rocketship (already a link), Working Nomads (off pending terms).
+
+## Remote-first company list (LinkedIn, 2026-11-17)
+
+58 companies checked against Greenhouse, Lever and Ashby (the only ATS hosts the build container can
+reach; Workable, SmartRecruiters and the other kinds are blocked there, so a company on them reads
+"not found"). 21 were already in `boards.json`; 2 were added (Appcues, Constructor, both Ashby).
+Skipped as not the company's or empty: VAST (`vast` is another company), Bold, Quantum-like name
+clashes, Docusign (empty Lever board), Confluent (present, 0 roles).
