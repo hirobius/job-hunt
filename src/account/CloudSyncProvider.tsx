@@ -81,7 +81,7 @@ import {
   sameEmail,
 } from './authLink';
 import { dropSampleTrack } from '../demo/sampleTrack';
-import { createSignInPath, isNewToDevice } from './signInPath';
+import { createSignInPath, isNewToDevice, type SignInPath } from './signInPath';
 import { dropAutoSetup } from '../autoSetup';
 import {
   DeleteDataConfirmDialog,
@@ -226,7 +226,10 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // guard), the open merge question and a link's email while its session is set. Nothing is pulled
   // or pushed for anyone else, and only their token refreshes skip that path: an expired crafted
   // link is refreshed by supabase-js (TOKEN_REFRESHED, not SIGNED_IN), security re-check.
-  const path = useMemo(() => createSignInPath(), []);
+  // A ref, not useMemo: React may drop a memo and build it again, and a second path would forget
+  // the user that passed this one.
+  const pathRef = useRef<SignInPath | null>(null);
+  const path = (pathRef.current ??= createSignInPath());
 
   // The push / merge loop (syncEngine.ts, #814): it holds the row's last-seen stamp, what was last
   // sent or adopted, and whether a pull has landed since sign-in; this provider says when. Made on
