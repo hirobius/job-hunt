@@ -102,5 +102,5 @@ to `^0.13.0`, which can never resolve to a 0.14+ minor.
 
 ## References
 
-- `docs/hds-upstream-consumption.md` (the brief 0.9.0 closed), `docs/adr/0001`, `0003`, `0004`
+- `docs/hds-upstream-consumption.md` (the brief 0.9.0 closed; removed 2026-11-19, in git history), `docs/adr/0001`, `0003`, `0004`
 - `src/theme.ts`, `src/theme/brand-jade.css`, `src/theme.contrast.test.ts`, `src/main.tsx`

@@ -11,7 +11,6 @@ const FILES = [
   'CLAUDE.md',
   ...fs.readdirSync('docs/agent').map((f) => `docs/agent/${f}`),
   'playwright.config.ts',
-  'docs/loop-queue.md',
   'scripts/gallery.mjs',
   'scripts/make-icons.mjs',
   'scripts/make-screenshots.mjs',

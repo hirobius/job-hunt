@@ -84,7 +84,7 @@ Each hard-to-reverse choice has a record in [`docs/adr/`](docs/adr/). Start with
   selection in the URL.
 
 Domain words are in [`CONTEXT.md`](CONTEXT.md). Also: [`SECURITY.md`](SECURITY.md),
-[`SUPABASE_SETUP.md`](SUPABASE_SETUP.md).
+[`docs/supabase-setup.md`](docs/supabase-setup.md).
 
 ## Contributing
 

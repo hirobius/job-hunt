@@ -1,7 +1,7 @@
 # Guardrails (redesign-mobile)
 
 Adrian, 2026-10-21: "set some guardrails so this doesn't happen again." These hold the mobile-first
-HDS redesign (rev-3 mock: `docs/staging/all-states.html` on `claude/staging-states`) in place.
+HDS redesign (the rev-3 mock) in place.
 
 | Guardrail            | Where                                                                   | Runs in                         | Time  |
 | -------------------- | ----------------------------------------------------------------------- | ------------------------------- | ----- |
