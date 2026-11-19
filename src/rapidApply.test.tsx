@@ -344,7 +344,7 @@ describe('no Application kit on the job view', () => {
     replaceApplyKit({ ...emptyKit(), fields: { ...emptyKit().fields, name: 'Ada' } });
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    await screen.findByRole('link', { name: 'Open application' });
+    await screen.findByRole('link', { name: /^Open application/ });
     expect(screen.queryByRole('region', { name: /^Copy into the form/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Custom answers/ })).toBeNull();
     expect(getApplyKit().fields.name).toBe('Ada');
@@ -356,7 +356,7 @@ describe('the job header keeps to two items per dotted line (#192)', () => {
     updateJob(A, { location: 'Remote', verdict: 'match' });
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    await screen.findByRole('link', { name: 'Open application' });
+    await screen.findByRole('link', { name: /^Open application/ });
     const texts = [...document.body.querySelectorAll('*')]
       .filter((e) => e.children.length === 0)
       .map((e) => e.textContent ?? '');
