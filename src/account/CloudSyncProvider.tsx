@@ -8,22 +8,22 @@ import type { User } from '@supabase/supabase-js';
 import type { OAuthProvider } from './oauthPkce';
 import { loadedSupabase, loadSupabase, needsClientAtBoot, onSupabaseLoaded } from '../supabase';
 import { signInErrorMessage } from './signInErrors';
-import { useJobs, getAllJobs, replaceAll } from '../store';
-import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
-import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
-import { getAllTargets, replaceTargets, useAllTargets } from '../feed/targets';
-import { getAllFilters, replaceFilters, useAllFilters } from '../feed/savedFilters';
-import { readEvidence, replaceEvidence, useEvidence } from '../radar/evidenceStore';
-import { getAllModes, replaceModes, useAllModes } from '../trackModes';
-import { getApplyKit, replaceApplyKit, useApplyKit } from '../applyKit';
-import { getAllSweeps, replaceSweeps, useAllSweeps } from '../feed/sweepTitles';
-import { getAllMustInclude, replaceMustInclude, useAllMustInclude } from '../feed/mustInclude';
-import { getTrash, replaceTrash, useTrash } from '../trash';
-import { getAllDreams, replaceDreams, useAllDreams } from '../feed/dreams';
-import { getAllDocuments, replaceDocuments, useDocuments } from '../documents';
-import { getProfiles, replaceProfiles, useProfiles } from '../profile';
-import { getSources, replaceSources, useSources } from '../sources';
-import { decided as decidedStore, getDecided, replaceDecided } from '../decided';
+import { useJobs } from '../store';
+import { useSnippets } from '../copyDeckStore';
+import { useTileTriage } from '../tileTriage';
+import { useAllTargets } from '../feed/targets';
+import { useAllFilters } from '../feed/savedFilters';
+import { useEvidence } from '../radar/evidenceStore';
+import { useAllModes } from '../trackModes';
+import { useApplyKit } from '../applyKit';
+import { useAllSweeps } from '../feed/sweepTitles';
+import { useAllMustInclude } from '../feed/mustInclude';
+import { useTrash } from '../trash';
+import { useAllDreams } from '../feed/dreams';
+import { useDocuments } from '../documents';
+import { useProfiles } from '../profile';
+import { useSources } from '../sources';
+import { decided as decidedStore } from '../decided';
 import {
   readBlob,
   writeBlob,
@@ -32,6 +32,8 @@ import {
   BLOB_VERSION,
   type SyncData,
 } from '../syncBlob';
+import { readTrackerRow, writeTrackerRow, type RowStamp } from './trackerRow';
+import { applyLocalSyncData, localSyncJson, readLocalSyncData } from './localSyncData';
 import { hashesOf, keysOf, readSyncBase, readSyncHashes, writeSyncBase } from '../syncBase';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import { getCurationState } from '../curation/curationStore';
@@ -101,15 +103,8 @@ import {
 const loadPkce = importFresh(() => import('./oauthPkce'));
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
-/** The cloud row as this tab last read or wrote it: whether there is one, and its stamp. */
-type RowStamp = { row: boolean; at: string | null };
 /** How many times a push merges a newer cloud copy in and sends again before it gives up. */
 const PUSH_TRIES = 3;
-/** A stamp after `at`, even when this device's clock is behind the one that wrote it. */
-function nextStamp(at: string | null): string {
-  const last = at ? Date.parse(at) : NaN;
-  return new Date(Number.isNaN(last) ? Date.now() : Math.max(Date.now(), last + 1)).toISOString();
-}
 /** What the cloud holds, as the base the next merge compares against (#219, entry hashes). */
 function rememberBase(uid: string, d: SyncData) {
   writeSyncBase(uid, keysOf(d), hashesOf(d));
@@ -225,27 +220,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // taken up at all (acceptLink signs it out), so nothing of it is pulled first.
   const linkEmail = useRef<string | null>(null);
 
-  const localBlob = (): SyncData => ({
-    jobs: getAllJobs(),
-    copydeck: getSnippets(),
-    triage: getTileTriage(),
-    legacyUserTiles: [],
-    targets: getAllTargets(),
-    filters: getAllFilters(),
-    evidence: readEvidence(),
-    modes: getAllModes(),
-    kit: getApplyKit(),
-    sweeps: getAllSweeps(),
-    mustInclude: getAllMustInclude(),
-    trash: getTrash(),
-    dreams: getAllDreams(),
-    documents: getAllDocuments(),
-    profiles: getProfiles(),
-    sources: getSources(),
-    decided: getDecided(),
-    sourceV: BLOB_VERSION,
-  });
-  const localJson = () => JSON.stringify(writeBlob(localBlob()));
+  // The stores this device syncs (localSyncData.ts, #814).
+  const localBlob = readLocalSyncData;
+  const localJson = localSyncJson;
 
   // The shared session still names `u` (#288): another tab may have signed out or in as someone
   // else since. If not, this tab freezes (tabAccount.ts) and nothing more is sent or adopted. A
@@ -262,48 +239,17 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return false;
   }
 
+  // The cloud row (trackerRow.ts, #814): read it, or write over the stamp this tab last saw.
+  // 'conflict' = another device wrote first.
   async function pull(uid: string): Promise<{ blob: SyncData | null; stamp: RowStamp }> {
-    const supa = await loadSupabase();
-    const r = await supa
-      .from('tracker')
-      .select('data, updated_at')
-      .eq('user_id', uid)
-      .maybeSingle();
-    if (r.error) throw new Error(r.error.message);
-    if (!r.data) return { blob: null, stamp: { row: false, at: null } };
-    return {
-      blob: readBlob(r.data.data),
-      stamp: { row: true, at: (r.data.updated_at as string | null) ?? null },
-    };
+    return readTrackerRow(await loadSupabase(), uid);
   }
-  // Write the row only over the version this tab last saw (optimistic concurrency): a conditional
-  // update on its stamp, or an insert when there was no row. Postgres re-checks the condition
-  // under the row lock, so two devices sending at once can't both win. 'conflict' = another
-  // device wrote first.
   async function writeRow(uid: string, data: unknown): Promise<'ok' | 'conflict' | 'fail'> {
     const was = known.current;
     if (!was) return 'fail';
-    const supa = await loadSupabase();
-    const updated_at = nextStamp(was.at);
-    let rows: { updated_at?: string | null }[] | null;
-    if (!was.row) {
-      const r = await supa
-        .from('tracker')
-        .insert({ user_id: uid, data, updated_at })
-        .select('updated_at');
-      if (r.error) return r.error.code === '23505' ? 'conflict' : 'fail';
-      rows = r.data;
-    } else {
-      const q = supa.from('tracker').update({ data, updated_at }).eq('user_id', uid);
-      const r = await (
-        was.at === null ? q.is('updated_at', null) : q.eq('updated_at', was.at)
-      ).select('updated_at');
-      if (r.error) return 'fail';
-      if (!r.data?.length) return 'conflict';
-      rows = r.data;
-    }
-    known.current = { row: true, at: rows?.[0]?.updated_at ?? updated_at };
-    return 'ok';
+    const { result, stamp } = await writeTrackerRow(await loadSupabase(), uid, data, was);
+    if (stamp) known.current = stamp;
+    return result;
   }
   // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
   // stays "dirty": the next refresh and sign-out both retry it. When another device saved since
@@ -346,24 +292,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   const dirty = () => localJson() !== lastSynced.current;
 
-  function applyBlob(next: SyncData) {
-    replaceAll(next.jobs);
-    replaceSnippets(next.copydeck);
-    replaceTriage(next.triage);
-    replaceTargets(next.targets);
-    replaceFilters(next.filters);
-    replaceEvidence(next.evidence);
-    replaceModes(next.modes);
-    replaceApplyKit(next.kit);
-    replaceSweeps(next.sweeps);
-    replaceMustInclude(next.mustInclude);
-    replaceTrash(next.trash);
-    replaceDreams(next.dreams);
-    replaceDocuments(next.documents);
-    replaceProfiles(next.profiles);
-    replaceSources(next.sources);
-    replaceDecided(next.decided);
-  }
+  const applyBlob = applyLocalSyncData;
 
   // Pull the cloud copy and merge it into this device's stores. `both` (a sign-in, or a push the
   // cloud turned down) merges both sides; else the cloud copy is the truth, unless an edit landed
