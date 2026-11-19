@@ -59,7 +59,7 @@ export async function addStarters(page: Page) {
 
 /** The page has settled: one h1 in main, no loading skeleton, and two frames painted (the view's
  *  enter motion has started and focus has moved). Replaces a fixed 500 ms wait (audit item 13). */
-export async function settled(page: Page) {
+export async function pageSettled(page: Page) {
   await expect(page.locator('main h1')).toHaveCount(1);
   await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
   await page.evaluate(
@@ -69,7 +69,7 @@ export async function settled(page: Page) {
 
 export async function go(page: Page, hash: string) {
   await page.evaluate((h) => (location.hash = h), hash);
-  await settled(page);
+  await pageSettled(page);
 }
 
 /** A job's Apply view gets its id from the sample data, so it is reached by click. */
@@ -81,7 +81,7 @@ export async function openJob(page: Page) {
     await scope.locator(JOB_LINK).first().click();
     await expect(page).toHaveURL(/#\/apply\/(?!company\/)/);
   }
-  await settled(page);
+  await pageSettled(page);
 }
 
 /** A link to a job's Apply view (not a Company page). */
