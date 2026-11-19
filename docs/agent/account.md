@@ -73,6 +73,7 @@ Sign-in guards, OAuth, Privacy and terms, crash reports, the installable app and
   `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
+- **First focus on the sign-in screen (Adrian 2026-11-19):** with a mouse or trackpad the email field; under `pointer: coarse` the screen's title (`focusAsHeading`), so no keyboard rises over Google, LinkedIn and Try a demo. Pinned in `SignInDialog.test.tsx` and `e2e/sign-in-touch-focus.spec.ts`.
 - **Continue with Google (#482):** **on since 2026-11-12** (`account/googleSignInFlag.ts` `GOOGLE_SIGN_IN_ON = true`, once the Supabase Google provider was on; it was hidden from 2026-11-07, when the provider being off led to Supabase's "Unsupported provider" 400; tests follow the default, the hidden-state test sets it off). When on, the sign-in screen's first control (`SignInDialog.tsx`, HDS secondary `Button`
   with `iconLeft={<GoogleMark />}`; `src/account/google-g.svg` is Google's G as given, its own four colours per
   Google's branding rules, the one allowed third-party svg in `brand/flame.test.tsx` `THIRD_PARTY_MARKS`).

@@ -34,6 +34,10 @@ import { linkedInSignInEnabled } from './linkedInSignInFlag';
 import { SignInShell } from './SignInShell';
 import { holdPage } from './holdPage';
 import { ExitButton } from '../hds-gaps/ExitButton';
+import { focusAsHeading } from '../focusRescue';
+
+/** A coarse primary pointer (a phone or tablet): focusing a field there raises the keyboard. */
+const touchScreen = () => !!window.matchMedia?.('(pointer: coarse)').matches;
 
 export const RESEND_COOLDOWN_S = 30;
 
@@ -145,7 +149,14 @@ export default function SignInDialog() {
         onCloseAutoFocus={refocusAccount(accountTrigger)}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
-          inputRef.current?.focus();
+          // On a touch screen the title takes focus: a focused field raises the keyboard, which
+          // covers Google, LinkedIn and Try a demo; the field is one tap away (Adrian 2026-11-19).
+          // With a mouse or trackpad the email field takes it, ready to type.
+          // The dialog's title, by the name the dialog carries (aria-labelledby).
+          const named = (e.currentTarget as HTMLElement | null)?.getAttribute('aria-labelledby');
+          const title = named ? document.getElementById(named) : null;
+          if (touchScreen() && title) focusAsHeading(title);
+          else inputRef.current?.focus();
         }}
       >
         {sentTo ? (

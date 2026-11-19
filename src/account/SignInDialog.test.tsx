@@ -240,9 +240,30 @@ describe('SignInDialog', () => {
     expect(submit()).toBeEnabled();
   });
 
-  it('focuses the email field on open', () => {
+  it('focuses the email field on open (a fine pointer: a mouse or trackpad)', () => {
     setup();
     expect(field()).toHaveFocus();
+  });
+
+  it('on a touch screen focuses the title, so no keyboard covers the choices (Adrian 2026-11-19)', () => {
+    const was = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: /pointer:\s*coarse/.test(query),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+    try {
+      setup();
+      expect(field()).not.toHaveFocus();
+      expect(screen.getByRole('heading', { name: 'Sign in' })).toHaveFocus();
+    } finally {
+      window.matchMedia = was;
+    }
   });
 
   it('validates on submit, inline, and does not call the server', async () => {
