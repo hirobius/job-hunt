@@ -63,6 +63,20 @@ describe('createSignInPath', () => {
     expect(p.step(null, mine)).toEqual({ kind: 'freeze', why: 'signedOut' });
   });
 
+  it('user A through the path, then a plain sign-in as B with no owner: B starts the path afresh', () => {
+    const p = createSignInPath();
+    p.step(A, FREE);
+    p.admit('a', false);
+    expect(p.owns('a')).toBe(true);
+    // No owner (this tab's own sign-out cleared it), no link: not a freeze, a new sign-in.
+    expect(p.step(B, FREE)).toEqual({ kind: 'signIn' });
+    expect(p.owns('a')).toBe(false); // A's pass ends at once: nothing more is sent for A
+    expect(p.owns('b')).toBe(false); // and B is not through until the guard has run
+    expect(p.admit('b', false)).toBe('pass');
+    expect(p.owns('b')).toBe(true);
+    expect(p.step(B, { frozen: false, owner: 'b' })).toEqual({ kind: 'same' });
+  });
+
   it('a stopped tab follows no one', () => {
     const p = createSignInPath();
     expect(p.step(A, { frozen: true, owner: 'a' })).toEqual({ kind: 'frozen', uid: 'a' });
