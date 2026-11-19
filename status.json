@@ -1,14 +1,19 @@
 {
-  "updatedAt": "2026-11-19T02:00:00Z",
+  "updatedAt": "2026-11-19T09:40:00Z",
   "phase": "live",
-  "headline": "Live with two screens, Review and Apply. This week: hardening for reviewers (audit 2026-11-19), with no new features while applications are paused.",
+  "headline": "Live with two screens, Review and Apply, and a no-account demo (?demo=1). The 2026-11-19 hardening audit landed as small reviewed PRs: docs cleaned, old names retired, sign-in path module, Prettier and knip in the gates.",
   "next": [
-    "Hardening audit 2026-11-19: ranked fixes land as one issue and one small PR each. Open for review: #804 (top tab edge follows its corners), #807 (gitleaks version floor for the pre-push scan). In progress: #805 (HDS 0.44 to 0.46).",
-    "Adrian: decide whether Try a demo goes on the sign-in screen, with a demo deep link for the README.",
+    "Hardening audit 2026-11-19: open for review #851 (e2e helpers wait for the page to settle) and #852 (browse-window flake: time-bounded load).",
+    "Deploy sync-postings again from main: it now imports src/postingSync (was src/tracks, #841). No code inside the function changed.",
     "Adrian: review the Supabase Auth settings in the dashboard (the 2026-11-15 security pass list).",
-    "Backend recall: draft PRs #725, #726 and #728 each need e2e and an independent review, then a sync-postings deploy.",
-    "Open from the 2026-11-18 rules and motion audit: PR #796 (overlay enter motion) and issue #797 (motion gaps)."
+    "Parked: #830 (noUncheckedIndexedAccess)."
   ],
-  "blocked": [],
+  "blocked": [
+    "Adrian: #822 needs a workflow step (agents never edit .github/workflows).",
+    "Adrian: add `- run: npm run knip` to ci.yml after `npm run lint`, if knip should gate CI (the step is in the #849 body).",
+    "Adrian: board-discovery.yml line 52, `npx vitest run src/feed src/tracks` becomes `npx vitest run src/feed src/postingSync` (the diff is in the #841 body).",
+    "Adrian: turn on GitHub private vulnerability reporting (Settings, Security, Private vulnerability reporting, Enable; the steps are in the #844 body).",
+    "Adrian: the fresh-clone install needs HDS_PACKAGES_TOKEN (the HDS ESLint plugin is a private package): publish it publicly (recommended) or keep it private."
+  ],
   "focus": "Make the repo and the app easy for a reviewer to read: clear docs, one vocabulary, small reviewed PRs."
 }
