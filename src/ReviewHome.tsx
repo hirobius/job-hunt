@@ -33,11 +33,13 @@ export function SignedOutReview() {
   // screen over it.
   const route = useRoute();
   const overDialog = (route.documents !== null && route.documents !== undefined) || !!route.legal;
+  // A demo link (#835) is on its way to the demo: no sign-in screen over it.
+  const demoLink = !!route.demo;
   useEffect(() => {
     // A stored session is on its way in (its user lands a moment after `authResolved`): no screen.
-    if (!authResolved || overDialog || hasPersistedSession()) return;
+    if (!authResolved || overDialog || demoLink || hasPersistedSession()) return;
     if (firstSignInAsk()) setSignInOpen(true);
-  }, [authResolved, overDialog, setSignInOpen]);
+  }, [authResolved, overDialog, demoLink, setSignInOpen]);
   return (
     <Stack gap="px24">
       <ReviewHeader />

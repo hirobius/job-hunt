@@ -43,6 +43,7 @@ import { useCategories } from './curation/curationStore';
 import { STATUSES, type Status } from './types';
 import { PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
+import { firstSignInAsk } from './signInAsked';
 import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
 import { PageErrorBoundary } from './ErrorBoundary';
@@ -146,6 +147,8 @@ export default function App() {
   const demoLink = !!route.demo;
   useEffect(() => {
     if (!demoLink) return;
+    // The visitor came for the demo: the sign-in screen does not open on its own over it.
+    firstSignInAsk();
     void loadDemoMode().then(({ startDemo }) => startDemo());
     navigate({ demo: undefined }, true);
   }, [demoLink]);

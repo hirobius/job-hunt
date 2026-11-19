@@ -1,6 +1,7 @@
 // The sign-in screen opens on its own here, so this spec uses Playwright's own test, as
 // review-sign-in.spec.ts does (fixtures.ts skips that ask for every other spec).
 import { test, expect } from '@playwright/test';
+import { PROD_URL } from './routes';
 
 // The demo (#835, Adrian 2026-11-19): the sign-in screen's grey Try a demo key, and a ?demo=1 link.
 // Adrian's condition: the whole screen fits a 390x844 phone with no scroll.
@@ -36,13 +37,20 @@ test('Try a demo on the sign-in screen opens Review with sample postings', async
   await expect(page.getByText('This is a demo')).toBeVisible();
 });
 
-test('a ?demo=1 link opens the demo, with no sign-in screen, and leaves a clean URL', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-  await page.goto('/#/review?demo=1');
-  await expect(page.getByText('This is a demo')).toBeVisible();
-  await expect(page).toHaveURL(/#\/review$/);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-});
+// The production build too: there the demo module loads late, after Review would ask for sign-in.
+for (const [where, base] of [
+  ['dev', ''],
+  ['production build', PROD_URL],
+] as const) {
+  test(`a ?demo=1 link opens the demo, with no sign-in screen, and leaves a clean URL (${where})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await page.goto(`${base}/#/review?demo=1`);
+    await expect(page.getByText('This is a demo')).toBeVisible();
+    await expect(page).toHaveURL(/#\/review$/);
+    await page.waitForTimeout(1000); // a late sign-in screen would open by now
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+}
