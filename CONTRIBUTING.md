@@ -14,7 +14,7 @@ public npm. The Supabase URL and publishable key in `src/config.ts` are public b
 ## Check your change
 
 ```bash
-npm run verify       # typecheck, lint, HDS check, unit tests, build
+npm run verify       # typecheck, lint, knip, HDS check, unit tests, build
 npm run test:e2e     # Playwright browser tests
 npm run check:docs   # README.md and CLAUDE.md length caps and sections
 ```

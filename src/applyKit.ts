@@ -127,9 +127,6 @@ export const replaceApplyKit = (next: ApplyKit) => store.set(sanitizeKit(next));
 export const setKitField = (key: KitFieldKey, value: string) =>
   store.set({ ...store.get(), fields: { ...store.get().fields, [key]: value } });
 
-export const setKitTemplate = (slot: 'whyTemplate' | 'coverTemplate', id: string) =>
-  store.set({ ...store.get(), [slot]: id || undefined });
-
 /** Drop template picks whose message no longer exists (#314). A deleted message leaves its id
  *  behind in the kit; without this the Apply-mode Select holds a value that is in no option and
  *  the stale id keeps syncing. Returns the kit unchanged (same reference) when both picks live. */
@@ -145,29 +142,6 @@ export function pruneKitTemplates(
   return { ...kit, whyTemplate, coverTemplate };
 }
 
-/** Prune the stored kit's stale template picks. Call only once sync has settled (#314): before
- *  that, a pick whose message has not synced onto this device yet is not stale. Clearing the pick
- *  (not just hiding it) is what stops re-adding the starters — whose ids are deterministic — from
- *  silently re-linking a pick the user already deleted the message for. */
-export function clearStaleKitTemplates(liveIds: ReadonlySet<string> | readonly string[]): boolean {
-  const next = pruneKitTemplates(store.get(), liveIds);
-  if (next === store.get()) return false;
-  store.set(next);
-  return true;
-}
-
-const newId = () => 'qa-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-
-export function addAnswer(q = '', a = ''): string {
-  const id = newId();
-  store.set({ ...store.get(), answers: [...store.get().answers, { id, q, a }] });
-  return id;
-}
-export const updateAnswer = (id: string, patch: Partial<Omit<KitAnswer, 'id'>>) =>
-  store.set({
-    ...store.get(),
-    answers: store.get().answers.map((x) => (x.id === id ? { ...x, ...patch } : x)),
-  });
 export const removeAnswer = (id: string) =>
   store.set({ ...store.get(), answers: store.get().answers.filter((x) => x.id !== id) });
 /** Undo of a Remove: the answer goes back at `at` (clamped), unless it is already there. */

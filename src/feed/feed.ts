@@ -216,13 +216,6 @@ export const fingerprintsOf = (read: FeedResult): string[] => read.postings.map(
 export type FeedSort = 'score' | 'newest' | 'company';
 export type FeedFilter = 'new' | 'contract' | 'founding' | 'remote';
 
-export const FILTER_LABEL: Record<FeedFilter, string> = {
-  new: 'New',
-  contract: 'Contract',
-  founding: 'First hire',
-  remote: 'Remote',
-};
-
 const passes = (r: FeedRow, f: FeedFilter) =>
   f === 'new' ? r.isNew : f === 'remote' ? r.mode === 'remote' : r.signals.some((s) => s.id === f);
 

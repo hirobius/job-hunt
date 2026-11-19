@@ -13,7 +13,7 @@ https://roleflame.vercel.app (repo `hirobius/job-hunt`). Two screens (below lg A
 ## Commands
 
 - `npm run dev`, `npm run build`, `npm run typecheck`.
-- `npm run verify`: typecheck, lint, HDS check, unit tests, build. Run it before each push.
+- `npm run verify`: typecheck, lint, knip (unused files and exports, `knip.json`), HDS check, unit tests, build. Run it before each push.
 - `npm run test:e2e`: Playwright. `npm run verify:ui`: layout rules and screenshot baselines.
 - `npm run check:docs`: length caps for README.md, CONTRIBUTING.md and this file; required sections for README.md.
 - Installs need `HDS_PACKAGES_TOKEN` (the HDS ESLint plugin is a private package).

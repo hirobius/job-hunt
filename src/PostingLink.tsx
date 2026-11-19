@@ -52,11 +52,6 @@ export function PostingLink({ url, title, company, size = 'sm' }: PostingLinkPro
   );
 }
 
-/** A saved job's posting link: its title and company name the link. */
-export function JobPostingLink({ job, size }: { job: Job; size?: 'sm' | 'md' }) {
-  return <PostingLink {...postingOf(job)} size={size} />;
-}
-
 /**
  * A title with its posting link right after it, on the title's line: every list of saved jobs and
  * the job page's header lay the two out with this. The title shrinks and wraps anywhere (and the

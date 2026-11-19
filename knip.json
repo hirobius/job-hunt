@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "api/*.ts",
+    "scripts/**/*.{ts,mjs}",
+    "supabase/functions/*/index.ts",
+    "public/theme-init.js",
+    "src/feed/bulk/cli.ts"
+  ],
+  "ignoreDependencies": ["axe-core", "playwright", "npm"],
+  "ignoreExportsUsedInFile": true,
+  "ignoreUnresolved": ["^/src/"]
+}

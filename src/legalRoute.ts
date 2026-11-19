@@ -3,9 +3,6 @@
 // chunk (#371).
 import type { LegalSlug } from './legal';
 
-/** The route slug for the legal pages: `#/legal/privacy`, `#/legal/terms`. */
-export const LEGAL_ROUTE = 'legal';
-
 export const LEGAL_TITLES: Record<LegalSlug, string> = {
   privacy: 'Privacy policy',
   terms: 'Terms of use',
