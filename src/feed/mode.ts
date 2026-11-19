@@ -4,7 +4,7 @@
 // One remote classifier (#576 item 10): `classifyRemote` is the rule behind every remote test,
 // browser and server alike: `inferMode` (every source parser), `remoteVerdict` (the auto-scan's and
 // the scan rotation's remote only), `isRemoteJob` (Apply's Remote only, pipelineView.ts) and the
-// server's keyed feeds (tracks/feeds). Call it on a location line or a title, never a whole
+// server's keyed feeds (postingSync/feeds). Call it on a location line or a title, never a whole
 // description (which mentions "remote" in a dozen unrelated ways).
 import type { JobMode } from '../types.ts';
 
@@ -107,7 +107,7 @@ const PLACE_UNSTATED =
 /** Remote only (Adrian 2026-10-28), on the source's own work mode or the location line
  *  (`classifyRemote`): remote keeps; on-site or hybrid drops; no mode and no city keeps, marked
  *  'unstated'. Shared by the browser's auto-scan (autoScan.ts `remoteOnly`) and the server's scan
- *  rotation (src/tracks/rotation.ts). */
+ *  rotation (src/postingSync/rotation.ts). */
 export function remoteVerdict(
   mode: JobMode | undefined,
   location: string,

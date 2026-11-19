@@ -52,7 +52,7 @@ const renderMenu = () =>
   );
 const clearItem = () => screen.queryByRole('menuitem', { name: 'Clear sample data' });
 
-describe('Try with sample data (Tracker)', () => {
+describe('Try with sample data (Apply)', () => {
   it('loads the sample from an empty tracker, with no sample line on Apply', async () => {
     const user = userEvent.setup();
     renderTracker();

@@ -111,7 +111,7 @@ describe('logoLetter', () => {
     ['—', ''],
   ])('%s → %s', (n, l) => expect(logoLetter(n)).toBe(l));
 
-  it('draws inline (24px, Find cards and Apply rows) with .rjb-logo-inline', () => {
+  it('draws inline (24px, Review cards and Apply rows) with .rjb-logo-inline', () => {
     const { container } = render(<CompanyLogo inline company="Acme" />);
     expect(mark(container)).toHaveClass('rjb-logo-inline');
     const plain = render(<CompanyLogo company="Acme" />);

@@ -1,7 +1,7 @@
 // Live postings feed (Discover → "Live postings") — the shared model every source adapter
 // normalizes into. A Posting is a raw opening pulled from a public, keyless, CORS-open API at view
 // time; it is never stored. Saving one turns it into a tracked Job (src/types.ts) by URL.
-import type { ScoreResult } from '../tracks/score.ts';
+import type { ScoreResult } from '../postingSync/score.ts';
 import type { JobMode } from '../types.ts';
 
 export type FeedSourceId =
@@ -32,7 +32,7 @@ export type FeedSourceId =
   | 'reddit'
   // designsystems.jobs: read on the server only (the sync), so it reaches the app as a stored row.
   | 'rss'
-  // The sync's own searches (src/tracks/feeds): stored rows only, like 'rss'.
+  // The sync's own searches (src/postingSync/feeds): stored rows only, like 'rss'.
   | 'theirstack'
   | 'adzuna'
   | 'jooble'

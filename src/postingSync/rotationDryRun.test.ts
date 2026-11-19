@@ -8,7 +8,7 @@ import { readAll } from './sync.ts';
 // from the three board kinds the rotation's set holds today (src/feed/data/boards.json: Greenhouse,
 // Lever, Ashby), plus shape fixtures for the five newer kinds the sync reads since #576 (BambooHR,
 // Rippling, Gem, Pinpoint, Breezy HR: unverified live). See fixtures/README.md.
-const read = (f: string) => readFileSync(`src/tracks/fixtures/${f}`, 'utf8');
+const read = (f: string) => readFileSync(`src/postingSync/fixtures/${f}`, 'utf8');
 const fetch = fixtureFetch(read);
 const T0 = Date.parse('2026-10-30T07:00:00Z');
 

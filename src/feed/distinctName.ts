@@ -1,7 +1,7 @@
 // Is a company name distinct enough that a board answering for it is probably that company's?
 // "Close", "Promise" or "Toast" are slugs many strangers' boards answer for; "Figmatic" is not.
 // Pure, with `.ts` specifiers: the seed (feed/seed/resolve.ts) and the server's board suggestions
-// (tracks/boardSuggest.ts, Deno) share it.
+// (postingSync/boardSuggest.ts, Deno) share it.
 
 /** A name folded for comparison: accents, legal suffixes, "the", "labs" and punctuation dropped. */
 export const normName = (s: string) =>

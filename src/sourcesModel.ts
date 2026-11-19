@@ -6,7 +6,7 @@
 // A Source is never deleted while the old screens can still add it back: mute it instead.
 // Kept in `rjb_sources`, synced in the blob. Storage and the cloud are untrusted.
 // This module is the pure half (types, sanitizers, merge): React-free with `.ts` imports, so the
-// sync edge function (src/tracks/plan.ts, Deno) reads Sources exactly as the app writes them. The
+// sync edge function (src/postingSync/plan.ts, Deno) reads Sources exactly as the app writes them. The
 // store is sources.ts.
 import { httpUrl } from './httpUrl.ts';
 import { mergeByKey } from './mergeByKey.ts';

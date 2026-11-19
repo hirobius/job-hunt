@@ -74,7 +74,7 @@ afterEach(() => {
 });
 
 describe('the Documents page', () => {
-  it('an old #/copy-deck link opens the Documents dialog over Find; Close leaves Find as it was', async () => {
+  it('an old #/copy-deck link opens the Documents dialog over Review; Close leaves Review as it was', async () => {
     await renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/review?documents='));
     const dialog = await screen.findByRole('dialog', { name: 'Documents' });
@@ -320,7 +320,7 @@ describe('the Company page (#230)', () => {
     updateJob(JOB, { company: 'Acme Metals' });
   });
 
-  it('#/apply/company/<slug> shows the company under the Pipeline tab', async () => {
+  it('#/apply/company/<slug> shows the company under the Apply tab', async () => {
     window.location.hash = '#/apply/company/acme-metals';
     await renderApp();
     expect(

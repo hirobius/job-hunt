@@ -107,7 +107,7 @@ describe('Passed rows', () => {
     expect(skippedPostings(getDecided())).toHaveLength(1);
   });
 
-  it('Undo skip puts the posting back in Find; its Undo skips it again', async () => {
+  it('Undo skip puts the posting back in Review; its Undo skips it again', async () => {
     render(<Harness />);
     await userEvent.click(
       screen.getByRole('button', { name: 'Undo skip of Zen Systems Designer' }),

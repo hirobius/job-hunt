@@ -7,7 +7,9 @@ import { seed, topTab } from './routes';
 // column, the first one when the tab opens (#546). Follow up and Apply live on the Apply tab (#471
 // slice 3). At 390 (phone first) and 1440.
 for (const width of [390, 1440]) {
-  test(`Find at ${width}: scan status and Review new; Follow up is on Apply`, async ({ page }) => {
+  test(`Review at ${width}: scan status and Review new; Follow up is on Apply`, async ({
+    page,
+  }) => {
     await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await seed(page);

@@ -6,7 +6,7 @@
 // No CORS header, so the browser reads it through /api/boards (proxied.ts), which polls it at most
 // about hourly. The feed states no terms of its own; we keep to the polite reading: every row links
 // to its designsystems.jobs page as given and names "designsystems.jobs" as its source.
-// The sync edge function reads the same feed on its morning run (tracks/sources.ts).
+// The sync edge function reads the same feed on its morning run (postingSync/sources.ts).
 import { httpUrl } from '../../httpUrl';
 import type { JobMode } from '../../types';
 import type { Posting } from '../types';

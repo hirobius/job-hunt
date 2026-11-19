@@ -8,7 +8,7 @@ import { parseBoardUrl } from '../feed/sources/ats';
 import { addTargets, type Target } from '../feed/targets';
 import { addBoardTiles } from '../feed/watchlist';
 import { setMustInclude } from '../feed/mustInclude';
-import { SCORED_TRACK_COPY } from '../tracks/forTrack';
+import { SCORED_TRACK_COPY } from '../postingSync/forTrack';
 import type { PackCompany } from '../radar/directory';
 import { addCategory, addGroup, addTiles, getCurationState, updateCategory } from './curationStore';
 import { DESIGN_SYSTEMS_PACK, type PackContent } from './packContent';

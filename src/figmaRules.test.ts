@@ -222,7 +222,7 @@ describe('FIGMA-RULES.md', () => {
     );
   });
 
-  it('pins Find as one list (2026-11-13): no Deck, no switch, no pager, no filter row', () => {
+  it('pins Review as one list (2026-11-13): no Deck, no switch, no pager, no filter row', () => {
     expect(RULES).toMatch(/Review is one list \(2026-11-13\)/);
     expect(RULES).toMatch(
       /with no source or New\s+badge \(#557\)|carry no source or New\s+badge \(#557\)/,
@@ -240,7 +240,7 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/JobPage.tsx', 'utf8')).toContain('<SwipeArea');
   });
 
-  it("pins Find's Review (2026-11-12): no visible heading, no Sort", () => {
+  it('pins Review new (2026-11-12): no visible heading, no Sort', () => {
     expect(RULES).toMatch(/No visible "Review" heading \(2026-11-12\)/);
     // No Sort on Find (Adrian 2026-11-13): newest first, always.
     expect(fs.existsSync('src/FindSortMenu.tsx')).toBe(false);
@@ -291,7 +291,7 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.readFileSync('src/JobRowParts.tsx', 'utf8')).not.toContain('StarButton');
   });
 
-  it('pins found companies in the Companies dialog, not on Find (#618)', () => {
+  it('pins found companies in the Companies dialog, not on Review (#618)', () => {
     expect(RULES).toContain('under **Found** (Follow / Ignore), never on Review');
     expect(CLAUDE).toContain('New companies\n  left Find (#618');
     expect(fs.readFileSync('src/ReviewHome.tsx', 'utf8')).not.toContain('NewCompanies');
@@ -364,7 +364,7 @@ describe('FIGMA-RULES.md', () => {
     expect(fs.existsSync('src/hds-gaps/FactLines.tsx')).toBe(false);
   });
 
-  it('pins the compact Find card and the short header (#544)', () => {
+  it('pins the compact Review card and the short header (#544)', () => {
     expect(RULES).toMatch(/\*\*The compact Review card \(#544\)\.\*\*/);
     expect(RULES).toMatch(/\*\*Review's short header \(#544\)\.\*\*/);
     expect(CLAUDE).toMatch(/A Browse card is compact \(#544/);
@@ -381,7 +381,7 @@ describe('FIGMA-RULES.md', () => {
     expect(CLAUDE).toMatch(/\*\*The page bar \(2026-11-12/);
   });
 
-  it('pins no duplicate counts at the top of Find: the chips hold them', () => {
+  it('pins no duplicate counts at the top of Review: the chips hold them', () => {
     expect(RULES).toContain('"Scanned 2 h ago" lives only in Scan details');
     expect(RULES).not.toContain('4 new · scanned');
     expect(CLAUDE).not.toContain('4 new · scanned');

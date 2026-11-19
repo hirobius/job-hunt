@@ -123,7 +123,7 @@ describe('a job page goes back to where it was opened from', () => {
     expect(await heading('Acme Metals')).toBeInTheDocument();
   });
 
-  it('Undo of a job page Remove pressed on Find stays on Find (#593)', async () => {
+  it('Undo of a job page Remove pressed on Review stays on Review (#593)', async () => {
     window.location.hash = `#/apply/${idA}`;
     renderApp();
     await heading('Fabricator');
@@ -481,7 +481,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     expect(pops.count()).toBe(1);
   });
 
-  it('Remove on a job opened from the Pipeline pops back to the list, its scroll asked back', async () => {
+  it('Remove on a job opened from the Apply tab pops back to the list, its scroll asked back', async () => {
     await startAt('#/discover/apply', '#/apply');
     await openFromList();
     const restored: string[] = [];
@@ -537,7 +537,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     expect(pops.count()).toBe(1);
   });
 
-  it('a double tap on the open Pipeline tab goes to its root once', async () => {
+  it('a double tap on the open Apply tab goes to its root once', async () => {
     await startAt('#/discover/apply', '#/apply');
     await openFromList();
     const pops = countPops();

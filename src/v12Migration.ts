@@ -1,6 +1,6 @@
 // The one-time move from v11 tracks to the v12 Search profile + Sources (simplify spec #384/#385).
 // Design systems only (Adrian 2026-10-29): only a design-systems track moves, one that is scored
-// (tracks/forTrack scorerFor) or carries the Design Systems pack's label (packIdForLabel). Other
+// (postingSync/forTrack scorerFor) or carries the Design Systems pack's label (packIdForLabel). Other
 // tracks stay stored, untouched, but never surface: no title, board, dream or target of theirs
 // enters the profile or Sources, and none of their links is offered. Within the design-systems
 // tracks there is no loss of breadth: Sources are the union of every watched board tile, dream
@@ -51,7 +51,7 @@ import {
 } from './sources';
 import { getAllJobs } from './store';
 import { getAllModes } from './trackModes';
-import { scorerFor } from './tracks/forTrack';
+import { scorerFor } from './postingSync/forTrack';
 import type { Job } from './types';
 
 /** What the move reads: the v11 stores and the curated tracks. */

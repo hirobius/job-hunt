@@ -286,7 +286,7 @@ describe('Add interview is one item in the job menu', () => {
     expect(await screen.findByRole('dialog', { name: 'Add interview' })).toBeInTheDocument();
   });
 
-  it('a Pipeline card menu has Add interview too', async () => {
+  it('an Apply card menu has Add interview too', async () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = '#/apply';
     renderApp();

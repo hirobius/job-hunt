@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FeedContext } from './context';
 import { JOBGETHER_PHRASES, jobgetherUrl, parseJobgether, readJobgether } from './jobgether';
 
-const raw = (f: string) => readFileSync(`src/tracks/feeds/fixtures/${f}`, 'utf8');
+const raw = (f: string) => readFileSync(`src/postingSync/feeds/fixtures/${f}`, 'utf8');
 const json = (f: string) => JSON.parse(raw(f)) as unknown;
 const ctx = (body: string, o: Partial<FeedContext> = {}): FeedContext => ({
   fetch: vi.fn(async () => new Response(body)),

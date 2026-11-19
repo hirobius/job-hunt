@@ -7,11 +7,11 @@ src/tokens/hds-tokens.css
 src/theme/hds-palette.generated.ts
 
 # live captures kept byte for byte
-src/tracks/feeds/fixtures/
+src/postingSync/feeds/fixtures/
 
 # generated data and recorded answers, kept as written
 src/feed/data/
-src/tracks/fixtures/
+src/postingSync/fixtures/
 
 # kept as written: vendored skills (copied from their upstream), historical specs, research and
 # ADRs, test fixtures, and .github (agents never edit it; Adrian formats it there)

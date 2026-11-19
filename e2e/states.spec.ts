@@ -72,7 +72,7 @@ for (const width of [390, 1440]) {
   });
 }
 
-test('Find with no results: Edit search profile filled, no Scan now, on the page', async ({
+test('Review with no results: Edit search profile filled, no Scan now, on the page', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });

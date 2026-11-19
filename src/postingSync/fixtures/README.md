@@ -1,6 +1,6 @@
 # Recorded live answers (rotation)
 
-Taken 2026-10-30 from the public board APIs the scan rotation reads (`src/tracks/rotation.ts`;
+Taken 2026-10-30 from the public board APIs the scan rotation reads (`src/postingSync/rotation.ts`;
 the board set holds Greenhouse, Lever and Ashby only):
 
 | File                      | URL                                                                    |
@@ -29,5 +29,5 @@ when its host can be reached.
 ## Not recorded: the keyless server feeds
 
 Arbeitnow (`www.arbeitnow.com`) and Remote OK (`remoteok.com`) were refused by the build container's network policy (proxy 403 on
-CONNECT), so their fixtures in `src/tracks/feeds/fixtures/` are still built from the documented
+CONNECT), so their fixtures in `src/postingSync/feeds/fixtures/` are still built from the documented
 shapes and those sources stay **unverified live**.

@@ -83,7 +83,7 @@ const PARALLEL = 8;
 const ASHBY_PARALLEL = 2;
 
 /** Browser sources the sync stores under 'manual' (Remote OK's browser read; the sync reads it
- *  itself, tracks/feeds/remoteok.ts). Every board kind, all 13 since #576, keeps its own source
+ *  itself, postingSync/feeds/remoteok.ts). Every board kind, all 13 since #576, keeps its own source
  *  (migration 20261111100000 widens the postings check). */
 const NOT_STORED = new Set<Posting['source']>(['remoteok']);
 

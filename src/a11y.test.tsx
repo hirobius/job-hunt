@@ -56,7 +56,7 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
   });
 });
 
-describe('a11y — the Pipeline agenda with the sample pipeline (#236, was Today)', () => {
+describe('a11y — the Apply tab agenda with the sample pipeline (#236, was Today)', () => {
   it('To apply, Follow up (due first) and the next 7 days', async () => {
     loadSample();
     // The agenda sits under the lg list column (JobRail, #543).
@@ -75,7 +75,7 @@ describe('a11y — the Pipeline agenda with the sample pipeline (#236, was Today
   });
 });
 
-describe('a11y — the Pipeline list with the sample pipeline (#129)', () => {
+describe('a11y — the Apply tab list with the sample pipeline (#129)', () => {
   const wideViewport = (wide: boolean) =>
     (window.matchMedia = vi.fn().mockImplementation((media: string) => ({
       matches: wide,
@@ -132,9 +132,9 @@ describe('a11y — Documents (#227)', () => {
   });
 });
 
-describe('a11y — the Pipeline after the first job (#132)', () => {
+describe('a11y — the Apply tab after the first job (#132)', () => {
   // Getting started left the Pipeline (#416); the page after the first job is still audited.
-  it('the Pipeline after the first job', async () => {
+  it('the Apply tab after the first job', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     const { container, getByRole } = withTheme(<JobsList />);
     expect(getByRole('navigation', { name: 'Jobs' })).toBeInTheDocument();

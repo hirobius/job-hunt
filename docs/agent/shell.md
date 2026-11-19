@@ -26,7 +26,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   top tabs and no other full page. **Find was renamed Review (Adrian 2026-11-13):** the tab, its h1, `document.title`,
   the logo's name ("roleflame, Review"), routeLabel ("← Review") and the copy that names the tab say Review; the slug
   is `review` (`route.ts` `REVIEW_TAB = 'review'`; since #810 the code says Review too: `REVIEW_TAB`, `ReviewHome.tsx`,
-  `ReviewHeader.tsx`; `findHash` and test titles that still say Find or Today are left for later), and `redirectOf` sends `#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place
+  `ReviewHeader.tsx`; the posting link is `reviewPostingHash`), and `redirectOf` sends `#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place
   (no history step; an old `?from=/find` reads as Review). Where a section below says Find, read Review. The Find
   box (Add job's "Type a company or title instead") and "Find more jobs" are verbs and keep the word. **Review's
   count (2026-11-13):** the Review tab shows the postings still to decide, the number the New chip showed until #714 removed it
@@ -195,7 +195,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   decision focus goes to the next card's title): at ≥ lg HDS `Sidebar` (list column 26rem: header, Daily picks, Review) beside
   `PostingDetail` (the job page's template since #546: title block, More with Not this company, Save / Skip / Open
   posting, then the Description; the first posting when the tab opens, #546); below lg the list is the tab. The selection is the
-  route, `#/find/<fingerprint>` (`route.postingOf` / `findHash` / `selectPosting`, URI-escaped): shareable, survives
+  route, `#/find/<fingerprint>` (`route.postingOf` / `reviewPostingHash` / `selectPosting`, URI-escaped): shareable, survives
   a reload. **At lg Browse opens on the first posting (Adrian 2026-11-12, #546, like Apply's first job; in place, an
   effect in `ReviewView`), so the detail is never empty; a decided posting is never picked again while its card
   collapses (`deciding`); with no posting left **the two columns stay** and `FindEmpty` (caught up, or nothing matches)

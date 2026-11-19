@@ -123,7 +123,7 @@ for (const theme of ['light', 'dark'] as const) {
       locale: 'en-US',
     });
 
-    test('the Pipeline and the job page match their baselines', async ({ page }) => {
+    test('the Apply tab and the job page match their baselines', async ({ page }) => {
       test.setTimeout(120_000);
       await prepare(page, theme);
       await go(page, '#/apply');

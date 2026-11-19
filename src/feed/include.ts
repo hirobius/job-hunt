@@ -1,14 +1,14 @@
 // The must-include check (mustInclude.ts holds the rule, its store and the phrase matcher): a
 // posting is listed when its title or description (whichever the rule searches) says one of the
 // rule's phrases, or a related title that is on names its title. Its own module (2026-11-11), so the
-// design engineer guard (tracks/designRoleGuard.ts, shared with the scorer and the keyless feeds)
+// design engineer guard (postingSync/designRoleGuard.ts, shared with the scorer and the keyless feeds)
 // stays out of the entry chunk: only the Feed, the auto-scan and the scorer's forTrack call it.
-import { relatedTitleOk, uiDesignEngineerTitle } from '../tracks/designRoleGuard';
+import { relatedTitleOk, uiDesignEngineerTitle } from '../postingSync/designRoleGuard';
 import {
   BODY_SIGNALS_TO_LIST,
   designSystemsTrack,
   PRODUCT_DESIGN_TITLE,
-} from '../tracks/track-config';
+} from '../postingSync/track-config';
 import {
   hasRelatedTitles,
   includeFields,
@@ -25,7 +25,7 @@ const RELATED_RES = RELATED_TITLES.map((r) => regexesOf(r.phrases));
 
 /** The related titles a title names that are on (none on a rule without a design system phrase
  *  or with the control off). A title naming non-UI work ("Mechanical Design Engineer") or an
- *  internship names none: the same guard as the scorer (tracks/designRoleGuard.ts). A design
+ *  internship names none: the same guard as the scorer (postingSync/designRoleGuard.ts). A design
  *  engineer title names its related title only with a UI word in it (Adrian 2026-11-17); a plain
  *  one is let in by its description instead (`bodyConfirms`). */
 function namesRelated(rule: IncludeRule, title: string): RelatedTitle[] {

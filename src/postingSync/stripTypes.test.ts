@@ -21,8 +21,8 @@ describe('strip-types: server-shared files use erasable TypeScript only', () => 
     const { parsed } = program(path.join(root, 'tsconfig.strip.json'));
     expect(parsed.options.erasableSyntaxOnly).toBe(true);
     const files = parsed.fileNames.map((f) => path.relative(root, f));
-    expect(files).toContain('src/tracks/boardFetch.ts');
-    expect(files).toContain('src/tracks/plan.ts');
+    expect(files).toContain('src/postingSync/boardFetch.ts');
+    expect(files).toContain('src/postingSync/plan.ts');
     expect(files).toContain('scripts/dry-run-sync.ts');
     expect(files.some((f) => f.endsWith('.test.ts'))).toBe(false);
   });

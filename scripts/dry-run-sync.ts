@@ -1,7 +1,7 @@
 // Dry run of the postings sync (Muse Phase 2 + 2.5; Simplify 6/9), no database: plans the run from
 // a v11-shaped blob holding the companies we can name without one (the design systems starter
 // boards and targets in src/radar/directory.ts; the plan adds the brief's verified list), the same
-// way the edge function plans each user's run (src/tracks/plan.ts). Then it reads those boards, HN
+// way the edge function plans each user's run (src/postingSync/plan.ts). Then it reads those boards, HN
 // and Jobicy for the plan's titles (never Remotive: its daily budget is for the app) and the
 // designsystems.jobs feed, scores everything with the plan's config, and prints counts per source,
 // the queue/review/reject split and the first 20 queued titles. A host the network refuses is
@@ -9,33 +9,33 @@
 //   node --experimental-strip-types scripts/dry-run-sync.ts
 // With --rotate: plans the scan rotation's next batch from the committed board set
 // (src/feed/data/boards.json) with no network and prints the batch and the run-time math
-// (src/tracks/rotation.ts); add --read to read that batch too (the same reads the edge function
+// (src/postingSync/rotation.ts); add --read to read that batch too (the same reads the edge function
 // makes) and count what the design systems scorer would store.
 //   npm run sync:dry-run -- --rotate [--read]
-// --rotate --fixtures reads the recorded live answers in src/tracks/fixtures, offline
+// --rotate --fixtures reads the recorded live answers in src/postingSync/fixtures, offline
 // (rotationDryRun.test.ts runs the same case).
 // (behind a proxy: NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=<bundle>)
 import { boardApiUrl } from '../src/feed/sources/ats.ts';
-import { planFromBlob } from '../src/tracks/plan.ts';
-import { readAll, scoreBatch } from '../src/tracks/sync.ts';
+import { planFromBlob } from '../src/postingSync/plan.ts';
+import { readAll, scoreBatch } from '../src/postingSync/sync.ts';
 import boardsJson from '../src/feed/data/boards.json' with { type: 'json' };
 import { parseBoardSet } from '../src/feed/boardSet.ts';
-import { FIXTURE_BOARDS, fixtureFetch, rotationDryRun } from '../src/tracks/rotationDryRun.ts';
+import { FIXTURE_BOARDS, fixtureFetch, rotationDryRun } from '../src/postingSync/rotationDryRun.ts';
 
 if (process.argv.includes('--rotate')) {
   await rotateDryRun(process.argv.includes('--read'), process.argv.includes('--fixtures'));
   process.exit(0);
 }
 
-/** The rotation's first batch from an empty cursor, and the cycle math (src/tracks/rotationDryRun.ts).
- *  --fixtures reads the recorded live answers (src/tracks/fixtures) instead of the network. */
+/** The rotation's first batch from an empty cursor, and the cycle math (src/postingSync/rotationDryRun.ts).
+ *  --fixtures reads the recorded live answers (src/postingSync/fixtures) instead of the network. */
 async function rotateDryRun(read: boolean, fixtures: boolean) {
   if (fixtures) {
     const { readFileSync } = await import('node:fs');
     const r = await rotationDryRun({
       boards: FIXTURE_BOARDS,
       generated: 'recorded fixtures',
-      fetch: fixtureFetch((f) => readFileSync(`src/tracks/fixtures/${f}`, 'utf8')),
+      fetch: fixtureFetch((f) => readFileSync(`src/postingSync/fixtures/${f}`, 'utf8')),
     });
     console.log(r.lines.join('\n'));
     return;

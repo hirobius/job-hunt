@@ -26,7 +26,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('useAutoLoad (Find Browse auto-load, 2026-11-12)', () => {
+describe('useAutoLoad (Review Browse auto-load, 2026-11-12)', () => {
   it('loads more as the sentinel comes near, and disconnects on unmount', () => {
     vi.stubGlobal('IntersectionObserver', FakeIO);
     const onMore = vi.fn();
