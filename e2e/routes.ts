@@ -57,14 +57,16 @@ export async function addStarters(page: Page) {
   await expect(docs).toBeHidden();
 }
 
-/** The page has settled: one h1 in main, no loading skeleton, and two frames painted (the view's
- *  enter motion has started and focus has moved). Replaces a fixed 500 ms wait (audit item 13). */
+/** The page has settled: one h1 in main, no loading skeleton, two frames painted (focus has
+ *  moved), and every finite animation ended (the view's enter motion). Replaces a fixed 500 ms
+ *  wait (audit item 13). */
 export async function pageSettled(page: Page) {
   await expect(page.locator('main h1')).toHaveCount(1);
   await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
   await page.evaluate(
     () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
   );
+  await settled(page); // the view's enter motion has ended, so boxes are where they rest
 }
 
 export async function go(page: Page, hash: string) {
