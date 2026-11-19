@@ -7,6 +7,7 @@
 // picked posting is its own view with Back and a pager. Follow up and Apply moved to the Apply tab,
 // so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
 import { useEffect } from 'react';
+import { DEMO_ROWS, useDemo } from './demo/demoMode';
 import { Button, Skeleton, Stack, Text } from '@hirobius/design-system';
 import { LogIn } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
@@ -17,7 +18,7 @@ import { useRoute } from './route';
 import { hasPersistedSession } from './supabase';
 import { Panel, PanelBody } from './PipelinePanel';
 import { ReviewHeader } from './ReviewHeader';
-import ReviewView from './ReviewView';
+import ReviewView, { DemoReviewList } from './ReviewView';
 import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
 import { useCloudSync } from './account/accountContext';
@@ -68,6 +69,15 @@ export function SignedOutReview() {
 export default function ReviewHome() {
   const profile = useProfile();
   const { offline, user } = useCloudSync();
+  const demo = useDemo();
+  // PREVIEW ONLY: the demo (sign-in screen's Try a demo) shows fictional postings, signed out.
+  if (!user && demo)
+    return (
+      <Stack gap="px24">
+        <ReviewHeader />
+        <DemoReviewList rows={DEMO_ROWS} />
+      </Stack>
+    );
   // Signed out (or not known yet), nothing on Review reads postings (#755).
   if (!user) return <SignedOutReview />;
   // The scheduled run's hand-picked roles (picks.ts), signed in only: fit line, draft note (Copy),

@@ -20,6 +20,7 @@ import {
 import { setScanDetails } from './feed/scanDetails';
 import { hiddenParts } from './feed/scanDetailsText';
 import {
+  Alert,
   Badge,
   Box,
   Button,
@@ -1136,4 +1137,26 @@ function excerpt(text: string, max = 500): string {
   if (flat.length <= max) return flat;
   const cut = flat.slice(0, max);
   return `${cut.slice(0, cut.lastIndexOf(' ') > 0 ? cut.lastIndexOf(' ') : max)}…`;
+}
+
+/** PREVIEW ONLY (scratch branch): the demo's Review, fictional postings in the real cards, with a
+ *  note that it is a demo. Save adds the job to this device's Apply list; nothing syncs. */
+export function DemoReviewList({ rows }: { rows: FeedRow[] }) {
+  const [now] = useState(() => Date.now());
+  return (
+    <Stack gap="px16">
+      <Alert tone="info" title="This is a demo">
+        Sample postings from fictional companies. Nothing is saved to an account, and nothing syncs.
+      </Alert>
+      <RowList
+        label="New postings"
+        rows={rows}
+        shown={rows.length}
+        onMore={() => {}}
+        now={now}
+        actions={rowActions}
+        selected={null}
+      />
+    </Stack>
+  );
 }

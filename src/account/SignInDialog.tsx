@@ -21,7 +21,8 @@ import {
 } from '@hirobius/design-system';
 import { SIGN_IN_AGREE, SIGN_IN_BENEFIT, SIGN_IN_COPY_ID, SIGN_IN_HOW } from './signInCopy';
 import { BRAND } from '../brand';
-import { legalHash, useRoute } from '../route';
+import { legalHash, navigate, useRoute } from '../route';
+import { startDemo } from '../demo/demoMode';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
@@ -257,6 +258,18 @@ export default function SignInDialog() {
             </Form>
           </>
         )}
+        {/* PREVIEW ONLY: the grey second key opens the demo (fictional postings, no account). */}
+        <Button
+          variant="secondary"
+          className="sign-in-dialog__primary"
+          onClick={() => {
+            startDemo();
+            onOpenChange(false);
+            navigate({ tab: 'review', sub: null, jobId: null });
+          }}
+        >
+          Try a demo
+        </Button>
         <ExitButton className="sign-in-dialog__primary" onClick={() => onOpenChange(false)}>
           Continue without an account
         </ExitButton>
