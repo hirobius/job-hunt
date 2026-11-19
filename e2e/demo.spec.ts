@@ -54,3 +54,40 @@ for (const [where, base] of [
     await expect(page.getByRole('dialog')).toHaveCount(0);
   });
 }
+
+test('a demo round trip leaves the visitor’s own data exactly as it was (#835 review)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+  // A visitor with a real job on this device.
+  await page.goto('/#/apply');
+  const mine = [{ url: 'https://mine.example/jobs/1', label: 'My real job', status: 'Saved' }];
+  await page.evaluate((jobs) => {
+    localStorage.setItem('rjb_shortlist', JSON.stringify(jobs));
+    sessionStorage.setItem('rjb_sign_in_asked', '1');
+  }, mine);
+  const before = await page.evaluate(() => localStorage.getItem('rjb_shortlist'));
+
+  // The demo: the visitor's job is not in it, and a Save stays in the demo.
+  await page.goto('/#/review?demo=1');
+  await page.reload();
+  await expect(page.getByText('This is a demo')).toBeVisible();
+  const list = page.getByRole('list', { name: 'New postings' });
+  await list.getByRole('button', { name: /^Save/ }).first().click();
+  await page.goto('/#/apply');
+  await expect(page.getByText('My real job')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('rjb_shortlist'))).not.toBe(before);
+
+  // Leave demo: back to the sign-in screen, and the real store never changed.
+  await page.goto('/#/review');
+  await page.getByRole('button', { name: 'Leave demo' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue without an account' }).click();
+  await page.reload();
+  await expect(page.getByText('This is a demo')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('rjb_shortlist'))).toBe(before);
+  await page.goto('/#/apply');
+  await expect(page.getByText('My real job').first()).toBeVisible();
+  await expect(page.getByText('Larkspur Analytics')).toHaveCount(0);
+});

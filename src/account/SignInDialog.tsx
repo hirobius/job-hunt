@@ -21,7 +21,7 @@ import {
 } from '@hirobius/design-system';
 import { SIGN_IN_AGREE, SIGN_IN_BENEFIT, SIGN_IN_COPY_ID, SIGN_IN_HOW } from './signInCopy';
 import { BRAND } from '../brand';
-import { legalHash, navigate, REVIEW_TAB, useRoute } from '../route';
+import { legalHash, useRoute } from '../route';
 import { startDemo } from '../demo/demoMode';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
@@ -268,11 +268,7 @@ export default function SignInDialog() {
           <Button
             variant="secondary"
             className="sign-in-dialog__primary"
-            onClick={() => {
-              onOpenChange(false);
-              void startDemo();
-              navigate({ tab: REVIEW_TAB, sub: null, jobId: null });
-            }}
+            onClick={() => startDemo()}
           >
             Try a demo
           </Button>

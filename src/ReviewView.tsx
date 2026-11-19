@@ -78,6 +78,8 @@ import { SOURCE_LABEL } from './feed/types';
 import type { Job } from './types';
 import { addJobDetailed, updateJob, useJobs } from './store';
 import { demoPostings } from './demo/demoPostings';
+import { leaveDemo } from './demo/demoMode';
+import { ExitButton } from './hds-gaps/ExitButton';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
@@ -1191,8 +1193,13 @@ export function DemoReviewList() {
   return (
     <Stack gap="px16">
       <Alert tone="info" title="This is a demo">
-        Sample postings and jobs from fictional companies. Nothing is saved to an account, and
-        nothing syncs.
+        <Stack gap="px8" align="start">
+          <span>
+            Sample postings and jobs from fictional companies. Nothing is saved, and your own data
+            is not touched.
+          </span>
+          <ExitButton onClick={() => leaveDemo()}>Leave demo</ExitButton>
+        </Stack>
       </Alert>
       <RowList
         label="New postings"

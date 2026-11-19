@@ -43,7 +43,6 @@ import { useCategories } from './curation/curationStore';
 import { STATUSES, type Status } from './types';
 import { PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
-import { firstSignInAsk } from './signInAsked';
 import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
 import { PageErrorBoundary } from './ErrorBoundary';
@@ -137,20 +136,13 @@ function SystemsOnlyMigration() {
   return null;
 }
 
-// The demo (#835) loads only for a demo link; the sign-in screen and Review load it themselves.
-const loadDemoMode = importFresh(() => import('./demo/demoMode'));
-
 export default function App() {
   const route = useRoute();
-  // A demo link (`?demo=1`, #835): start the demo (never into a stored session), then drop the
-  // flag from the URL in place, so a reload or a shared link of the next page does not carry it.
+  // A `?demo=1` link (#835): demoStorage.ts has made this a demo tab; its flag leaves the URL in
+  // place, so a shared link of the next page does not carry it.
   const demoLink = !!route.demo;
   useEffect(() => {
-    if (!demoLink) return;
-    // The visitor came for the demo: the sign-in screen does not open on its own over it.
-    firstSignInAsk();
-    void loadDemoMode().then(({ startDemo }) => startDemo());
-    navigate({ demo: undefined }, true);
+    if (demoLink) navigate({ demo: undefined }, true);
   }, [demoLink]);
   // A Company's page (#/apply/company/<slug>, #230, #471) is in the Apply tab.
   const companySlug = companySlugOf(route);

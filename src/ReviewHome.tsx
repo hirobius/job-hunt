@@ -11,7 +11,8 @@ import { Button, Skeleton, Stack, Text } from '@hirobius/design-system';
 import { LogIn } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { firstSignInAsk } from './signInAsked';
-import { startDemo, useDemo } from './demo/demoMode';
+import { startDemo } from './demo/demoMode';
+import { demoActive } from './demo/demoStorage';
 import { useJobs } from './store';
 import { useRoute } from './route';
 import { hasPersistedSession } from './supabase';
@@ -54,7 +55,7 @@ export function SignedOutReview() {
                 Sign in
               </Button>
               {noJobs && (
-                <Button variant="secondary" onClick={() => void startDemo()}>
+                <Button variant="secondary" onClick={() => startDemo()}>
                   Try a demo
                 </Button>
               )}
@@ -74,7 +75,7 @@ export function SignedOutReview() {
 export default function ReviewHome() {
   const profile = useProfile();
   const { offline, user } = useCloudSync();
-  const demo = useDemo();
+  const demo = demoActive();
   // The demo (#835): signed out, fictional postings under a note; nothing is read.
   if (!user && demo)
     return (
