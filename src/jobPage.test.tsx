@@ -995,6 +995,9 @@ describe('the keys follow the state (#540)', () => {
     );
     await user.click(within(dialog).getByRole('button', { name: 'Add link' }));
     const open = await screen.findByRole('link', { name: /Open application/ });
+    // Add link finds the new key by this hook, not its text: HDS adds a hidden "(opens in new
+    // tab)" to an external Button (#805), so the text is not the label.
+    expect(open).toHaveAttribute('data-dock-key', 'openApplication');
     expect(open).toHaveAttribute('href', 'https://boards.example.com/jobs/9');
     expect(screen.queryByText('No application link')).toBeNull();
     await waitFor(() => expect(open).toHaveFocus());

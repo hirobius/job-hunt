@@ -31,7 +31,7 @@ The work tab (`#/apply`, ADR 0010): the list of every saved Job (search, Status,
 _Avoid_: Pipeline, Jobs tab, tracker, queue (in copy), board, Apply mode
 
 **Apply view**:
-One Job on the Apply tab (`#/apply/<jobId>`): badges, title and company, the next step for its Status (Saved: Open application, then Mark applied | Not a fit), then Details, Notes, Documents and Decks. The Application kit left this view on 2026-11-13; its data still syncs. Mark applied and Not a fit open the next Job in the list.
+One Job on the Apply tab (`#/apply/<jobId>`): badges, title and company, the next step for its Status (Saved: Open application, then Mark applied | Not a fit), then Details, Notes, Documents and Decks. The Templates and Application kit panels left this view on 2026-11-13: a follow-up still fills an Outreach message, and the kit's data (`rjb_apply_kit`) still syncs and rides in backups. Mark applied and Not a fit open the next Job in the list.
 _Avoid_: job page, job detail, Apply mode, wizard
 
 **Review**:
