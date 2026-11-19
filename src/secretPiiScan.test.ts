@@ -31,6 +31,10 @@ type ScanModule = {
   parsePushLines: (stdin: string) => PushLine[];
   resolveRanges: (lines: PushLine[], git: GitOps) => string[];
   findPii: (text: string, opts?: { plain?: boolean; label?: string }) => Finding[];
+  parseGitleaksVersion: (out: string) => [number, number, number] | null;
+  versionAtLeast: (v: number[], min: number[]) => boolean;
+  gitleaksStatus: () => 'ok' | 'missing' | 'old';
+  MIN_GITLEAKS: number[];
 };
 
 const ROOT = resolve(__dirname, '..');
@@ -42,9 +46,10 @@ const ZERO = '0'.repeat(40);
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
-const HAS_GITLEAKS = spawnSync('gitleaks', ['version'], { stdio: 'ignore' }).status === 0;
-
 const scan = async () => (await import(pathToFileURL(SCRIPT).href)) as ScanModule;
+// Real-gitleaks cases run only with a gitleaks new enough for .gitleaks.toml (the hook's own floor,
+// #806), so a laptop with an old one skips them as it would with none; CI always runs them.
+const HAS_GITLEAKS = (await scan()).gitleaksStatus() === 'ok';
 
 describe('findPii', () => {
   it('flags real-looking emails, US phones and SSNs on added lines only', async () => {
@@ -186,6 +191,35 @@ describe('job-hunt fixtures through gitleaks + .gitleaks.toml', () => {
     rmSync(r.dir, { recursive: true, force: true });
     expect(out.stderr).not.toContain('FAIL');
     expect(out.status).toBe(0);
+  });
+  it('reads the gitleaks version and holds the 8.25 floor (#806)', async () => {
+    const { parseGitleaksVersion, versionAtLeast, MIN_GITLEAKS } = await scan();
+    expect(parseGitleaksVersion('8.30.1\n')).toEqual([8, 30, 1]);
+    expect(parseGitleaksVersion('v8.21.2')).toEqual([8, 21, 2]);
+    expect(parseGitleaksVersion('dev')).toBeNull();
+    expect(MIN_GITLEAKS).toEqual([8, 25, 0]);
+    expect(versionAtLeast([8, 30, 1], MIN_GITLEAKS)).toBe(true);
+    expect(versionAtLeast([8, 25, 0], MIN_GITLEAKS)).toBe(true);
+    expect(versionAtLeast([8, 21, 2], MIN_GITLEAKS)).toBe(false);
+    expect(versionAtLeast([9, 0, 0], MIN_GITLEAKS)).toBe(true);
+  });
+  it('fails closed with the install command when gitleaks is too old (#806)', () => {
+    const r = repo(fixture('passing.example.txt'), { file: 'ok.txt' });
+    const bin = mkdtempSync(join(tmpdir(), 'spscan-bin-'));
+    symlinkSync(process.execPath, join(bin, 'node'));
+    const git = spawnSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).stdout.trim();
+    symlinkSync(git, join(bin, 'git'));
+    writeFileSync(join(bin, 'gitleaks'), '#!/bin/sh\necho 8.21.2\n', { mode: 0o755 });
+    const out = spawnSync(join(bin, 'node'), [SCRIPT], {
+      cwd: r.dir,
+      input: r.input,
+      encoding: 'utf8',
+      env: { ...process.env, PATH: bin, SKIP_SECRET_SCAN: '' },
+    });
+    rmSync(r.dir, { recursive: true, force: true });
+    rmSync(bin, { recursive: true, force: true });
+    expect(out.status).toBe(1);
+    expect(out.stderr).toMatch(/gitleaks is older than 8\.25\.0.*brew install gitleaks/);
   });
   it('fails closed with the install command when gitleaks is missing', () => {
     const r = repo(fixture('passing.example.txt'), { file: 'ok.txt' });

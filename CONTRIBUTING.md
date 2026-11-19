@@ -19,7 +19,8 @@ npm run test:e2e     # Playwright browser tests
 npm run check:docs   # README.md and CLAUDE.md length caps and sections
 ```
 
-`npm run verify` must pass before each push. `npm run test:visual` runs only in the pinned
+`npm run verify` must pass before each push. The pre-push hook scans for secrets with gitleaks
+8.25 or newer (CI uses 8.30.1); with an older one, the push stops and says how to install it. `npm run test:visual` runs only in the pinned
 Playwright Docker image (`e2e/visual-env.json`). `npm run gallery` shoots every screen into
 `gallery/`.
 
