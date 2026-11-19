@@ -200,7 +200,7 @@ function companyLink(name: string, from: Route) {
   const slug = companySlug(name);
   return slug ? (
     <InlineLink href={linkTo(parseHash(companyHash(slug)), from)} externalIcon={false} standalone>
-      {name}
+      <span className="rjb-link-line">{name}</span>
     </InlineLink>
   ) : (
     name
@@ -208,14 +208,14 @@ function companyLink(name: string, from: Route) {
 }
 
 /** The posting link as the domain alone (rev-3 C): an external-link icon, then the domain cut
- *  with an ellipsis when it is long. It opens the posting in a new tab. */
+ *  with an ellipsis when it is long (`.rjb-link-line`). It opens the posting in a new tab. */
 function postingLink(job: Job, domain: string) {
   return (
     <Stack direction="row" gap="px4" align="center">
       <Icon icon={ExternalLink} size="small" />
-      <Box className="rjb-truncate rjb-truncate-x" sx={{ minWidth: 0 }}>
+      <Box sx={{ minWidth: 0 }}>
         <InlineLink href={job.url} externalIcon={false} standalone>
-          {domain}
+          <span className="rjb-link-line">{domain}</span>
         </InlineLink>
       </Box>
     </Stack>
