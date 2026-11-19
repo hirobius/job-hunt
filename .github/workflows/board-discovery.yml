@@ -49,7 +49,7 @@ jobs:
       - name: Check the new set
         if: steps.discover.outputs.code == '0'
         run: |
-          npx vitest run src/feed src/tracks
+          npx vitest run src/feed src/postingSync
           npm run build
       - name: Open the PR
         if: steps.discover.outputs.code == '0'
