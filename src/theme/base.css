@@ -383,15 +383,6 @@ p {
   justify-content: space-between;
   gap: var(--primitive-space-2);
 }
-.rjb-page-bar-tools {
-  display: flex;
-  align-items: center;
-  gap: var(--primitive-space-1);
-  min-width: 0;
-}
-.rjb-page-bar-tools:empty {
-  display: none;
-}
 /* One app-bar row on a phone (#548): narrower sides, so the logo, Find, Apply and Account fit at 390,
  * counts and all (the row wraps only where it cannot fit). */
 @media (max-width: 639px) {

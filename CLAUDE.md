@@ -59,7 +59,7 @@ Each rule is one line. The linked file has the detail and the tests that pin it.
 - `main` is production. Merge only after green CI and an independent "Reviewed: PASS" on the head commit.
 - Agents never edit `.github/workflows`. Write the change for Adrian.
 - Tests do not catch visual faults. Check the render in headless Chromium at 1440 and 390, and click things.
-- Lint runs with `--max-warnings=0`. Only lower the inline-style ceiling, never raise it.
+- Lint runs with `--max-warnings=0` and `prettier --check` (`npm run format` fixes it). Only lower the inline-style ceiling, never raise it.
 - A `fix:` or `revert:` commit needs a `Learned: <one line>` trailer.
 - Track work as GitHub Issues in this repo, not in local TODO files.
 

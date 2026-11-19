@@ -4,7 +4,8 @@
 
 Please report security problems privately, never in a public issue or pull request.
 
-- Email **adrian@hirobius.com** with "Security" in the subject line.
+- Use GitHub's private report: the **Security** tab of this repository, then **Report a vulnerability**.
+- Or email **info@hirobius.com** with "Security" in the subject line. <!-- pii-allow: public business address (legal.ts CONTACT_EMAIL) -->
 - Say what you found, where (file, page or version) and how to reproduce it.
 - Leave out real customer data, passwords and keys.
 

@@ -1,4 +1,3 @@
-import { PageBarSlot } from './pageBarSlot';
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   useRoute,
@@ -213,7 +212,6 @@ export default function App() {
   // toggle group; arrow keys select), so it cannot be a nav: these stay links in a nav, the open one
   // aria-current="page", drawn with its tokens (base.css .rjb-segs). Upstream ask:
   // docs/hds-upstream-asks/segmented-nav.md (G7, hds#1438). Review shows its count (TopTabCount), Apply none (Adrian 2026-11-13).
-  const [barSlot, setBarSlot] = useState<HTMLDivElement | null>(null);
   const sections = (
     <Box as="nav" aria-label="Sections" className="rjb-segs">
       <a {...tabLink(REVIEW_TAB)}>
@@ -355,12 +353,9 @@ export default function App() {
                 </Stack>
               </Box>
               <Box as="main" className="rjb-main">
-                {/* The page bar: Find / Apply at top left, where the page's title was (each page's
-                    h1 is .sr-only now); Find puts its caption and More in the slot at the right. */}
-                <Box className="rjb-page-bar">
-                  {sections}
-                  <Box className="rjb-page-bar-tools" ref={setBarSlot} />
-                </Box>
+                {/* The page bar: Review / Apply at top left, where the page's title was (each
+                    page's h1 is .sr-only now). */}
+                <Box className="rjb-page-bar">{sections}</Box>
                 {/* A page whose chunk is gone after a deploy says so here, not over the shell
                       (#331); a move to another page clears it. */}
                 <PageErrorBoundary resetKey={pageKey(route)}>
@@ -370,9 +365,7 @@ export default function App() {
                     {current(REVIEW_TAB) && (
                       <Suspense fallback={<PipelineSkeleton />}>
                         <PageHold firstRun={firstRun}>
-                          <PageBarSlot.Provider value={barSlot}>
-                            <ReviewHome />
-                          </PageBarSlot.Provider>
+                          <ReviewHome />
                         </PageHold>
                       </Suspense>
                     )}

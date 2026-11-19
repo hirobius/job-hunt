@@ -24,11 +24,11 @@ export interface NormalizedPosting {
     | 'breezy'
     | 'jsearch'
     | 'adzuna'
-    // The sync's own whole-web searches (tracks/feeds).
+    // The sync's own whole-web searches (postingSync/feeds).
     | 'theirstack'
     | 'jooble'
     | 'ids'
-    // The keyless remote boards the sync reads whole (tracks/feeds).
+    // The keyless remote boards the sync reads whole (postingSync/feeds).
     | 'arbeitnow'
     | 'remoteok'
     | 'wwr'

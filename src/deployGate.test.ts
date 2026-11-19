@@ -30,7 +30,10 @@ describe('deploy gate', () => {
 
   it('each gate step runs the real tool, not a stub', () => {
     expect(pkg.scripts.typecheck).toBe('tsc --noEmit');
-    expect(pkg.scripts.lint).toBe('eslint . --max-warnings=0');
+    // ESLint, then Prettier's check: CI runs lint, so the one format holds (audit item 8).
+    expect(pkg.scripts.lint).toBe(
+      'eslint . --max-warnings=0 && prettier --check . --log-level=warn',
+    );
     expect(pkg.scripts.test).toBe('vitest run');
   });
 
