@@ -158,7 +158,7 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   stated"). Kept per browser: `rjb_autoscan` (last run, lead queue, probed, found companies) and
   `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
   through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
-  `AutoScanViews.tsx` and `FindHeader.tsx` (**Adrian 2026-11-08: no status text above the list.** Find's short
+  `AutoScanViews.tsx` and `ReviewHeader.tsx` (**Adrian 2026-11-08: no status text above the list.** Find's short
   header has no caption and no More menu (#694): Scan now / Stop scan is the Account menu's, signed out only (the
   server syncs every 15 minutes signed in); `ScanStatus` is gone). The scan's line ("Updated N min ago" from the last `sync_log` run signed in, "Last scanned hh:mm · …"
   signed out), the sources that didn't answer and the "not shown" counts are **Scan details**, a closed row at the end of

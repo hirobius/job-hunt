@@ -1,6 +1,6 @@
 # ADR 0010 — Two screens, Find and Apply; Documents and Legal are dialogs in the URL
 
-- **Status:** Accepted
+- **Status:** Accepted. Amended 2026-11-13: the Find tab is named **Review** (`#/review`); see below.
 - **Date:** 2026-11-07
 - **Decider:** Adrian (issue #471, 2026-11-05: "use as few screens as possible"; slices #493, #494, #495, #500)
 
@@ -30,6 +30,13 @@ to saved ones.
    `#/today` → `#/find`, `#/queue[/<id>]` → `#/apply[/<id>]`, `#/company/<slug>` →
    `#/apply/company/<slug>`, `#/copy-deck[/<id>]` and `#/legal/<doc>` → their `?from=` page (else
    Find) with the dialog open. No data changed: no blob version bump.
+
+## Amendment 2026-11-13: Find is named Review
+
+Adrian renamed the Find tab to **Review** (`#/review`, `#/review/<postingFingerprint>`). The two-tab
+decision above is unchanged; read "Find" in it as Review. `route.ts` `redirectOf` sends
+`#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place, as it does for the older hashes.
+This file keeps its name so existing links to it work.
 
 ## Considered options
 
