@@ -39,6 +39,20 @@ test.describe('dock 390', () => {
       return Math.max(...els.map((e) => e.getBoundingClientRect().bottom));
     });
     expect(last).toBeLessThanOrEqual((await dock.boundingBox())!.y + 1);
+    // The keys sit in the page's gutter, not a 16px fallback (#828): the left key starts where
+    // main's content starts, and the right gutter equals the left one. (The right edge is checked
+    // against the dock, not main: desktop Chromium's scrollbar narrows main, not the fixed dock.)
+    const content = (await page.locator('main').boundingBox())!;
+    const dockBox = (await dock.boundingBox())!;
+    const keyEdges = await dock
+      .locator('a, button')
+      .evaluateAll((els) =>
+        els.map((e) => e.getBoundingClientRect()).map((r) => [r.left, r.right]),
+      );
+    const left = Math.min(...keyEdges.map((e) => e[0]));
+    const right = Math.max(...keyEdges.map((e) => e[1]));
+    expect(Math.round(left)).toBe(Math.round(content.x));
+    expect(Math.round(dockBox.x + dockBox.width - right)).toBe(Math.round(left - dockBox.x));
     for (const k of await dock.locator('a, button').all()) {
       const b = (await k.boundingBox())!;
       expect(b.height).toBeGreaterThanOrEqual(44);

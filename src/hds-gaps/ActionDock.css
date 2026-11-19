@@ -16,7 +16,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--semantic-space-scale-xs);
-  padding: var(--semantic-space-scale-sm) var(--rjb-shell-gutter, var(--semantic-space-scale-md));
+  padding: var(--semantic-space-scale-sm) var(--rjb-shell-gutter);
   padding-bottom: calc(var(--semantic-space-scale-sm) + env(safe-area-inset-bottom, 0px));
   background: var(--semantic-color-surface-page);
   box-shadow: var(--semantic-elevation-floating-shadow);
