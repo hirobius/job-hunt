@@ -81,6 +81,7 @@ import {
   sameEmail,
 } from './authLink';
 import { dropSampleTrack } from '../demo/sampleTrack';
+import { createSignInPath, isNewToDevice } from './signInPath';
 import { dropAutoSetup } from '../autoSetup';
 import {
   DeleteDataConfirmDialog,
@@ -205,7 +206,6 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // An account this device never synced with, while it holds data: "Add this device's N jobs?".
   // Until it is answered nothing is pulled or pushed (adopt waits on it).
   const [mergeAsk, setMergeAsk] = useState<{ user: User; question: string } | null>(null);
-  const mergeHeld = useRef<string | null>(null);
   // Sign-out with changes the cloud does not hold yet: the HDS confirm's answer (true = sign out).
   const [signOutAsk, setSignOutAsk] = useState<((yes: boolean) => void) | null>(null);
   const askSignOut = () =>
@@ -222,13 +222,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     deleteAsk?.(yes);
     setDeleteAsk(null);
   };
-  // The user that passed the whole sign-in path (email check, then the merge guard). Nothing is
-  // pulled or pushed for anyone else, and only their token refreshes skip that path: an expired
-  // crafted link is refreshed by supabase-js (TOKEN_REFRESHED, not SIGNED_IN), security re-check.
-  const handled = useRef<string | null>(null);
-  // While a link's session is being set: the email it was accepted for. Another account is not
-  // taken up at all (acceptLink signs it out), so nothing of it is pulled first.
-  const linkEmail = useRef<string | null>(null);
+  // The sign-in path (signInPath.ts, #814): the user that passed it (email check, then the merge
+  // guard), the open merge question and a link's email while its session is set. Nothing is pulled
+  // or pushed for anyone else, and only their token refreshes skip that path: an expired crafted
+  // link is refreshed by supabase-js (TOKEN_REFRESHED, not SIGNED_IN), security re-check.
+  const path = useMemo(() => createSignInPath(), []);
 
   // The push / merge loop (syncEngine.ts, #814): it holds the row's last-seen stamp, what was last
   // sent or adopted, and whether a pull has landed since sign-in; this provider says when. Made on
@@ -245,7 +243,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       readBase: (uid) => ({ keys: S().readSyncBase(uid), hashes: S().readSyncHashes(uid) }),
       rememberBase,
       sessionIsStill: (u) => sessionIsStill(u),
-      owns: (uid) => handled.current === uid && !deleting.current,
+      owns: (uid) => path.owns(uid) && !deleting.current,
       frozen: () => !!tabFrozen(),
       deleting: () => deleting.current,
       freezeNewerVersion: () => freezeTab('newerVersion'),
@@ -298,7 +296,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // (a sign-in, or a push the cloud turned down) merges both sides. Null when the account changed.
   async function adopt(seed: boolean, u: User) {
     // Not through the sign-in path (the merge question is open), or stopped by another tab (#288).
-    if (handled.current !== u.id || tabFrozen() || deleting.current) return;
+    if (!path.owns(u.id) || tabFrozen() || deleting.current) return;
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
     const run = ++pullRun.current;
@@ -365,39 +363,28 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         setAuthResolved(true);
         // Until the reload, this tab follows no one (#288); anyone signing in elsewhere after a
         // sign-out there, this tab's own account too, keeps this tab's edits out of shared storage.
-        if (tabFrozen()) {
-          if (u) sessionWhileFrozen(u.id);
-          return;
-        }
         // Another tab signed out, or in as someone else (supabase-js relays its sign-in here): this
-        // tab's copy is the old account's, so it stops instead of following (tabAccount.ts). Its
-        // own changes of account (sign-out, a confirmed link) clear tabAccount or set linkEmail.
-        const owner = tabAccount();
-        if (owner !== null && u?.id !== owner && linkEmail.current === null) {
-          freezeTab(u ? 'switched' : 'signedOut');
+        // tab's copy is the old account's, so it stops instead of following (tabAccount.ts).
+        const step = path.step(u, { frozen: !!tabFrozen(), owner: tabAccount() });
+        if (step.kind === 'frozen') {
+          if (step.uid) sessionWhileFrozen(step.uid);
           return;
         }
-        // A link's session for another account than the link named: never taken up here.
-        if (u && linkEmail.current !== null && !sameEmail(u.email, linkEmail.current)) return;
+        if (step.kind === 'freeze') return freezeTab(step.why);
+        if (step.kind === 'otherAccount') return;
         setUser(u);
-        // An event for the user already through the path below is not a new sign-in. supabase-js
-        // also says SIGNED_IN again for the same session (tab focus, another tab's broadcast, the
-        // initial session after an OAuth return): re-running the path reset `pulledOk`, so a
-        // sign-out in that window found nothing "flushed" and warned of lost changes (2026-11-15).
-        if (u && handled.current === u.id) return;
-        handled.current = null;
-        setTabAccount(null); // until the path below has run for this user
+        if (step.kind === 'same') return;
+        setTabAccount(null); // until the path has run for this user
         // Opened from the magic link: back to the page the link was asked for on (return paths).
         if (event === 'SIGNED_IN') returnAfterSignIn();
         engine().reset(); // new sign-in or sign-out: the next pull must land before any push
         seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
-        if (!u) {
-          mergeHeld.current = null;
+        if (step.kind === 'signedOut' || !u) {
           setMergeAsk(null);
           signedOut();
           return;
         }
-        if (mergeHeld.current === u.id) return; // already asking (a second event for the same user)
+        if (step.kind === 'asking') return; // a second event for the same user
         // The sample's track is sample data: never asked about, never uploaded (#107).
         dropSampleTrack();
         // Neither is the auto profile: the account's own profile (or its v11 move) wins.
@@ -406,18 +393,14 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         // a crafted link could be someone else's account (login injection, security audit).
         // The account this device last synced with is not asked again: sign-out wiped its base, and
         // what is here now was made on this device since (deviceAccount.ts).
-        const held =
-          S().readSyncBase(u.id) === null && readDeviceAccount() !== u.id
-            ? S().deviceData(localBlob(), getCurationState().categories.length)
-            : null;
-        if (held?.any) {
-          mergeHeld.current = u.id;
-          setMergeAsk({ user: u, question: S().mergeQuestion(held, u.email ?? 'this account') });
+        const held = isNewToDevice(S().readSyncBase(u.id) !== null, readDeviceAccount(), u.id)
+          ? S().deviceData(localBlob(), getCurationState().categories.length)
+          : null;
+        if (path.admit(u.id, !!held?.any) === 'ask') {
+          setMergeAsk({ user: u, question: S().mergeQuestion(held!, u.email ?? 'this account') });
           return;
         }
-        mergeHeld.current = null;
         setMergeAsk(null);
-        handled.current = u.id;
         setTabAccount(u.id); // only this tab's own sign-out clears it (#169)
         writeDeviceAccount(u.id);
         adopt(true, u);
@@ -486,25 +469,26 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     quiet = false,
   ): Promise<boolean> {
     clearSignInRequest();
-    linkEmail.current = email;
     const fail = () => {
       if (!quiet) toast({ title: "Couldn't sign in", description: failMsg, tone: 'danger' });
       return false;
     };
-    try {
-      const supa = await loadSupabase();
-      const r = await supa.auth.setSession(tokens);
-      if (r.error || !r.data.user) return fail();
-      if (!sameEmail(r.data.user.email, email)) {
-        await supa.auth.signOut({ scope: 'local' });
+    // While its session is set, the path holds the link's email: another account is not taken
+    // up at all (it is signed out here), so nothing of it is pulled first.
+    return path.withLink(email, async () => {
+      try {
+        const supa = await loadSupabase();
+        const r = await supa.auth.setSession(tokens);
+        if (r.error || !r.data.user) return fail();
+        if (!sameEmail(r.data.user.email, email)) {
+          await supa.auth.signOut({ scope: 'local' });
+          return fail();
+        }
+        return true;
+      } catch {
         return fail();
       }
-      return true;
-    } catch {
-      return fail();
-    } finally {
-      linkEmail.current = null;
-    }
+    });
   }
   // Sign in on the confirm screen: the screen says "Signing in…" until the session is real, then
   // "Signed in" and its hand-over, and closes itself (closeLink). On a failure it stays, with the
@@ -530,9 +514,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const addDeviceData = () => {
     const ask = mergeAsk;
     setMergeAsk(null);
-    if (!ask || mergeHeld.current !== ask.user.id) return;
-    mergeHeld.current = null;
-    handled.current = ask.user.id;
+    if (!ask || !path.answer(ask.user.id)) return;
     setTabAccount(ask.user.id);
     writeDeviceAccount(ask.user.id);
     void adopt(true, ask.user);
@@ -541,7 +523,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const keepDeviceData = () => {
     const ask = mergeAsk;
     setMergeAsk(null);
-    if (!ask || mergeHeld.current !== ask.user.id) return;
+    if (!ask || !path.decline(ask.user.id)) return;
     void loadSupabase()
       .then((supa) => supa.auth.signOut({ scope: 'local' }))
       .catch(() => {});
@@ -549,7 +531,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
-    if (!user || !pulled() || handled.current !== user.id || tabFrozen()) return;
+    if (!user || !pulled() || !path.owns(user.id) || tabFrozen()) return;
     if (!dirty()) return;
     // An external store (the engine) changed: say so at once. The rule passed before only because
     // these checks read refs; the behaviour is the same (#814).
@@ -614,7 +596,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     // the shared session is that tab's now, and signing it out would sign that account out.
     if (tabFrozen() || (user && !(await sessionIsStill(user)))) return location.reload();
     setTabAccount(null); // this tab's own sign-out: not a change made in another tab
-    handled.current = null;
+    path.leave();
     await (await loadSupabase()).auth.signOut();
     clearLocalData();
     location.reload();
@@ -656,7 +638,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     clearLocalData();
     clearDeviceAccount(); // the account is gone: a new one with this id never exists, but be plain
     setTabAccount(null);
-    handled.current = null;
+    path.leave();
     // delete_my_data removed the auth user and its sessions (2026-11-13): end the session on this
     // device only; a global sign-out would ask the server about a user that is gone. The per-table
     // fallback leaves the auth user, so it still signs out everywhere (revoking other devices).
