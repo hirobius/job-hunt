@@ -43,6 +43,7 @@ const ON_DEMAND = [
   'account/trackerRow.ts',
   'account/localSyncData.ts',
   'account/deviceData.ts',
+  'account/syncEngine.ts',
 ];
 
 function resolve(from: string, spec: string): string | null {
