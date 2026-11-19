@@ -142,5 +142,14 @@ export default defineConfig({
     restoreMocks: true,
     // Room for findBy's 5 s (src/test/setup.ts) on a busy builder.
     testTimeout: 20_000,
+    // `npm run test:coverage` (#819): app code only. The floors are the 2026-11-19 numbers rounded
+    // down; raise them as tests land, never lower them.
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.{test,spec}.{ts,tsx}', 'src/test/**', 'src/**/*.d.ts'],
+      reporter: ['text-summary', 'json-summary'],
+      thresholds: { statements: 94, branches: 88, functions: 93, lines: 96 },
+    },
   },
 });
