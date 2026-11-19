@@ -591,12 +591,20 @@ p {
   }
 }
 
-/* The ellipsis box of a standalone link (a job's Details: the posting's domain) cuts the line's
- * ends only: HDS's 44px touch target for `InlineLink standalone` reaches above and below the line,
- * and `overflow: hidden` cut it back to the 19px line (rules audit 2026-11-18). */
-.rjb-truncate.rjb-truncate-x {
-  overflow: visible;
-  overflow-x: clip;
+/* A job's Details: Company and Link are one line each, cut with an ellipsis (Figma Flows, steps 3
+ * and 4, 2026-11-19). `InlineLink standalone` is an inline-block, so an ellipsis on a box around it
+ * never applies: the link keeps to the column and the text inside it cuts. The link itself is not
+ * clipped, so its 44px phone target and its focus ring stay whole (rules audit 2026-11-18).
+ * HDS gap: InlineLink has no truncate (docs/hds-upstream-asks-0.9.md). */
+[data-hds] .rjb-details-list .hds-link-standalone {
+  max-width: 100%;
+  vertical-align: top;
+}
+.rjb-link-line {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* A job's Details on a phone: its rows sit one 44px target apart (a row is one line), so the
