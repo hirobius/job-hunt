@@ -45,5 +45,5 @@ The posting list, its window, the full description and Daily picks.
   `20261105100000`, also redefines `delete_my_data`). Today shows `DailyPicks.tsx` above Review new, signed in only,
   hidden when empty: link, company, employee/contract, pay, posted day, fit line, draft note (Disclosure row + Copy),
   Save (`addJobDetailed` with `notes` = draft note + fit) and Skip (`decided` by fingerprint, Undo). Read model
-  `src/picks.ts`; it imports `fingerprint` from `tracks/score` directly (through `decided.ts` the entry grew 0.8 kB).
+  `src/picks.ts`; it imports `fingerprint` from `postingSync/score` directly (through `decided.ts` the entry grew 0.8 kB).
   Pinned in `picks.test.ts`, `dailyPicks.test.tsx`, `dailyPicksMigration.test.ts`.

@@ -14,7 +14,7 @@
 // The probe keeps a board only when it matches, or when it is the one board the name found and
 // nothing speaks against it; every other board is "unconfirmed" and is listed, never watched.
 // Pure: no network, table-tested in boardIdentity.test.ts.
-// `.ts` specifiers: the server's board suggestions (tracks/boardSuggest.ts) load this in Deno.
+// `.ts` specifiers: the server's board suggestions (postingSync/boardSuggest.ts) load this in Deno.
 import { BOARD_DOMAINS, logoDomain } from '../companyLogo.ts';
 import { obj } from './sources/http.ts';
 

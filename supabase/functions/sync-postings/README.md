@@ -1,7 +1,7 @@
 # sync-postings
 
 The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387). Every 15 minutes (#448) it reads what each
-signed-in user follows **from their synced `tracker` blob** (`src/tracks/plan.ts`):
+signed-in user follows **from their synced `tracker` blob** (`src/postingSync/plan.ts`):
 
 - **Blob v12** (#384): `sources[]` (every board kind, followed companies, feeds; muted ones are
   skipped) and the Search profile `profiles[0]`.
@@ -14,10 +14,10 @@ SmartRecruiters, Teamtailor, Personio, BambooHR, Rippling, Gem, Pinpoint, Breezy
 own parsers; each kind's host is fixed and only a validated slug varies), and on the morning run HN, Remotive and Jobicy for
 the profile's titles plus designsystems.jobs: its whole catalog (sitemap + each job page, only
 pages not stored yet, at most 40 a run, 1 a second; its RSS fills in the rest) — and, for a design
-systems profile, the sync's own searches in `src/tracks/feeds/` once each is on in
+systems profile, the sync's own searches in `src/postingSync/feeds/` once each is on in
 `SOURCE_ENABLED` (`src/feed/sourceEnabled.ts`): TheirStack, Adzuna, Jooble, Into Design Systems.
 Those are windowed searches, so a posting missing from one is never closed as gone. It scores each posting with the profile's config
-(`src/tracks/`) and upserts it into `postings`. The app reads those rows (`src/feed/postingReader.ts`)
+(`src/postingSync/`) and upserts it into `postings`. The app reads those rows (`src/feed/postingReader.ts`)
 and adds them to what the browser finds, never in place of it.
 
 There is no `watched_companies` or `skips` table: the blob is the one source of truth, and the sync
@@ -74,7 +74,7 @@ every call (403): there is no built-in fallback.
 
 Arbeitnow, Remote OK, 4dayweek.io, RemoteJobs.org, Get on Board, Open Source
 Design and Jobgether need no key and run on each feeds run. Each keyed source
-runs as soon as its secret is set (no code change; `src/tracks/feeds/serverFeeds.ts`). With one of
+runs as soon as its secret is set (no code change; `src/postingSync/feeds/serverFeeds.ts`). With one of
 two secrets missing, its read fails with a `sync_log` line naming it. The function's answer lists
 `serverFeedsOff` with the secret each one still needs. Add each in the same Secrets page:
 
@@ -99,7 +99,7 @@ function that reads all 13 board kinds (#576): it lets `postings` store BambooHR
 Pinpoint and Breezy HR rows under their own source (they were stored as `manual`, which the app
 never shows).
 
-The ATS x-ray search (`src/tracks/feeds/xray.ts`) runs on the morning run once its secret is set.
+The ATS x-ray search (`src/postingSync/feeds/xray.ts`) runs on the morning run once its secret is set.
 It finds company boards on every ATS host the sync reads and stores them in `found_boards`; the
 scan rotation reads them beside `boards.json`. Run
 `supabase/migrations/20261117100000_found_boards.sql` once before deploying the function that
@@ -119,7 +119,7 @@ npx supabase functions deploy sync-postings --project-ref nelrcmbkimjjmfmgnixj -
 ```
 
 `--no-verify-jwt` is required: the cron calls it with the secret header, not a user token.
-The function imports `src/tracks/*.ts` and `src/feed/sources/*.ts` by relative path. If the deploy
+The function imports `src/postingSync/*.ts` and `src/feed/sources/*.ts` by relative path. If the deploy
 says it can't find a file outside `supabase/functions`, update the CLI (`npx supabase@latest …`) and
 try again; tell Claude if it still fails.
 
@@ -177,7 +177,7 @@ and run it. Then do the same with `20261106100100_sync_run_lease_search_path.sql
 functions with an empty search_path). It removes the 18:23 run and adds `sync-postings-15min` (:08, :38, :53) and
 `sync-postings-15min-23` (:23, every hour but 06, which stays the morning feeds run). Every run reads
 the followed boards in slices of 16 (one invocation each, chained, so none nears the 150 s limit) and
-reads a board once more after 2 s on a 429, a 5xx or a timeout (`src/tracks/retry.ts`; the function's
+reads a board once more after 2 s on a 429, a 5xx or a timeout (`src/postingSync/retry.ts`; the function's
 answer counts them in `retriedReads`). Safe to run twice. Check:
 
 ```sql
@@ -213,7 +213,7 @@ select cron.unschedule('sync-postings-15min-23');` and run step 6's file again.
 
 The 14:23 run reads HN, Jobicy, designsystems.jobs and the keyless feeds. TheirStack, Adzuna,
 Jooble and Remotive stay on the 06:23 run only, so their budgets do not change (Remotive asks for
-about 4 requests a day: 2 terms, and a retry of each, is 4; `termsPerRun` in `src/tracks/sync.ts`).
+about 4 requests a day: 2 terms, and a retry of each, is 4; `termsPerRun` in `src/postingSync/sync.ts`).
 
 To stop it: `select cron.unschedule('sync-postings-afternoon');`
 
@@ -224,7 +224,7 @@ board in `src/feed/data/boards.json` (read through `src/feed/boardSet.ts`), thou
 batch at a time. pg_cron calls it once a minute with `{"rotate": true}`. It stores only postings that
 are **queue or review** under a design systems profile **and remote** (remote, or no mode and no city
 named: the app's remote-only rule, `src/feed/mode.ts` `remoteVerdict`), and only for users whose
-Search profile is design systems. Other users get nothing from it. Rules: `src/tracks/rotation.ts`.
+Search profile is design systems. Other users get nothing from it. Rules: `src/postingSync/rotation.ts`.
 
 - **Order and cursor.** Boards in a fixed shuffled order (a hash of each board's key), so the hosts
   are mixed and a board keeps its place when the snapshot changes. The cursor is the last board
@@ -256,7 +256,7 @@ Search profile is design systems. Other users get nothing from it. Rules: `src/t
 
 ### The run-time math
 
-From `rotationMath` in `src/tracks/rotation.ts` (`npm run sync:dry-run -- --rotate` prints it for
+From `rotationMath` in `src/postingSync/rotation.ts` (`npm run sync:dry-run -- --rotate` prints it for
 the committed set too):
 
 | Boards | Open roles per board | Boards per run | Runs per cycle | Hours per full cycle | Slowest batch's reads |

@@ -119,7 +119,7 @@ afterEach(() => {
   delete window.matchMedia;
 });
 
-describe('Pipeline on a phone (#129)', () => {
+describe('Apply on a phone (#129)', () => {
   beforeEach(() => viewport(390));
 
   // The real phone UI (no sheet): the view picker, the Passed view and an empty view.
@@ -369,7 +369,7 @@ describe('Retired jobs stay readable', () => {
   });
 });
 
-describe('Pipeline filter (#129, #543)', () => {
+describe('Apply filter (#129, #543)', () => {
   beforeEach(() => viewport(390));
 
   it('the list has no search, filter chips, Clear or Sort (2026-11-13)', async () => {
@@ -403,7 +403,7 @@ describe('Pipeline filter (#129, #543)', () => {
 });
 
 // From lg the list is the column beside a job (#471, jobPage.test.tsx); the sheet holds below it.
-describe('Pipeline on a tablet: the sheet rows too (Adrian 2026-10-24)', () => {
+describe('Apply on a tablet: the sheet rows too (Adrian 2026-10-24)', () => {
   beforeEach(() => viewport(800));
 
   it('is the row list, not a table: status and follow-up badges, no per-row key (#543)', async () => {
@@ -474,7 +474,7 @@ describe('shared list state (#130 slice 4)', () => {
   });
 });
 
-describe('Pipeline rows keep to two items per dotted line (#192)', () => {
+describe('Apply rows keep to two items per dotted line (#192)', () => {
   it('a job with company and location and a retired mark wraps its facts to two per line', async () => {
     viewport(0); // the sheet
     updateJob(SAVED, { company: 'Acme Cloud', location: 'Remote', archived: true });

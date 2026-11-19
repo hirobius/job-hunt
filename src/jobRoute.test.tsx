@@ -102,7 +102,7 @@ describe('job route (#127)', () => {
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(URL_B)}`));
   });
 
-  it('an unknown job id falls back to the Pipeline once sync has settled', async () => {
+  it('an unknown job id falls back to the Apply tab once sync has settled', async () => {
     window.location.hash = '#/apply/doesnotexist';
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/apply'));
@@ -142,7 +142,7 @@ describe('job route (#127)', () => {
     ).toBeInTheDocument();
   });
 
-  it('a ?add= quick-add link still lands on the Pipeline, not a job page', () => {
+  it('a ?add= quick-add link still lands on the Apply tab, not a job page', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
     expect(window.location.hash).toBe('#/apply');

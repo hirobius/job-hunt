@@ -68,7 +68,7 @@ export interface RelatedTitle {
 export const RELATED_TITLES: RelatedTitle[] = [
   { id: 'Design Technologist', phrases: ['design technologist'] },
   // Adrian 2026-11-11: design engineering roles too, never hardware or physical-product ones
-  // (tracks/designRoleGuard.ts, shared with the scorer and the keyless feeds).
+  // (postingSync/designRoleGuard.ts, shared with the scorer and the keyless feeds).
   { id: 'Design Engineer', phrases: ['design engineer', 'ux engineer'] },
 ];
 const RELATED_IDS = new Set(RELATED_TITLES.map((r) => r.id));

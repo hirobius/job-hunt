@@ -7,7 +7,7 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   2026-10-28): every posting read that passes the work mode (no term gate; the profile's mode, **remote** by default:
   on-site/hybrid out, a posting that does not say stays and reads "Location not stated"), then the plain inclusion check
   (`profile.designSystemRule`: the design-system phrase on the title, or a related title that is on; `targeting.phrases`
-  keeps the scorer out) and the profile filters; minus saved jobs, Skips (by posting fingerprint, `tracks/score.ts`
+  keeps the scorer out) and the profile filters; minus saved jobs, Skips (by posting fingerprint, `postingSync/score.ts`
   `fingerprint`) and muted companies; the rest are counted ("N not design-system roles"). Reads go through the
   `PostingReader` seam (`feed/reader.ts`; `browserReader` = `fetchFeed` sweeping every profile title); `useFeed` keeps
   the rows up while a changed request reads, and a source or title added since reads only what was added
@@ -22,7 +22,7 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   name; Undo takes both back). **Breadth guard** (`feed/breadth.test.ts` on `breadth.fixture.ts`): the deleted Live
   postings' list (`feed/liveList.ts`, kept as the baseline) at its widest; the Feed must list every design-system
   posting it lists, and every one the recorded answers hold; it fails otherwise. Pinned in `feed/feed.test.ts`, `review.test.tsx`, `e2e/review.spec.ts`.
-- **Dedupe v2 + one remote classifier (#576 items 9, 10):** `src/tracks/roleKey.ts` (pure, `.ts`, no imports) is
+- **Dedupe v2 + one remote classifier (#576 items 9, 10):** `src/postingSync/roleKey.ts` (pure, `.ts`, no imports) is
   the one "same role" rule for the browser's Feed (`feed/match.ts` rank) and the server sync (`score.ts` `dedupe`):
   `roleKey` = `normCompany` (case, punctuation, "the", Inc/LLC/Ltd/GmbH/Co… at the end of the name only, #670) + `normTitle` (Sr → Senior, Eng →
   Engineer…; **seniority kept**, so Senior and Staff never merge; no company = no merge). `dedupeRoles` keeps the best
@@ -32,8 +32,8 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   `feed/mode.ts` `classifyRemote(line)` → `{ mode: remote|hybrid|onsite|unstated, offersRemote, region? }` (synonyms
   Anywhere / Distributed (not "distributed systems") / WFH / work from home; "3 days in office" is hybrid; a line that
   only rules remote out is on-site; "Remote (US only)" → region US) is behind `inferMode`, `remoteVerdict` (auto-scan
-  and rotation remote only), `isRemoteJob` and the server feeds (`tracks/feeds/dsRole.ts` `isRemoteRole`). Pinned in
-  `tracks/roleKey.test.ts`, `feed/classifyRemote.test.ts`, `feed/mode.test.ts`.
+  and rotation remote only), `isRemoteJob` and the server feeds (`postingSync/feeds/dsRole.ts` `isRemoteRole`). Pinned in
+  `postingSync/roleKey.test.ts`, `feed/classifyRemote.test.ts`, `feed/mode.test.ts`.
 - **Remote Rocketship (2026-10-22):** a "Big job boards" link (`BOARDS`, tag "Remote only",
   `modes: ['remote','any']`, shown through `boardsFor(mode)`): `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=<first ticked title>`.
   Link only: no API (its paid one needs a personal key; a later bring-your-own-key slice), no fetch, so CSP and
@@ -49,34 +49,34 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   bar, and a phone's light read fetches their descriptions (`bodyCanConfirm`). The design systems plan searches the
   term feeds for its first design-system title, "design systems", then the related titles that are on (design engineer, UX engineer, design technologist) (`plan.ts` `designSystemsTerms`, first `MAX_TERMS_PER_USER` = 5 kept, 3 → 5 on 2026-11-17); **related titles** = Design Technologist and Design Engineer (design / UX engineer; #581, Adrian
   2026-11-11) (`related` absent = on, `relatedOff` ids). **A new profile searches them too** (Adrian 2026-11-17: `searchDefaults.ts` `NEW_PROFILE_TITLES` = the design-system titles + `DESIGN_ENGINEERING_TITLES`, remote only stays the default; `dsOnly.test.ts` lets a default title be a design-system or a related title only). **Contract and freelance roles are kept** (no scorer, fit or feed rule drops them; Adzuna's `contract_type` / `contract_time` and Jooble's `type` become an `Employment:` line so the Contract signal sees them; `feeds/widenedSearch.test.ts`, the breadth guard's new-user track). **One design engineer guard,
-  `tracks/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
+  `postingSync/designRoleGuard.ts`** (pure, word rules: hardware, electrical, RF, ASIC, PCB, civil, process (not "design
   process"), a lone "tool", mechanical-sense product design engineer, "system design engineer"…; interns too) is used
   by the related-title pass, `feeds/dsRole.ts` `isDsRole` and the scorer's `DESIGN_ENGINEER_STRONG` (a lookahead
-  built from `NOT_UI_DESIGN_SOURCE`); pinned in `tracks/designEngineer.test.ts`. **A design engineer title counts on its own only with a UI word in it** (UX, UI, web, front-end, design system, React, interface: `UI_TITLE_SOURCE`, `uiDesignEngineerTitle`; Adrian 2026-11-17, after "Senior Railway Yard Drainage Design Engineer" and "Exhibit Design Engineer" from TheirStack reached Review): a plain one is the scorer's adjacent title (`DESIGN_ENGINEER_ADJACENT`) and the Feed's `bodyConfirms` title, so its description needs `BODY_SIGNALS_TO_LIST` (2) body signals; rail, yard, drainage, stormwater and exhibit(ion) are guard words too. TheirStack and every other server feed row goes through the same scorer (`SCORE_RULES` 2 re-scores stored verdicts). The check itself (`passesInclude`,
+  built from `NOT_UI_DESIGN_SOURCE`); pinned in `postingSync/designEngineer.test.ts`. **A design engineer title counts on its own only with a UI word in it** (UX, UI, web, front-end, design system, React, interface: `UI_TITLE_SOURCE`, `uiDesignEngineerTitle`; Adrian 2026-11-17, after "Senior Railway Yard Drainage Design Engineer" and "Exhibit Design Engineer" from TheirStack reached Review): a plain one is the scorer's adjacent title (`DESIGN_ENGINEER_ADJACENT`) and the Feed's `bodyConfirms` title, so its description needs `BODY_SIGNALS_TO_LIST` (2) body signals; rail, yard, drainage, stormwater and exhibit(ion) are guard words too. TheirStack and every other server feed row goes through the same scorer (`SCORE_RULES` 2 re-scores stored verdicts). The check itself (`passesInclude`,
   `keepIncluded`, `relatedCounts`, `mentionsAny`) is `feed/include.ts`, so the guard stays out of the entry. The per-track
   store (`rjb_must_include`, blob **v11**, incl. `atsOff` and a Contracts track's stored `naics`, `cleanNaics`) stays
   readable and feeds the v12 move; its editors (Calibrate, Manage track) are gone. `App`'s `SystemsOnlyMigration`
   still runs `migrateSystemsOnly` on old pack tracks. Pinned in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`,
-  `systemsOnlyNotice.test.tsx`, `tracks/designEngineer.test.ts`.
-- **Track scorer (Muse handoff, 2026-10-24):** `src/tracks/` is pure and shared by the app and the sync edge
+  `systemsOnlyNotice.test.tsx`, `postingSync/designEngineer.test.ts`.
+- **Track scorer (Muse handoff, 2026-10-24):** `src/postingSync/` is pure and shared by the app and the sync edge
   function: `score.ts` + `track-config.ts` are ported as given; tune only through the config. `scoreForTrack` = scorer
   then `fitRejectReason` (no interns); a profile with `scorer: 'design-systems'` (onboarding sets it) or a must include
   asking for "design system(s)" (`forTrack.scorerFor`) uses it. The Feed sorts by it ("Best match"), never hides by it.
   **Server (Simplify 6/9, #387):** `sync-postings` reads each user's Sources and Search profile from their `tracker`
-  blob (`tracks/plan.ts` `planFromBlob`: v12 `sources[]` + `profiles[0]`, else v11 dreams, targets, saved jobs'
+  blob (`postingSync/plan.ts` `planFromBlob`: v12 `sources[]` + `profiles[0]`, else v11 dreams, targets, saved jobs'
   boards and the Watched tiles via the `watched_tile_urls()` RPC, + `verified.ts` for a DS user); `compileProfile`
   gives the DS config when the profile asks for design systems, else one from its titles. Boards of all 13 kinds
   (#576: plan.ts takes `boardSet` `BOARD_KINDS` + `BOARD_SLUG` on every path, so each read goes to its kind's fixed
   host; BambooHR/Rippling/Gem/Pinpoint/Breezy rows keep their own `source`, not `manual`, migration
-  `20261111100000`, applied before the function is redeployed; `tracks/sourceCheck.test.ts`) and
+  `20261111100000`, applied before the function is redeployed; `postingSync/sourceCheck.test.ts`) and
   HN/Remotive/Jobicy are read with the app's own parsers (`src/feed/sources/*` and their imports use explicit `.ts`
   specifiers so Deno and Node load them; `inferMode` lives in `feed/mode.ts`). No `watched_companies` or `skips`
   table: the blob is the one source of truth, and the sync never writes it. Migrations `2026102410*`: postings,
   sync_log, `mark_missed_postings`, `watched_tile_urls`, the cron. Auth is `SYNC_SECRET` only. **Every 15 minutes
   (#448, Adrian 2026-11-06):** migration `20261106100000` (06:23 keeps the feeds); a 429/5xx/timeout is read once more
-  after 2 s (`tracks/retry.ts`); Scan details says "Updated N min ago" for a signed-in user (#694; Find shows no scan line)
+  after 2 s (`postingSync/retry.ts`); Scan details says "Updated N min ago" for a signed-in user (#694; Find shows no scan line)
   (`feed/serverUpdated.ts`, the newest `run` row in `sync_log`); Scan now stays manual. Pinned in
-  `tracks/syncSchedule.test.ts`, `tracks/retry.test.ts`, `feed/serverUpdated.test.ts`. **A run that always finishes
+  `postingSync/syncSchedule.test.ts`, `postingSync/retry.test.ts`, `feed/serverUpdated.test.ts`. **A run that always finishes
   (2026-11-15, migration `20261115100000`, applied after the function, `deploy-order.json`):** runs stopped in their
   4th slice with "CPU Time exceeded" and no `sync_log` row (2026-11-14: 48 of 157 boards read, no feeds). Each slice
   now saves where the next one starts (`save_sync_cursor`, also a heartbeat after each board batch); the resume tick
@@ -87,20 +87,20 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   worked goes on with the run (`size` in the chain and the saved place), and one board that stops the function alone
   is skipped for that run from try `RESUME_SKIP_AT` (5), logged, nothing on it closed. After a stop the size grows back with each slice
   that works (`nextSliceSize`: doubles, up to half of `SLICE`). The last slice reads no board: the feeds and the closing have their own
-  invocation. Pinned in `tracks/syncResume.test.ts`. **Unchanged rejected rows
+  invocation. Pinned in `postingSync/syncResume.test.ts`. **Unchanged rejected rows
   are reused (2026-11-15, migration `20261115110000`, before the function):** a rejected row keeps no description, so
   the Greenhouse delta read counted every rejected job as changed and fell back to the full list on each run (the CPU
-  that stopped the sync). Each row now stores `score_key` (`tracks/scoreKey.ts`: FNV over `SCORE_RULES` and the whole
+  that stopped the sync). Each row now stores `score_key` (`postingSync/scoreKey.ts`: FNV over `SCORE_RULES` and the whole
   config; bump `SCORE_RULES` when score.ts, the fit rule or the design role guard change a verdict; `reuseRejects.test.ts`
   pins a hash of those three files, so a change to one fails until the choice is made). A job is not
   downloaded or scored again when, for every follower of its board, the stored row is an open reject with that
   follower's current key and the same stamp, title, link and place (`sameReject`; `known_reject_rows`, paged). Its row
   is kept as seen by `touch_reject_rows`; a touch that keeps fewer rows than asked counts those boards as not
-  answered, so nothing closes. Pinned in `tracks/sync.test.ts`, `tracks/reuseRejects.test.ts`. The Feed's
+  answered, so nothing closes. Pinned in `postingSync/sync.test.ts`, `postingSync/reuseRejects.test.ts`. The Feed's
   **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
   posting and adds the server's, so signed in is never fewer. **Review new, signed in (2026-11-07, `feed/serverFeed.ts`
   `serverFirstReader`, in `useFeed`):** reads the server's rows through the `feed_rows` RPC (#499, migration `20261109100000`: each row's
-  `match_text`, the description cut by `tracks/matchText.ts` to its head plus a window around every hit of the
+  `match_text`, the description cut by `postingSync/matchText.ts` to its head plus a window around every hit of the
   scorer's signals, contract / founding and the profile's terms, stored with its `match_key`; the browser
   sends its profile's `matchKey` and gets the full text for a row cut for other terms or with no match text;
   `matchText.test.ts` holds the rank parity; the table read is the fallback only while the RPC is missing; and `board`, so they rank as the browser's read) and skips the browser's sweep of every followed board;
@@ -112,9 +112,9 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   (`feed/lightText.ts` `fillTexts`, ≤ 25 per board, outside the list read's 15 s timeout with its own deadline: the list is never lost, texts not read in time load on open, and the reads still queued at the deadline are given up through an
   `AbortSignal`, #499), so everything that can be listed ranks exactly as on a full
   read; an opened posting with no text fetches it (`feed/postingText.ts` `usePostingText`). Pinned in `feed/feedLoad.test.ts`.
-  `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
+  `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/postingSync/*.test.ts`,
   `feed/postingReader.test.ts`.
-- **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/tracks/feeds/` holds sources only
+- **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/postingSync/feeds/` holds sources only
   `sync-postings` reads (pure, injected fetch, `.ts` specifiers): `dsjobsCatalog.ts` (designsystems.jobs' sitemap + each
   job page's JSON-LD; stored as `rss`, source id = page URL like the RSS guid; known rows reused, ≤ 40 new pages a run,
   1/s, known rows from the `known_dsjobs_postings()` RPC; partial reads never close) and four windowed searches in
@@ -128,12 +128,12 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   (its API `legal` notice is checked on every read; a change stops the read, loud). We Work Remotely is no longer read:
   its API terms ban storing its data (Adrian 2026-11-17, migration `20261117100200` deleted its rows). A muted Remote OK Source mutes it. All unverified live. Himalayas and Working Nomads stay off (terms
   unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
-  Migrations `20261029100000` and `20261029100200` widen the `postings.source` check. **Aggregator liveness (#576 item 11, #675):** `tracks/aggregatorLiveness.ts` checks open feed rows whose link is a Greenhouse / Lever / Ashby job on that board; a row closes as absent from the list only once `postings.listed_seen_at` is set (the first read that finds its id sets it; Ashby isListed:false / Lever unlisted jobs never list, so they are left to the 30-day age-out); a 404 board still closes. Migration `20261112100100_postings_listed_seen.sql`, applied before the function is redeployed.
+  Migrations `20261029100000` and `20261029100200` widen the `postings.source` check. **Aggregator liveness (#576 item 11, #675):** `postingSync/aggregatorLiveness.ts` checks open feed rows whose link is a Greenhouse / Lever / Ashby job on that board; a row closes as absent from the list only once `postings.listed_seen_at` is set (the first read that finds its id sets it; Ashby isListed:false / Lever unlisted jobs never list, so they are left to the 30-day age-out); a 404 board still closes. Migration `20261112100100_postings_listed_seen.sql`, applied before the function is redeployed.
   **Aggregator liveness (#576 item 11):** Remote OK is read whole (`WHOLE_LIST_FEEDS` in
   `serverFeeds.ts`), so `answeredFeeds` counts them like rss and a row missing from 2 whole reads closes through
   `mark_missed_postings`; a read that is `partial` (`markPartial`, `feeds/context.ts`) closes nothing. Arbeitnow (its newest pages) and the keyed searches keep the 30-day age-out. On the feeds run the sync also
   checks open feed rows (`AGGREGATOR_BOARDS`) whose link is a Greenhouse / Lever / Ashby job on that board
-  (`tracks/aggregatorLiveness.ts`: ≤ `MAX_LIVENESS_BOARDS` = 20 boards a run in a run-seeded order, `guardedFetch`
+  (`postingSync/aggregatorLiveness.ts`: ≤ `MAX_LIVENESS_BOARDS` = 20 boards a run in a run-seeded order, `guardedFetch`
   fixed hosts, `readWithRetry`): absent from an answered list or a 404 board closes it, any failure closes nothing.
   **Guards (#673):** an empty list closes nothing (no fixture shows a kind answering 404 rather than [] for an
   unknown slug); a row closes as absent only when the list has jobs, all in the kind's id format (Greenhouse
@@ -196,13 +196,13 @@ How postings are read, matched, scored, deduped and scanned, in the browser and 
   `board-keys.json` (keys only; Today's lazy chunk, the size budget's 70 kB). Probe answers cache in
   `node_modules/.cache/boards-discover.json`; `--cached-only` / `--reuse-harvest` rebuild without asking
   again. The server's `sync-postings` `{rotate:true}` (1-minute cron) walks the set in a hashed order
-  (`src/tracks/rotation.ts`: cursor, 40 s time box, 3 per host, 429 backoff + carry list, 404 retry list
+  (`src/postingSync/rotation.ts`: cursor, 40 s time box, 3 per host, 429 backoff + carry list, 404 retry list
   then disabled; migration `20261029100100_scan_rotation.sql`), storing only remote queue/review postings for
   design systems profiles. Today reads "Scanning N sources · Last scanned hh:mm, K new"
   (`feed/scanningCount.ts`): the browser's boards + feeds, plus the board set only when signed in with a
   design systems profile. Pinned in `src/feed/bulk/*.test.ts`, `boardSet.test.ts`, `scanningCount.test.ts`,
-  `tracks/rotation.test.ts`, `autoScanViews.test.tsx`. **Live check (2026-10-30, claude/live-fixtures):** a 25-board `--rotate --read` batch all
-  answered; recorded Greenhouse/Lever/Ashby answers in `src/tracks/fixtures/` back `rotationDryRun.test.ts` and
+  `postingSync/rotation.test.ts`, `autoScanViews.test.tsx`. **Live check (2026-10-30, claude/live-fixtures):** a 25-board `--rotate --read` batch all
+  answered; recorded Greenhouse/Lever/Ashby answers in `src/postingSync/fixtures/` back `rotationDryRun.test.ts` and
   `npm run sync:dry-run -- --rotate --fixtures` (offline). Arbeitnow, Remote OK and WWR hosts were refused by the build
   network, so those stay unverified live.
 
@@ -271,7 +271,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
   name the board states (Dice ≥ 0.9). A lone board that says nothing either way is kept; the rest are
   **unconfirmed** (`DiscoverResult.unconfirmed`, with why), listed with "Watch anyway", never
   auto-watched. Pasted board URLs skip the check. Evidence rides in `rjb_probe` (`e`); an older live
-  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds (the server sync and rotation read them too since #576; shape fixtures in `src/tracks/fixtures`)
+  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds (the server sync and rotation read them too since #576; shape fixtures in `src/postingSync/fixtures`)
   (`sources/atsExtra.ts`, **unverified live**, CORS too; why JazzHR, Comeet, Freshteam, Workday aren't is
   in its header). Pinned in `feed/boardIdentity.test.ts`, `probe.test.ts`, `sources/atsExtra.test.ts`.
 - **Hidden-job discovery helpers (2026-10-15, `docs/specs/discovery-methods.md`; their screens went in #389).**
@@ -287,7 +287,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").
-- **ATS x-ray search (#389, server):** `tracks/feeds/xray.ts` asks Brave Search, Tavily and Exa (and Google Programmable
+- **ATS x-ray search (#389, server):** `postingSync/feeds/xray.ts` asks Brave Search, Tavily and Exa (and Google Programmable
   Search while a pre-2026 key lasts) for `site:<ATS host> ("design system" OR …)` over every board kind the sync reads, 10
   calls on the morning run, rotating by day. Each provider runs once its key is set (`BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `EXA_API_KEY`, `GOOGLE_CSE_API_KEY`+`GOOGLE_CSE_ID`)
   (`serverFeedsOff.xray` names them). Only the board (kind + slug) of each result link is kept, in `found_boards`;

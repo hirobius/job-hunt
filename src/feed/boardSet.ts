@@ -1,6 +1,6 @@
 // The bulk board set (#src-bulk): every public company job board `npm run boards:discover` found
 // and confirmed live, committed as src/feed/data/boards.json. The server's scan rotation
-// (supabase/functions/sync-postings, src/tracks/rotation.ts) reads all of them in turns; Today
+// (supabase/functions/sync-postings, src/postingSync/rotation.ts) reads all of them in turns; Today
 // counts them in "Scanning N sources". This module is the one reader of the snapshot: it checks
 // every entry (a known board kind, a slug the board URL parser accepts) and drops the rest, and
 // keys boards the way the sync does (`boardOf`), so a board listed twice is read once. Pure, with

@@ -70,8 +70,8 @@ async function find(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElemen
   await user.click(within(dialog).getByRole('button', { name: 'Find' }));
 }
 
-describe('Find box from the Pipeline', () => {
-  it('Add job keeps its own field; Find is one tap away in the same dialog', async () => {
+describe('Find box from the Apply tab', () => {
+  it('Add job keeps its own field; the Find box is one tap away in the same dialog', async () => {
     const user = userEvent.setup();
     renderPipeline();
     const dialog = await openFind(user);
@@ -194,7 +194,7 @@ describe('Find box from the Pipeline', () => {
     expect(fakeFetch).not.toHaveBeenCalled();
   });
 
-  it('what was typed in Add job carries over into Find', async () => {
+  it('what was typed in Add job carries over into the Find box', async () => {
     const user = userEvent.setup();
     renderPipeline();
     await user.click(screen.getAllByRole('button', { name: 'Add job' })[0]);

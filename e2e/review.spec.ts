@@ -11,7 +11,7 @@ test.use({ signedIn: true });
 // pager (2026-11-14), at 1440 ↑ / ↓ move the selection (list only, no Deck since 2026-11-13). The feed is synthetic Hacker News posts (no real people); every other host answers empty.
 // Kite's UX Engineer is in the list: Design Engineer (with UX Engineer) is a related title on by
 // default (#581). Ferro's Mechanical Design Engineer is read (it says a searched title) but the
-// design engineer guard (tracks/designRoleGuard.ts) keeps it out, so it is the one counted.
+// design engineer guard (postingSync/designRoleGuard.ts) keeps it out, so it is the one counted.
 const POSTS = [
   ['1', 'Orbit | Design Systems Engineer | Remote<p>Own our design system and design tokens.</p>'],
   ['2', 'Orbit | Design Systems Designer | Remote<p>Figma library and design tokens.</p>'],

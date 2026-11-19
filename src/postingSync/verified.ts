@@ -1,5 +1,5 @@
 // The companies the Muse brief verified on their boards (2026-10-24). The sync reads them for a
-// design systems user whose blob is older than v12 (src/tracks/plan.ts), beside their own watched
+// design systems user whose blob is older than v12 (src/postingSync/plan.ts), beside their own watched
 // boards. Notion is not `notion` on Greenhouse, so it is not here.
 import type { WatchedCompany } from './sources.ts';
 

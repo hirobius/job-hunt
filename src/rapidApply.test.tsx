@@ -264,7 +264,7 @@ describe('the Apply tab is the walk (#471: no Apply mode, no Start applying)', (
     await waitFor(() => expect(next).toHaveFocus());
   });
 
-  it('after Not a fit on a job opened outside the walk (from Find), focus moves to the next title (#536)', async () => {
+  it('after Not a fit on a job opened outside the walk (from Review), focus moves to the next title (#536)', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(C)}?from=%2Ffind`;
     renderApp();
@@ -402,7 +402,7 @@ describe('rapid apply follow-ups (#219)', () => {
     expect(findJobByUrl(C)).toMatchObject({ archived: true, notes: 'kept' });
   });
 
-  it('saveWithNotice says a job is already in the Pipeline, not that it saved it (QA)', async () => {
+  it('saveWithNotice says a job is already in the Apply tab, not that it saved it (QA)', async () => {
     renderApp();
     act(() => {
       expect(saveWithNotice(A)).toBe('exists');

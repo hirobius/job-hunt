@@ -11,7 +11,7 @@ for (const width of [390, 1440]) {
   test.describe(`at ${width}`, () => {
     test.use({ viewport: { width, height: width < 600 ? 844 : 900 } });
 
-    test('Find / Apply: a segmented nav that routes, with Back and deep links', async ({
+    test('Review / Apply: a segmented nav that routes, with Back and deep links', async ({
       page,
     }) => {
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
@@ -59,7 +59,7 @@ for (const width of [390, 1440]) {
       await expect(nav.locator('.rjb-seg-count')).toHaveCount(1);
     });
 
-    test('Find: one list, no view switch and no filter row (2026-11-13)', async ({ page }) => {
+    test('Review: one list, no view switch and no filter row (2026-11-13)', async ({ page }) => {
       await signInAtBoot(page); // Review reads postings only signed in (#755)
       await page.goto('/#/review');
       // Postings or the empty state (at lg the right column's), whichever the reads give.

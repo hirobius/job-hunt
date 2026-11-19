@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FeedContext } from './context';
 import { OSDJOBS_URL, parseOsdJobs, readOsdJobs } from './osdjobs';
 
-const raw = (f: string) => readFileSync(`src/tracks/feeds/fixtures/${f}`, 'utf8');
+const raw = (f: string) => readFileSync(`src/postingSync/feeds/fixtures/${f}`, 'utf8');
 const ctx = (body: string, o: Partial<FeedContext> = {}): FeedContext => ({
   fetch: vi.fn(async () => new Response(body)),
   env: () => undefined,

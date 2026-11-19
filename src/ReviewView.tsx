@@ -54,7 +54,7 @@ import {
 import { EmptyState } from './hds-gaps/EmptyState';
 import './FindList.css';
 import { useBackSheet } from './useBackCloses';
-import { findHash, getRoute, postingOf, selectPosting, useRoute } from './route';
+import { reviewPostingHash, getRoute, postingOf, selectPosting, useRoute } from './route';
 import { inPlaceClick } from './back';
 import { tooSoon } from './answerGuard';
 import { focusAsHeading, focusNewHeading, pageHeadingNow } from './focusRescue';
@@ -968,7 +968,7 @@ function CardTitleLink({ r, onOpen }: { r: FeedRow; onOpen?: (r: FeedRow) => voi
     return (
       // A click on the link bubbles here: in place, the list keeps its history entry.
       <span onClick={inPlaceClick(() => onOpen(r))}>
-        <InlineLink href={findHash(r.fingerprint)} externalIcon={false}>
+        <InlineLink href={reviewPostingHash(r.fingerprint)} externalIcon={false}>
           <span>{r.title}</span>
         </InlineLink>
       </span>

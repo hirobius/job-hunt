@@ -23,7 +23,7 @@ describe('tab memory', () => {
     expect(lastRouteOf('review')).toBe('#/review');
   });
 
-  it('counts Apply mode and a Company page as the Pipeline', async () => {
+  it('counts Apply mode and a Company page as the Apply tab', async () => {
     await visit('#/apply/xyz');
     expect(lastRouteOf('apply')).toBe('#/apply/xyz');
     await visit('#/apply/company/acme');

@@ -125,7 +125,7 @@ describe('Add job dialog', () => {
 
 // #115 / #129: one compact toolbar (search · status · sort · add) instead of a full-width URL
 // field plus an 8-option status strip.
-describe('Pipeline toolbar', () => {
+describe('Apply toolbar', () => {
   it('has no Status select: the named views are chips, To apply pressed (#541)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();
@@ -178,7 +178,7 @@ describe('Pipeline toolbar', () => {
 // Hierarchy pass (Adrian's review of the empty Pipeline): one page header with the primary
 // action, a first-use empty state with one primary + one secondary action, and no toolbar while
 // there is nothing to search or filter.
-describe('Pipeline hierarchy', () => {
+describe('Apply hierarchy', () => {
   it('with jobs the tab is the first job; Filters, Add job and the status line left it (#543)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
@@ -247,7 +247,7 @@ describe('Pipeline hierarchy', () => {
   });
 });
 
-describe('Pipeline filtered to nothing', () => {
+describe('Apply filtered to nothing', () => {
   it('a view with no jobs: Try another view, and Show to apply goes back', async () => {
     const user = userEvent.setup();
     addJob('https://acme.example/jobs/1', 'Design Engineer');
@@ -271,7 +271,7 @@ describe('Pipeline filtered to nothing', () => {
 });
 
 // The Pipeline holds no stats or funnel (#128); its agenda is the Follow up section (#236).
-describe('Pipeline holds the list only', () => {
+describe('Apply holds the list only', () => {
   it('has no This week agenda or Insights band (This week is a named view, #640)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderList();

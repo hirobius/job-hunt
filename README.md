@@ -51,7 +51,7 @@ flowchart LR
   stays deleted on every device.
 - **Two sources of postings.** The browser scans the job boards the user follows. A scheduled
   Supabase function scans a wider board list into `postings`. Both pass the same design-systems
-  check (`src/tracks/`, shared with the server).
+  check (`src/postingSync/`, shared with the server).
 - **Safety rails.** A strict CSP lists every host the app may call (`vercel.json`, pinned by
   `src/csp.test.ts`). Every table has row-level security. Nothing syncs before the sign-in guard
   has run for that user.
@@ -65,7 +65,7 @@ flowchart LR
 - `src/`: the app. `App.tsx` is the shell, `store.ts` the data store, `route.ts` the router.
 - `src/feed/`: reads and matches postings from public job boards.
 - `src/account/`: sign-in, sync, backup and restore.
-- `src/tracks/`: scoring and dedupe, shared with the server sync.
+- `src/postingSync/`: scoring and dedupe, shared with the server sync.
 - `supabase/`: migrations and the scheduled sync function.
 - `api/`: one Vercel edge function, a proxy for job boards with no CORS.
 - `e2e/`: Playwright tests. `scripts/`: build and check tools.

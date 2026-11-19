@@ -97,7 +97,7 @@ describe('app bar (rev-3)', () => {
   });
 });
 
-describe('Pipeline panels (rev-3)', () => {
+describe('Apply panels (rev-3)', () => {
   it('Follow up is an HDS Card with a count Badge; the All jobs sheet has no To apply panel (#471), no tinted banners', async () => {
     loadSample();
     window.location.hash = '#/apply';
@@ -164,7 +164,7 @@ describe('Pipeline panels (rev-3)', () => {
     expect(nestedCards(sheet)).toEqual([]);
   });
 
-  it('the Pipeline on desktop has no card inside a card (#449)', async () => {
+  it('the Apply tab on desktop has no card inside a card (#449)', async () => {
     viewport(1440);
     loadSample();
     window.location.hash = '#/apply';

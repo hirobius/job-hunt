@@ -10,7 +10,9 @@ import {
   workableSearchUrl,
 } from './workableSearch';
 
-const FIXTURE = JSON.parse(readFileSync('src/tracks/feeds/fixtures/workable-search.json', 'utf8'));
+const FIXTURE = JSON.parse(
+  readFileSync('src/postingSync/feeds/fixtures/workable-search.json', 'utf8'),
+);
 const ctx = (o: Partial<FeedContext> = {}): FeedContext => ({
   fetch: vi.fn(async () => new Response(JSON.stringify(FIXTURE))),
   env: () => undefined,

@@ -14,7 +14,7 @@ titles, contract roles, Adzuna, Jooble and `boards.json` at the same time, so th
   - **V-2nd**: only secondary pages (often vendors that sell this data).
   - **K**: from prior knowledge, not seen in this pass.
 - So every adapter built here is marked **UNVERIFIED LIVE** in its header (as Jooble and TheirStack
-  were), reads fields defensively (`src/tracks/feeds/shape.ts`: a renamed field drops a row, never
+  were), reads fields defensively (`src/postingSync/feeds/shape.ts`: a renamed field drops a row, never
   stores a wrong one), and is pinned with a recorded fixture. Its first live run should be checked in
   `sync_log` and its fixture replaced with a real answer.
 - **Yield** = design-systems or design-engineer postings expected at one time, after our title rule
@@ -26,9 +26,9 @@ titles, contract roles, Adzuna, Jooble and `boards.json` at the same time, so th
 
 - **We Work Remotely.** Its API terms (https://weworkremotely.com/api-terms-and-guidelines, V-own
   snippet) say: _"Scraping, copying, saving, or storing our data is strictly prohibited."_ The sync
-  reads WWR's RSS (`tracks/feeds/wwr.ts`) and stores rows in `postings`. Those terms are for the API,
+  reads WWR's RSS (`postingSync/feeds/wwr.ts`) and stores rows in `postings`. Those terms are for the API,
   and the RSS page asks only for attribution, but storing rows may still conflict. **Adrian to
-  decide**. **Decided 2026-11-17 (Adrian): the sync no longer reads WWR** (`tracks/feeds/wwr.ts`
+  decide**. **Decided 2026-11-17 (Adrian): the sync no longer reads WWR** (`postingSync/feeds/wwr.ts`
   removed, migration `20261117100200` deletes its stored rows). The browser's WWR source stays off
   (`SOURCE_ENABLED.wwr`).
 
@@ -36,13 +36,13 @@ titles, contract roles, Adzuna, Jooble and `boards.json` at the same time, so th
 
 | #   | Source                              | How                                                                                                                                                    | Key                               | Status    |
 | --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- | --------- |
-| 1   | **ATS x-ray search** (#389, server) | `tracks/feeds/xray.ts`: `site:<ATS host> ("design system" OR …)` over all 13 board kinds; boards found go to `found_boards`, read by the scan rotation | Brave / Tavily / Exa / Google CSE | **Built** |
-| 2   | **Workable cross-company search**   | `tracks/feeds/workableSearch.ts`: Workable boards nobody follows → `found_boards`                                                                      | none                              | **Built** |
-| 3   | **Jobgether**                       | `tracks/feeds/jobgether.ts`, server feed, ranks last in dedupe                                                                                         | none                              | **Built** |
-| 4   | **4dayweek.io**                     | `tracks/feeds/fourdayweek.ts`, 5 pages a run                                                                                                           | none                              | **Built** |
-| 5   | **RemoteJobs.org**                  | `tracks/feeds/remotejobsorg.ts`, 3 phrases                                                                                                             | none                              | **Built** |
-| 6   | **Get on Board**                    | `tracks/feeds/getonbrd.ts`, 2 phrases                                                                                                                  | none                              | **Built** |
-| 7   | **Open Source Design jobs**         | `tracks/feeds/osdjobs.ts`, one RSS read                                                                                                                | none                              | **Built** |
+| 1   | **ATS x-ray search** (#389, server) | `postingSync/feeds/xray.ts`: `site:<ATS host> ("design system" OR …)` over all 13 board kinds; boards found go to `found_boards`, read by the scan rotation | Brave / Tavily / Exa / Google CSE | **Built** |
+| 2   | **Workable cross-company search**   | `postingSync/feeds/workableSearch.ts`: Workable boards nobody follows → `found_boards`                                                                      | none                              | **Built** |
+| 3   | **Jobgether**                       | `postingSync/feeds/jobgether.ts`, server feed, ranks last in dedupe                                                                                         | none                              | **Built** |
+| 4   | **4dayweek.io**                     | `postingSync/feeds/fourdayweek.ts`, 5 pages a run                                                                                                           | none                              | **Built** |
+| 5   | **RemoteJobs.org**                  | `postingSync/feeds/remotejobsorg.ts`, 3 phrases                                                                                                             | none                              | **Built** |
+| 6   | **Get on Board**                    | `postingSync/feeds/getonbrd.ts`, 2 phrases                                                                                                                  | none                              | **Built** |
+| 7   | **Open Source Design jobs**         | `postingSync/feeds/osdjobs.ts`, one RSS read                                                                                                                | none                              | **Built** |
 
 All are server only (the browser never contacts them), so no CSP change; `legal.ts` names each.
 
@@ -253,7 +253,7 @@ locations[{city, subregion, countryName}], company{id, title, url, website, imag
 - Each NDJSON line is `{urlkey, timestamp, url, mime, status, digest, length, filename, offset}`. Take the first path segment or
   subdomain as the slug, keep unique ones, check each through the ATS's own public API, then keep the companies whose live board has a
   design-system title (this extends `companyDiscovery`; store only the slug).
-- Batch job (monthly), with pacing for 429/503 (`tracks/retry.ts`).
+- Batch job (monthly), with pacing for 429/503 (`postingSync/retry.ts`).
 
 ### B3. Get on Board
 

@@ -20,7 +20,7 @@ afterEach(() => {
 const withTheme = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 describe('aria wiring', () => {
-  it('Tracker views name their count and mark the current view (#541)', () => {
+  it('Apply views name their count and mark the current view (#541)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     withTheme(<JobsList />);
     // The named views are toggle chips in one group; the open one is pressed.

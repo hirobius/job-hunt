@@ -36,7 +36,7 @@ describe('JobTitleBlock', () => {
     expect(screen.queryByText('Saved')).toBeNull();
     expect(document.querySelector('[data-tone="info"]')).toBeNull();
   });
-  it("puts the company's 24px inline mark before its name, as on Find cards", () => {
+  it("puts the company's 24px inline mark before its name, as on Review cards", () => {
     const { container } = render(<JobTitleBlock job={{ ...base, company: 'Harbor Atlas' }} />);
     const mark = container.querySelector('[data-rjb-logo]');
     expect(mark).toHaveClass('rjb-logo-inline');

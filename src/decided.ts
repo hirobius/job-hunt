@@ -1,12 +1,12 @@
 // Decided postings (blob v12, simplify spec): what the person already did with a posting in Review
 // new, so it never comes back. Kept by posting fingerprint only (company + title, seniority words
-// dropped: tracks/score.ts `fingerprint`), never by company: Skip hides that one posting, and
+// dropped: postingSync/score.ts `fingerprint`), never by company: Skip hides that one posting, and
 // "Not this company" is a separate action on the Source (sources.ts `muteSource`).
 // Kept in `rjb_decided`, synced in the blob. Storage and the cloud are untrusted.
 import { useMemo } from 'react';
 import { liveStorage } from './liveStorage';
 import { savePersisted } from './persisted';
-import { fingerprint } from './tracks/score';
+import { fingerprint } from './postingSync/score';
 import { updateSources } from './sources';
 import { nameKey, type Source } from './sourcesModel';
 import { httpUrl } from './httpUrl';

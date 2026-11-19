@@ -2,7 +2,7 @@
 // min ago". Read once when Today opens and every 5 minutes after, only while signed in. Nothing
 // shows before the first run, or when the read fails.
 import { useEffect, useState } from 'react';
-import { loadServerUpdatedAt } from '../tracks/postings';
+import { loadServerUpdatedAt } from '../postingSync/postings';
 
 export const SERVER_UPDATED_POLL_MS = 5 * 60_000;
 

@@ -7,7 +7,7 @@
 // line in its Notes). Signed out there is nothing to read.
 // The same key a Skip is kept under (src/decided.ts postingFingerprint). Imported from score
 // itself: through decided.ts the build splits score into its own first-paint chunk (+0.8 kB).
-import { fingerprint as postingFingerprint } from './tracks/score';
+import { fingerprint as postingFingerprint } from './postingSync/score';
 import { dedupKey } from './store';
 import { httpUrl } from './httpUrl';
 import { loadSupabase } from './supabase';

@@ -62,7 +62,7 @@ describe('sync run resume', () => {
     const stale = Number(/RESUME_STALE_MS = ([\d_]+)/.exec(fn)![1].replace(/_/g, ''));
     const slice = Number(/const SLICE = (\d+)/.exec(fn)![1]);
     const batch = Number(/const BOARD_BATCH = (\d+)/.exec(fn)![1]);
-    const rot = readFileSync('src/tracks/rotation.ts', 'utf8');
+    const rot = readFileSync('src/postingSync/rotation.ts', 'utf8');
     const timeout = Number(/fetchTimeoutMs: ([\d_]+)/.exec(rot)![1].replace(/_/g, ''));
     // Each batch: a read, the retry wait (2 s), one more read.
     expect(stale).toBeGreaterThan((slice / batch) * (2 * timeout + 2000));

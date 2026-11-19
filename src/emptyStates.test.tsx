@@ -50,7 +50,7 @@ afterEach(() => {
 });
 
 // rev-3 "filtered to nothing" (no search since 2026-11-13: the done state is the one left here).
-describe('Pipeline filtered to nothing', () => {
+describe('Apply filtered to nothing', () => {
   it('nothing left to apply to: the done state, the week and two keys (#554)', async () => {
     setStatusByUrl('https://acme.example/jobs/1', 'Applied', 'Design Engineer');
     window.location.hash = '#/apply';

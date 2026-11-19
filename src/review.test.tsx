@@ -704,7 +704,7 @@ describe('Review new: card anatomy (#458)', () => {
   });
 });
 
-describe('Find on a phone: no posting page (Adrian 2026-11-08)', () => {
+describe('Review on a phone: no posting page (Adrian 2026-11-08)', () => {
   const renderPhoneFind = (hash = '#/review') => {
     window.location.hash = hash;
     return render(
@@ -933,7 +933,7 @@ describe('Review new: every design-system posting, no tiers', () => {
     await waitFor(() => expect(getAllJobs()).toHaveLength(1));
   });
 
-  it('after a decision, focus goes to the next posting’s title; after the last, to Find', async () => {
+  it('after a decision, focus goes to the next posting’s title; after the last, to Review', async () => {
     const user = userEvent.setup();
     feed.fetchFeed.mockResolvedValue(result([BASIC[0], BASIC[1]]));
     renderFind();
@@ -975,7 +975,7 @@ describe('Review new: every design-system posting, no tiers', () => {
   });
 });
 
-describe('Find: one empty state, picked by cause (#694)', () => {
+describe('Review: one empty state, picked by cause (#694)', () => {
   const shape = async () => {
     const section = (await screen.findByRole('region', { name: 'No postings' })) as HTMLElement;
     return {

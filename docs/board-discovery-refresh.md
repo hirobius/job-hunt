@@ -109,7 +109,7 @@ jobs:
       - name: Check the new set
         if: steps.discover.outputs.code == '0'
         run: |
-          npx vitest run src/feed src/tracks
+          npx vitest run src/feed src/postingSync
           npm run build
       - name: Open the PR
         if: steps.discover.outputs.code == '0'
@@ -142,7 +142,7 @@ Use this prompt in a fresh-session scheduled task on the job-hunt repository:
 In hirobius/job-hunt, check free disk space first. Clone the repo into a uniquely named folder
 under /dev/shm. Run npm ci with HDS_PACKAGES_TOKEN set, then npm run discover:boards. If it exits
 2, stop and report "no change". If it exits 1 or 3, stop and report the reason it printed. If it
-exits 0, run npx vitest run src/feed src/tracks and npm run build; if either fails, stop and
+exits 0, run npx vitest run src/feed src/postingSync and npm run build; if either fails, stop and
 report it. Then create the branch boards/refresh-<YYYY-MM-DD>-<short random id>, commit
 src/feed/data/boards.json and src/feed/data/board-keys.json, push, and open a PR with
 node_modules/.cache/boards-refresh.md as the body. Do not merge. Delete the clone after.

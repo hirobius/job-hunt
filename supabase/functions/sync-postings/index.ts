@@ -1,11 +1,11 @@
 // The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387): a Supabase edge function run every
 // 15 minutes by pg_cron (#448: supabase/migrations/20261106100000_sync_postings_every_15_min.sql;
 // the 06:23 run also reads the feeds). It reads what each
-// user follows straight from their synced `tracker` blob (src/tracks/plan.ts: v12 sources and the
+// user follows straight from their synced `tracker` blob (src/postingSync/plan.ts: v12 sources and the
 // Search profile, else the v11 fields and their watched tiles), so the blob is the one source of
 // truth. Every board is read once however many users follow it (Ashby one board at a time), the
 // term feeds (HN, Remotive, Jobicy), designsystems.jobs (its whole catalog) and the sync's own
-// design-systems searches (src/tracks/feeds: the keyless ones always, a keyed one once its secret is
+// design-systems searches (src/postingSync/feeds: the keyless ones always, a keyed one once its secret is
 // set, serverFeeds.ts `serverFeedOn`) on the morning run. Each posting is
 // scored with the user's profile config (src/tracks), deduped by fingerprint and upserted on
 // (user, source, source_id). A failed read is logged and closes nothing, except a 404 (the board is
@@ -16,22 +16,22 @@
 // last slice (which reads no board, 2026-11-15); each slice closes postings missed on the boards
 // it read. A run that stops part way is picked up by the resume tick (`{ resume: true }`).
 // Scan rotation (#src-bulk, body `{ rotate: true }`, pg_cron every minute): see `rotate` below and
-// src/tracks/rotation.ts. It reads the bulk board set a slice at a time for design systems users.
+// src/postingSync/rotation.ts. It reads the bulk board set a slice at a time for design systems users.
 // Auth: x-sync-secret must equal SYNC_SECRET (compared as SHA-256 digests, without an early exit).
 // Nothing is accepted until SYNC_SECRET is set. Deploy and secrets: README.md beside this file.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import boardsJson from '../../../src/feed/data/boards.json' with { type: 'json' };
 import { parseBoardSet, parseSetBoard, type SetBoard } from '../../../src/feed/boardSet.ts';
-import { runXray, withFoundBoards, XRAY_ENV } from '../../../src/tracks/feeds/xray.ts';
-import { findWorkableBoards } from '../../../src/tracks/feeds/workableSearch.ts';
+import { runXray, withFoundBoards, XRAY_ENV } from '../../../src/postingSync/feeds/xray.ts';
+import { findWorkableBoards } from '../../../src/postingSync/feeds/workableSearch.ts';
 import {
   answeredFeeds,
   feedReadsFor,
   planFromBlob,
   type SyncPlan,
   type WatchedTile,
-} from '../../../src/tracks/plan.ts';
-import { readWithRetry } from '../../../src/tracks/retry.ts';
+} from '../../../src/postingSync/plan.ts';
+import { readWithRetry } from '../../../src/postingSync/retry.ts';
 import {
   boardOf,
   forWatcher,
@@ -45,7 +45,7 @@ import {
   type ReadOutcome,
   type ScoredPosting,
   type TermFeed,
-} from '../../../src/tracks/sync.ts';
+} from '../../../src/postingSync/sync.ts';
 import {
   advance,
   keepForScan,
@@ -55,32 +55,32 @@ import {
   sanitizeRotation,
   toWatched,
   type DeadBoard,
-} from '../../../src/tracks/rotation.ts';
-import { designSystemsTrack } from '../../../src/tracks/track-config.ts';
-import { sameReject, scoreKey, type RejectRow } from '../../../src/tracks/scoreKey.ts';
-import { matchPatterns, trimForMatch } from '../../../src/tracks/matchText.ts';
+} from '../../../src/postingSync/rotation.ts';
+import { designSystemsTrack } from '../../../src/postingSync/track-config.ts';
+import { sameReject, scoreKey, type RejectRow } from '../../../src/postingSync/scoreKey.ts';
+import { matchPatterns, trimForMatch } from '../../../src/postingSync/matchText.ts';
 import { SOURCE_ENABLED } from '../../../src/feed/sourceEnabled.ts';
-import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
+import type { FeedContext } from '../../../src/postingSync/feeds/context.ts';
 import {
   SERVER_FEEDS,
   serverFeedOn,
   serverFeedsForRun,
   serverFeedsOff,
   type ServerFeed,
-} from '../../../src/tracks/feeds/serverFeeds.ts';
-import type { NormalizedPosting } from '../../../src/tracks/score.ts';
+} from '../../../src/postingSync/feeds/serverFeeds.ts';
+import type { NormalizedPosting } from '../../../src/postingSync/score.ts';
 import {
   AGGREGATOR_BOARDS,
   checkAggregatorLiveness,
   type LivenessRow,
-} from '../../../src/tracks/aggregatorLiveness.ts';
-import type { WatchedCompany } from '../../../src/tracks/sources.ts';
+} from '../../../src/postingSync/aggregatorLiveness.ts';
+import type { WatchedCompany } from '../../../src/postingSync/sources.ts';
 import {
   nameKey as suggestNameKey,
   namesToProbe,
   probeNames,
   type SeenRow,
-} from '../../../src/tracks/boardSuggest.ts';
+} from '../../../src/postingSync/boardSuggest.ts';
 
 declare const Deno: {
   env: { get(name: string): string | undefined };
@@ -129,7 +129,7 @@ const MAX_TEXT = 20_000;
 const BOARD_BATCH = 8;
 /** Boards per invocation. Widened 8 → 16 for #448: scoring measured ~5 s for 152 boards
  *  (~34 ms a board) locally, so a 16-board slice scores in ~0.6 s — inside the worker's ~2 s
- *  CPU budget with the reads now scheduled concurrently (src/tracks/sync.ts) — and a 152-board
+ *  CPU budget with the reads now scheduled concurrently (src/postingSync/sync.ts) — and a 152-board
  *  run chains 10 invocations instead of 19, halving the per-slice overheads below. */
 const SLICE = 16;
 /** How long a 15-minute run holds its lease before the next tick may start anyway (#448): under
@@ -816,7 +816,7 @@ async function scanSet(db: SupabaseClient, logs: Log[]): Promise<SetBoard[]> {
   return scanSetCache.boards;
 }
 
-/** The board finders on the morning run: the ATS x-ray search (#389, src/tracks/feeds/xray.ts) when
+/** The board finders on the morning run: the ATS x-ray search (#389, src/postingSync/feeds/xray.ts) when
  *  a search secret is set, and Workable's own job search (workableSearch.ts, keyless). The boards
  *  they find are upserted into found_boards (seen_at moves on a board found
  *  again), and the next rotations read them. Failures only log. */
@@ -893,7 +893,7 @@ async function cachedPlans(db: SupabaseClient, logs: Log[]): Promise<Loaded | { 
 }
 
 /** One rotation step: claim the cursor (one run at a time), read the next batch of the bulk board
- *  set (src/tracks/rotation.ts: in an interleaved order, a time box, a per-host limit, 429
+ *  set (src/postingSync/rotation.ts: in an interleaved order, a time box, a per-host limit, 429
  *  backoff, a dead list), store each design systems user's remote queue/review postings from it,
  *  close what they missed, and move the cursor over the boards processed.
  *  Why a 1-minute cron and no chaining: each invocation reads at most ROTATION.maxBoards boards

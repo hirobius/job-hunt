@@ -33,8 +33,8 @@ import { replaceProfiles } from './profile';
 
 // The server's last sync run (#448), as sync_log would answer it.
 const server = vi.hoisted(() => ({ at: null as string | null }));
-vi.mock('./tracks/postings', async (orig) => ({
-  ...(await orig<typeof import('./tracks/postings')>()),
+vi.mock('./postingSync/postings', async (orig) => ({
+  ...(await orig<typeof import('./postingSync/postings')>()),
   loadServerUpdatedAt: async () => server.at,
 }));
 
@@ -112,8 +112,8 @@ const renderViews = ({ signedIn = false } = {}) =>
 
 // #694: Find has no More menu and no scan line. Scan now (signed out) is the Account menu's
 // (shell.test.tsx), and when the sources were last scanned is Scan details' alone (below).
-describe('Find header: no More menu, no scan line (#694)', () => {
-  it('signed out or in: no More, no Scan now, no "Scanned …" on Find, even after a scan', async () => {
+describe('Review header: no More menu, no scan line (#694)', () => {
+  it('signed out or in: no More, no Scan now, no "Scanned …" on Review, even after a scan', async () => {
     renderViews();
     expect(screen.getByRole('heading', { level: 1, name: 'Review' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^More: scan/ })).toBeNull();
@@ -163,7 +163,7 @@ describe('Scan details (the Search profile, #549)', () => {
     expect(await screen.findByText('Updates every 15 minutes.')).toBeInTheDocument();
   });
 
-  it('signed in, the browser’s discovery progress shows here (not on Find)', async () => {
+  it('signed in, the browser’s discovery progress shows here (not on Review)', async () => {
     server.at = new Date(Date.now() - 4 * 60_000).toISOString();
     let release: () => void = () => {};
     const gate = new Promise<void>((r) => (release = r));

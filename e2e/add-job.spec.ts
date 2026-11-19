@@ -107,7 +107,9 @@ test('Add job at 1440 is a centred dialog with Add job at the right; Close cance
 
 // A first visit opens on Today with no setup screen; the Jobs empty state offers the sample
 // pipeline, with its follow-ups.
-test('opens on Today with no setup; the sample pipeline lists due follow-ups', async ({ page }) => {
+test('opens on Review with no setup; the sample pipeline lists due follow-ups', async ({
+  page,
+}) => {
   await page.goto('/');
   await expect(page).toHaveURL(/#\/review$/);
   // Signed out, Review is its sign-in line (#755).
@@ -129,7 +131,7 @@ test('opens on Today with no setup; the sample pipeline lists due follow-ups', a
 });
 
 // #/review is home again (#383): it opens Today, and Back goes to the page before.
-test('#/review opens Today', async ({ page }) => {
+test('#/review opens Review', async ({ page }) => {
   await page.goto('/#/apply');
   await page.goto('/#/review');
   await expect(page).toHaveURL(/#\/review$/);

@@ -6,8 +6,8 @@
 // is never fewer postings than the browser alone (the breadth guard's rule). The server failing,
 // or its table not being there yet, reads as nothing extra.
 import { dedupKey } from '../store';
-import type { Verdict } from '../tracks/score.ts';
-import { loadServerRows, type StoredPosting } from '../tracks/postings';
+import type { Verdict } from '../postingSync/score.ts';
+import { loadServerRows, type StoredPosting } from '../postingSync/postings';
 import { inferMode } from './mode';
 import type { JobMode } from '../types';
 import type { FeedSourceId, Posting } from './types';

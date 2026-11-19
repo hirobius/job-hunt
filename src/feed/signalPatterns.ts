@@ -1,6 +1,6 @@
 // The two signal patterns the Feed reads in a posting's text (match.ts `detectSignals`), in a
 // module with no imports, so the sync edge function can load them too: it keeps a window of text
-// around every hit when it trims a stored description (tracks/matchText.ts, #499).
+// around every hit when it trims a stored description (postingSync/matchText.ts, #499).
 
 /** Open to non-full-time engagement: the consulting / fractional opening. */
 export const CONTRACT_RE = /\b(contract|1099|freelance(?:rs?)?|fractional|part[- ]time)\b/gi;
