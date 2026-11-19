@@ -4,7 +4,7 @@ A job-application tracker and discovery board for design-systems roles.
 
 ![The Apply screen with sample jobs](docs/images/screenshot.png)
 
-**Live:** https://roleflame.vercel.app
+**Live:** https://roleflame.vercel.app · **Demo, no account:** https://roleflame.vercel.app/#/review?demo=1
 
 roleflame collects design-system openings from public job boards into one list, **Review**, where
 you save or skip each posting. Saved jobs go to **Apply**, which tracks each one through applying

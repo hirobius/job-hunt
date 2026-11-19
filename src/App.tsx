@@ -138,6 +138,12 @@ function SystemsOnlyMigration() {
 
 export default function App() {
   const route = useRoute();
+  // A `?demo=1` link (#835): demoStorage.ts has made this a demo tab; its flag leaves the URL in
+  // place, so a shared link of the next page does not carry it.
+  const demoLink = !!route.demo;
+  useEffect(() => {
+    if (demoLink) navigate({ demo: undefined }, true);
+  }, [demoLink]);
   // A Company's page (#/apply/company/<slug>, #230, #471) is in the Apply tab.
   const companySlug = companySlugOf(route);
   const company = companySlug !== null;

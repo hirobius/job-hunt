@@ -35,6 +35,8 @@ import { getAllDecided } from './feed/decided';
 import { topTab, topTabs, currentTab } from './test/topTabs';
 import { signInAtBoot } from './test/signedIn';
 import { resetSignInAsk } from './signInAsked';
+import { demoReload } from './demo/demoMode';
+import { activateDemoStorage, DEMO_FLAG, restoreRealStorage } from './demo/demoStorage';
 
 const renderApp = () =>
   render(
@@ -188,15 +190,41 @@ describe('the auto-scan', () => {
   });
 });
 
-describe('Try a demo, signed out (#755, Adrian 2026-11-16)', () => {
-  it('loads the sample jobs on this device and opens Apply, with no feed read', async () => {
+describe('Try a demo, signed out (#755, #835)', () => {
+  afterEach(() => restoreRealStorage());
+
+  it('starts a demo tab: it reloads onto Review, and nothing of the visitor’s is touched', async () => {
+    const reload = vi.fn();
+    demoReload.now = reload;
+    addJob('https://mine.example/1', 'My real job');
     const user = userEvent.setup();
     window.location.hash = '#/review';
     renderApp();
-    await user.click(await screen.findByRole('button', { name: 'Continue without an account' }));
-    await user.click(await screen.findByRole('button', { name: 'Try a demo' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    expect(getAllJobs().length).toBeGreaterThan(0);
+    // The sign-in screen's grey key (the signed-out Review offers its own only with no jobs).
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Try a demo' }));
+    expect(reload).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem(DEMO_FLAG)).toBe('1');
+    expect(window.location.hash).toBe('#/review');
+    expect(getAllJobs().map((j) => j.url)).toEqual(['https://mine.example/1']);
+    expect(feed.fetchFeed).not.toHaveBeenCalled();
+  });
+
+  it('a demo tab shows sample postings under the demo note; Leave demo reloads out of it', async () => {
+    const reload = vi.fn();
+    demoReload.now = reload;
+    activateDemoStorage();
+    const user = userEvent.setup();
+    window.location.hash = '#/review';
+    renderApp();
+    expect(await screen.findByText('This is a demo')).toBeInTheDocument();
+    const list = await screen.findByRole('list', { name: 'New postings' });
+    expect(within(list).getAllByRole('listitem').length).toBeGreaterThan(0);
+    const leave = screen.getByRole('button', { name: 'Leave demo' });
+    expect(leave).toHaveAttribute('data-variant', 'link'); // an exit is underlined text
+    await user.click(leave);
+    expect(reload).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem(DEMO_FLAG)).toBeNull();
     expect(feed.fetchFeed).not.toHaveBeenCalled();
   });
 });

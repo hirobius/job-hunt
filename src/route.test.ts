@@ -494,3 +494,22 @@ describe('route — Documents and Legal are dialogs over a page (#471 slice 4)',
     expect(window.location.hash).toBe('#/review');
   });
 });
+
+describe('route — the demo link (#835)', () => {
+  it('reads ?demo=1 and writes it back only when set', () => {
+    expect(parseHash('#/review?demo=1').demo).toBe(true);
+    expect(parseHash('#/review?demo=0').demo).toBeUndefined();
+    expect(parseHash('#/review').demo).toBeUndefined();
+    expect(buildHash({ tab: 'review', sub: null, pillar: null, jobId: null, demo: true })).toBe(
+      '#/review?demo=1',
+    );
+    expect(buildHash({ tab: 'review', sub: null, pillar: null, jobId: null })).toBe('#/review');
+  });
+
+  it('is never carried to the next page', async () => {
+    window.location.hash = '#/review?demo=1';
+    await waitFor(() => expect(getRoute().demo).toBe(true));
+    navigate({ tab: 'apply', sub: null, jobId: null });
+    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
+  });
+});

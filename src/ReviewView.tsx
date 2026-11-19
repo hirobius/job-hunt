@@ -20,6 +20,7 @@ import {
 import { setScanDetails } from './feed/scanDetails';
 import { hiddenParts } from './feed/scanDetailsText';
 import {
+  Alert,
   Badge,
   Box,
   Button,
@@ -74,7 +75,11 @@ import { followPosting } from './feed/follow';
 import { jobFieldsFor } from './feed/toJob';
 import { cardPostedLabel, postedAgo } from './feed/format';
 import { SOURCE_LABEL } from './feed/types';
-import { addJobDetailed } from './store';
+import type { Job } from './types';
+import { addJobDetailed, updateJob, useJobs } from './store';
+import { demoPostings } from './demo/demoPostings';
+import { leaveDemo } from './demo/demoMode';
+import { ExitButton } from './hds-gaps/ExitButton';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
@@ -1136,4 +1141,75 @@ function excerpt(text: string, max = 500): string {
   if (flat.length <= max) return flat;
   const cut = flat.slice(0, max);
   return `${cut.slice(0, cut.lastIndexOf(' ') > 0 ? cut.lastIndexOf(' ') : max)}…`;
+}
+
+/** The demo's Review (#835): fictional postings in the real cards, under a note that it is a demo.
+ *  Save adds the job to Apply tagged as sample data (never pushed); Skip and Not this company only
+ *  hide the card here, each with Undo. Nothing is read from a job board. */
+export function DemoReviewList() {
+  const [now] = useState(() => Date.now());
+  const all = useMemo(() => demoPostings(now), [now]);
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
+  useJobs(); // a Save re-renders the list without that card
+  const rows = all.filter((r) => !hidden.has(r.fingerprint) && !alreadyInApply(r.url));
+  const hide = (fps: string[], on: boolean) =>
+    setHidden((h) => {
+      const next = new Set(h);
+      for (const fp of fps) {
+        if (on) next.add(fp);
+        else next.delete(fp);
+      }
+      return next;
+    });
+  const actions: RowActions = {
+    save: (r, from) =>
+      saveRow(from, () => {
+        if (alreadyInApply(r.url)) return;
+        const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review'));
+        if (!url) return;
+        updateJob(url, { demo: true } as Partial<Job>);
+        notifySaved([url], r.title);
+      }),
+    skip: (r, from) =>
+      collapseRow(from, () => {
+        hide([r.fingerprint], true);
+        notifyRemoved(
+          `Skipped “${r.title}”`,
+          () => hide([r.fingerprint], false),
+          'Only this posting is hidden.',
+        );
+      }),
+    mute: (r, from) =>
+      collapseRow(from, () => {
+        const fps = all.filter((x) => x.company === r.company).map((x) => x.fingerprint);
+        hide(fps, true);
+        notifyRemoved(
+          `Muted ${r.company}`,
+          () => hide(fps, false),
+          'Its postings no longer show in Review.',
+        );
+      }),
+  };
+  return (
+    <Stack gap="px16">
+      <Alert tone="info" title="This is a demo">
+        <Stack gap="px8" align="start">
+          <span>
+            Sample postings and jobs from fictional companies. Nothing is saved, and your own data
+            is not touched.
+          </span>
+          <ExitButton onClick={() => leaveDemo()}>Leave demo</ExitButton>
+        </Stack>
+      </Alert>
+      <RowList
+        label="New postings"
+        rows={rows}
+        shown={rows.length}
+        onMore={() => {}}
+        now={now}
+        actions={actions}
+        selected={null}
+      />
+    </Stack>
+  );
 }

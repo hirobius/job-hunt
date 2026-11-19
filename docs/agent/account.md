@@ -95,7 +95,7 @@ Sign-in guards, OAuth, Privacy and terms, crash reports, the installable app and
   `oauthPkce.startOAuth(supa, provider, redirectTo)`; the kept record (`rjb_oauth_request`) also names the provider
   (`p`, wording only; the verifier stays the binding, taken once by `oauthSession`). A cancelled/refused return toasts
   "LinkedIn sign-in was cancelled." / "…didn't work" (`authLinkError.ts` `pendingOAuthProvider`, `oauthMessages`).
-  Order on the sign-in screen: Google, LinkedIn, then the email form; both buttons sit in `.rjb-signin-google`, hidden
+  Order on the sign-in screen: Google and LinkedIn in one row (#835), then the email form, Send link, the grey Try a demo, the exit; both buttons sit in `.rjb-signin-google`, hidden
   while the keyboard is open or under 480px tall, and the provider error Alert sits outside it so it stays visible.
   `src/account/linkedin-in.svg` is LinkedIn's "in" bug as given (#0A66C2), allowed in `THIRD_PARTY_MARKS`. No new
   browser fetch host (the start is a navigation; the exchange is Supabase's own host). Pinned in

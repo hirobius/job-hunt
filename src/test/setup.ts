@@ -82,3 +82,5 @@ beforeEach(() => {
   resetSignInAsk();
   firstSignInAsk();
 });
+// The demo flag is per tab (demo/demoMode.ts, #835): no test starts inside another's demo.
+beforeEach(() => sessionStorage.removeItem('rjb_demo'));

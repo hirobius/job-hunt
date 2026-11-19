@@ -22,6 +22,7 @@ import {
 import { SIGN_IN_AGREE, SIGN_IN_BENEFIT, SIGN_IN_COPY_ID, SIGN_IN_HOW } from './signInCopy';
 import { BRAND } from '../brand';
 import { legalHash, useRoute } from '../route';
+import { startDemo } from '../demo/demoMode';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
@@ -193,7 +194,9 @@ export default function SignInDialog() {
                 The buttons give way to the keyboard (SignInDialog.css); their error stays. */}
             {(googleSignInEnabled() || linkedInSignInEnabled()) && (
               <Box className="rjb-signin-google">
-                <Stack gap="tight">
+                {/* One row (#835): the gate fits a phone screen with the demo key added. Each key
+                    shows the provider's name; its accessible name is the whole action. */}
+                <Stack direction="row" gap="tight">
                   {googleSignInEnabled() && (
                     <Button
                       variant="secondary"
@@ -202,8 +205,9 @@ export default function SignInDialog() {
                       iconLeft={<GoogleMark />}
                       loading={leaving === 'google'}
                       onClick={() => void leave(signInWithGoogle, 'google')}
+                      aria-label="Continue with Google"
                     >
-                      Continue with Google
+                      Google
                     </Button>
                   )}
                   {linkedInSignInEnabled() && (
@@ -214,8 +218,9 @@ export default function SignInDialog() {
                       iconLeft={<LinkedInMark />}
                       loading={leaving === 'linkedin'}
                       onClick={() => void leave(signInWithLinkedIn, 'linkedin')}
+                      aria-label="Continue with LinkedIn"
                     >
-                      Continue with LinkedIn
+                      LinkedIn
                     </Button>
                   )}
                 </Stack>
@@ -256,6 +261,17 @@ export default function SignInDialog() {
               </Stack>
             </Form>
           </>
+        )}
+        {/* The demo (#835): a real second choice, so the grey key; it opens Review with sample
+            postings and Apply with the sample jobs, all on this device. Not after a link was sent. */}
+        {!sentTo && (
+          <Button
+            variant="secondary"
+            className="sign-in-dialog__primary"
+            onClick={() => startDemo()}
+          >
+            Try a demo
+          </Button>
         )}
         <ExitButton className="sign-in-dialog__primary" onClick={() => onOpenChange(false)}>
           Continue without an account

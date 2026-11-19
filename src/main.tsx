@@ -1,4 +1,7 @@
-// First: a magic link's session tokens leave the address bar before anything else reads it.
+// First: a demo tab keeps its data in memory, so no store ever reads or writes the visitor's own
+// (demo/demoStorage.ts, #835). Then a magic link's session tokens leave the address bar before
+// anything else reads it.
+import './demo/demoStorage';
 import './authFragment';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
