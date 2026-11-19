@@ -18,8 +18,6 @@ export type Role = RankedPosting & { term: string };
 export type RolesState =
   { state: 'loading' } | { state: 'ok'; roles: Role[]; total: number } | { state: 'unknown' };
 
-export const boardKey = (b: Board) => `${b.kind}:${b.slug.toLowerCase()}`;
-
 /** The postings that match any of `terms` as a phrase, best first, one row per opening. On a
  *  design-systems track the role type leads (feed/roleType.ts): design systems, then product design,
  *  engineering-heavy last; score orders each type. */

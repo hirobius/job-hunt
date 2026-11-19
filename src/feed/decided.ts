@@ -24,8 +24,6 @@ import {
 } from '../sources';
 import { nameKey } from '../sourcesModel';
 import type { Posting } from './types';
-
-export const DECIDED_KEY = 'rjb_decided';
 export const SEEN_KEY = 'rjb_feed_seen';
 /** First-seen days kept, newest first. */
 export const MAX_SEEN = 5000;

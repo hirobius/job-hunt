@@ -2,8 +2,6 @@
 // `rjb_radar_evidence`. It syncs with the account in the blob (ADR 0008), so sign-out's wipe of this
 // browser no longer loses it.
 import { useSyncExternalStore } from 'react';
-import type { Verdict } from '../types';
-import type { Tier } from './fitGap';
 
 const EVIDENCE_KEY = 'rjb_radar_evidence';
 
@@ -36,7 +34,7 @@ export function writeEvidence(raw: string) {
   listeners.forEach((l) => l());
 }
 
-/** Replace from a pull or restore (same as a write; named for the sync seam). */
+/** Replace from a pull or restore (same as a write; named for the sync seam). @alias */
 export const replaceEvidence = writeEvidence;
 
 const EVIDENCE_SEPARATOR = '--- From this device ---';
@@ -78,10 +76,3 @@ const subscribe = (l: () => void) => {
 /** The evidence text, live. */
 export const useEvidence = (): string =>
   useSyncExternalStore(subscribe, readEvidence, readEvidence);
-
-/** How a tier reads on a posting, and the fit it becomes on a saved job. */
-export const TIER_INFO: Record<Tier, { label: string; verdict: Verdict }> = {
-  strong: { label: 'Strong fit', verdict: 'match' },
-  stretch: { label: 'Stretch', verdict: 'stretch' },
-  reach: { label: 'Reach', verdict: 'reach' },
-};

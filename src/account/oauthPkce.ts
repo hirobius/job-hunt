@@ -163,6 +163,3 @@ export async function oauthSession(
   const email = tokens ? tokenEmail(tokens.access_token) : null;
   return tokens && email ? { tokens, email } : null;
 }
-
-/** The Google name of the same exchange (#482). */
-export const googleSession = oauthSession;

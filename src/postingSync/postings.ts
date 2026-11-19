@@ -1,13 +1,11 @@
 // The scored postings the sync stored (Muse Phase 1 UI, 2026-10-24; Simplify 6/9, #387): the
-// signed-in user's own rows of `postings` (RLS), split into the queue (verdict 'queue', best score
-// then newest) and Review, with the ones they skipped left out. A Skip is a Decided entry by
-// posting fingerprint (src/decided.ts), never a server write. The same rows feed the Feed's
-// server adapter (feed/postingReader.ts). Signed out there is nothing to read.
+// signed-in user's own rows of `postings` (RLS). A Skip is a Decided entry by posting fingerprint
+// (src/decided.ts), never a server write. These rows feed the Feed's server adapter
+// (feed/postingReader.ts). Signed out there is nothing to read.
 import { loadSupabase } from '../supabase';
 import { getProfile } from '../profile';
 import { matchKey } from './matchText.ts';
 import type { Verdict } from './score.ts';
-import { byScoreThenNewest } from './scoreForTrack.ts';
 
 export interface StoredPosting {
   id: number;
@@ -78,18 +76,6 @@ export function fromRow(r: Row): StoredPosting {
   };
 }
 
-/** The queue (verdict 'queue') and Review, each best score first then newest, skips left out. */
-export function splitQueue(
-  rows: StoredPosting[],
-  skipped: ReadonlySet<string>,
-): { queue: StoredPosting[]; review: StoredPosting[] } {
-  const open = rows.filter((r) => !skipped.has(r.fingerprint));
-  return {
-    queue: open.filter((r) => r.verdict === 'queue').sort(byScoreThenNewest),
-    review: open.filter((r) => r.verdict === 'review').sort(byScoreThenNewest),
-  };
-}
-
 /** The user's open queued and review postings, best first, through `feed_rows` (trimmed text),
  *  else the table. Throws on an error (the table not there yet reads as one). */
 export async function loadServerRows(): Promise<StoredPosting[]> {
@@ -117,11 +103,6 @@ export async function loadServerRows(): Promise<StoredPosting[]> {
     .limit(LIMIT);
   if (error) throw new Error(error.message);
   return ((data ?? []) as Row[]).map(fromRow);
-}
-
-/** The scored queue's read: the rows (skips are the caller's, from Decided). */
-export async function loadScoredPostings(): Promise<{ rows: StoredPosting[] }> {
-  return { rows: await loadServerRows() };
 }
 
 /** When the server sync last finished a pass for this user (#448: it runs every 15 minutes): the

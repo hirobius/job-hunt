@@ -19,7 +19,6 @@ import { arr, num, obj, str, type FetchJson } from './http';
 import { isHiringPost } from './social';
 
 export const REDDIT_SUBS = ['DesignSystems', 'UXDesign', 'forhire'];
-export const REDDIT_ENV = ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] as const;
 const WEB = 'https://www.reddit.com';
 /** The Data API host an app-only OAuth token reads from (never www.reddit.com: that is the
  *  unlicensed, rate-capped path). */

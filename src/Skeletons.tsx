@@ -17,19 +17,6 @@ function RowsSkeleton({ count }: { count: number }) {
   );
 }
 
-/** Templates: the page title, a search field, then rows. */
-export function CopyDeckSkeleton({ count = 3 }: { count?: number }) {
-  return (
-    <Box aria-busy aria-label="Loading">
-      <Stack gap="normal">
-        <Skeleton variant="text" width="30%" height={32} />
-        <Skeleton variant="rectangular" width={240} height={32} />
-        <RowsSkeleton count={count} />
-      </Stack>
-    </Box>
-  );
-}
-
 /** The Pipeline (and the job pages under its tab): the page title, a panel head, then rows. */
 export function PipelineSkeleton() {
   return (

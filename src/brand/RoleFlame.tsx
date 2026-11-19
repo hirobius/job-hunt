@@ -202,24 +202,6 @@ function FlameSvg({
   );
 }
 
-type FlameProps = SvgProps & {
-  animated?: boolean;
-  settings?: FlameSettings;
-  /** Drive the flame from outside with a frame from useFlame (e.g. to sync with text). */
-  frame?: Frame;
-};
-
-function SelfDrivenFlame({ animated, settings, ...svg }: Omit<FlameProps, 'frame'>) {
-  const { frame } = useFlame(animated, settings);
-  return <FlameSvg {...svg} frame={frame} />;
-}
-
-/** Just the flame. Height = flame body; pieces that break off rise above. */
-export function RoleFlameMark({ frame, animated = true, settings = FLAME, ...svg }: FlameProps) {
-  if (frame) return <FlameSvg {...svg} frame={frame} />;
-  return <SelfDrivenFlame {...svg} animated={animated} settings={settings} />;
-}
-
 // Small deterministic hash so each letter's flicker is stable within a tick.
 function hash(tick: number, i: number, salt: number) {
   let t = (tick * 374761393 + i * 668265263 + salt * 2246822519) | 0;
@@ -336,5 +318,3 @@ export function RoleFlameLogo({
     </span>
   );
 }
-
-export default RoleFlameLogo;

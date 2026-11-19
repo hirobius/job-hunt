@@ -25,8 +25,6 @@ export const ADELE: {
   companies: AdeleCompany[];
 } = data;
 
-export const ADELE_CREDIT = 'Adele, UXPin’s list of public design systems';
-
 // Public bodies hire through civil-service portals, never an ATS board: probing them only finds
 // a stranger's board under the same slug.
 const PUBLIC_BODIES = new Set([

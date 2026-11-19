@@ -38,16 +38,6 @@ export function useRemembered<T>(
   return [current.value, set];
 }
 
-/** Read what is kept under `key` (undefined when nothing is). */
-export function recall<T>(key: string): T | undefined {
-  return memory.get(key) as T | undefined;
-}
-
-/** Keep `value` under `key` without a component (a fetch that answered after its view left). */
-export function remember<T>(key: string, value: T): void {
-  memory.set(key, value);
-}
-
 /** Forget it all (tests start fresh). */
 export function resetViewMemory(): void {
   memory.clear();
