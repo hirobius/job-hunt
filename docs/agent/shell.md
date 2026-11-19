@@ -156,13 +156,13 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
   and a sign-in error land on Today; there is no setup screen (see First run).
-  `ReviewHome.tsx`, top to bottom: **the short header** (`ReviewHeader.tsx`, #544, redesign §5.1): the sr-only h1 "Find" and
+  `ReviewHome.tsx`, top to bottom: **the short header** (`ReviewHeader.tsx`, #544, redesign §5.1): the sr-only h1 "Review" and
   nothing else (no page-bar tools since the Deck went, 2026-11-13). **No More menu and no scan line on Find (#694, Adrian
   2026-11-13):** Scan now / Stop scan (signed out only) is the Account menu's, beside Search profile; when the sources were
   last scanned lives only in Scan details (the Search profile dialog); Review's polite `role="status"` says "N postings,
   M new". **No Sort on Find (Adrian 2026-11-13):** newest first, always (`sortRows(…, 'newest')`; an older remembered
   `review:sort` is not read; Apply's Sort went too, 2026-11-13). `ReviewView`'s `header` is a function given the new
-  count and whether a posting is selected (then "Find" is a `p`, the posting's title the h1). Then **Review**
+  count and whether a posting is selected (then "Review" is a `p`, the posting's title the h1). Then **Review**
   = `ReviewView` itself (`label="New postings" scanStatus`; no visible heading since 2026-11-12: an sr-only h2 "New
   postings" (`Panel titleHidden`)). **List only (Adrian 2026-11-13):** no Deck, no List | Deck switch and **no filter
   row**: the New / Remote chips and the Remote only control are gone; Review follows the Search profile's work mode only
