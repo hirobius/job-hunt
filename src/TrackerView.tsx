@@ -35,6 +35,8 @@ import { needsClientAtBoot } from './supabase';
 import { tabFrozen } from './tabAccount';
 import { PipelineSkeleton } from './Skeletons';
 import ApplyDone from './ApplyDone';
+import DemoNote from './demo/DemoNote';
+import { demoActive } from './demo/demoStorage';
 import JobRail from './JobRail';
 
 /** The Jobs tab (#/apply). A signed-in device with no jobs on it yet (a first visit, a new address,
@@ -44,6 +46,17 @@ import JobRail from './JobRail';
  *  the filter bar and pager below it. The hash stays #/apply; a pick replaces it with that job's.
  *  With no jobs, the Pipeline page's first-run empty state. */
 export default function TrackerView() {
+  // A demo tab (#835): the way out of the demo is here too, not only on Review.
+  if (!demoActive()) return <TrackerBody />;
+  return (
+    <Stack gap="px16">
+      <DemoNote />
+      <TrackerBody />
+    </Stack>
+  );
+}
+
+function TrackerBody() {
   const jobs = useJobs();
   const view = usePipelineView();
   const sync = useContext(CloudSyncContext);

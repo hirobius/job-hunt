@@ -8,7 +8,6 @@ import { returnFocus } from './returnFocus';
 import { useBackCloses } from '../useBackCloses';
 import type { AccountState, Backup } from '../backup';
 import { importFresh } from '../staleBuild';
-import { toCsv } from '../csv';
 import { download } from '../download';
 import { getAllJobs, replaceAll, useJobs } from '../store';
 import { getSnippets, replaceSnippets } from '../copyDeckStore';
@@ -42,6 +41,7 @@ const BACKUP_PREFETCH_MS = 5000;
 type BackupLib = typeof import('../backup');
 let backupLib: BackupLib | null = null;
 const loadBackup = importFresh(() => import('../backup').then((lib) => (backupLib = lib)));
+const loadCsv = importFresh(() => import('../csv'));
 const day = () => new Date().toISOString().slice(0, 10);
 
 function currentState(): AccountState {
@@ -183,7 +183,11 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
       else void loadBackup().then(run, () => {});
     },
     chooseRestore: () => fileRef.current?.click(),
-    exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
+    exportCsv: () =>
+      void loadCsv().then(
+        ({ toCsv }) => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
+        () => {},
+      ),
     canExport: jobs.length > 0,
   };
 

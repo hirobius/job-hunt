@@ -32,12 +32,12 @@ The posting list, its window, the full description and Daily picks.
   `window.localStorage` for an in-memory copy before any store loads, so the visitor's own data is hidden and never
   written (the colour mode and paused motion show as set, read only). Starting (`startDemo`) and leaving (`leaveDemo`,
   the underlined **Leave demo** in the demo Alert, back to the sign-in screen) reload the page. Never with a stored
-  Supabase session (its sync would run): no demo then. Review shows `DemoReviewList` (`ReviewView.tsx`): an HDS info
-  Alert "This is a demo", then fictional postings (`demo/demoPostings.ts`) in the real cards; Save adds the job (in
+  Supabase session (its sync would run): no demo then. Review shows `DemoReviewList` (`ReviewView.tsx`): the demo note
+  (`demo/DemoNote.tsx`, an HDS info Alert "This is a demo", also over Apply in `TrackerView`), then fictional postings (`demo/demoPostings.ts`) in the real cards; Save adds the job (in
   memory), Skip and Not this company hide the card with Undo. Apply gets the sample jobs (`seedDemo`). Nothing is read
   from a job board. Pinned in `demo/demoStorage.test.ts`, `todayHome.test.tsx`, `route.test.ts`,
   `SignInDialog.test.tsx`, `e2e/demo.spec.ts` (fits 390x844; a round trip leaves the visitor's data byte for byte; the
-  link on the production build), `e2e/review-sign-in.spec.ts`.
+  link on the production build; Leave demo on Apply; a stored session gets no demo), `e2e/review-sign-in.spec.ts`.
 
 - **Daily picks (2026-11-05, `docs/daily-picks.md`):** the scheduled Claude run's hand-picked roles, no longer a
   separate page. It calls `add_daily_picks(p_token, p_picks)` (security definer, public key + a feed token whose sha256

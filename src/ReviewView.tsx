@@ -20,7 +20,6 @@ import {
 import { setScanDetails } from './feed/scanDetails';
 import { hiddenParts } from './feed/scanDetailsText';
 import {
-  Alert,
   Badge,
   Box,
   Button,
@@ -78,8 +77,7 @@ import { SOURCE_LABEL } from './feed/types';
 import type { Job } from './types';
 import { addJobDetailed, updateJob, useJobs } from './store';
 import { demoPostings } from './demo/demoPostings';
-import { leaveDemo } from './demo/demoMode';
-import { ExitButton } from './hds-gaps/ExitButton';
+import DemoNote from './demo/DemoNote';
 import { alreadyInApply, notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
@@ -1192,15 +1190,7 @@ export function DemoReviewList() {
   };
   return (
     <Stack gap="px16">
-      <Alert tone="info" title="This is a demo">
-        <Stack gap="px8" align="start">
-          <span>
-            Sample postings and jobs from fictional companies. Nothing is saved, and your own data
-            is not touched.
-          </span>
-          <ExitButton onClick={() => leaveDemo()}>Leave demo</ExitButton>
-        </Stack>
-      </Alert>
+      <DemoNote />
       <RowList
         label="New postings"
         rows={rows}
