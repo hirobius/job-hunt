@@ -235,7 +235,7 @@ describe('FIGMA-RULES.md', () => {
     // No phone pager (Adrian 2026-11-14): the list scrolls.
     expect(review).not.toContain('Postings in the list');
     expect(RULES).toMatch(/\*\*no pager\*\* \(Adrian 2026-11-14/);
-    expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Pagination');
+    expect(fs.readFileSync('src/ReviewHeader.tsx', 'utf8')).not.toContain('Pagination');
     // The Apply job still swipes.
     expect(fs.readFileSync('src/JobPage.tsx', 'utf8')).toContain('<SwipeArea');
   });
@@ -245,7 +245,7 @@ describe('FIGMA-RULES.md', () => {
     // No Sort on Find (Adrian 2026-11-13): newest first, always.
     expect(fs.existsSync('src/FindSortMenu.tsx')).toBe(false);
     expect(RULES).toMatch(/No Sort on Review \(2026-11-13\)/);
-    expect(fs.readFileSync('src/FindHeader.tsx', 'utf8')).not.toContain('Menu.RadioGroup');
+    expect(fs.readFileSync('src/ReviewHeader.tsx', 'utf8')).not.toContain('Menu.RadioGroup');
     expect(fs.readFileSync('src/ReviewView.tsx', 'utf8')).toContain('titleHidden');
   });
 
@@ -294,7 +294,7 @@ describe('FIGMA-RULES.md', () => {
   it('pins found companies in the Companies dialog, not on Find (#618)', () => {
     expect(RULES).toContain('under **Found** (Follow / Ignore), never on Review');
     expect(CLAUDE).toContain('New companies\n  left Find (#618');
-    expect(fs.readFileSync('src/Today.tsx', 'utf8')).not.toContain('NewCompanies');
+    expect(fs.readFileSync('src/ReviewHome.tsx', 'utf8')).not.toContain('NewCompanies');
     expect(fs.readFileSync('src/CompaniesDialog.tsx', 'utf8')).toContain('<NewCompanies />');
   });
 
@@ -371,7 +371,7 @@ describe('FIGMA-RULES.md', () => {
     const review = fs.readFileSync('src/ReviewView.tsx', 'utf8');
     expect(review).toContain('lineClamp={3}');
     expect(review).toContain('openKey={!compact}');
-    const head = fs.readFileSync('src/FindHeader.tsx', 'utf8');
+    const head = fs.readFileSync('src/ReviewHeader.tsx', 'utf8');
     // No More menu on Find (#694): Scan now and Search profile are the Account menu's.
     expect(head).not.toContain('Menu');
     // No visible "Find" title: the h1 is .sr-only; nothing in the page bar since the Deck went.

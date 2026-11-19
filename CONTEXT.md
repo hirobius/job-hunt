@@ -31,12 +31,12 @@ The work tab (`#/apply`, ADR 0010): the list of every saved Job (search, Status,
 _Avoid_: Pipeline, Jobs tab, tracker, queue (in copy), board, Apply mode
 
 **Apply view**:
-One Job on the Apply tab (`#/apply/<jobId>`): badges, title and company, the next step for its Status (Saved: Open application, then Mark applied | Not a fit), the Templates and Application kit, then Details, Notes, Documents and Decks. Mark applied and Not a fit open the next Job in the list.
+One Job on the Apply tab (`#/apply/<jobId>`): badges, title and company, the next step for its Status (Saved: Open application, then Mark applied | Not a fit), then Details, Notes, Documents and Decks. The Application kit left this view on 2026-11-13; its data still syncs. Mark applied and Not a fit open the next Job in the list.
 _Avoid_: job page, job detail, Apply mode, wizard
 
-**Find**:
-The home tab (`#/find`, ADR 0010; was Today): the scan's status, Daily picks, Review new and New companies in the list column, beside the selected Posting (`#/find/<fingerprint>`). Nothing is selected when the tab opens ("Pick a posting").
-_Avoid_: Today, dashboard, home page, Discover, Companies (as a page)
+**Review**:
+The home tab (`#/review`, ADR 0010 and its 2026-11-13 amendment; was Find, and before that Today): the scan's status, Daily picks, Review new and New companies in the list column, beside the selected Posting (`#/review/<fingerprint>`). Nothing is selected when the tab opens ("Pick a posting"). Old `#/find` links redirect.
+_Avoid_: Find, Today, dashboard, home page, Discover, Companies (as a page)
 
 **Route dialog**:
 Documents and Privacy and terms (ADR 0010): a dialog over the open page, held in that page's URL (`?documents=`, `?legal=`), so a link opens it and Back closes it. Not a page and not a tab.
@@ -55,15 +55,15 @@ Every design-system Posting read from the Sources and feeds for the Search profi
 _Avoid_: results, search results, inbox
 
 **Review new**:
-The Feed on Find, as the Browse list (default) or the Deck: Save makes a Job and follows its board, Skip hides that one Posting, Not this company mutes its Source.
+The Feed on Review, as the Browse list (default) or the Deck: Save makes a Job and follows its board, Skip hides that one Posting, Not this company mutes its Source.
 _Avoid_: triage, inbox, Live postings
 
 **Auto-scan**:
-The one run that finds companies, checks their boards and reads every Source and feed, on app open (every 6 hours) or on Scan now. Its finds show as New companies on Find, with Follow or Ignore.
+The one run that finds companies, checks their boards and reads every Source and feed, on app open (every 6 hours) or on Scan now. Its finds show as New companies on Review, with Follow or Ignore.
 _Avoid_: crawl, sync, refresh
 
 **First run**:
-A visit with no Search profile, no old tracks and no Jobs. There is no setup screen: once sync settles the default design-systems profile and starter Sources are added, and Find opens on Review new; sample data is the Apply tab's empty-state offer.
+A visit with no Search profile, no old tracks and no Jobs. There is no setup screen: once sync settles the default design-systems profile and starter Sources are added, and Review opens on Review new; sample data is the Apply tab's empty-state offer.
 _Avoid_: new user, empty state
 
 **Active queue**:

@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { NewCompanies } from './AutoScanViews';
-import { FindHeader } from './FindHeader';
+import { ReviewHeader } from './ReviewHeader';
 import ScanDetails from './ScanDetails';
 import { setScanDetails } from './feed/scanDetails';
 import { hiddenParts } from './feed/scanDetailsText';
@@ -103,7 +103,7 @@ const renderViews = ({ signedIn = false } = {}) =>
       value={{ user: signedIn ? { id: 'u1', email: 'a@b.c' } : null } as CloudSyncApi}
     >
       <ToastProvider>
-        <FindHeader />
+        <ReviewHeader />
         <NewCompanies />
         <NoticeHost />
       </ToastProvider>

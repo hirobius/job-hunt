@@ -1,22 +1,22 @@
 // The shell's route views, each in its own chunk (lazyView.tsx): a first visit to Today
 // doesn't download the Apply list, the job view or the Company page.
 import { lazyView } from './lazyView';
-import { APPLY_TAB, FIND_TAB, companySlugOf, type Route } from './route';
+import { APPLY_TAB, REVIEW_TAB, companySlugOf, type Route } from './route';
 import { importFresh } from './staleBuild';
 
 export const TrackerView = lazyView(importFresh(() => import('./TrackerView')));
 export const JobPage = lazyView(importFresh(() => import('./JobPage')));
 export const CompanyPage = lazyView(importFresh(() => import('./CompanyPage')));
-export const Today = lazyView(importFresh(() => import('./Today')));
+export const ReviewHome = lazyView(importFresh(() => import('./ReviewHome')));
 
 /** Fetch every view now (the test setup does, so tests render without a Suspense step). */
 export const preloadViews = () =>
-  Promise.all([TrackerView, JobPage, CompanyPage, Today].map((v) => v.preload()));
+  Promise.all([TrackerView, JobPage, CompanyPage, ReviewHome].map((v) => v.preload()));
 
 /** The view a route opens on, when it is one of these: the Apply list, a job or a Company under
  *  `apply`, or Find. */
 export function viewFor(route: Route): { preload(): Promise<void> } | null {
-  if (route.tab === FIND_TAB) return Today;
+  if (route.tab === REVIEW_TAB) return ReviewHome;
   if (companySlugOf(route) !== null) return CompanyPage;
   if (route.tab === APPLY_TAB) return route.jobId ? JobPage : TrackerView;
   return null;
