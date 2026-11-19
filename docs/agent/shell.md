@@ -216,7 +216,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   app bar is the logo and Account, one row. No visible "Find" / "Apply" title: each page keeps its h1 as
   HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). No page puts tools
   at the bar's right now (Find has none since the Deck went, 2026-11-13; no scan line on Find since #694: it is Scan
-  details'), so `PageBar.tsx` `InPageBar` was deleted (#815); App's empty slot (`pageBarSlot.ts`) hides by `:empty`. Pinned in
+  details'), so `PageBar.tsx` `InPageBar` was deleted (#815); the empty slot that held its place went too. Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
 
 - **Theme toggle + burn (#688):** the app bar's HDS `ThemeToggle` (left of the Account button, 44px; its own name
