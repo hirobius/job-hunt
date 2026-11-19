@@ -7,3 +7,4 @@ export { readSyncBase, readSyncHashes, writeSyncBase, keysOf, hashesOf } from '.
 export { readTrackerRow, writeTrackerRow } from './trackerRow';
 export { readLocalSyncData, localSyncJson, applyLocalSyncData } from './localSyncData';
 export { deviceData, mergeQuestion } from './deviceData';
+export { createSyncEngine } from './syncEngine';

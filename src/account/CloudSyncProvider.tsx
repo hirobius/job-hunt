@@ -31,7 +31,7 @@ import { useProfiles } from '../profile';
 import { useSources } from '../sources';
 import { decided as decidedStore } from '../decided';
 import type { SyncData } from '../syncBlob';
-import type { RowStamp } from './trackerRow';
+import type { SyncEngine } from './syncEngine';
 import type * as SyncStackModule from './syncStack';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import { getCurationState } from '../curation/curationStore';
@@ -122,8 +122,6 @@ function S(): typeof SyncStackModule {
 }
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
-/** How many times a push merges a newer cloud copy in and sends again before it gives up. */
-const PUSH_TRIES = 3;
 /** What the cloud holds, as the base the next merge compares against (#219, entry hashes). */
 function rememberBase(uid: string, d: SyncData) {
   S().writeSyncBase(uid, S().keysOf(d), S().hashesOf(d));
@@ -191,10 +189,6 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // see the signed-out nudge flash on load. With no session stored (and no magic link returning)
   // the client isn't loaded at all (supabase.ts): signed out, answered a tick later as before.
   const [authResolved, setAuthResolved] = useState(false);
-  const lastSynced = useRef('');
-  // True once a pull since sign-in has merged the cloud copy in. Until then local data is
-  // unmerged, so pushing it would overwrite cloud-only jobs (#161).
-  const pulledOk = useRef(false);
   // True from sign-in until the seed merge (the union of this device + the cloud, then a push)
   // has landed. While set, Retry and focus re-pulls seed too: a cloud-wins merge would drop
   // this device's local-only jobs after a failed first pull.
@@ -206,9 +200,6 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // From Delete my data's confirm on: nothing more is pushed or adopted (a pull in flight is
   // dropped), so the erased account is not written back or refilled here (#393).
   const deleting = useRef(false);
-  // The cloud row's stamp as of this tab's last pull or push (null until a pull lands). A push
-  // only writes over that version: another device's newer save is merged in first, never wiped.
-  const known = useRef<RowStamp | null>(null);
   // A sign-in link nobody asked for in this browser, waiting on "Sign in as x@y.com?".
   const [linkAsk, setLinkAsk] = useState<{ email: string; tokens: AuthTokens } | null>(null);
   // An account this device never synced with, while it holds data: "Add this device's N jobs?".
@@ -239,6 +230,32 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // taken up at all (acceptLink signs it out), so nothing of it is pulled first.
   const linkEmail = useRef<string | null>(null);
 
+  // The push / merge loop (syncEngine.ts, #814): it holds the row's last-seen stamp, what was last
+  // sent or adopted, and whether a pull has landed since sign-in; this provider says when. Made on
+  // first use, which is always after the sync stack is in (a user exists only through the auth
+  // callback, which runs only once the client and the stack have loaded, #832).
+  const engineRef = useRef<SyncEngine<User> | null>(null);
+  const engine = (): SyncEngine<User> =>
+    (engineRef.current ??= S().createSyncEngine<User>({
+      readRow: async (uid) => S().readTrackerRow(await loadSupabase(), uid),
+      writeRow: async (uid, data, was) => S().writeTrackerRow(await loadSupabase(), uid, data, was),
+      readLocal: () => S().readLocalSyncData(),
+      localJson: () => S().localSyncJson(),
+      applyLocal: (next) => S().applyLocalSyncData(next),
+      readBase: (uid) => ({ keys: S().readSyncBase(uid), hashes: S().readSyncHashes(uid) }),
+      rememberBase,
+      sessionIsStill: (u) => sessionIsStill(u),
+      owns: (uid) => handled.current === uid && !deleting.current,
+      frozen: () => !!tabFrozen(),
+      deleting: () => deleting.current,
+      freezeNewerVersion: () => freezeTab('newerVersion'),
+      // toastRef (below) is read only when a merge runs, after this render.
+      mergedBoth: (cloud, local) => {
+        if (evidenceMergeOverflows(cloud.evidence, local.evidence))
+          toastRef.current({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
+      },
+    }));
+
   // The stores this device syncs (localSyncData.ts, #814).
   const localBlob = () => S().readLocalSyncData();
   const localJson = () => S().localSyncJson();
@@ -258,18 +275,6 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return false;
   }
 
-  // The cloud row (trackerRow.ts, #814): read it, or write over the stamp this tab last saw.
-  // 'conflict' = another device wrote first.
-  async function pull(uid: string): Promise<{ blob: SyncData | null; stamp: RowStamp }> {
-    return S().readTrackerRow(await loadSupabase(), uid);
-  }
-  async function writeRow(uid: string, data: unknown): Promise<'ok' | 'conflict' | 'fail'> {
-    const was = known.current;
-    if (!was) return 'fail';
-    const { result, stamp } = await S().writeTrackerRow(await loadSupabase(), uid, data, was);
-    if (stamp) known.current = stamp;
-    return result;
-  }
   // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
   // stays "dirty": the next refresh and sign-out both retry it. When another device saved since
   // this tab's last read, its copy is merged in (three-way, against the base) and sent again.
@@ -280,86 +285,17 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return run;
   }
   async function pushOnce(u: User): Promise<boolean> {
-    if (!pulledOk.current || handled.current !== u.id || tabFrozen() || deleting.current)
-      return false;
-    let ok = false;
-    for (let i = 0; i < PUSH_TRIES && !ok; i++) {
-      const sent = localJson();
-      const data = S().writeBlob(localBlob());
-      let r: 'ok' | 'conflict' | 'fail';
-      try {
-        if (!(await sessionIsStill(u)) || deleting.current) return false;
-        r = await writeRow(u.id, data);
-      } catch {
-        r = 'fail';
-      }
-      if (r === 'ok') {
-        ok = true;
-        lastSynced.current = sent;
-        rememberBase(u.id, S().readBlob(data)); // what the cloud now holds (#219)
-      } else if (r === 'fail') break;
-      else {
-        try {
-          if (!(await mergeIn(u, true))) return false;
-        } catch {
-          break;
-        }
-      }
-    }
-    if (!tabFrozen()) setMsg(ok ? `Synced · ${u.email}` : OFFLINE_MSG); // else the notice stays
-    return ok;
+    const r = await engine().push(u);
+    if (r === 'stopped') return false;
+    if (!tabFrozen()) setMsg(r === 'ok' ? `Synced · ${u.email}` : OFFLINE_MSG); // else the notice stays
+    return r === 'ok';
   }
-  const dirty = () => localJson() !== lastSynced.current;
+  const dirty = () => engine().dirty();
+  const pulled = () => engine().pulled;
+  const mergeIn = (u: User, both: boolean) => engine().mergeIn(u, both);
 
-  const applyBlob = (next: SyncData) => S().applyLocalSyncData(next);
-
-  // Pull the cloud copy and merge it into this device's stores. `both` (a sign-in, or a push the
-  // cloud turned down) merges both sides; else the cloud copy is the truth, unless an edit landed
-  // here while the pull was out: then both sides merge too, so the edit is not replaced (audit 3).
-  // Returns null when the account changed meanwhile (or every pull raced a push from this tab);
-  // `merged` says whether both sides merged.
-  async function mergeIn(
-    u: User,
-    both: boolean,
-  ): Promise<{ next: SyncData; merged: boolean } | null> {
-    let got: Awaited<ReturnType<typeof pull>> | null = null;
-    // A push from this tab that lands while the pull is out makes its copy older than the cloud's:
-    // adopting it would revert that push here and rewind the stamp, so pull again.
-    for (let i = 0; i < PUSH_TRIES && !got; i++) {
-      if (!(await sessionIsStill(u))) return null;
-      const seen = known.current;
-      const r = await pull(u.id);
-      // Signed out (or another account, here or in another tab) while it pulled, or deleting.
-      if (handled.current !== u.id || deleting.current || !(await sessionIsStill(u))) return null;
-      if (known.current === seen) got = r;
-    }
-    if (!got) return null;
-    const { blob: cloud, stamp } = got;
-    // Written by a newer version (#382): adopting it would read it without the fields this one
-    // doesn't know, and the next push would rewrite it without them. Stop instead.
-    if (cloud && cloud.sourceV > S().BLOB_VERSION) {
-      freezeTab('newerVersion');
-      return null;
-    }
-    const merged = both || (pulledOk.current && dirty());
-    const local = localBlob();
-    const next = S().mergeBlob(
-      cloud,
-      local,
-      merged,
-      S().readSyncBase(u.id),
-      S().readSyncHashes(u.id),
-    );
-    rememberBase(u.id, cloud ?? S().emptyBlob());
-    known.current = stamp;
-    // A merge that keeps both evidence texts can pass the cap: say so, don't cut silently.
-    if (merged && cloud && evidenceMergeOverflows(cloud.evidence, local.evidence))
-      toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
-    applyBlob(next);
-    // Record what we just adopted so the resulting store changes don't echo a push.
-    lastSynced.current = localJson();
-    return { next, merged };
-  }
+  // mergeIn (syncEngine.ts): pull the cloud copy and merge it into this device's stores; `both`
+  // (a sign-in, or a push the cloud turned down) merges both sides. Null when the account changed.
   async function adopt(seed: boolean, u: User) {
     // Not through the sign-in path (the merge question is open), or stopped by another tab (#288).
     if (handled.current !== u.id || tabFrozen() || deleting.current) return;
@@ -379,11 +315,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }, PULL_LIMIT.ms);
     try {
       // Unsent local edits (a failed push) must go up before a pull would replace them.
-      if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
+      if (!seed && pulled() && dirty() && !(await pushNow(u))) return;
       const got = await mergeIn(u, seed);
       if (!got) return;
       const { next, merged } = got;
-      pulledOk.current = true;
+      engine().markPulled();
       if (seed) seedPending.current = false;
       // Tracks live in their own tables: pull + reconcile + upload what's new here (#99).
       if (!(await sessionIsStill(u))) return;
@@ -453,8 +389,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         setTabAccount(null); // until the path below has run for this user
         // Opened from the magic link: back to the page the link was asked for on (return paths).
         if (event === 'SIGNED_IN') returnAfterSignIn();
-        pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
-        known.current = null;
+        engine().reset(); // new sign-in or sign-out: the next pull must land before any push
         seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
         if (!u) {
           mergeHeld.current = null;
@@ -614,8 +549,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
-    if (!user || !pulledOk.current || handled.current !== user.id || tabFrozen()) return;
-    if (localJson() === lastSynced.current) return;
+    if (!user || !pulled() || handled.current !== user.id || tabFrozen()) return;
+    if (!dirty()) return;
+    // An external store (the engine) changed: say so at once. The rule passed before only because
+    // these checks read refs; the behaviour is the same (#814).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => pushNow(user), 500);
@@ -665,7 +603,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       const hasData = localJson() !== JSON.stringify(S().writeBlob(S().emptyBlob()));
       // Nothing changed since the last pull or push: the cloud holds this copy, even while a
       // re-pull is out. Else it must go up now.
-      const flushed = !dirty() || (pulledOk.current && (await pushNow(user)));
+      const flushed = !dirty() || (pulled() && (await pushNow(user)));
       unsynced = !flushed && hasData;
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
