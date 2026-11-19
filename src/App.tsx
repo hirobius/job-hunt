@@ -31,7 +31,6 @@ import SignInHost from './account/SignInHost';
 import { useJobs } from './store';
 import { useProfile } from './profile';
 import { useSnippets } from './copyDeckStore';
-import { migrateSnippetStore } from './outreachTemplates';
 import { scanOnOpenEnabled } from './feed/scanOnOpenFlag';
 import { canWrite, useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
@@ -57,6 +56,7 @@ const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 const TopTabCount = lazy(importFresh(() => import('./TopTabCount')));
 const ThemeBurnToggle = lazy(importFresh(() => import('./burn/ThemeBurnToggle')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
+const loadOutreach = importFresh(() => import('./outreachTemplates'));
 // The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan
 // (importFresh still raises the new-version notice).
 const AutoScanOnOpen = lazy(() =>
@@ -107,7 +107,11 @@ function SnippetMigration() {
   const settled = canWrite(useCloudSync());
   const snippets = useSnippets();
   useEffect(() => {
-    if (settled) migrateSnippetStore();
+    if (settled)
+      void loadOutreach().then(
+        (m) => m.migrateSnippetStore(),
+        () => {},
+      );
   }, [settled, snippets]);
   return null;
 }
