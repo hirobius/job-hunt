@@ -48,9 +48,9 @@ export default function AddLinkDialog({
     // The keys change with the state: focus the new filled key.
     let frames = 60;
     const focusOpen = () => {
-      const a = [...document.querySelectorAll<HTMLAnchorElement>('a')].find(
-        (el) => el.textContent?.trim() === 'Open application',
-      );
+      // By its dock key, not its text: HDS 0.45 adds a hidden "(opens in new tab)" to an external
+      // Button, so the text no longer equals the label (#805).
+      const a = document.querySelector<HTMLAnchorElement>('a[data-dock-key="openApplication"]');
       if (a) a.focus();
       else if (frames-- > 0) requestAnimationFrame(focusOpen);
     };

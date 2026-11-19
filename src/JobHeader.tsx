@@ -171,7 +171,7 @@ export default function JobHeader({
       case 'openApplication':
         return (
           <Button key={id} asChild variant={variant} size="md" external>
-            <a href={link} target="_blank" rel="noopener noreferrer">
+            <a href={link} target="_blank" rel="noopener noreferrer" data-dock-key={id}>
               Open application
             </a>
           </Button>

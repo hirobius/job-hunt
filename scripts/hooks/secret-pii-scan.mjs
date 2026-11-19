@@ -33,6 +33,29 @@ const INSTALL =
   'Install gitleaks 8.30.1: `brew install gitleaks` (macOS) · `winget install gitleaks` (Windows) · ' +
   'https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1';
 
+/** The oldest gitleaks that reads `.gitleaks.toml` right: `[[allowlists]]` with `targetRules` needs
+ * 8.25. An older one ignores those allowlists and blocks clean pushes (#806). CI pins 8.30.1. */
+export const MIN_GITLEAKS = [8, 25, 0];
+
+/** `gitleaks version` prints `8.30.1` (or `v8.30.1`); anything else reads as unknown (null). */
+export function parseGitleaksVersion(out) {
+  const m = /v?(\d+)\.(\d+)\.(\d+)/.exec(String(out ?? ''));
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+export function versionAtLeast(v, min) {
+  for (let i = 0; i < 3; i++) if (v[i] !== min[i]) return v[i] > min[i];
+  return true;
+}
+
+/** 'ok', 'missing', or 'old' (installed, but older than MIN_GITLEAKS or of unknown version). */
+export function gitleaksStatus() {
+  const r = spawnSync('gitleaks', ['version'], { encoding: 'utf8' });
+  if (r.error || r.status !== 0) return 'missing';
+  const v = parseGitleaksVersion(r.stdout);
+  return v && versionAtLeast(v, MIN_GITLEAKS) ? 'ok' : 'old';
+}
+
 export function parsePushLines(stdin) {
   return stdin
     .split('\n')
@@ -129,13 +152,16 @@ function main() {
     return 1;
   }
   let failed = false;
+  let leaks;
   for (const range of ranges) {
     if (process.env.SKIP_SECRET_SCAN === '1') {
       console.log('secret-pii-scan: ⚠ SKIP_SECRET_SCAN=1, secrets NOT scanned for this push.');
-    } else if (spawnSync('gitleaks', ['version'], { stdio: 'ignore' }).status !== 0) {
-      console.error(
-        `secret-pii-scan: gitleaks is not installed, so secrets cannot be scanned. ${INSTALL}`,
-      );
+    } else if ((leaks ??= gitleaksStatus()) !== 'ok') {
+      const why =
+        leaks === 'missing'
+          ? 'gitleaks is not installed, so secrets cannot be scanned.'
+          : `gitleaks is older than ${MIN_GITLEAKS.join('.')}, so it misreads .gitleaks.toml.`;
+      console.error(`secret-pii-scan: ${why} ${INSTALL}`);
       console.error('  One push without it: SKIP_SECRET_SCAN=1 git push');
       failed = true;
     } else {
