@@ -8,8 +8,9 @@ A job-application tracker and discovery board for design-systems roles.
 
 roleflame collects design-system openings from public job boards into one list, **Review**, where
 you save or skip each posting. Saved jobs go to **Apply**, which tracks each one through applying
-and following up. Apply works signed out, in the browser. Sign in to see new postings on Review
-and to sync your data across devices.
+and following up. Apply works signed out, in the browser, and Scan now in the Account menu reads
+postings without an account. Signing in adds the automatic scan, the server's scheduled board sync,
+and sync across devices.
 
 ## Stack
 
