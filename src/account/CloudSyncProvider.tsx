@@ -6,7 +6,13 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from '
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
 import type { OAuthProvider } from './oauthPkce';
-import { loadedSupabase, loadSupabase, needsClientAtBoot, onSupabaseLoaded } from '../supabase';
+import {
+  loadedSupabase,
+  loadSupabase,
+  loadWithClient,
+  needsClientAtBoot,
+  onSupabaseLoaded,
+} from '../supabase';
 import { signInErrorMessage } from './signInErrors';
 import { useJobs } from '../store';
 import { useSnippets } from '../copyDeckStore';
@@ -24,17 +30,9 @@ import { useDocuments } from '../documents';
 import { useProfiles } from '../profile';
 import { useSources } from '../sources';
 import { decided as decidedStore } from '../decided';
-import {
-  readBlob,
-  writeBlob,
-  mergeBlob,
-  emptyBlob,
-  BLOB_VERSION,
-  type SyncData,
-} from '../syncBlob';
-import { readTrackerRow, writeTrackerRow, type RowStamp } from './trackerRow';
-import { applyLocalSyncData, localSyncJson, readLocalSyncData } from './localSyncData';
-import { hashesOf, keysOf, readSyncBase, readSyncHashes, writeSyncBase } from '../syncBase';
+import type { SyncData } from '../syncBlob';
+import type { RowStamp } from './trackerRow';
+import type * as SyncStackModule from './syncStack';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import { getCurationState } from '../curation/curationStore';
 import {
@@ -82,7 +80,6 @@ import {
   rememberSignInRequest,
   sameEmail,
 } from './authLink';
-import { deviceData, mergeQuestion } from './deviceData';
 import { dropSampleTrack } from '../demo/sampleTrack';
 import { dropAutoSetup } from '../autoSetup';
 import {
@@ -101,13 +98,35 @@ import {
 // The PKCE crypto and the code exchange load with a Google sign-in (the entry is at its budget).
 
 const loadPkce = importFresh(() => import('./oauthPkce'));
+
+// The sync stack (syncStack.ts, #832) loads beside the Supabase client: a signed-out visit never
+// needs it, so the entry chunk carries none of it. The client counts as loaded only once the stack
+// is in too (loadWithClient), so every use below, all inside the auth callback or for a user it
+// set, runs after it, in the same order as before.
+let syncStack: typeof SyncStackModule | null = null;
+let syncStackLoad: Promise<typeof SyncStackModule> | null = null;
+function loadSyncStack(): Promise<typeof SyncStackModule> {
+  syncStackLoad ??= importFresh(() => import('./syncStack'))().then(
+    (m) => (syncStack = m),
+    (e: unknown) => {
+      syncStackLoad = null; // a later sign-in tries again
+      throw e;
+    },
+  );
+  return syncStackLoad;
+}
+loadWithClient(loadSyncStack);
+function S(): typeof SyncStackModule {
+  if (!syncStack) throw new Error('sync stack used before it loaded');
+  return syncStack;
+}
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
 /** How many times a push merges a newer cloud copy in and sends again before it gives up. */
 const PUSH_TRIES = 3;
 /** What the cloud holds, as the base the next merge compares against (#219, entry hashes). */
 function rememberBase(uid: string, d: SyncData) {
-  writeSyncBase(uid, keysOf(d), hashesOf(d));
+  S().writeSyncBase(uid, S().keysOf(d), S().hashesOf(d));
 }
 
 // Wipe this device's app data (keeps the color-mode preference and which account it last synced
@@ -221,8 +240,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const linkEmail = useRef<string | null>(null);
 
   // The stores this device syncs (localSyncData.ts, #814).
-  const localBlob = readLocalSyncData;
-  const localJson = localSyncJson;
+  const localBlob = () => S().readLocalSyncData();
+  const localJson = () => S().localSyncJson();
 
   // The shared session still names `u` (#288): another tab may have signed out or in as someone
   // else since. If not, this tab freezes (tabAccount.ts) and nothing more is sent or adopted. A
@@ -242,12 +261,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // The cloud row (trackerRow.ts, #814): read it, or write over the stamp this tab last saw.
   // 'conflict' = another device wrote first.
   async function pull(uid: string): Promise<{ blob: SyncData | null; stamp: RowStamp }> {
-    return readTrackerRow(await loadSupabase(), uid);
+    return S().readTrackerRow(await loadSupabase(), uid);
   }
   async function writeRow(uid: string, data: unknown): Promise<'ok' | 'conflict' | 'fail'> {
     const was = known.current;
     if (!was) return 'fail';
-    const { result, stamp } = await writeTrackerRow(await loadSupabase(), uid, data, was);
+    const { result, stamp } = await S().writeTrackerRow(await loadSupabase(), uid, data, was);
     if (stamp) known.current = stamp;
     return result;
   }
@@ -266,7 +285,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     let ok = false;
     for (let i = 0; i < PUSH_TRIES && !ok; i++) {
       const sent = localJson();
-      const data = writeBlob(localBlob());
+      const data = S().writeBlob(localBlob());
       let r: 'ok' | 'conflict' | 'fail';
       try {
         if (!(await sessionIsStill(u)) || deleting.current) return false;
@@ -277,7 +296,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (r === 'ok') {
         ok = true;
         lastSynced.current = sent;
-        rememberBase(u.id, readBlob(data)); // what the cloud now holds (#219)
+        rememberBase(u.id, S().readBlob(data)); // what the cloud now holds (#219)
       } else if (r === 'fail') break;
       else {
         try {
@@ -292,7 +311,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   const dirty = () => localJson() !== lastSynced.current;
 
-  const applyBlob = applyLocalSyncData;
+  const applyBlob = (next: SyncData) => S().applyLocalSyncData(next);
 
   // Pull the cloud copy and merge it into this device's stores. `both` (a sign-in, or a push the
   // cloud turned down) merges both sides; else the cloud copy is the truth, unless an edit landed
@@ -318,14 +337,20 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     const { blob: cloud, stamp } = got;
     // Written by a newer version (#382): adopting it would read it without the fields this one
     // doesn't know, and the next push would rewrite it without them. Stop instead.
-    if (cloud && cloud.sourceV > BLOB_VERSION) {
+    if (cloud && cloud.sourceV > S().BLOB_VERSION) {
       freezeTab('newerVersion');
       return null;
     }
     const merged = both || (pulledOk.current && dirty());
     const local = localBlob();
-    const next = mergeBlob(cloud, local, merged, readSyncBase(u.id), readSyncHashes(u.id));
-    rememberBase(u.id, cloud ?? emptyBlob());
+    const next = S().mergeBlob(
+      cloud,
+      local,
+      merged,
+      S().readSyncBase(u.id),
+      S().readSyncHashes(u.id),
+    );
+    rememberBase(u.id, cloud ?? S().emptyBlob());
     known.current = stamp;
     // A merge that keeps both evidence texts can pass the cap: say so, don't cut silently.
     if (merged && cloud && evidenceMergeOverflows(cloud.evidence, local.evidence))
@@ -371,7 +396,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         curationOk = await syncOnLogin(u.id);
       }
       // An older cloud copy lacks the newer fields (an old tab rewrote it): re-upload them now.
-      if (merged || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
+      if (merged || next.legacyUserTiles.length || next.sourceV < S().BLOB_VERSION)
+        await pushNow(u);
       if (tabFrozen()) return; // the notice stays in the menu (#288)
       if (!curationOk) setMsg(OFFLINE_MSG);
       else setMsg(`Synced · ${u.email}`);
@@ -446,12 +472,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         // The account this device last synced with is not asked again: sign-out wiped its base, and
         // what is here now was made on this device since (deviceAccount.ts).
         const held =
-          readSyncBase(u.id) === null && readDeviceAccount() !== u.id
-            ? deviceData(localBlob(), getCurationState().categories.length)
+          S().readSyncBase(u.id) === null && readDeviceAccount() !== u.id
+            ? S().deviceData(localBlob(), getCurationState().categories.length)
             : null;
         if (held?.any) {
           mergeHeld.current = u.id;
-          setMergeAsk({ user: u, question: mergeQuestion(held, u.email ?? 'this account') });
+          setMergeAsk({ user: u, question: S().mergeQuestion(held, u.email ?? 'this account') });
           return;
         }
         mergeHeld.current = null;
@@ -636,7 +662,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     clearTimeout(pushTimer.current);
     let unsynced = false;
     if (user) {
-      const hasData = localJson() !== JSON.stringify(writeBlob(emptyBlob()));
+      const hasData = localJson() !== JSON.stringify(S().writeBlob(S().emptyBlob()));
       // Nothing changed since the last pull or push: the cloud holds this copy, even while a
       // re-pull is out. Else it must go up now.
       const flushed = !dirty() || (pulledOk.current && (await pushNow(user)));

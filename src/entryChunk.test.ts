@@ -36,6 +36,13 @@ const ON_DEMAND = [
   // The flame's motion (startFlame.ts): the still frame shows first.
   'brand/flameMotion.ts',
   'brand/flameEngine.ts',
+  // The sync stack (#832): loads beside the Supabase client, never on a signed-out visit.
+  'account/syncStack.ts',
+  'syncBlob.ts',
+  'syncBase.ts',
+  'account/trackerRow.ts',
+  'account/localSyncData.ts',
+  'account/deviceData.ts',
 ];
 
 function resolve(from: string, spec: string): string | null {
