@@ -94,7 +94,8 @@ describe('reuse of unchanged rejected rows', () => {
       hash.update(readFileSync(`src/postingSync/${f}`));
     expect({ rules: SCORE_RULES, files: hash.digest('hex') }).toEqual({
       rules: 2,
-      files: 'ef61b66f6d2b8a0e780ebea4eced57522ba555b0023642ec22c9cdb62ca21ced',
+      // Comments only since rules 2 (the src/postingSync path, #841): no verdict changed.
+      files: 'f1fc2ac9bfb5fa85752a6a29fd67bf8ed9a7c80b5ef09db61abf766f69872d9c',
     });
   });
 });
