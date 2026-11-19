@@ -7,7 +7,7 @@ html {
   background: #ffffff;
 }
 html[data-theme='dark'] {
-  background: #060a13;
+  background: #151a24;
 }
 .rjb-boot {
   position: fixed;

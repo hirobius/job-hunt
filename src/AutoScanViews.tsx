@@ -1,4 +1,4 @@
-// The auto-scan's UI (#415). Scan now is Find's More menu, signed out only (FindHeader.tsx, #544).
+// The auto-scan's UI (#415). Scan now is Find's More menu, signed out only (ReviewHeader.tsx, #544).
 // The companies the scan found (Follow / Ignore) are the Account menu's Companies dialog's Found list
 // (#618, Adrian 2026-11-12). Every action says so with an Undo. The scan's line is Scan details in
 // the Account menu's Search profile (ScanDetails.tsx).

@@ -2,7 +2,7 @@
 // Designer", "← Apply", "← Review". Pure over the saved jobs and documents, with a
 // hook that reads them live.
 import { useMemo } from 'react';
-import { APPLY_TAB, FIND_TAB, companySlugOf, redirectOf, type Route } from './route';
+import { APPLY_TAB, REVIEW_TAB, companySlugOf, redirectOf, type Route } from './route';
 import { findJobById, useJobs } from './store';
 import { titleOf } from './jobRow';
 import { companyBySlug } from './companies';
@@ -36,7 +36,7 @@ export function routeLabel(route: Route, ctx: { jobs: Job[]; docs: Document[] })
       const job = findJobById(r.jobId, ctx.jobs);
       return job ? titleOf(job) : 'Job';
     }
-    case FIND_TAB:
+    case REVIEW_TAB:
     case '':
       return 'Review';
     default:

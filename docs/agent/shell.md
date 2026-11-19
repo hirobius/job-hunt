@@ -25,20 +25,20 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
 - **Two screens: Review and Apply (#471; Adrian 2026-11-05; ADR 0010, done in #493/#494/#495/#500).** Exactly two
   top tabs and no other full page. **Find was renamed Review (Adrian 2026-11-13):** the tab, its h1, `document.title`,
   the logo's name ("roleflame, Review"), routeLabel ("← Review") and the copy that names the tab say Review; the slug
-  is `review` (`route.ts` `FIND_TAB = 'review'`; code identifiers such as `FIND_TAB`, `Today.tsx`, `FindHeader`,
-  `findHash` keep their names), and `redirectOf` sends `#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place
+  is `review` (`route.ts` `REVIEW_TAB = 'review'`; since #810 the code says Review too: `REVIEW_TAB`, `ReviewHome.tsx`,
+  `ReviewHeader.tsx`; `findHash` and test titles that still say Find or Today are left for later), and `redirectOf` sends `#/find[/<fingerprint>]` to `#/review[/<fingerprint>]` in place
   (no history step; an old `?from=/find` reads as Review). Where a section below says Find, read Review. The Find
   box (Add job's "Type a company or title instead") and "Find more jobs" are verbs and keep the word. **Review's
   count (2026-11-13):** the Review tab shows the postings still to decide, the number the New chip showed until #714 removed it
   (`scanDetails.newToday`), as a `CountBadge` (99+, the chip's #694 fills; `TopTabCount.tsx`, a lazy chunk), none at 0;
   Apply has none. Below 400px the pill is hidden visually (`TopTabCount.css`, in its lazy chunk), so the app bar stays one row with no overlapping
   hit areas; the name keeps the count at every width ("Review 12"; `test/topTabs.ts`, `e2e/routes.ts` `topTab`)
-  (Adrian 2026-11-13 chose this over the wrap). The Review page has no visible title: its h1 is `.sr-only` (`FindHeader.tsx`), so the tab is the one visible "Review". Pinned in `e2e/shell-controls.spec.ts` (320, 375, 390, 414).
+  (Adrian 2026-11-13 chose this over the wrap). The Review page has no visible title: its h1 is `.sr-only` (`ReviewHeader.tsx`), so the tab is the one visible "Review". Pinned in `e2e/shell-controls.spec.ts` (320, 375, 390, 414).
   Each screen is a list beside a detail at lg (HDS `Sidebar`) and the list alone below lg; the
   selection is the route; Documents and Privacy and terms are dialogs in the page's URL. **This section is the current
   shell: where an older section below (Job routes, Final shell, Rapid apply, Pipeline panels, Return paths) says
   Pipeline, `#/queue`, Today, Apply mode or a Documents / Legal page, read it as history.** The top tabs are **Find** (slug `find`,
-  `Today.tsx`, home; was "Today", `#/today`) and **Apply** (slug `apply`, `TrackerView.tsx`; was "Jobs" /
+  `ReviewHome.tsx`, home; was "Today", `#/today`) and **Apply** (slug `apply`, `TrackerView.tsx`; was "Jobs" /
   "Pipeline", `#/queue`). **Routes (slice 1):** `#/apply/<jobId>` is a job's Apply view (`route.ts`
   `APPLY_TAB`, `jobId`); `redirectOf` (in place, no history step) sends `#/today` → `#/find`, `#/queue` →
   `#/apply`, `#/queue/<id>` → `#/apply/<id>` (origin and section kept); an old `?from=` reads as its new route
@@ -76,7 +76,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   `#/find/<fingerprint>` selects a posting; see Final shell. Save, Skip and Not this company share Apply's 700 ms guard (`answerGuard.ts`); after a decision on the selected posting, focus goes to the next one's title, else to Find's h1 (`focusRescue.focusNewHeading`). **Documents and Legal are dialogs (slice 4)** over the open page: `?documents=` / `?legal=` on its hash (see Documents library, Privacy and terms). **Company (slice 2):** `#/apply/company/<slug>`
   in the right column at lg (see Company page).
 - **Structure (since simplify #383/#389):** `src/App.tsx` is the shell with two top tabs, **Review** (was Find)
-  (`Today.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
+  (`ReviewHome.tsx`, home) and **Apply** (`TrackerView.tsx`, slug `apply`), plus
   tab pages (a job, a posting, a Company) and two dialogs over them (Documents, Privacy and terms; #471 slice 4). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Find.
 
@@ -156,7 +156,7 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
   and a sign-in error land on Today; there is no setup screen (see First run).
-  `Today.tsx`, top to bottom: **the short header** (`FindHeader.tsx`, #544, redesign §5.1): the sr-only h1 "Find" and
+  `ReviewHome.tsx`, top to bottom: **the short header** (`ReviewHeader.tsx`, #544, redesign §5.1): the sr-only h1 "Find" and
   nothing else (no page-bar tools since the Deck went, 2026-11-13). **No More menu and no scan line on Find (#694, Adrian
   2026-11-13):** Scan now / Stop scan (signed out only) is the Account menu's, beside Search profile; when the sources were
   last scanned lives only in Scan details (the Search profile dialog); Review's polite `role="status"` says "N postings,
@@ -214,9 +214,9 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   `aria-current`, never a radio group) left the app bar for the **page bar**, the first row of `main`
   (`.rjb-page-bar` in App, `.rjb-main` keeps the 24 page rhythm under it) at top left, where the page title was; the
   app bar is the logo and Account, one row. No visible "Find" / "Apply" title: each page keeps its h1 as
-  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). A page's own tools go
-  to the bar's right through `PageBar.tsx` `InPageBar` (Find has none since the Deck went, 2026-11-13) (no scan line on Find since #694: it is Scan details')
-  (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
+  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). No page puts tools
+  at the bar's right now (Find has none since the Deck went, 2026-11-13; no scan line on Find since #694: it is Scan
+  details'), so `PageBar.tsx` `InPageBar` was deleted (#815); App's empty slot (`pageBarSlot.ts`) hides by `:empty`. Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
 
 - **Theme toggle + burn (#688):** the app bar's HDS `ThemeToggle` (left of the Account button, 44px; its own name

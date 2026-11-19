@@ -28,7 +28,7 @@ for (const width of [390, 1440]) {
       await expect
         .poll(() => ranks(page))
         .toEqual([
-          ['Open application', 'primary'],
+          ['Open application (opens in new tab)', 'primary'],
           ['Mark applied', 'secondary'],
           ['Not a fit', 'link'],
         ]);

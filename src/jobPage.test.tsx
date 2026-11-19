@@ -161,7 +161,8 @@ describe('job page header and Overview (#130 slice 1)', () => {
       'link',
     ]);
     expect(keys.map((k) => k.textContent)).toEqual([
-      'Open application',
+      // HDS 0.45+: an external Button says it opens a new tab (visually hidden).
+      'Open application (opens in new tab)',
       'Mark applied',
       'Not a fit',
     ]);

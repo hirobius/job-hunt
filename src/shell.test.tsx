@@ -256,7 +256,8 @@ describe('app shell (#115 Phase 1)', () => {
     expect(description).toHaveClass('hds-type-body');
     // The app's one destructive style: HDS secondary + tone="danger" (its tinted fill).
     const reset = within(dialog).getByRole('button', { name: 'Reset local data' });
-    expect(reset).toHaveClass('bg-feedback-bg-danger', 'text-feedback-danger');
+    // HDS 0.46: secondary danger is the soft danger tint with the primary label colour.
+    expect(reset).toHaveClass('bg-feedback-bg-danger', 'text-foreground');
     expect(reset).not.toHaveClass('rjb-danger-outline');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(getAllJobs().map((j) => j.label)).toContain('Welder');

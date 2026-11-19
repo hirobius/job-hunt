@@ -39,7 +39,7 @@ export const APPLY_TAB = 'apply';
 /** The Apply tab's second segment for a Company: `#/apply/company/<slug>` (#471 slice 2). */
 const COMPANY_SEG = 'company';
 /** The Find tab (#471, was Today). */
-export const FIND_TAB = 'review';
+export const REVIEW_TAB = 'review';
 /** The Review tab's old slug (Adrian 2026-11-13: Find was renamed Review): `#/find[/<fingerprint>]`
  *  redirects in place to `#/review[/<fingerprint>]`. */
 const OLD_FIND = 'find';
@@ -79,7 +79,7 @@ export function parseHash(hash: string): Route {
 }
 
 /** Home: an empty hash and every retired route land here. */
-export const HOME_TAB = FIND_TAB;
+export const HOME_TAB = REVIEW_TAB;
 /** Routes that land on Find (simplify Q6, #471): the old Today slug, the Companies tab
  *  (`discover`, every tool, section and secondary view under it) and the old Trades slug. */
 const TO_FIND = new Set(['today', 'discover', 'apprenticeships']);
@@ -119,7 +119,7 @@ export function redirectOf(r: Route): Route | null {
   if (TO_FIND.has(r.tab)) return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
   if (r.tab === OLD_FIND) {
     const { tab: _t, ...rest } = r;
-    return { ...rest, tab: FIND_TAB };
+    return { ...rest, tab: REVIEW_TAB };
   }
   // A Company's page moved into the Apply tab (#471 slice 2).
   if (r.tab === OLD_COMPANY && r.sub)
@@ -543,7 +543,7 @@ export function openJob(jobId: string | null, replace = false): void {
 
 /** The posting `#/find/<fingerprint>` selects on Find (#471 slice 3), or null. */
 export function postingOf(r: Route): string | null {
-  if (r.tab !== FIND_TAB || !r.sub) return null;
+  if (r.tab !== REVIEW_TAB || !r.sub) return null;
   try {
     return decodeURIComponent(r.sub);
   } catch {
@@ -554,7 +554,7 @@ export function postingOf(r: Route): string | null {
 /** The hash that selects a posting on Find, for links. */
 export function findHash(fingerprint: string): string {
   return buildHash({
-    tab: FIND_TAB,
+    tab: REVIEW_TAB,
     sub: encodeURIComponent(fingerprint),
     pillar: null,
     jobId: null,
@@ -568,10 +568,10 @@ export function selectPosting(fingerprint: string | null, replace = false): void
   const cur = getSnapshot();
   navigate(
     {
-      tab: FIND_TAB,
+      tab: REVIEW_TAB,
       sub: fingerprint === null ? null : encodeURIComponent(fingerprint),
       jobId: null,
-      ...(replace && cur.tab === FIND_TAB ? { from: cur.from ?? null } : {}),
+      ...(replace && cur.tab === REVIEW_TAB ? { from: cur.from ?? null } : {}),
     },
     replace,
   );
@@ -624,7 +624,7 @@ export function pageKey(r: Route): string {
  *  list, a selected posting to Find. Null for the top-level lists, which have no Back. */
 export function defaultBack(r: Route): string | null {
   if (r.tab === JOB_TAB) return r.jobId || r.sub ? PIPELINE_HASH : null;
-  if (r.tab === FIND_TAB) return r.sub ? `#/${FIND_TAB}` : null;
+  if (r.tab === REVIEW_TAB) return r.sub ? `#/${REVIEW_TAB}` : null;
   return null;
 }
 
