@@ -6,21 +6,21 @@ const SEEDED = { ...BURN, seed: 7 };
 describe('theme burn (#688)', () => {
   it('keeps the locked settings', () => {
     expect({ ...BURN }).toEqual({
-    themeMs: 1770,
-    cardMs: 330,
-    rough: 1,
-    scale: 140,
-    octaves: 7,
-    gain: 0.47,
-    char: 25,
-    charStrength: 1,
-    easing: 'linear',
-    cell: 2,
-    seed: null,
-    fps: 22,
-    charOn: true,
-    edgeColor: 'cobalt',
-    edgeOpacity: 1,
+      themeMs: 1770,
+      cardMs: 330,
+      rough: 1,
+      scale: 140,
+      octaves: 7,
+      gain: 0.47,
+      char: 25,
+      charStrength: 1,
+      easing: 'linear',
+      cell: 2,
+      seed: null,
+      fps: 22,
+      charOn: true,
+      edgeColor: 'cobalt',
+      edgeOpacity: 1,
     });
     expect(Object.isFrozen(BURN)).toBe(true);
   });
