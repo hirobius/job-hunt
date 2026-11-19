@@ -361,16 +361,12 @@ p {
 }
 .rjb-seg[aria-current='page'] {
   color: var(--semantic-color-content-onAccent);
-  /* The 3px edge as a gradient, not a box shadow: the focus ring stays the one ring, and the fill
-   * is clipped by the pill's own radius, so the edge follows it (#694). */
-  background: linear-gradient(
-    to top,
-    var(--hds-edge-primary) var(--rjb-seg-ledge),
-    var(--semantic-accent-rest) 0
-  );
-  /* Centre the label on the coloured fill, not the box (Adrian 2026-11-11): the ledge's height
-   * as bottom padding moves it up by half the ledge (seg-centering.spec). */
-  padding-bottom: var(--rjb-seg-ledge);
+  background: var(--semantic-accent-rest);
+  /* The 3px edge as a bottom border (#803): a border follows the pill's radius round the corners,
+   * where the old flat gradient band was cut away. Not a box shadow, so focus stays the one ring,
+   * the outline below (#694, #447). It takes the ledge's place, so the label stays centred on the
+   * coloured fill (Adrian 2026-11-11, seg-centering.spec). */
+  border-bottom: var(--rjb-seg-ledge) solid var(--hds-edge-primary);
 }
 /* The page bar (2026-11-12): the first row of main on Find and Apply, the nav at top left where the
  * page title was (each h1 is .sr-only), a page's own tools (Find's caption and More) at its right. */
