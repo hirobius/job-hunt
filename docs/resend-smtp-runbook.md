@@ -56,7 +56,7 @@ holds the email text only (`supabase/templates/`).
 ## Adrian's steps (exact order)
 
 1. **Confirm the domain in Resend.** https://resend.com/domains — check
-   `mail.hirobius.com` (account: adrian@hirobius.com, created 2026-10-21;
+   `mail.hirobius.com` (account: the owner's Hirobius address, created 2026-10-21;
    region us-east-1, tracking off). If it is not listed, add it with those
    settings. Its status will read unverified / `not_started` until step 2.
 2. **Add the DNS records Resend shows for that domain** at hirobius.com's DNS
