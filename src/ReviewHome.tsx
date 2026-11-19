@@ -1,8 +1,9 @@
-// Find (was Today), the home page and one of the two top tabs (#471 slice 3, Adrian 2026-11-05).
+// Review (was Find, and before that Today), the home page and one of the two top tabs (#471 slice 3,
+// Adrian 2026-11-05; renamed Review 2026-11-13).
 // Two columns at lg: the list column (Daily picks when signed in, the auto-scan's status, Review new
 // as the Browse list; the companies the scan found are the Companies dialog's Found list since
 // #618) and the selected posting
-// (`#/find/<fingerprint>`; the first posting when the tab opens, #546). Below lg the list is the tab and a
+// (`#/review/<fingerprint>`; the first posting when the tab opens, #546). Below lg the list is the tab and a
 // picked posting is its own view with Back and a pager. Follow up and Apply moved to the Apply tab,
 // so each thing shows on one tab only. ReviewView lays the columns out; this gives it the parts.
 import { useEffect } from 'react';
@@ -15,7 +16,7 @@ import { useJobs } from './store';
 import { useRoute } from './route';
 import { hasPersistedSession } from './supabase';
 import { Panel, PanelBody } from './PipelinePanel';
-import { FindHeader } from './FindHeader';
+import { ReviewHeader } from './ReviewHeader';
 import ReviewView from './ReviewView';
 import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
@@ -39,7 +40,7 @@ export function SignedOutReview() {
   }, [authResolved, overDialog, setSignInOpen]);
   return (
     <Stack gap="px24">
-      <FindHeader />
+      <ReviewHeader />
       {authResolved ? (
         <EmptyState
           onPage
@@ -64,7 +65,7 @@ export function SignedOutReview() {
   );
 }
 
-export default function Today() {
+export default function ReviewHome() {
   const profile = useProfile();
   const { offline, user } = useCloudSync();
   // Signed out (or not known yet), nothing on Review reads postings (#755).
@@ -80,7 +81,7 @@ export default function Today() {
       <ReviewView
         label="New postings"
         scanStatus
-        header={({ selected }) => <FindHeader heading={!selected} />}
+        header={({ selected }) => <ReviewHeader heading={!selected} />}
         before={picks}
       />
     );
@@ -88,7 +89,7 @@ export default function Today() {
   // `ensureProfile`); until then Review new holds its place, or says why it can't.
   return (
     <Stack gap="px24">
-      <FindHeader />
+      <ReviewHeader />
       {picks}
       <Stack gap="normal">
         <Panel label="New postings" title="New postings" titleHidden flat>

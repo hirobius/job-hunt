@@ -23,7 +23,7 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
   fetchFeed: feed.fetchFeed,
 }));
 
-import { FindHeader } from './FindHeader';
+import { ReviewHeader } from './ReviewHeader';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import ReviewView, { REVIEW_PAGE } from './ReviewView';
 import { viewport } from './test/viewport';
@@ -93,7 +93,7 @@ const renderFindPage = () =>
   render(
     <CloudSyncContext.Provider value={{ user: null } as CloudSyncApi}>
       <ToastProvider>
-        <ReviewView header={({ selected }) => <FindHeader heading={!selected} />} />
+        <ReviewView header={({ selected }) => <ReviewHeader heading={!selected} />} />
         <NoticeHost />
       </ToastProvider>
     </CloudSyncContext.Provider>,

@@ -9,14 +9,14 @@ import {
   pageKey,
   parseHash,
   APPLY_TAB,
-  FIND_TAB,
+  REVIEW_TAB,
   companySlugOf,
   postingOf,
 } from './route';
 import { openTab, type TopTab } from './tabMemory';
 import { Box, Stack, useToast } from '@hirobius/design-system';
 import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
-import { CompanyPage, JobPage, Today, TrackerView } from './routeViews';
+import { CompanyPage, JobPage, ReviewHome, TrackerView } from './routeViews';
 import { DocumentsView, LegalPage } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
 import { useViewEnter } from './viewEnter';
@@ -79,10 +79,10 @@ const LivenessOnOpen = lazy(() =>
 // Followed / Ignored companies sit under the Account menu. Templates lost its tab (#240) and became the
 // Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
 // from the Apply sheet and the Menu.
-const TAB_SLUGS = [FIND_TAB, APPLY_TAB] as const;
+const TAB_SLUGS = [REVIEW_TAB, APPLY_TAB] as const;
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
 // Find is home; quick-add always shows the Apply list, where the new job is.
-const HOME_ROUTE = FIND_TAB;
+const HOME_ROUTE = REVIEW_TAB;
 const QUICK_ADD_LANDING = APPLY_TAB;
 // The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
 const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
@@ -194,8 +194,8 @@ export default function App() {
   // where the tab was left; the logo never does).
   const toFind = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!plainClick(e)) return;
-    if (current(FIND_TAB)) toRoot(FIND_TAB);
-    else navigate(parseHash(`#/${FIND_TAB}`));
+    if (current(REVIEW_TAB)) toRoot(REVIEW_TAB);
+    else navigate(parseHash(`#/${REVIEW_TAB}`));
   };
 
   // Find / Apply look like an HDS SegmentedControl (Adrian 2026-11-09), in the app bar's one row at
@@ -206,7 +206,7 @@ export default function App() {
   const [barSlot, setBarSlot] = useState<HTMLDivElement | null>(null);
   const sections = (
     <Box as="nav" aria-label="Sections" className="rjb-segs">
-      <a {...tabLink(FIND_TAB)}>
+      <a {...tabLink(REVIEW_TAB)}>
         Review
         <Suspense fallback={null}>
           <TopTabCount />
@@ -327,7 +327,7 @@ export default function App() {
                 {/* It wraps only where the row cannot fit (a 320px screen): the tabs go under the logo. */}
                 <Stack direction="row" gap="px4" align="center" justify="space-between" wrap="wrap">
                   <a
-                    href={`#/${FIND_TAB}`}
+                    href={`#/${REVIEW_TAB}`}
                     className="rjb-logo-link"
                     aria-label={`${BRAND.name}, Review`}
                     onClick={toFind}
@@ -357,11 +357,11 @@ export default function App() {
                   {/* Not keyed: remounting on pageKey drops focus and pager state on in-place
                         hops. useViewEnter replays the motion on a page-kind change instead. */}
                   <Stack gap="px24" ref={viewRef} className="rjb-view-enter">
-                    {current(FIND_TAB) && (
+                    {current(REVIEW_TAB) && (
                       <Suspense fallback={<PipelineSkeleton />}>
                         <PageHold firstRun={firstRun}>
                           <PageBarSlot.Provider value={barSlot}>
-                            <Today />
+                            <ReviewHome />
                           </PageBarSlot.Provider>
                         </PageHold>
                       </Suspense>

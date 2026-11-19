@@ -144,7 +144,8 @@ describe('DataToolsProvider (via the account menu)', () => {
     expect(within(dialog).getByText('Now: 1 job, 0 documents')).toBeTruthy();
     expect(within(dialog).queryByText(/snippet/)).toBeNull();
     const replace = within(dialog).getByRole('button', { name: 'Replace my data' });
-    expect(replace).toHaveClass('bg-feedback-bg-danger', 'text-feedback-danger');
+    // HDS 0.46: secondary danger is the soft danger tint with the primary label colour.
+    expect(replace).toHaveClass('bg-feedback-bg-danger', 'text-foreground');
     const results = await axe(dialog, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });

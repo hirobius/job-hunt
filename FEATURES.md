@@ -1,4 +1,9 @@
-# Feature roadmap: roleflame
+# Feature roadmap: roleflame (historical)
+
+> **Historical.** This is the backlog as it grew to October 2026. Many screens it names (Companies,
+> Pipeline, Today, Apply mode, `#/discover`, `#/queue`) were replaced by the two tabs, **Review** and
+> **Apply** (ADR 0010). For the app as it is now, read the README and `docs/agent/`. Domain words
+> are in `CONTEXT.md`.
 
 Working backlog for the tracker. Ordered by impact on actually landing a job.
 The tracker stores each item as `{label, url, status}` in localStorage and mirrors

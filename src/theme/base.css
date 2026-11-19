@@ -150,19 +150,6 @@ p {
   }
 }
 
-/* Apply mode pager (rev-3 E): HDS Pagination compact draws borderless 44x40 tertiaries, and its
- * disabled tertiary picks up the primary's disabled fill (a grey tile). Mock: bordered 40x40 icon
- * buttons both sides of "1 of N", disabled just faded. Upstream ask: docs/hds-upstream-asks-0.9.md. */
-[data-hds] nav[aria-label='Jobs to apply'] button {
-  min-width: var(--primitive-space-10);
-  min-height: var(--primitive-space-10);
-  border: thin solid var(--semantic-color-border-default);
-}
-[data-hds] nav[aria-label='Jobs to apply'] button:disabled {
-  background: transparent;
-  opacity: 0.5;
-}
-
 /* The blank's fill field (rev-3 A): rows in the panel's flow under a hairline, never a Card inside
  * the panel's Card (#449; 2026-11-12, it read as nested). */
 .rjb-fillbox {
@@ -309,15 +296,6 @@ p {
   }
 }
 
-/* A status alert inside a panel (Live postings' "Some sources didn't respond" / "Couldn't reach any
-   source"): HDS Alert sets its title on the titleSm step (20px+), which reads as a page heading and
-   wraps at 390. Inside `.rjb-inline-alerts` the title takes the body step, bold, by re-pointing the
-   titleSm tokens Alert reads (HDS Alert has no size; docs/hds-upstream-asks-0.9.md). */
-.rjb-inline-alerts {
-  --semantic-typography-titleSm-font-size: var(--semantic-typography-body-font-size);
-  --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
-}
-
 /* The Account button (#694; filled, Adrian 2026-11-13): an HDS tertiary icon Button in the
  * ThemeToggle's 44px box, its glyph the toggle's 28px: a solid content-primary circle with a person
  * (signed out) or your initial (signed in) knocked out by an SVG mask (AccountGlyph.tsx), so the hole
@@ -383,16 +361,12 @@ p {
 }
 .rjb-seg[aria-current='page'] {
   color: var(--semantic-color-content-onAccent);
-  /* The 3px edge as a gradient, not a box shadow: the focus ring stays the one ring, and the fill
-   * is clipped by the pill's own radius, so the edge follows it (#694). */
-  background: linear-gradient(
-    to top,
-    var(--hds-edge-primary) var(--rjb-seg-ledge),
-    var(--semantic-accent-rest) 0
-  );
-  /* Centre the label on the coloured fill, not the box (Adrian 2026-11-11): the ledge's height
-   * as bottom padding moves it up by half the ledge (seg-centering.spec). */
-  padding-bottom: var(--rjb-seg-ledge);
+  background: var(--semantic-accent-rest);
+  /* The 3px edge as a bottom border (#803): a border follows the pill's radius round the corners,
+   * where the old flat gradient band was cut away. Not a box shadow, so focus stays the one ring,
+   * the outline below (#694, #447). It takes the ledge's place, so the label stays centred on the
+   * coloured fill (Adrian 2026-11-11, seg-centering.spec). */
+  border-bottom: var(--rjb-seg-ledge) solid var(--hds-edge-primary);
 }
 /* The page bar (2026-11-12): the first row of main on Find and Apply, the nav at top left where the
  * page title was (each h1 is .sr-only), a page's own tools (Find's caption and More) at its right. */
@@ -542,24 +516,6 @@ p {
   }
 }
 
-/* A section row's one-line preview (ATS search's board lists, Apply now's other sections) wraps
- * instead of being cut: HDS Disclosure variant="row" always truncates its preview, and at 390 the
- * description lost its point (round-2 review). Upstream ask: docs/hds-upstream-asks-0.9.md,
- * "Disclosure row preview wrap". */
-.rjb-disclosure-wrap button[aria-expanded] .truncate {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-/* Quiet text actions (rev-3 G: a tile's Set aside and Details): a tertiary button in secondary
- * text, so it never reads as loud as Save. HDS tertiary sets primary text and has no quiet tone.
- * Upstream ask: docs/hds-upstream-asks-0.9.md, "Quiet tertiary". */
-[data-hds] .rjb-quiet {
-  color: var(--semantic-color-content-secondary);
-}
-
 /* Lucide at stroke 1.75 (rev-3 rule 3). HDS Icon draws lucide at its default 2 and has no stroke
  * prop or token. Upstream ask: docs/hds-upstream-asks-0.9.md, "Icon stroke 1.75". */
 [data-hds] svg.lucide {
@@ -612,15 +568,6 @@ p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Four lines at most, with a "Show full query" toggle beside it. */
-.rjb-clamp-4 {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-  overflow: hidden;
 }
 
 /* A removable term pill (Manage track, rev-3 mock): 32px tall, its X a 40px hit area that
