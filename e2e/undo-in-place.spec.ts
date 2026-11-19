@@ -13,7 +13,7 @@ for (const width of [390, 1440] as const) {
       await seed(page);
     });
 
-    test("a job page's Remove, undone on Find, stays on Find", async ({ page }) => {
+    test("a job page's Remove, undone on Review, stays on Review", async ({ page }) => {
       await openJob(page);
       const title = (await page.getByRole('heading', { level: 1 }).first().textContent())!.trim();
       await page

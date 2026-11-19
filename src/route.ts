@@ -559,8 +559,8 @@ export function postingOf(r: Route): string | null {
   }
 }
 
-/** The hash that selects a posting on Find, for links. */
-export function findHash(fingerprint: string): string {
+/** The hash that selects a posting on Review, for links. */
+export function reviewPostingHash(fingerprint: string): string {
   return buildHash({
     tab: REVIEW_TAB,
     sub: encodeURIComponent(fingerprint),

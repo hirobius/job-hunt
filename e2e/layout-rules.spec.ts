@@ -328,7 +328,7 @@ for (const theme of THEMES) {
 
       // The first screen a new user sees: the empty Pipeline (its teaching EmptyState), before
       // any sample data, and the Pipeline filtered to nothing.
-      test('the empty and filtered-empty Pipeline hold the layout rules', async ({ page }) => {
+      test('the empty and filtered-empty Apply tab hold the layout rules', async ({ page }) => {
         await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
         await page.goto('/#/apply');

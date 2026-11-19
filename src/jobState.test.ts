@@ -230,7 +230,7 @@ describe('statusAgo', () => {
       'Saved 2 days ago',
     );
   });
-  it('says when a job past Saved was applied to, the way the Pipeline writes it', () => {
+  it('says when a job past Saved was applied to, the way the Apply tab writes it', () => {
     const saved = [{ status: 'Saved' as const, at: daysAgo(2) }];
     expect(statusAgo(job({ status: 'Applied', applied: TODAY, history: saved }), NOW)).toBe(
       'Applied today',

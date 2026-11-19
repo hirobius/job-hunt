@@ -8,7 +8,7 @@ import { resultFromRows, serverFirstReader } from './serverFeed';
 import { fetchFeed } from './fetchFeed';
 import { setLightBoards } from './lightBoards';
 import { greenhouseRef, loadPostingText, resetPostingTexts, usePostingText } from './postingText';
-import type { StoredPosting } from '../tracks/postings';
+import type { StoredPosting } from '../postingSync/postings';
 import type { PostingReader } from './reader';
 import type { Posting } from './types';
 import { rankAll } from './match';

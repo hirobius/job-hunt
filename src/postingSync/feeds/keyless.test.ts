@@ -5,7 +5,7 @@ import { ARBEITNOW_PAGES, arbeitnowUrl, parseArbeitnow, readArbeitnow } from './
 import { isDsRole } from './dsRole';
 import { parseRemoteOk, readRemoteOk, REMOTEOK_URL, remoteOkTermsOk } from './remoteok';
 
-const fixture = (name: string) => readFileSync(`src/tracks/feeds/fixtures/${name}`, 'utf8');
+const fixture = (name: string) => readFileSync(`src/postingSync/feeds/fixtures/${name}`, 'utf8');
 const ctx = (fetch: FeedContext['fetch']): FeedContext => ({
   fetch,
   env: () => undefined,

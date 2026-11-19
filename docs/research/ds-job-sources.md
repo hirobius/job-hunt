@@ -168,7 +168,7 @@ Effort: S = under a day, M = 1–3 days, L = a week+. "New" = not already reacha
 
 ### 1. designsystems.jobs full catalog (server)
 
-- **Where:** `src/tracks/sources.ts` (new `readDesignSystemsJobs`), called from `sync-postings` on
+- **Where:** `src/postingSync/sources.ts` (new `readDesignSystemsJobs`), called from `sync-postings` on
   the morning run, replacing the RSS read (keep RSS as the fallback when the sitemap fails).
 - **Read:** `GET https://designsystems.jobs/sitemap.xml`. Keep `<url>` entries whose path is
   `/companies/<company>/<job>` (3 segments). Each has `<lastmod>`.

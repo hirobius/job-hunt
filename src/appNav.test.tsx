@@ -41,7 +41,7 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders the two top tabs (Find · Apply) as links in a nav, each to its page', () => {
+  it('renders the two top tabs (Review · Apply) as links in a nav, each to its page', () => {
     renderApp();
     const tabs = topTabs();
     expect(tabs.map((t) => t.textContent)).toEqual(['Review', 'Apply']);
@@ -71,14 +71,14 @@ describe('App top-level tab wiring', () => {
     await vi.waitFor(() => expect(topTab('Review')).toHaveAttribute('aria-current', 'page'));
   });
 
-  it('defaults to the Today tab when the hash carries no route (#383)', () => {
+  it('defaults to the Review tab when the hash carries no route (#383)', () => {
     renderApp();
     expect(currentTab()).toHaveAccessibleName('Review');
   });
 });
 
 describe('an unknown route (review nit)', () => {
-  it('#/nope shows a not-found page with a way home, not Today', async () => {
+  it('#/nope shows a not-found page with a way home, not Review', async () => {
     window.location.hash = '#/nope';
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('view-enter motion keeps the page mounted (#279)', () => {
 // One app-bar row at every width (redesign §5.1, #548): the logo and Account; Find / Apply moved into
 // the page bar, the first row of main at top left (2026-11-12), no counts on the tabs (2026-11-13).
 describe('the one-row app bar (#548)', () => {
-  it('the app bar is one row (logo, Account); Find and Apply open the page bar at top left of main', () => {
+  it('the app bar is one row (logo, Account); Review and Apply open the page bar at top left of main', () => {
     renderApp();
     const nav = screen.getByRole('navigation', { name: 'Sections' });
     expect(nav).toHaveClass('rjb-segs');

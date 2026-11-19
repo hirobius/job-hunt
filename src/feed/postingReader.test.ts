@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { StoredPosting } from '../tracks/postings';
+import type { StoredPosting } from '../postingSync/postings';
 import { mergePostings, postingFromRow, readPostings, serverReader } from './postingReader';
 import type { Posting } from './types';
 

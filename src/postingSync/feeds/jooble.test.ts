@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { MissingKeyError, type FeedContext } from './context';
 import { JOOBLE_PHRASES, joobleUrl, parseJooble, readJooble } from './jooble';
 
-const FIXTURE = JSON.parse(readFileSync('src/tracks/feeds/fixtures/jooble-search.json', 'utf8'));
+const FIXTURE = JSON.parse(
+  readFileSync('src/postingSync/feeds/fixtures/jooble-search.json', 'utf8'),
+);
 const ctx = (o: Partial<FeedContext> = {}): FeedContext => ({
   fetch: vi.fn(async () => new Response(JSON.stringify(FIXTURE))),
   env: (n) => (n === 'JOOBLE_API_KEY' ? 'jb-key' : undefined),

@@ -115,7 +115,7 @@ describe('a first visit', () => {
 });
 
 describe('sample data, from the Jobs empty state', () => {
-  it('stays opt-in: it fills the Pipeline and adds no track', async () => {
+  it('stays opt-in: it fills the Apply tab and adds no track', async () => {
     window.location.hash = '#/apply';
     renderApp();
     await click('Try with sample data');

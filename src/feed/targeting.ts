@@ -4,7 +4,7 @@
 // and a posting with no stated pay is kept unless the user asks for pay to be shown.
 import type { Seniority } from '../curation/types';
 import { termRegex } from './match';
-import { scoreAll, scorerFor } from '../tracks/forTrack';
+import { scoreAll, scorerFor } from '../postingSync/forTrack';
 import { passesInclude } from './include';
 import type { IncludeRule } from './mustInclude';
 import type { RankedPosting } from './types';

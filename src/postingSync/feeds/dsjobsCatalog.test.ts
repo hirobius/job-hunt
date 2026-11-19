@@ -9,7 +9,7 @@ import {
   USER_AGENT,
 } from './dsjobsCatalog';
 
-const fixture = (name: string) => readFileSync(`src/tracks/feeds/fixtures/${name}`, 'utf8');
+const fixture = (name: string) => readFileSync(`src/postingSync/feeds/fixtures/${name}`, 'utf8');
 const SITEMAP = fixture('dsjobs-sitemap.xml');
 const PAGE = fixture('dsjobs-job.html');
 const DESIGNER = 'https://designsystems.jobs/companies/pennylane/design-system-designer';

@@ -101,7 +101,7 @@ describe('Daily picks', () => {
     expect(await screen.findByText('Copied the note')).toBeTruthy();
   });
 
-  it('Save puts the job in the Pipeline with the draft note in its Notes, and the pick leaves', async () => {
+  it('Save puts the job in the Apply tab with the draft note in its Notes, and the pick leaves', async () => {
     renderPicks();
     await panel();
     await userEvent.click(

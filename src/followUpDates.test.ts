@@ -92,7 +92,7 @@ describe('a solicitation’s deadline as its follow-up date', () => {
   });
 });
 
-describe('a solicitation’s deadline on the Pipeline (#308)', () => {
+describe('a solicitation’s deadline on the Apply tab (#308)', () => {
   const saved = (deadline: string, over: Partial<Job> = {}) =>
     job({ url: `https://sam.gov/opp/${deadline}/view`, status: 'Saved', deadline, ...over });
   const NOW = new Date(2026, 9, 27, 15, 0);

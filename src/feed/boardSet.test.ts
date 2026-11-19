@@ -12,7 +12,7 @@ import {
   setBoardKey,
 } from './boardSet';
 import { PROBE_KINDS } from './probe';
-import { boardOf } from '../tracks/sync';
+import { boardOf } from '../postingSync/sync';
 
 const entry = (o: Record<string, unknown> = {}) => ({
   kind: 'greenhouse',

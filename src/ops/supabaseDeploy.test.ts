@@ -85,15 +85,15 @@ import data from '../../../src/feed/data/boards.json' with { type: 'json' };`;
   });
 
   it('a change in the import graph or the function folder counts; an app-only change does not', () => {
-    const graph = new Set(['src/tracks/plan.ts']);
-    expect(touchesFunction(['src/tracks/plan.ts'], graph)).toBe(true);
+    const graph = new Set(['src/postingSync/plan.ts']);
+    expect(touchesFunction(['src/postingSync/plan.ts'], graph)).toBe(true);
     expect(touchesFunction(['supabase/functions/sync-postings/README.md'], graph)).toBe(true);
     expect(touchesFunction(['src/App.tsx', 'README.md'], graph)).toBe(false);
   });
 
   it('the real function entry imports repo files the walk can follow', () => {
     const entry = fs.readFileSync('supabase/functions/sync-postings/index.ts', 'utf8');
-    expect(localImports(entry).some((s) => s.includes('src/tracks/'))).toBe(true);
+    expect(localImports(entry).some((s) => s.includes('src/postingSync/'))).toBe(true);
   });
 });
 

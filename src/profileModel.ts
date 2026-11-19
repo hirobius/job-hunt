@@ -5,7 +5,7 @@
 // with `scorer` uses that tuned config (src/tracks) instead of the phrase rules, Review included.
 // Kept in `rjb_profiles`, synced in the blob. Storage and the cloud are untrusted.
 // This module is the pure half (types, sanitizers, merge): React-free with `.ts` imports, so the
-// sync edge function (src/tracks/plan.ts, Deno) reads a profile exactly as the app writes it. The
+// sync edge function (src/postingSync/plan.ts, Deno) reads a profile exactly as the app writes it. The
 // store is profile.ts.
 import { mergeByKey } from './mergeByKey.ts';
 import type { Seniority } from './curation/types.ts';
@@ -18,7 +18,7 @@ export const MAX_PROFILES = 4;
 export const MAX_PROFILE_TITLES = 200;
 const MAX_TERMS = 50;
 
-/** Tuned scorer configs a profile can use (src/tracks/track-config.ts). */
+/** Tuned scorer configs a profile can use (src/postingSync/track-config.ts). */
 export const SCORERS = ['design-systems'] as const;
 export type ScorerId = (typeof SCORERS)[number];
 /** The scorer a profile that names none is read with. The app's content is design systems only

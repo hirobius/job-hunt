@@ -33,7 +33,7 @@ export const DESIGN_SYSTEMS_TITLES = [
 /** The design engineering titles a new profile searches beside the design-system ones (Adrian
  *  2026-11-17: apply to design engineer, UX engineer and design technologist roles as well). The
  *  Feed lets them in as related titles (feed/mustInclude.ts RELATED_TITLES) under the one design
- *  engineer guard (tracks/designRoleGuard.ts): a plain "Design Engineer" still needs a UI word or
+ *  engineer guard (postingSync/designRoleGuard.ts): a plain "Design Engineer" still needs a UI word or
  *  the description's design-system evidence, so railway and exhibit roles stay out. */
 export const DESIGN_ENGINEERING_TITLES = ['Design Engineer', 'UX Engineer', 'Design Technologist'];
 

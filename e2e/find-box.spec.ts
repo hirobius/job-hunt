@@ -20,7 +20,7 @@ const openFind = async (page: import('@playwright/test').Page) => {
   return dialog;
 };
 
-test('a job link pasted into Find lands in the Pipeline', async ({ page }) => {
+test('a job link pasted into Review lands in the Apply tab', async ({ page }) => {
   const dialog = await openFind(page);
   await dialog.getByRole('textbox', { name: 'Find' }).fill('https://jobs.lever.co/acme/77');
   await expect(dialog.getByText('Saves this job to To apply.')).toBeVisible();

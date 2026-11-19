@@ -10,7 +10,9 @@ import {
 } from './adzuna';
 import { MissingKeyError, type FeedContext } from './context';
 
-const FIXTURE = JSON.parse(readFileSync('src/tracks/feeds/fixtures/adzuna-search.json', 'utf8'));
+const FIXTURE = JSON.parse(
+  readFileSync('src/postingSync/feeds/fixtures/adzuna-search.json', 'utf8'),
+);
 const KEYS: Record<string, string> = { ADZUNA_APP_ID: 'app-id', ADZUNA_APP_KEY: 'app-key' };
 const ctx = (o: Partial<FeedContext> = {}): FeedContext => ({
   fetch: vi.fn(async () => new Response(JSON.stringify(FIXTURE))),

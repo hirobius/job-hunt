@@ -91,7 +91,7 @@ describe('reuse of unchanged rejected rows', () => {
     // then put the new hash and the SCORE_RULES value here.
     const hash = createHash('sha256');
     for (const f of ['score.ts', 'scoreForTrack.ts', 'designRoleGuard.ts'])
-      hash.update(readFileSync(`src/tracks/${f}`));
+      hash.update(readFileSync(`src/postingSync/${f}`));
     expect({ rules: SCORE_RULES, files: hash.digest('hex') }).toEqual({
       rules: 2,
       files: 'ef61b66f6d2b8a0e780ebea4eced57522ba555b0023642ec22c9cdb62ca21ced',

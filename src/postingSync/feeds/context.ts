@@ -1,4 +1,4 @@
-// What a server feed (src/tracks/feeds/*) gets from the sync: a fetch that can POST, the
+// What a server feed (src/postingSync/feeds/*) gets from the sync: a fetch that can POST, the
 // function's env (keys live there, never in the app bundle), the clock and a sleep for spacing.
 // Pure types plus one helper, so the edge function, the dry-run script and the tests share it.
 

@@ -53,7 +53,7 @@ describe('Company page (#230)', () => {
     expect(within(docs).getByText(/Cover letter/)).toBeInTheDocument();
   });
 
-  it('rev-3 panels: Jobs and Documents with count badges, job rows like Pipeline cards, Back on the edge', async () => {
+  it('rev-3 panels: Jobs and Documents with count badges, job rows like Apply cards, Back on the edge', async () => {
     seedAcme();
     render(<CompanyPage slug="acme" />);
     expect(screen.getByRole('link', { name: 'Back to Apply' })).toHaveAttribute('href', '#/apply');
@@ -213,13 +213,10 @@ describe('Company page (#230)', () => {
     expect(screen.getByLabelText('Note')).toHaveValue('Keep in touch');
   });
 
-  it('an unknown company says so, with a way back to the Pipeline', () => {
+  it('an unknown company says so, with a way back to the Apply tab', () => {
     render(<CompanyPage slug="nobody" />);
     expect(screen.getByText('No company here')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to Apply' })).toHaveAttribute(
-      'href',
-      '#/apply',
-    );
+    expect(screen.getByRole('link', { name: 'Go to Apply' })).toHaveAttribute('href', '#/apply');
   });
 
   it('an unknown company waits for sync to settle before saying so (#303)', () => {

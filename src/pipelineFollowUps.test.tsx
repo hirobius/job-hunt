@@ -77,7 +77,7 @@ afterEach(() => {
 });
 
 describe('#/review is home again (#383; was retired in #236)', () => {
-  it('opens Today, not Companies', async () => {
+  it('opens Review, not Companies', async () => {
     seedPack('consulting');
     window.location.hash = '#/review';
     renderApp();
@@ -96,7 +96,7 @@ describe('#/review is home again (#383; was retired in #236)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/review'));
   });
 
-  it('a ?add= quick-add link still lands on the Pipeline', async () => {
+  it('a ?add= quick-add link still lands on the Apply tab', async () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
     expect(window.location.hash).toBe('#/apply');
@@ -104,7 +104,7 @@ describe('#/review is home again (#383; was retired in #236)', () => {
   });
 });
 
-describe('Follow-ups in the Pipeline (#236)', () => {
+describe('Follow-ups in the Apply tab (#236)', () => {
   beforeEach(() => {
     viewport(1440);
     loadSample();
@@ -335,7 +335,7 @@ describe('a solicitation’s response deadline (#308)', () => {
 });
 
 describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
-  it('a first visit (no tracks, no jobs) opens on Today with the profile made', async () => {
+  it('a first visit (no tracks, no jobs) opens on Review with the profile made', async () => {
     window.location.hash = '';
     renderApp();
     await openListOnPhone();

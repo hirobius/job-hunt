@@ -26,7 +26,7 @@ const NOW = Date.parse('2026-11-09T12:00:00');
 
 // Real job text from the recorded board answers, as filler that reads like a posting.
 const fixture = (name: string): string[] => {
-  const raw = JSON.parse(readFileSync(`src/tracks/fixtures/${name}`, 'utf8'));
+  const raw = JSON.parse(readFileSync(`src/postingSync/fixtures/${name}`, 'utf8'));
   const out: string[] = [];
   const walk = (v: unknown) => {
     if (typeof v === 'string' && v.length > 200) out.push(htmlToText(decodeEntities(v)));

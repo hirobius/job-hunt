@@ -193,7 +193,7 @@ test('View enter (#279): the page stack carries the enter motion, and a tab swit
   expect(await enterName()).toBe('rjb-view-enter');
 });
 
-test('Find: the Account menu’s Companies and Data answer within 300 ms', async ({ page }) => {
+test('Review: the Account menu’s Companies and Data answer within 300 ms', async ({ page }) => {
   await go(page, '#/review');
   // No Scan now (#755): signed out nothing scans, signed in the server syncs.
   await menu(page, 'Account', 'Companies');

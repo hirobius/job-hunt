@@ -127,7 +127,7 @@ describe('the shell: Today and Jobs', () => {
     },
   );
 
-  it('Find shows Review new only (found companies are in the Companies dialog, #618); Follow up and Apply are on Apply', async () => {
+  it('Review shows Review new only (found companies are in the Companies dialog, #618); Follow up and Apply are on Apply', async () => {
     signInAtBoot(h.fake);
     seedFound();
     window.location.hash = '#/review';
@@ -141,7 +141,7 @@ describe('the shell: Today and Jobs', () => {
     expect(screen.queryByRole('button', { name: /Start applying|Resume applying/ })).toBeNull();
   });
 
-  it('a first run opens on Today with the design-systems profile, no setup screen', async () => {
+  it('a first run opens on Review with the design-systems profile, no setup screen', async () => {
     signInAtBoot(h.fake);
     replaceProfiles([]);
     renderApp();
@@ -151,7 +151,7 @@ describe('the shell: Today and Jobs', () => {
     expect(screen.queryByText('Set up your search')).toBeNull();
   });
 
-  it('the Jobs tab opens the Pipeline, unchanged inside', async () => {
+  it('the Jobs tab opens the Apply tab, unchanged inside', async () => {
     window.location.hash = '#/review';
     renderApp();
     // Signed out, the sign-in screen opens over Review (#755); Continue without an account.
@@ -292,7 +292,7 @@ describe('Review new on Today', () => {
     expect(screen.queryByRole('navigation', { name: 'Postings in the list' })).toBeNull();
   });
 
-  it('at lg the first posting waits while a dialog is open over Find (#546)', async () => {
+  it('at lg the first posting waits while a dialog is open over Review (#546)', async () => {
     signInAtBoot(h.fake);
     viewport(1280);
     window.location.hash = '#/review?documents=';
@@ -334,7 +334,7 @@ describe('Review new on Today', () => {
 });
 
 describe('Follow up and Apply live on the Apply tab (#471 slice 3)', () => {
-  it('a due follow-up shows under Apply, not on Find', async () => {
+  it('a due follow-up shows under Apply, not on Review', async () => {
     signInAtBoot(h.fake);
     addJob('https://acme.example.com/jobs/1', 'Designer');
     markAppliedByUrl('https://acme.example.com/jobs/1');

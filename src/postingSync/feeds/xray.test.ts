@@ -23,7 +23,7 @@ import {
 } from './xray';
 
 const fixture = (f: string) =>
-  JSON.parse(readFileSync(`src/tracks/feeds/fixtures/${f}`, 'utf8')) as unknown;
+  JSON.parse(readFileSync(`src/postingSync/feeds/fixtures/${f}`, 'utf8')) as unknown;
 const BRAVE = fixture('brave-xray.json');
 const GOOGLE = fixture('google-cse-xray.json');
 const TAVILY = fixture('tavily-xray.json');

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { classifyRemote, inferMode, remoteVerdict } from './mode';
 import { isRemoteJob } from '../pipelineView';
-import { isRemoteRole } from '../tracks/feeds/dsRole.ts';
+import { isRemoteRole } from '../postingSync/feeds/dsRole.ts';
 import type { Job } from '../types';
 
 // #576 item 10: one remote classifier, over real location / title phrases.

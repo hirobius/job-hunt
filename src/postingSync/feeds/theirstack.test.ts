@@ -11,7 +11,7 @@ import {
 } from './theirstack';
 
 const FIXTURE = JSON.parse(
-  readFileSync('src/tracks/feeds/fixtures/theirstack-search.json', 'utf8'),
+  readFileSync('src/postingSync/feeds/fixtures/theirstack-search.json', 'utf8'),
 );
 const DUE = new Date('2026-10-28T06:00:00Z');
 const ctx = (o: Partial<FeedContext> = {}): FeedContext => ({

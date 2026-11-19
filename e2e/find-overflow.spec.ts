@@ -57,7 +57,7 @@ async function feed(page: Page) {
 
 test.use({ viewport: { width: 390, height: 844 } });
 
-test('Find at 390: no sideways scroll and no card wider than the screen, long titles too', async ({
+test('Review at 390: no sideways scroll and no card wider than the screen, long titles too', async ({
   page,
 }) => {
   await feed(page);

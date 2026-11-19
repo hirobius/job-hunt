@@ -2,8 +2,8 @@
 // team's board is read with the same parsers as Live postings (sources/ats.ts) and the same politeness
 // limiter as the board probe (probe.ts), then filtered by the track's terms with match.ts. Pure apart
 // from `readRoles`, which takes its fetcher and limiter so tests never hit the network.
-import { keepForTrack, scoreAll, scorerFor } from '../tracks/forTrack';
-import type { TrackConfig } from '../tracks/track-config';
+import { keepForTrack, scoreAll, scorerFor } from '../postingSync/forTrack';
+import type { TrackConfig } from '../postingSync/track-config';
 import { rankAll, rankPostings } from './match';
 import type { IncludeRule } from './mustInclude';
 import { createLimiter, hostKey, type Limiter } from './probe';

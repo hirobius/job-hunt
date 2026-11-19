@@ -27,7 +27,7 @@ export const SOURCE_ENABLED: Record<
   workingnomads: false,
   himalayas: false,
   authenticjobs: false,
-  // Read by the sync edge function only (src/tracks/feeds; the browser never contacts it).
+  // Read by the sync edge function only (src/postingSync/feeds; the browser never contacts it).
   // designsystems.jobs' whole catalog (sitemap + each job page) is verified live; off, the sync
   // reads its RSS alone. The sync's other searches (Arbeitnow, Remote OK, and
   // TheirStack, Adzuna, Jooble once their secrets are set) are gated in serverFeeds.ts

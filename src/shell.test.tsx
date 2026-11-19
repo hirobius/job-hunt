@@ -134,7 +134,7 @@ describe('app shell (#115 Phase 1)', () => {
 
   // The logo is the home link (#620): named for the product and Find, never a heading, and it
   // opens Find at its root from anywhere (a tab tap reopens where the tab was left; the logo never).
-  it('the logo is a link home to Find, out of the heading outline (#620)', () => {
+  it('the logo is a link home to Review, out of the heading outline (#620)', () => {
     window.location.hash = '#/apply';
     renderApp();
     const banner = screen.getAllByRole('banner').find((el) => !el.closest('main'))!;
@@ -147,7 +147,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(home.closest('nav')).toBeNull();
   });
 
-  it('the logo opens Find at its root, not where Find was left (#620)', async () => {
+  it('the logo opens Review at its root, not where Review was left (#620)', async () => {
     window.location.hash = '#/review/some-posting';
     renderApp();
     await userEvent.click(topTab('Apply'));
@@ -157,7 +157,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(currentTab('Review')).toBeInTheDocument();
   });
 
-  it("on a Find posting the logo goes back to Find's root; at the root it scrolls to the top (#620)", async () => {
+  it("on a Review posting the logo goes back to Review's root; at the root it scrolls to the top (#620)", async () => {
     window.location.hash = '#/review';
     renderApp();
     window.location.hash = '#/review/some-posting';
@@ -308,7 +308,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(account).toHaveClass('rjb-account');
   });
 
-  it('data controls left the Pipeline toolbar', () => {
+  it('data controls left the Apply tab toolbar', () => {
     window.location.hash = '#/apply';
     renderApp();
     const panel = screen.getByRole('main');
@@ -504,7 +504,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(currentTab(tab)).toBeInTheDocument();
   });
 
-  it('#/copy-deck opens the Documents dialog over Find, its tab selected (#240, #227, #471)', async () => {
+  it('#/copy-deck opens the Documents dialog over Review, its tab selected (#240, #227, #471)', async () => {
     window.location.hash = '#/copy-deck';
     renderApp();
     expect(await screen.findByRole('dialog', { name: 'Documents' })).toBeInTheDocument();
@@ -580,7 +580,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/review'));
   });
 
-  it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {
+  it('a ?add= quick-add link lands on the Apply tab with the job saved', async () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/apply');

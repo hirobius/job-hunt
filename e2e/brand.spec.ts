@@ -232,7 +232,7 @@ test('Pause animations stops the app bar flame and is kept after a reload', asyn
 
 // The logo is the home link (#620): named for the product and Find, a 44px target on a phone, and a
 // tap opens Find at its root from anywhere; the animated logo stays inside it.
-test('the logo links home to Find (#620)', async ({ page }) => {
+test('the logo links home to Review (#620)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/apply');

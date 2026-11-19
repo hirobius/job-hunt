@@ -10,7 +10,7 @@
 // list under, so a pull dropped it: src/decided.ts `moveLegacyDecided` moves one into the stores.
 import { useMemo } from 'react';
 import { dedupKey } from '../store';
-import { fingerprint as scoreFingerprint } from '../tracks/score.ts';
+import { fingerprint as scoreFingerprint } from '../postingSync/score.ts';
 import { loadPersisted, savePersisted } from '../persisted';
 import { decided as decidedStore, getDecided, type Decided } from '../decided';
 import {
