@@ -57,12 +57,14 @@ export async function addStarters(page: Page) {
   await expect(docs).toBeHidden();
 }
 
-/** The page has settled: one h1 in main, no loading skeleton, two frames painted (focus has
+/** The page has settled: one h1 in main, no loading skeleton or dialog hold, two frames painted (focus has
  *  moved), and every finite animation ended (the view's enter motion). Replaces a fixed 500 ms
  *  wait (audit item 13). */
 export async function pageSettled(page: Page) {
   await expect(page.locator('main h1')).toHaveCount(1);
-  await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
+  // Anywhere, not only in main: a dialog route (Privacy and terms, Documents) holds a loading
+  // dialog (DialogHold, aria-busy) until its chunk lands.
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
   await page.evaluate(
     () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
   );
