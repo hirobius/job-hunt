@@ -36,11 +36,21 @@ export function needsClientAtBoot(): boolean {
 let client: Promise<SupabaseClient> | null = null;
 let loaded: SupabaseClient | null = null;
 const listeners = new Set<(c: SupabaseClient) => void>();
+const withClient: (() => Promise<unknown>)[] = [];
+
+/** Code that every use of the client needs (the sync stack, #832): fetched beside supabase-js,
+ *  and the client counts as loaded only once it is in, so no auth event runs before it. */
+export function loadWithClient(load: () => Promise<unknown>): void {
+  withClient.push(load);
+}
 
 /** The shared client, built on first call (the supabase-js chunk is fetched then). */
 export function loadSupabase(): Promise<SupabaseClient> {
-  client ??= importFresh(() => import('@supabase/supabase-js'))().then(
-    ({ createClient }) => {
+  client ??= Promise.all([
+    importFresh(() => import('@supabase/supabase-js'))(),
+    ...withClient.map((load) => load()),
+  ]).then(
+    ([{ createClient }]) => {
       // The implicit flow keeps a magic link working on another device (PKCE would need this
       // browser's verifier). supabase-js never reads the URL itself: authFragment.ts takes the
       // tokens and strips them, and the account seam decides whether they may sign in (authLink.ts).

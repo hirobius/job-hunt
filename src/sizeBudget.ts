@@ -11,8 +11,10 @@ export const BUDGET = {
    *  all of the +4.0 kB in the vendor chunk (HDS + its motion/radix deps). A 30-minute pass found
    *  nothing safe to move out: HDS's index re-exports every component, so each one is reachable
    *  from the entry, and the app's own boot code is already split (backup, restore, dialogs).
-   *  HDS 0.38 (m + LazyMotion in 14 components, hds#1386): 255.0 → 249.0 kB; the limit stays. */
-  initialJsGzip: 255_000,
+   *  HDS 0.38 (m + LazyMotion in 14 components, hds#1386): 255.0 → 249.0 kB; the limit stays.
+   *  255 → 252.5 kB (#832): the sync stack (blob, merge base, tracker row, local snapshot) loads
+   *  beside the Supabase client, never on a signed-out visit: 254.8 → 252.0 kB. */
+  initialJsGzip: 252_500,
   /** All CSS index.html links (render-blocking). 27.0 → 27.5 kB for HDS 0.38: its styles.css
    *  grew 23.29 → 23.63 kB gzip (raised Button edge tokens, .hds-button in 0.37), 26.9 → 27.2 kB.
    *  27.5 → 27.7 kB for HDS 0.43 (2026-11-13): the app's initial CSS was at the limit (27.5) and
