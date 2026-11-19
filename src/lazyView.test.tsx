@@ -73,7 +73,14 @@ describe('lazyView', () => {
 describe('the shell loads its route views on demand', () => {
   it('App imports no view module statically', () => {
     const app = readFileSync('src/App.tsx', 'utf8');
-    for (const v of ['TrackerView', 'JobPage', 'ApplyMode', 'CompanyPage', 'ReviewHome', 'Onboarding'])
+    for (const v of [
+      'TrackerView',
+      'JobPage',
+      'ApplyMode',
+      'CompanyPage',
+      'ReviewHome',
+      'Onboarding',
+    ])
       expect(app).not.toMatch(new RegExp(`^import \\w+ from '\\./${v}';`, 'm'));
   });
 });
