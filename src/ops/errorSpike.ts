@@ -3,7 +3,7 @@
 // from Supabase, then asks these two functions. No app code imports this file.
 
 export const HOUR_MS = 60 * 60 * 1000;
-/** The window after a deploy that is compared. */
+/** The window after a deploy that is compared (an hour, by its own name). @alias */
 export const AFTER_MS = HOUR_MS;
 /** The baseline: the 7 days before the deploy, as reports per hour. */
 export const BASELINE_MS = 7 * 24 * HOUR_MS;

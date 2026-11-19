@@ -107,13 +107,6 @@ function restore(hash: string) {
   raf(step);
 }
 
-/** Bring `selector` into view once the page at `hash` shows it (the rail's Change filters lands
- *  on the Pipeline with its Jobs panel in view), instead of the page's old position. */
-export function requestReveal(hash: string, selector: string): void {
-  pending = { hash: norm(hash), y: 0, asked: Date.now(), reveal: selector };
-  raf(step);
-}
-
 function step() {
   const p = pending;
   if (!p) return;

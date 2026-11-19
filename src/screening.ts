@@ -19,12 +19,6 @@ export const MODES: { value: JobMode; label: string }[] = [
 /** Rank for the "Best fit" sort — lower sorts first; unset sinks last. */
 export const VERDICT_RANK: Record<Verdict, number> = { match: 0, stretch: 1, reach: 2 };
 
-export const verdictTone = (v: Verdict): 'success' | 'warning' | 'danger' =>
-  VERDICTS.find((x) => x.value === v)!.tone;
-
-/** The one wording for a fit, wherever it shows: Live rows, the Pipeline, the job page. */
-export const verdictLabel = (v: Verdict): string => VERDICTS.find((x) => x.value === v)!.label;
-
 export const modeLabel = (m: JobMode): string => MODES.find((x) => x.value === m)!.label;
 
 /** A dealbreaker. `soft` blockers only downgrade a match to a stretch; hard ones make it a reach

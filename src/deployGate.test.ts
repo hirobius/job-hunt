@@ -22,6 +22,7 @@ describe('deploy gate', () => {
     expect(steps).toEqual([
       'npm run typecheck',
       'npm run lint',
+      'npm run knip',
       'npm run check:hds',
       'npm run test',
       'npm run build',

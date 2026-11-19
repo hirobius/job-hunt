@@ -84,7 +84,7 @@ export function parseHash(hash: string): Route {
 }
 
 /** Home: an empty hash and every retired route land here. */
-export const HOME_TAB = REVIEW_TAB;
+const HOME_TAB = REVIEW_TAB;
 /** Routes that land on Find (simplify Q6, #471): the old Today slug, the Companies tab
  *  (`discover`, every tool, section and secondary view under it) and the old Trades slug. */
 const TO_FIND = new Set(['today', 'discover', 'apprenticeships']);

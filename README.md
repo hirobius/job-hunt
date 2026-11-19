@@ -24,7 +24,7 @@ and sync across devices.
 ```bash
 npm ci            # needs HDS_PACKAGES_TOKEN, see CONTRIBUTING.md
 npm run dev       # http://localhost:5173
-npm run verify    # typecheck, lint, HDS check, unit tests, build
+npm run verify    # typecheck, lint, knip, HDS check, unit tests, build
 npm run test:e2e  # Playwright browser tests
 ```
 
