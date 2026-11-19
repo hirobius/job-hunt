@@ -145,9 +145,9 @@ describe('SignInDialog', () => {
       within(dialog)
         .getAllByRole('button')
         .map((b) => b.textContent),
-    ).toEqual(['Send link', 'Continue without an account', '']);
+    ).toEqual(['Send link', 'Try a demo', 'Continue without an account', '']);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign in${COPY}${EMAIL}Send linkContinue without an account${AGREE}`,
+      `${BRAND.name}Sign in${COPY}${EMAIL}Send linkTry a demoContinue without an account${AGREE}`,
     );
     // The magic link still signs in.
     expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument();
@@ -165,19 +165,26 @@ describe('SignInDialog', () => {
     expect(
       within(dialog).getByRole('heading', { name: 'Sign in' }).closest('.sr-only'),
     ).not.toBeNull();
+    // One row of provider keys (#835): each shows its name; its accessible name is the action.
     expect(
       within(dialog)
         .getAllByRole('button')
-        .map((b) => b.textContent),
+        .map((b) => b.getAttribute('aria-label') ?? b.textContent),
     ).toEqual([
       'Continue with Google',
       'Continue with LinkedIn',
       'Send link',
+      'Try a demo',
       'Continue without an account',
-      '',
+      'Pause animations',
     ]);
     expect(dialog.textContent).toBe(
-      `${BRAND.name}Sign in${COPY}Continue with GoogleContinue with LinkedIn${EMAIL}Send linkContinue without an account${AGREE}`,
+      `${BRAND.name}Sign in${COPY}GoogleLinkedIn${EMAIL}Send linkTry a demoContinue without an account${AGREE}`,
+    );
+    // The demo is the grey key: a real second choice under the filled Send link.
+    expect(within(dialog).getByRole('button', { name: 'Try a demo' })).toHaveAttribute(
+      'data-variant',
+      'secondary',
     );
   });
 

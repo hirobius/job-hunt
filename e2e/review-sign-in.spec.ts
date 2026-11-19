@@ -74,7 +74,7 @@ test('signed out: the Sign in key opens the screen again, and Back closes it', a
   await expect(page.getByText('Sign in to see new postings.')).toBeVisible();
 });
 
-test('signed out: Try a demo loads the sample jobs here and opens Apply, with no reads', async ({
+test('signed out: Try a demo shows sample postings here and loads the sample jobs, with no reads (#835)', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -88,7 +88,13 @@ test('signed out: Try a demo loads the sample jobs here and opens Apply, with no
     'primary',
   );
   await demo.click();
-  await expect(page).toHaveURL(/#\/apply$/);
+  await expect(page).toHaveURL(/#\/review$/);
+  await expect(page.getByText('This is a demo')).toBeVisible();
+  await expect(
+    page.getByRole('list', { name: 'New postings' }).getByRole('listitem').first(),
+  ).toBeVisible();
+  // The sample jobs are on Apply.
+  await page.getByRole('link', { name: 'Apply' }).first().click();
   await expect(page.locator('a[href^="#/apply/"]').first()).toBeVisible();
   await page.waitForTimeout(1500);
   expect(requests.map((r) => r.url())).toEqual([]);

@@ -32,6 +32,9 @@ export interface Route {
   documents?: string | null;
   /** The Legal dialog over the page (#471 slice 4): `privacy` or `terms` (`?legal=`). */
   legal?: string | null;
+  /** `?demo=1` (#835): a link that opens the demo (demo/demoMode.ts). Read once, then dropped from
+   *  the URL; never carried to another page. */
+  demo?: boolean;
 }
 
 /** The Apply tab (#471): its second segment is a job id, `#/apply/<jobId>`. */
@@ -63,6 +66,7 @@ export function parseHash(hash: string): Route {
   const from = qp.get('from');
   const documents = qp.get('documents');
   const legal = qp.get('legal');
+  const demo = qp.get('demo') === '1';
   // The old job tab's section rides along to its redirect.
   const section = isJob || (tab === OLD_QUEUE && second !== null) ? qp.get('section') : null;
   return {
@@ -75,6 +79,7 @@ export function parseHash(hash: string): Route {
     ...(section ? { section } : {}),
     ...(documents !== null ? { documents } : {}),
     ...(legal ? { legal } : {}),
+    ...(demo ? { demo } : {}),
   };
 }
 
@@ -159,6 +164,7 @@ export function buildHash(r: Route): string {
   if (r.from) qp.set('from', r.from);
   if (r.documents !== null && r.documents !== undefined) qp.set('documents', r.documents);
   if (r.legal) qp.set('legal', r.legal);
+  if (r.demo) qp.set('demo', '1');
   const q = qp.toString();
   return '#/' + path + (q ? '?' + q : '');
 }
@@ -406,6 +412,8 @@ export function navigate(
   // A dialog belongs to the page under it: another page closes it unless the patch names one.
   if (moved && !('documents' in patch)) next.documents = null;
   if (moved && !('legal' in patch)) next.legal = null;
+  // The demo link is read once (demoMode.ts): no other navigation carries it.
+  if (!('demo' in patch)) delete next.demo;
   const h = buildHash(next);
   const search = opts.search ?? window.location.search;
   if (h === window.location.hash && search === window.location.search) return;

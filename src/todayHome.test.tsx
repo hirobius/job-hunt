@@ -189,14 +189,26 @@ describe('the auto-scan', () => {
 });
 
 describe('Try a demo, signed out (#755, Adrian 2026-11-16)', () => {
-  it('loads the sample jobs on this device and opens Apply, with no feed read', async () => {
+  it('shows sample postings here under a demo note and loads the sample jobs, with no feed read (#835)', async () => {
     const user = userEvent.setup();
     window.location.hash = '#/review';
     renderApp();
     await user.click(await screen.findByRole('button', { name: 'Continue without an account' }));
     await user.click(await screen.findByRole('button', { name: 'Try a demo' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/apply'));
-    expect(getAllJobs().length).toBeGreaterThan(0);
+    expect(await screen.findByText('This is a demo')).toBeInTheDocument();
+    const list = await screen.findByRole('list', { name: 'New postings' });
+    expect(within(list).getAllByRole('listitem').length).toBeGreaterThan(0);
+    expect(window.location.hash).toBe('#/review');
+    await waitFor(() => expect(getAllJobs().length).toBeGreaterThan(0));
+    expect(getAllJobs().every((j) => (j as { demo?: boolean }).demo === true)).toBe(true);
+    expect(feed.fetchFeed).not.toHaveBeenCalled();
+  });
+
+  it('a demo link (?demo=1) opens the demo and drops the flag from the URL (#835)', async () => {
+    window.location.hash = '#/review?demo=1';
+    renderApp();
+    expect(await screen.findByText('This is a demo')).toBeInTheDocument();
+    await waitFor(() => expect(window.location.hash).toBe('#/review'));
     expect(feed.fetchFeed).not.toHaveBeenCalled();
   });
 });

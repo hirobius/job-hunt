@@ -136,8 +136,19 @@ function SystemsOnlyMigration() {
   return null;
 }
 
+// The demo (#835) loads only for a demo link; the sign-in screen and Review load it themselves.
+const loadDemoMode = importFresh(() => import('./demo/demoMode'));
+
 export default function App() {
   const route = useRoute();
+  // A demo link (`?demo=1`, #835): start the demo (never into a stored session), then drop the
+  // flag from the URL in place, so a reload or a shared link of the next page does not carry it.
+  const demoLink = !!route.demo;
+  useEffect(() => {
+    if (!demoLink) return;
+    void loadDemoMode().then(({ startDemo }) => startDemo());
+    navigate({ demo: undefined }, true);
+  }, [demoLink]);
   // A Company's page (#/apply/company/<slug>, #230, #471) is in the Apply tab.
   const companySlug = companySlugOf(route);
   const company = companySlug !== null;

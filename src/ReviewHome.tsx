@@ -11,21 +11,21 @@ import { Button, Skeleton, Stack, Text } from '@hirobius/design-system';
 import { LogIn } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { firstSignInAsk } from './signInAsked';
-import { TrySampleButton } from './demo/SampleData';
+import { startDemo, useDemo } from './demo/demoMode';
 import { useJobs } from './store';
 import { useRoute } from './route';
 import { hasPersistedSession } from './supabase';
 import { Panel, PanelBody } from './PipelinePanel';
 import { ReviewHeader } from './ReviewHeader';
-import ReviewView from './ReviewView';
+import ReviewView, { DemoReviewList } from './ReviewView';
 import DailyPicks from './DailyPicks';
 import { useProfile } from './profile';
 import { useCloudSync } from './account/accountContext';
 
 /** Signed out, Review reads nothing (#755, Adrian 2026-11-15): no feed, board, description or
  *  postings read and no scan. One line and one filled key, Sign in, under the sign-in screen;
- *  with no jobs on this device, the grey Try a demo (Adrian 2026-11-16) loads the sample jobs here,
- *  with no account and no scan, and opens Apply. */
+ *  with no jobs on this device, the grey Try a demo (Adrian 2026-11-16) starts the demo (#835):
+ *  fictional postings here and the sample jobs on Apply, with no account and no scan. */
 export function SignedOutReview() {
   const { authResolved, setSignInOpen } = useCloudSync();
   const noJobs = useJobs().length === 0;
@@ -51,7 +51,11 @@ export function SignedOutReview() {
               <Button variant="primary" onClick={() => setSignInOpen(true)}>
                 Sign in
               </Button>
-              {noJobs && <TrySampleButton label="Try a demo" />}
+              {noJobs && (
+                <Button variant="secondary" onClick={() => void startDemo()}>
+                  Try a demo
+                </Button>
+              )}
             </Stack>
           }
         />
@@ -68,6 +72,15 @@ export function SignedOutReview() {
 export default function ReviewHome() {
   const profile = useProfile();
   const { offline, user } = useCloudSync();
+  const demo = useDemo();
+  // The demo (#835): signed out, fictional postings under a note; nothing is read.
+  if (!user && demo)
+    return (
+      <Stack gap="px24">
+        <ReviewHeader />
+        <DemoReviewList />
+      </Stack>
+    );
   // Signed out (or not known yet), nothing on Review reads postings (#755).
   if (!user) return <SignedOutReview />;
   // The scheduled run's hand-picked roles (picks.ts), signed in only: fit line, draft note (Copy),
