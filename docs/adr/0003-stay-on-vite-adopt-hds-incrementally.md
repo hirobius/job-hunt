@@ -88,5 +88,5 @@ HDS-shaped components are not the canonical HDS package unless we later choose (
 ## References
 
 - `src/hds-spike/` (HdsButton, HdsSpike, tailwind.css — no preflight), `vite.config.ts`
-- `docs/adr/0001-consume-hds-via-tokens-on-mui.md`, `docs/hds-adoption.md`
+- `docs/adr/0001-consume-hds-via-tokens-on-mui.md`, `docs/hds-adoption.md` (removed 2026-11-19; in git history)
 - `src/tokens/hds-tokens.css`, `src/theme/brand-jade.css`

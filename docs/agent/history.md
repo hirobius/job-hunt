@@ -70,3 +70,12 @@ _The 2026-07 pillar / track / Discover model (ADR 0006) was replaced by one Sear
 - **Supabase (#31).** `tracker` + `categories`/`groups`/`tiles` tables with RLS. `pillarStore` + `pillars.ts`
   are retired (#99); curation syncs through its own tables. Merges rely on CI (see Build / deploy /
   verify).
+
+## 2026-11-19 — docs removed
+
+Removed because they described screens or plans that are gone (all in git history before this
+change): `SUMMARY.md`, `FEATURES.md`, `docs/case-study/`, `docs/redesign-2026*`, `docs/review/`,
+`docs/screens/`, `docs/staging/`, `docs/explorations/`, `docs/pr-shots/`, `docs/loop-queue.md`,
+`docs/agnostic-product-redesign.md`, `docs/hds-adoption.md`, `docs/hds-upstream-consumption.md`,
+`docs/hds-upstream-box-sx.md`. `SUPABASE_SETUP.md` moved to `docs/supabase-setup.md`. PR screenshots
+go in the PR body, never in `docs/`.

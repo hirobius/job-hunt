@@ -3,7 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-07-27
 - **Context owner:** Apply Board
-- **Plan:** `docs/agnostic-product-redesign.md` (full design)
+- **Plan:** `docs/agnostic-product-redesign.md` (full design; removed 2026-11-19, in git history)
 - **Executes via:** Epic #30 (multi-tenant curation / IA consolidation) + Epic #39 (production
   hardening). This ADR records the *product-direction* decision behind #30 and amends it with the
   white-collar-first stance, the location-as-a-field generalization, and the Board↔Queue interop

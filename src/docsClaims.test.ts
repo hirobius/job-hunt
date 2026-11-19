@@ -6,7 +6,7 @@ import { SORTS } from './jobSort';
  * README truth guard (#111). The README is the portfolio's front door and it drifted badly
  * once: it kept advertising an AI feature, a CI pipeline and a component library long after
  * each was removed. Each entry below is a claim that is false on main; if one creeps back in,
- * this fails with the reason. Historical docs (SUMMARY.md, ADRs) carry their own banners and
+ * this fails with the reason. Historical docs (ADRs) carry their own banners and
  * are deliberately not checked.
  */
 
@@ -49,7 +49,7 @@ describe('README makes no retired claims', () => {
 });
 
 /** Every number in the docs is derived from a source or cut (hirobius/ops#681). */
-describe('README and FEATURES numbers have a source', () => {
+describe('README numbers have a source', () => {
   const WORDS = [
     'zero',
     'one',
@@ -74,10 +74,5 @@ describe('README and FEATURES numbers have a source', () => {
 
   it('quotes no bundle sizes (they change every build; run npm run build to see them)', () => {
     expect(README).not.toMatch(/\d\s?kB/i);
-  });
-
-  it('does not describe an "Up Next" queue the app does not have', () => {
-    const FEATURES = fs.readFileSync('FEATURES.md', 'utf8');
-    expect(FEATURES).not.toMatch(/up next/i);
   });
 });

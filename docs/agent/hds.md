@@ -66,7 +66,7 @@ How the app uses `@hirobius/design-system` (HDS): components, `sx`, density, the
   is HDS `Card.Facts` (stacked by default since HDS 0.43, hds#1509) in `DetailTitleBlock`, the posting cards and Daily
   picks; the local `FactLines` gap is deleted (HDS 0.44 PR). DisclosureRow stays in the HDS gap registry.
 
-- **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
+- **Design polish (#133, `docs/specs/design-polish.md`):** banners are not page
   furniture: unsynced is only the Account menu's sync line (no Avatar dot), and the sample's Clear is the Account menu's "Clear sample data" (2026-11-13). Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 44px phone controls (`--rjb-touch`, retro quick wins 2026-11-08),

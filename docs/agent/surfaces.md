@@ -2,7 +2,7 @@
 
 Card rules, list rows, the posting card, page width, outlines and the selected fill.
 
-- **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**
+- **Pipeline panels (rev-3 mobile slice 1):**
   To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
   `Badge count`), 24 apart. The Jobs panel holds the full-width search, the named views (#541) and Sort as select-style
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
