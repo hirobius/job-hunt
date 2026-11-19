@@ -214,9 +214,9 @@ The two screens, the app bar, the Account menu, routes, return paths, focus, scr
   `aria-current`, never a radio group) left the app bar for the **page bar**, the first row of `main`
   (`.rjb-page-bar` in App, `.rjb-main` keeps the 24 page rhythm under it) at top left, where the page title was; the
   app bar is the logo and Account, one row. No visible "Find" / "Apply" title: each page keeps its h1 as
-  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). A page's own tools go
-  to the bar's right through `PageBar.tsx` `InPageBar` (Find has none since the Deck went, 2026-11-13) (no scan line on Find since #694: it is Scan details')
-  (a portal into App's slot, `pageBarSlot.ts`; inline when there is no bar, as in a unit test). Pinned in
+  HDS `.sr-only` (focusRescue still focuses it; a job's title h1 stays visible). No page puts tools
+  at the bar's right now (Find has none since the Deck went, 2026-11-13; no scan line on Find since #694: it is Scan
+  details'), so `PageBar.tsx` `InPageBar` was deleted (#815); App's empty slot (`pageBarSlot.ts`) hides by `:empty`. Pinned in
   `appNav.test.tsx`, `shell.test.tsx`, `figmaRules.test.ts`.
 
 - **Theme toggle + burn (#688):** the app bar's HDS `ThemeToggle` (left of the Account button, 44px; its own name
