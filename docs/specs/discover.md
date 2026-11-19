@@ -132,7 +132,7 @@ control is a `Popover`.
    `LiveFeedPanel.test.tsx`. Done when: results lead, Refine disclosure holds watch and evidence, one fit
    pattern, phone rows stack.
 6. Gallery and guards. `scripts/gallery` routes if needed, `src/hdsOnly.test.ts` (no new inline style
-   counts), docs note in `docs/redesign-2026.md`. Done when: before/after Discover shots are captured.
+   counts), docs note in `docs/redesign-2026.md` (removed 2026-11-19, in git history). Done when: before/after Discover shots are captured.
 
 ## Boundaries
 - Always: HDS only; sentence case; try/catch around storage; keep route slugs and quick-add params.

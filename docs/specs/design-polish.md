@@ -10,7 +10,7 @@ fill/hug, padding, alignment, density, color, states, empty, loading, error, mot
 
 Make RoleForge look designed, not accreted, on every screen that ships, and stop it from drifting back.
 Phase 7 closes #133 (which absorbs #93 and #148) and the in-code half of #146. It adds machine checks so each
-fix is held by a test, not by memory. It also produces the portfolio case study (`docs/redesign-2026.md`).
+fix is held by a test, not by memory. It also produces the portfolio case study (`docs/redesign-2026.md` (removed 2026-11-19, in git history)).
 View layer only: no store, sync, backup, route-slug or CSP changes.
 
 ## Audit findings, ranked by user impact
@@ -103,14 +103,14 @@ count, computed gap sweep. Slice 5 adds the probe that decides them.
 
 ## Portfolio case study (from #115 Phase 7)
 
-File: `docs/redesign-2026.md`, linked from README. It tells the story in this order: problem (the 2026-10-13
+File: `docs/redesign-2026.md` (removed 2026-11-19, in git history), linked from README. It tells the story in this order: problem (the 2026-10-13
 audit, 8 bullet findings), constraints (pure HDS, no local UI layer, no colour override), decisions (top
 tabs, Today as home, job page as its own view, graphite accent over jade, track-level location, one AsyncState,
 ratcheting guards), before/after gallery (before set from `gallery/` at `f15fd52`-era v1 and the 2026-10-13
 audit; after set from this slice; 4 captures for Today, Pipeline, job page, Discover, Templates), what HDS
 gained (the filed upstream asks with issue numbers, from #146), and measurements (inline styles 130 to the
 final count, lint warnings 7 to 0, axe violations, bundle size from the build output, test count). Images
-live in `docs/redesign-2026/` as compressed JPEG (under 300 KB each); the page is Markdown for the repo
+live in `docs/redesign-2026/` (removed 2026-11-19) as compressed JPEG (under 300 KB each); the page is Markdown for the repo
 and may be re-published as an Artifact later. Written last, after slice 6.
 
 ## Vertical slices
@@ -138,7 +138,7 @@ Each is at most 5 files, ships behind `npm run verify`, and needs no Vercel buil
    is saved to the PR text (not the repo).
 6. **Density toggle, motion, inline-style burn-down** (#133): Account menu density radio (`data-density`,
    `rjb_ui_density`), HDS duration tokens for the one transition, burn the remaining inline styles down to the
-   allowlist and ratchet to it, flip lint to zero warnings, bundle size recorded in README, `docs/redesign-2026.md`.
+   allowlist and ratchet to it, flip lint to zero warnings, bundle size recorded in README, `docs/redesign-2026.md` (removed 2026-11-19, in git history).
    Over 5 files; split into 6a (density plus motion) and 6b (burn-down plus case study) when it grows.
 
 Order: 1, 2 and 5 can run at any time. 3 and 4 must go after #128/#129 (already on main). Findings 1, 3, 4
