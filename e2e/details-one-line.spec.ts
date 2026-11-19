@@ -1,5 +1,6 @@
 // A job's Details (Figma Flows, steps 3 and 4, 2026-11-19): with a long company name and a long
-// posting domain, Company and Link each stay on one line, cut with an ellipsis inside the panel.
+// posting domain, Company and Link each stay on one line, cut with an ellipsis inside the panel;
+// the whole text is the line's title, and on a phone each link keeps its 44px target.
 // Before: Company wrapped onto 2-3 lines (its 44px phone target then lay over Link's), and the
 // domain was cut mid-word at the panel's edge with no ellipsis (the link is an inline-block, so
 // the ellipsis on its box never applied).
@@ -34,6 +35,9 @@ for (const width of [390, 1440]) {
         const r = a.getBoundingClientRect();
         return {
           name: text.textContent,
+          title: text.title,
+          // A phone's 44px target (the rows sit one target apart, base.css).
+          target: innerWidth < 640 ? r.height >= 43.5 : true,
           lines: Math.round(text.getBoundingClientRect().height / lh),
           inside: r.right <= box.right + 0.5,
           ellipsis:
@@ -43,8 +47,22 @@ for (const width of [390, 1440]) {
       });
     });
     expect(rows).toEqual([
-      { name: JOB.company, lines: 1, inside: true, ellipsis: true },
-      { name: new URL(JOB.url).hostname, lines: 1, inside: true, ellipsis: true },
+      {
+        name: JOB.company,
+        title: JOB.company,
+        target: true,
+        lines: 1,
+        inside: true,
+        ellipsis: true,
+      },
+      {
+        name: new URL(JOB.url).hostname,
+        title: new URL(JOB.url).hostname,
+        target: true,
+        lines: 1,
+        inside: true,
+        ellipsis: true,
+      },
     ]);
   });
 }
