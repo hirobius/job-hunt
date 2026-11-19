@@ -52,13 +52,20 @@ const cards = (page: Page) =>
   page.locator('ul[aria-label="New postings"] > li:not(.rjb-window-spacer)').count();
 
 async function loadAll(page: Page) {
-  // Auto-load pages the list as its end comes near; scroll to the end until nothing is left.
+  // Auto-load pages the list as its end comes near (useAutoLoad: an IntersectionObserver fires on
+  // a change only, so each page needs the end scrolled into view again). Scroll to the end until
+  // nothing is left. Bounded by time, not by a count of 150 ms tries: on a busy machine (the full
+  // suite in parallel) 100 tries ran out with pages still to load (2026-11-19).
   const more = page.getByRole('button', { name: /^Load more/ });
-  for (let i = 0; i < 100 && (await more.count()); i++) {
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(150);
-  }
-  await expect(more).toHaveCount(0);
+  await expect
+    .poll(
+      async () => {
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        return more.count();
+      },
+      { timeout: 60_000, intervals: [150] },
+    )
+    .toBe(0);
 }
 
 test.use({ viewport: { width: 390, height: 844 } });
