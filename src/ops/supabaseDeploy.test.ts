@@ -121,7 +121,7 @@ describe('the ledger and the transaction', () => {
 
 describe('the script and the workflow', () => {
   const script = fs.readFileSync('scripts/supabase-deploy.ts', 'utf8');
-  const yml = fs.readFileSync('docs/ci/proposed-supabase-deploy.yml', 'utf8');
+  const yml = fs.readFileSync('.github/workflows/supabase-deploy.yml', 'utf8');
 
   it('writes only inside GitHub Actions, and keeps the JWT check off', () => {
     expect(script).toContain("process.env.GITHUB_ACTIONS !== 'true'");

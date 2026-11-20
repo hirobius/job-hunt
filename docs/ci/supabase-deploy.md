@@ -6,7 +6,8 @@ After the `ci` workflow passes on main, the `supabase-deploy` workflow runs
 `scripts/supabase-deploy.ts`:
 
 1. **plan** (read only): lists the new migrations and says whether `sync-postings` changed.
-2. **deploy** waits for your approval, then:
+2. **deploy** runs right after plan, with no approval (Adrian, 2026-11-20: auto-deploy; a merge to
+   main already needs green CI and an independent review). It:
    1. applies each new migration, in file-name order. Each migration and its ledger row are one
       transaction, and the first failure stops the run;
    2. deploys `sync-postings` (`--use-api --no-verify-jwt`, Supabase CLI 2.122.0), but only when a file
@@ -27,31 +28,21 @@ grants nothing to `anon` or `authenticated`.
 The script refuses `--deploy` and `--init` outside GitHub Actions. Locally, run it with no flag to
 see the plan.
 
-## Turn it on (Adrian)
+## Setup (done 2026-11-20)
 
-1. Supabase dashboard > your avatar > Account preferences > Access Tokens > Generate new token.
-   Name it `job-hunt CI`. Keep it in Bitwarden (Hirobius - Internal, field `SUPABASE_ACCESS_TOKEN`).
-2. GitHub > hirobius/job-hunt > Settings > Environments > New environment > name `supabase-plan`.
-   Deployment branches and tags > Selected branches and tags > add `main`. Environment secrets >
-   Add environment secret: name `SUPABASE_ACCESS_TOKEN`, value: the token. Save. (No reviewer: the
-   plan job only reads.)
-3. New environment > name `supabase-production`. Tick "Required reviewers" and add yourself.
-   Deployment branches: `main` only, as in step 2. Add the same `SUPABASE_ACCESS_TOKEN` environment
-   secret. Save. Each deploy now waits for your approval.
-   **Never add the token as a repository secret:** any workflow on any branch can read a repository
-   secret, which would skip your approval.
-4. Check that every migration in `supabase/migrations` is live (the Roleflame lane can check).
-   Known gap on 2026-11-12: `20261105100000_daily_picks.sql` was not applied. Apply it by hand
-   first, or the init in step 6 records it as applied.
-5. Run `git mv docs/ci/proposed-supabase-deploy.yml .github/workflows/supabase-deploy.yml`. Open a
-   PR with the change and merge it.
-6. Actions > supabase-deploy > Run workflow > mode `init` > Run. Approve the deploy job. This
-   creates the ledger and records every current migration as applied. It changes no table of the
-   app.
-7. Actions > supabase-deploy > Run workflow > mode `plan`. The summary should say "none" for
-   migrations.
+- A Supabase personal access token, `job-hunt supabase-deploy`, 90 days (expires about 2027-02-17).
+  Replace it before then: new token, update the secret in both environments, delete the old one.
+- GitHub environments `supabase-plan` and `supabase-production`, each limited to `main`, each with
+  the `SUPABASE_ACCESS_TOKEN` environment secret. `supabase-production` has no required reviewer:
+  a deploy runs as soon as plan passes. To bring the approval back, tick "Required reviewers" on
+  it (Settings > Environments).
+  **Never add the token as a repository secret:** any workflow on any branch can read a repository
+  secret, which would skip the `main`-only rule.
+- `.github/workflows/supabase-deploy.yml` (#856). Its header comment still says the deploy waits for
+  approval; that comment changes in a PR by Adrian (agents never edit `.github/workflows`).
+- The ledger: one `init` run at dbf0746 recorded the 31 live migrations; the first plan said "none".
 
-From then on, every merge to main runs plan, then waits for your approval to deploy.
+Every merge to main now runs plan, then deploy.
 
 ## When it fails
 

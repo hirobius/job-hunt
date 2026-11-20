@@ -1,5 +1,5 @@
 // Supabase deploy from CI (#596), run by the supabase-deploy workflow
-// (docs/ci/proposed-supabase-deploy.yml) after the ci workflow passes on main.
+// (.github/workflows/supabase-deploy.yml) after the ci workflow passes on main.
 //   node --experimental-strip-types scripts/supabase-deploy.ts            # plan: read only
 //   node --experimental-strip-types scripts/supabase-deploy.ts --deploy   # apply + deploy
 //   node --experimental-strip-types scripts/supabase-deploy.ts --init     # once: ledger + baseline
