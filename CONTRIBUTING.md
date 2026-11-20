@@ -7,9 +7,8 @@ npm ci
 npm run dev
 ```
 
-`npm ci` needs an `HDS_PACKAGES_TOKEN` environment variable: a classic GitHub token with
-`read:packages`. It installs the private HDS ESLint plugin. The design system itself comes from
-public npm. The Supabase URL and publishable key in `src/config.ts` are public by design.
+`npm ci` needs no token: the design system and its ESLint plugin (`@hirobius/hds-toolkit`) both
+come from public npm. The Supabase URL and publishable key in `src/config.ts` are public by design.
 
 ## Check your change
 

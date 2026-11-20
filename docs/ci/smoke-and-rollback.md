@@ -21,7 +21,7 @@ Run it by hand: `npm run smoke`, or `SMOKE_URL=<url> npm run smoke` for another 
 
 1. Run `git mv docs/ci/proposed-smoke.yml .github/workflows/smoke.yml`.
 2. Commit the change and push it to main.
-3. The workflow uses the `HDS_PACKAGES_TOKEN` Actions secret that CI already has. No new secret.
+3. The workflow needs no secret: `npm ci` installs from public npm.
 4. Open Actions > smoke > Run workflow once, to see it pass.
 5. Watch the repo (Watch > All activity, or Custom > Issues) so the GitHub app pushes the alert.
 

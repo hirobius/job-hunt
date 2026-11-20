@@ -44,7 +44,7 @@ type Size = 'sm' | 'md';
 // Open posting is a link in Button's dress. HDS holds a button-like link to its 44px touch minimum,
 // while base.css sets phone buttons to 40, so beside Snooze it stood 4px taller. Same 40 here, so
 // the row of two lines up (rev-3 A).
-const LINK_AS_BUTTON = { minHeight: 'var(--primitive-space-10)' } as const;
+const LINK_AS_BUTTON = { minHeight: 'var(--primitive-size-40)' } as const;
 
 export function FollowUpButton({
   job,

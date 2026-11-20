@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const EXPECTED_HOST: Record<string, string> = {
   '@hirobius/design-system': 'registry.npmjs.org',
-  '@hirobius/hds-toolkit': 'npm.pkg.github.com',
+  '@hirobius/hds-toolkit': 'registry.npmjs.org', // public since 0.2.0 (2026-11-20): no token
 };
 
 describe('@hirobius registry hosts (job-hunt#567)', () => {

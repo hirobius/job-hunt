@@ -46,9 +46,7 @@ Before you add it, do these steps:
 
 1. In the repository settings, open Actions, then General.
 2. Turn on "Allow GitHub Actions to create and approve pull requests".
-3. Check that the `HDS_PACKAGES_TOKEN` repository secret exists (`ci.yml` uses it already).
-   `npm ci` needs it for the private `@hirobius/hds-toolkit` tarball, or it fails with a 401.
-4. Add the file below as `.github/workflows/board-discovery.yml`.
+3. Add the file below as `.github/workflows/board-discovery.yml`.
 
 What the workflow does to stay safe:
 
@@ -88,10 +86,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # @hirobius/hds-toolkit is a private GitHub Packages tarball (.npmrc): npm ci 401s without it.
       - run: npm ci
-        env:
-          HDS_PACKAGES_TOKEN: ${{ secrets.HDS_PACKAGES_TOKEN }}
       # Exit 0: a safe change (PR body in node_modules/.cache/boards-refresh.md). Exit 2: no change,
       # a green run with no PR. Exit 3: blocked as unsafe (a source failed, a kind lost over 25%,
       # over 10% removed): a red run, so the failure is seen. Exit 1: discovery failed.
@@ -140,7 +135,7 @@ Use this prompt in a fresh-session scheduled task on the job-hunt repository:
 
 ```text
 In hirobius/job-hunt, check free disk space first. Clone the repo into a uniquely named folder
-under /dev/shm. Run npm ci with HDS_PACKAGES_TOKEN set, then npm run discover:boards. If it exits
+under /dev/shm. Run npm ci, then npm run discover:boards. If it exits
 2, stop and report "no change". If it exits 1 or 3, stop and report the reason it printed. If it
 exits 0, run npx vitest run src/feed src/postingSync and npm run build; if either fails, stop and
 report it. Then create the branch boards/refresh-<YYYY-MM-DD>-<short random id>, commit

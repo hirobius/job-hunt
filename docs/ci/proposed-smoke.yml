@@ -53,8 +53,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-        env:
-          HDS_PACKAGES_TOKEN: ${{ secrets.HDS_PACKAGES_TOKEN }}
       # Vercel moves the alias as it marks the deploy ready; give the edge a short beat.
       - run: sleep 20
       - run: npm run smoke
