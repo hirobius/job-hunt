@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-19T09:40:00Z",
+  "updatedAt": "2026-11-20T05:30:00Z",
   "phase": "live",
   "headline": "Live with two screens, Review and Apply, and a no-account demo (?demo=1). The 2026-11-19 hardening audit landed as small reviewed PRs: docs cleaned, old names retired, sign-in path module, Prettier and knip in the gates.",
   "next": [
@@ -13,7 +13,7 @@
     "Adrian: add `- run: npm run knip` to ci.yml after `npm run lint`, if knip should gate CI (the step is in the #849 body).",
     "Adrian: board-discovery.yml line 52, `npx vitest run src/feed src/tracks` becomes `npx vitest run src/feed src/postingSync` (the diff is in the #841 body).",
     "Adrian: turn on GitHub private vulnerability reporting (Settings, Security, Private vulnerability reporting, Enable; the steps are in the #844 body).",
-    "Adrian: the fresh-clone install needs HDS_PACKAGES_TOKEN (the HDS ESLint plugin is a private package): publish it publicly (recommended) or keep it private."
+    "Adrian (harmless, any time): delete the HDS_PACKAGES_TOKEN lines in .github (ci.yml x5, board-discovery.yml, dependabot.yml registry entry); npm ci needs no token since @hirobius/hds-toolkit 0.2.0 is public (the list is in the PR body)."
   ],
   "focus": "Make the repo and the app easy for a reviewer to read: clear docs, one vocabulary, small reviewed PRs."
 }

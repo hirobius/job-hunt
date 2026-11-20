@@ -16,7 +16,7 @@ const listStyle = {
   margin: 0,
   padding: 0,
   display: 'grid',
-  gap: 'var(--primitive-space-3)',
+  gap: 'var(--semantic-space-scale-sm)',
 } as const;
 
 export function CompanyLookupResults({

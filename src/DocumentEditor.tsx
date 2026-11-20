@@ -587,8 +587,10 @@ function VersionHistory({
             </li>
           ))}
         </Stack>
+        {/* The open Version: a plain region under the list, not a card in the history's card
+            (HDS no-nested-cards, toolkit 0.2.0). */}
         {pick && (
-          <Surface padding="px16" role="region" aria-label={`Version ${pick.n}`}>
+          <Box role="region" aria-label={`Version ${pick.n}`}>
             <Stack gap="tight">
               <Text variant="body" as="p" style={PRE}>
                 {pick.v.text || 'Empty'}
@@ -600,7 +602,7 @@ function VersionHistory({
                 <DocumentDownload doc={doc} version={pick.v} />
               </Stack>
             </Stack>
-          </Surface>
+          </Box>
         )}
       </Stack>
     </Surface>

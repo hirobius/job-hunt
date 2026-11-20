@@ -22,7 +22,7 @@ and sync across devices.
 ## Run it
 
 ```bash
-npm ci            # needs HDS_PACKAGES_TOKEN, see CONTRIBUTING.md
+npm ci            # no token needed: every dependency is on public npm
 npm run dev       # http://localhost:5173
 npm run verify    # typecheck, lint, knip, HDS check, unit tests, build
 npm run test:e2e  # Playwright browser tests
