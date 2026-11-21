@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('the walk row on a phone', () => {
-  it('names the open view; the picker lists the seven views, then All jobs', async () => {
+  it('names the open view; the picker lists the eight views, then All jobs', async () => {
     const user = userEvent.setup();
     renderApp();
     const picker = await screen.findByRole('button', { name: 'View: To apply' });
@@ -59,6 +59,7 @@ describe('the walk row on a phone', () => {
       'This week (0)',
       'Interviewing (0)',
       'Applied (1)',
+      'Rejected (0)',
       'Recently closed (0)',
       'Passed (0)',
       'All jobs (3)',

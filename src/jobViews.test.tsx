@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe('JobViews (#541)', () => {
-  it('shows the seven views and All jobs, each with its count, To apply pressed', () => {
+  it('shows the eight views and All jobs, each with its count, To apply pressed', () => {
     addJob('https://a.example/1', 'Saved one');
     addJob('https://a.example/2', 'Gone one');
     updateJob('https://a.example/2', { closedAt: '2026-11-01T00:00:00Z' });
@@ -31,6 +31,7 @@ describe('JobViews (#541)', () => {
       'This week 0',
       'Interviewing 0',
       'Applied 0',
+      'Rejected 0',
       'Recently closed 1',
       'Passed 0',
       'All jobs 2',

@@ -23,7 +23,7 @@ The saved list, named views, Add job, Export links and the tracker model.
   default), **Follow up** (`deriveJobState(…).followUp.due`), **This week** (#640, Adrian 2026-11-12: `weekDateOf`, an
   interview or event from today through the next 6 days (`upcomingEvents`) or a Saved job's closing date in that
   window (`respondByJobs`), soonest first; it replaces the phone's lost Next 7 days section), **Interviewing**
-  (Interviewing or Offer), **Applied**,
+  (Interviewing or Offer), **Applied**, **Rejected** (Adrian 2026-11-21: status Rejected, not set aside; in memory like every view, not in the URL),
   **Recently closed** (`isClosed`: gone from the board or past its day; #602, where closed jobs collect and each is
   removed or kept; the automatic check is #602's own work), **Passed** (Adrian 2026-11-13, `passed.ts` +
   `PassedList.tsx`: jobs marked Not a fit or set aside (`archived`), each row with Delete (`removeWithUndo`: to Recently
@@ -35,7 +35,7 @@ The saved list, named views, Add job, Export links and the tracker model.
   and the three-way merge, no blob bump); an older Skip has only its fingerprint and lists as "Skipped posting" with no
   link and no Save. The Passed count is its jobs (under the profile's Remote only) plus its listed Skips
   (`filterCounts(…, skipped)`); pinned in `passed.test.tsx`, `jobViews.test.tsx`), then **All jobs** (every job, set-aside ones too; the last row of the phone picker and the last chip of the lg list: the old
-  Saved / Offer / Rejected / Retired / Closing soon filters went with the select). `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"`
+  Saved / Offer / Retired / Closing soon filters went with the select). `JobViews.tsx` draws them as HDS `Tag` chips (`role="group"`
   "Views", `aria-pressed`, a `Badge` count, amber on Follow up while one is due), with no description line under them
   (2026-11-13): at the top of the lg list column (`JobRail`) and on a phone the
   walk row's view picker picks them, All jobs among them (#542; the All jobs bottom sheet went 2026-11-17, so below lg

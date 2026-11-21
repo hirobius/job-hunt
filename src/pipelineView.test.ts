@@ -45,13 +45,14 @@ describe('pipelineView', () => {
     expect(visibleJobs(all, { filter: 'all' })[0].label).toBe('Gamma');
   });
 
-  it('seven named views, then All jobs, each with a label', () => {
+  it('eight named views, then All jobs, each with a label', () => {
     expect(VIEWS.map((v) => FILTER_LABEL[v])).toEqual([
       'To apply',
       'Follow up',
       'This week',
       'Interviewing',
       'Applied',
+      'Rejected',
       'Recently closed',
       'Passed',
       'All jobs',
@@ -65,12 +66,29 @@ describe('pipelineView', () => {
       thisWeek: 0,
       interviewing: 0,
       applied: 2,
+      rejected: 0,
       closed: 0,
       passed: 1,
       all: 4,
     });
     // Passed adds the skipped postings it lists beside its jobs.
     expect(filterCounts(all, undefined, false, 3).passed).toBe(4);
+  });
+
+  it('Rejected lists Rejected jobs, counts them, and leaves archived ones out', () => {
+    const lost = job('https://e.example/5', { label: 'Echo', status: 'Rejected' });
+    const lostOld = job('https://f.example/6', {
+      label: 'Foxtrot',
+      status: 'Rejected',
+      archived: true,
+    });
+    const pool = [...all, lost, lostOld];
+    expect(visibleJobs(pool, { filter: 'rejected' }).map((j) => j.label)).toEqual(['Echo']);
+    expect(filterCounts(pool).rejected).toBe(1);
+    // Under All jobs both stay; Rejected never leaks into Applied or Interviewing.
+    expect(filterCounts(pool).all).toBe(6);
+    expect(visibleJobs(pool, { filter: 'applied' }).map((j) => j.label)).not.toContain('Echo');
+    expect(visibleJobs(pool, { filter: 'interviewing' })).toEqual([]);
   });
 
   it('Passed lists jobs marked Not a fit or set aside, and only those', () => {
