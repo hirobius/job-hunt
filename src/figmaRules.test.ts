@@ -71,6 +71,7 @@ describe('FIGMA-RULES.md', () => {
       'This week',
       'Interviewing',
       'Applied',
+      'Rejected',
       'Recently closed',
     ]) {
       expect(RULES).toContain(name);

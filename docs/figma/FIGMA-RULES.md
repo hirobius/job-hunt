@@ -102,13 +102,13 @@ code is `CLAUDE.md` and `docs/agent/`; this page is the visual subset. `src/figm
 - **The walk control (#542).** One row of three named controls, no box and no outline: left the view
   picker (the view's name, bold, with the caret inside it, drawn as a select: a soft grey pill with the
   Review chips' fill and 40 px height, no edge, its left edge on the page gutter under Review | Apply and
-  the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the seven views and
+  the job title, a 44 px hit area; 2026-11-13; a Menu, a sheet on a phone, with the eight views and
   "All jobs", each with its count; no filters chip since 2026-11-13), and right the pager "7 of 12" with previous and next, which only steps (a
   sideways swipe steps too). At 390 the view name truncates, never the pager. No pager at 1440. A job's view holds Open application, Mark applied | Not a fit,
   then Details, Notes, Documents and Decks. Pages with no tab: Documents, a Company, Legal.
 - **Named views, no Status select (#541).** The Apply list is walked by view: To apply, Follow up,
   This week (interviews and closing dates in the next 7 days, soonest first; #640), Interviewing,
-  Applied, Recently closed, Passed (jobs marked Not a fit or set aside, then the postings skipped in
+  Applied, Rejected, Recently closed, Passed (jobs marked Not a fit or set aside, then the postings skipped in
   Find; each row has Delete, a skipped posting also Save and Undo skip; 2026-11-13), then All jobs.
   Each is a Tag chip with a count Badge, one picked at a time; no description line under them
   (2026-11-13). Follow

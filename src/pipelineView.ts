@@ -15,12 +15,20 @@ import { classifyRemote } from './feed/mode';
 import type { Job } from './types';
 
 /** The named views (#541, redesign phase 2): the Apply list is walked by view, not by a Status
- *  select. Seven named views, then All jobs (every job, set-aside ones too, so none is out of reach).
+ *  select. Eight named views, then All jobs (every job, set-aside ones too, so none is out of reach).
  *  This week (#640) holds what the phone's Next 7 days section did: interviews and closing dates.
  *  Passed (Adrian 2026-11-13) holds the jobs marked Not a fit or set aside, and Review's skipped
  *  postings (passed.ts). */
 export type Filter =
-  'toApply' | 'followUp' | 'thisWeek' | 'interviewing' | 'applied' | 'closed' | 'passed' | 'all';
+  | 'toApply'
+  | 'followUp'
+  | 'thisWeek'
+  | 'interviewing'
+  | 'applied'
+  | 'rejected'
+  | 'closed'
+  | 'passed'
+  | 'all';
 
 export interface PipelineView {
   filter: Filter;
@@ -37,19 +45,21 @@ export const FILTER_LABEL: Record<Filter, string> = {
   thisWeek: 'This week',
   interviewing: 'Interviewing',
   applied: 'Applied',
+  rejected: 'Rejected',
   // #602: closed jobs collect here, where the person removes or keeps each one.
   closed: 'Recently closed',
   passed: 'Passed',
   all: 'All jobs',
 };
 
-/** The seven named views, in order; All jobs comes after them. */
+/** The eight named views, in order; All jobs comes after them. */
 export const NAMED_VIEWS: Filter[] = [
   'toApply',
   'followUp',
   'thisWeek',
   'interviewing',
   'applied',
+  'rejected',
   'closed',
   'passed',
 ];
@@ -81,6 +91,7 @@ function matchesFilter(j: Job, f: Filter, now: Date): boolean {
   if (f === 'followUp') return s.followUp.due;
   if (f === 'thisWeek') return weekDateOf(j, now) !== null;
   if (f === 'interviewing') return s.status === 'Interviewing' || s.status === 'Offer';
+  if (f === 'rejected') return s.status === 'Rejected';
   return s.status === 'Applied';
 }
 

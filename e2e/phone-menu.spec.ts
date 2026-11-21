@@ -76,9 +76,9 @@ test('the walk row fits at 390; the view picker is a sheet', async ({ page }) =>
   const sheet = (await menu.boundingBox())!;
   expect(Math.round(sheet.x)).toBe(0);
   expect(Math.round(sheet.y + sheet.height)).toBe(844);
-  // Seven named views; This week right after Follow up (#640); Passed last (2026-11-13).
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(8);
-  await expect(menu.getByRole('menuitemradio').nth(6)).toHaveText(/^Passed \(\d+\)$/);
+  // Eight named views; This week right after Follow up (#640); Passed last (2026-11-13).
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(9);
+  await expect(menu.getByRole('menuitemradio').nth(7)).toHaveText(/^Passed \(\d+\)$/);
   await expect(menu.getByRole('menuitemradio').nth(2)).toHaveText(/^This week \(\d+\)$/);
   await menu.getByRole('menuitemradio', { name: /^Recently closed/ }).click();
   await expect(page.getByRole('button', { name: 'View: Recently closed' })).toBeVisible();

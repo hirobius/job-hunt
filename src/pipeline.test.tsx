@@ -382,7 +382,7 @@ describe('Apply filter (#129, #543)', () => {
     expect(screen.queryByRole('button', { name: /^Sort:/ })).toBeNull();
   });
 
-  it('the seven named views, then All jobs, replace the Status select (#541)', async () => {
+  it('the eight named views, then All jobs, replace the Status select (#541)', async () => {
     renderApp();
     await openListOnPhone();
     expect(screen.queryByRole('button', { name: /^Status:/ })).toBeNull();
@@ -395,6 +395,7 @@ describe('Apply filter (#129, #543)', () => {
       'This week 0',
       'Interviewing 0',
       'Applied 1',
+      'Rejected 0',
       'Recently closed 0',
       'Passed 0',
       'All jobs 2',
