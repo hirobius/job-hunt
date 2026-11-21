@@ -30,6 +30,7 @@ import {
 } from './feed/autoScan';
 import { useScanInput } from './feed/useAutoScan';
 import { CloudSyncContext } from './account/accountContext';
+import { browserScans } from './feed/browserScans';
 import { openSearchProfile } from './jobDialogs';
 
 const VIA_LABEL: Record<LeadSource, string> = {
@@ -52,6 +53,7 @@ export function NoResultsKeys({ caughtUp = false }: { caughtUp?: boolean } = {})
   return (
     <Stack direction="row" wrap="wrap" gap="tight" justify="center">
       {!user &&
+        browserScans() &&
         (running ? (
           <Button variant="tertiary" onClick={cancelScan}>
             Stop scan

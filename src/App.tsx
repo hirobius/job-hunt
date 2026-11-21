@@ -27,6 +27,7 @@ import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInHost from './account/SignInHost';
+import { browserScans } from './feed/browserScans';
 import { useJobs } from './store';
 import { useProfile } from './profile';
 import { useSnippets } from './copyDeckStore';
@@ -306,7 +307,8 @@ export default function App() {
       <SystemsOnlyMigration />
       <V12Migration />
       {/* The scan starts once the profile is here (made on its own on a first run). */}
-      {scanOnOpenEnabled() && hasProfile && (
+      {/* Browser scans off (#756): no scan on open. */}
+      {scanOnOpenEnabled() && browserScans() && hasProfile && (
         <Suspense fallback={null}>
           <AutoScanOnOpen />
         </Suspense>

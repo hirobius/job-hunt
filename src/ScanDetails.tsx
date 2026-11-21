@@ -11,7 +11,7 @@ import { useScanningCount } from './feed/scanningCount';
 import { useServerUpdated } from './feed/serverUpdated';
 import { useScanInput } from './feed/useAutoScan';
 import { useScanDetails } from './feed/scanDetails';
-import { unavailableWhy } from './feed/scanDetailsText';
+import { parityLine, unavailableWhy } from './feed/scanDetailsText';
 
 function progressLine(p: ScanProgress | undefined): string {
   switch (p?.phase) {
@@ -100,6 +100,17 @@ export default function ScanDetails() {
                 </>
               )}
             </Stack>
+            {d.parity && (
+              // The parity count (#756): local only, nothing is sent.
+              <Stack gap="tight" as="section" aria-labelledby="rjb-scan-parity">
+                <Text variant="body" as="h3" className="rjb-semibold" id="rjb-scan-parity">
+                  Where the rows came from
+                </Text>
+                <Text variant="body" as="p" tone="secondary">
+                  {parityLine(d.parity)}
+                </Text>
+              </Stack>
+            )}
           </>
         )}
         {unsupported.length > 0 && (

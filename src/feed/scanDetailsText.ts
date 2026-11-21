@@ -28,3 +28,8 @@ export function unavailableWhy(s: { label: string; error?: string }): string {
     ? `${s.label.split(' · ')[0]}: today's free searches are used up, more tomorrow.`
     : (s.error?.replace(/ — /g, ': ') ?? `${s.label} didn’t answer.`);
 }
+
+/** "12 from the server, 3 only from this browser" (#756 parity count). */
+export function parityLine(p: { server: number; browserOnly: number }): string {
+  return `${p.server} from the server, ${p.browserOnly} only from this browser`;
+}

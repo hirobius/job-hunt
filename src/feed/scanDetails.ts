@@ -14,6 +14,10 @@ export interface ScanDetails {
   /** Postings the list shows (undecided, not saved or muted): the Review tab's count. */
   listed: number;
   sourcesRead: number;
+  /** The parity count (#756 phase 1), signed in: of the rows Review lists, how many came from
+   *  the server's read and how many only this browser found (its read or its scan). Local only:
+   *  nothing is sent. */
+  parity?: { server: number; browserOnly: number };
 }
 
 let current: ScanDetails | null = null;

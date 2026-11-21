@@ -10,3 +10,4 @@
 - [`0008`](0008-sync-user-edited-stores-in-blob-v5.md): user-edited stores sync in the blob.
 - [`0009`](0009-one-search-profile-and-sources-replace-tracks.md): one Search profile and Sources list.
 - [`0010`](0010-two-screens-find-and-apply.md): two screens, Find (now Review) and Apply.
+- [`0012`](0012-scans-run-on-the-server-only.md): scans run on the server only (Proposed, #756; 0011 is #744's).

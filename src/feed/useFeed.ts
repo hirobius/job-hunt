@@ -4,7 +4,8 @@
 // opening a posting and coming Back shows the same rows with no new read; Refresh reads again.
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { CloudSyncContext } from '../account/accountContext';
-import { serverFirstReader } from './serverFeed';
+import { noReader, serverFirstReader } from './serverFeed';
+import { browserScans } from './browserScans';
 import { dedupKey, useJobs } from '../store';
 import { useRemembered } from '../viewMemory';
 import { useProfile } from '../profile';
@@ -98,9 +99,15 @@ export function useFeed(given?: PostingReader): FeedState {
   // Held behind the sign-in screen (2026-11-09): no read starts and the rows are not rebuilt
   // while it is open; a read in flight stops, and the same read resumes once it closes.
   const held = !!sync?.signInOpen;
+  // Browser scans off (#756): the server's rows only, with no browser read behind them.
+  const scans = browserScans();
   const reader = useMemo(
-    () => given ?? scanReader(signedIn ? serverFirstReader(liveReader) : liveReader),
-    [given, signedIn],
+    () =>
+      given ??
+      (scans
+        ? scanReader(signedIn ? serverFirstReader(liveReader) : liveReader)
+        : serverFirstReader(noReader)),
+    [given, signedIn, scans],
   );
   const { profile, sources } = useFeedInputs();
   const decided = useDecided();
@@ -122,7 +129,7 @@ export function useFeed(given?: PostingReader): FeedState {
     .join(',')}`;
   // The inclusion rule is in the key: a read keeps no text for what the rule leaves out (slimRead).
   const rule = JSON.stringify(profile.include);
-  const key = `${signedIn ? 'server' : 'browser'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}|${rule}`;
+  const key = `${signedIn ? 'server' : 'browser'}${scans ? '' : ':only'}|${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}|${rule}`;
   const [read, setRead] = useRemembered<Read | null>('review:read', storedRead);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
 
@@ -174,7 +181,7 @@ export function useFeed(given?: PostingReader): FeedState {
     };
     // Signed in, a company or title added since the last read is read in the browser: the server
     // has not read it yet (its sync runs every 15 minutes), and its jobs show at once.
-    const by = onlyAdded && signedIn ? browserFirst : reader;
+    const by = onlyAdded && signedIn && scans ? browserFirst : reader;
     const repaint = repaintScheduler<FeedProgress>((q) => {
       if (alive)
         done(fold({ postings: q.postings, sources: q.sources }), startedAt, {
@@ -207,7 +214,7 @@ export function useFeed(given?: PostingReader): FeedState {
     };
     // req derives from key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, attempt, hasQuery, reader, signedIn, held]);
+  }, [key, attempt, hasQuery, reader, signedIn, held, scans]);
 
   // The rows of the last read stay up while a changed request is read (never a blank list).
   const current = read?.result || read?.key === key ? read : null;

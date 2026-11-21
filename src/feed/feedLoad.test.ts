@@ -4,7 +4,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
-import { resultFromRows, serverFirstReader } from './serverFeed';
+import { lastServerIds, noReader, resultFromRows, serverFirstReader } from './serverFeed';
+import { parityLine } from './scanDetailsText';
 import { fetchFeed } from './fetchFeed';
 import { setLightBoards } from './lightBoards';
 import { greenhouseRef, loadPostingText, resetPostingTexts, usePostingText } from './postingText';
@@ -38,6 +39,25 @@ const req = {
 afterEach(() => {
   setLightBoards(null);
   resetPostingTexts();
+});
+
+describe('the parity count (#756 phase 1)', () => {
+  it('keeps the ids of the last server read; a fallback read clears them', async () => {
+    await serverFirstReader(noReader, async () => [row(1), row(2)]).read(req);
+    expect([...lastServerIds()]).toEqual(['greenhouse:acme:1', 'greenhouse:acme:2']);
+    // Browser scans off: no rows on the server means an empty read, with no browser read behind it.
+    expect(await serverFirstReader(noReader, async () => []).read(req)).toEqual({
+      postings: [],
+      sources: [],
+    });
+    expect(lastServerIds().size).toBe(0);
+  });
+
+  it('says it in Scan details as plain counts', () => {
+    expect(parityLine({ server: 12, browserOnly: 3 })).toBe(
+      '12 from the server, 3 only from this browser',
+    );
+  });
 });
 
 describe('signed in: the server rows first', () => {
